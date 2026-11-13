@@ -9,12 +9,14 @@ public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
 public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Meromorphic
 public import Mathlib.Data.Int.Star
+public import Mathlib.Analysis.Normed.Group.Tannery
 public import Mathlib.Data.PNat.Interval
 public import Mathlib.Data.Real.Sign
 public import Mathlib.Algebra.Order.Star.Real
 public import Mathlib.RingTheory.SimpleRing.Principal
 public import PrimeNumberTheoremAnd.IEANTN.PrimaryDefinitions
-public import PrimeNumberTheoremAnd.Wiener
+public import PrimeNumberTheoremAnd.FourierDecay
+public import TauCeti.NumberTheory.LSeries.WienerIkehara.Fourier
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 
@@ -43,9 +45,9 @@ open Complex hiding log
 
 private lemma pnat_one_le (n : ℕ+) : 1 ≤ (n : ℕ) := n.2
 
-lemma summable_nterm_of_log_weight {a : ℕ → ℂ} {β sig : ℝ}
+lemma LSeriesSummable_of_log_weight {a : ℕ → ℂ} {β sig : ℝ}
     (hsig : 1 < sig) (ha : Summable (fun n : ℕ ↦ ‖a n‖ / (n * Real.log n ^ β))) :
-    Summable (nterm a sig) := by
+    LSeriesSummable a (sig : ℂ) := by
   have hs : 0 < sig - 1 := sub_pos.mpr hsig
   have hlo : (fun x : ℝ => Real.log x ^ β) =o[Filter.atTop] fun x => x ^ (sig - 1) :=
     isLittleO_log_rpow_rpow_atTop β hs
@@ -72,7 +74,8 @@ lemma summable_nterm_of_log_weight {a : ℕ → ℂ} {β sig : ℝ}
       (mul_le_mul_of_nonneg_left hlog_le' hnpos.le)
   have hbase : Summable (fun n : ℕ ↦ if n = 0 then 0 else ‖a n‖ / n ^ sig) :=
     Summable.of_norm_bounded_eventually_nat ha h_event
-  simpa [nterm] using! hbase
+  apply Summable.of_norm
+  simpa [LSeries.norm_term_eq] using! hbase
 
 lemma fourier_scale_div_noscalar (φ : ℝ → ℂ) (T u : ℝ) (hT : 0 < T) :
     𝓕 (fun t : ℝ ↦ φ (t / T)) u = (T : ℂ) * 𝓕 φ (T * u) := by
@@ -91,7 +94,7 @@ lemma fourier_scale_div_noscalar (φ : ℝ → ℂ) (T u : ℝ) (hT : 0 < T) :
   Let $a_n$ be a sequence with $\sum_{n>1} \frac{|a_n|}{n \log^\beta n} < \infty$ for some $\beta > 1$.  Write $G(s)= \sum_n a_n n^{-s} - \frac{1}{s-1}$ for $\mathrm{Re} s > 1$.  Let $\varphi$ be absolutely integrable, supported on $[-1,1]$, and has Fourier decay $\hat \psi(y) = O(1/|y|^\beta)$.  Then for any $x>0$ and $\sigma > 1$
   $$ \frac{1}{2\pi} \sum a_n \frac{x}{n^\sigma} \hat \psi(\frac{T}{2\pi} \log \frac{n}{x} ) = \frac{1}{2\pi T} \int_{-T}^{T} \varphi(\frac{t}{T}) G(\sigma+it) x^{it}\ dt + \int_{-T \log x/2\pi}^\infty e^{-y(\sigma-1)} \hat \varphi(y)\ dy) \frac{x^{2-\sigma}}{T}.$$
   -/)
-  (proof := /-- Use Lemma \ref{first-fourier} and Lemma \ref{second-fourier}, similar to the proof of `limiting\_fourier\_aux`.
+  (proof := /-- Use the Dirichlet-series Fourier identity and the simple-pole integral identity from Tau Ceti.
   -/)
   (latexEnv := "sublemma")
   (discussion := 879)]
@@ -115,21 +118,26 @@ theorem prop_2_3_1 {a : ℕ → ℂ} {T β : ℝ} (hT : 0 < T) (_hβ : 1 < β)
   have hphiScaled_int : Integrable phiScaled :=
     (MeasureTheory.integrable_comp_mul_right_iff (g := φ) (inv_ne_zero hT.ne')).2 hφ_int |>.congr
       (by simp [phiScaled, div_eq_mul_inv])
-  have hsummable : ∀ (σ' : ℝ), 1 < σ' → Summable (nterm a σ') :=
-    fun σ' hσ' => summable_nterm_of_log_weight hσ' ha
-  have hfirst := @first_fourier x sig phiScaled a hsummable hphiScaled_int hx hsig
-  have hsecond := @second_fourier phiScaled hphiScaled_meas hphiScaled_int x sig hx hsig
+  have hsummable : ∀ (σ' : ℝ), 1 < σ' → LSeriesSummable a (σ' : ℂ) :=
+    fun σ' hσ' => LSeriesSummable_of_log_weight hσ' ha
+  have hfirst := TauCeti.LSeries.tsum_term_mul_fourier_eq_integral
+    (a := a) (sigma := sig) hphiScaled_int hx (hsummable sig hsig)
+  have hsecond := TauCeti.LSeries.integral_exp_mul_fourier_eq
+    (sigma := sig) hphiScaled_int hx hsig
   have hxpow (t : ℝ) : ‖(x : ℂ) ^ (t * I)‖ = 1 := by
     rw [Complex.norm_cpow_eq_rpow_re_of_pos hx]; simp
-  let C0 : ℝ := ∑' n : ℕ, nterm a sig n
+  let C0 : ℝ := ∑' n : ℕ, ‖LSeries.term a (sig : ℂ) n‖
   have hC0_nonneg : 0 ≤ C0 := tsum_nonneg fun n => by
-    by_cases hn : n = 0 <;> simp [nterm, hn, div_nonneg, Real.rpow_nonneg]
+    exact norm_nonneg _
   have hLS_bound (t : ℝ) : ‖LSeries a (sig + t * I)‖ ≤ C0 := by
     have hs_term : Summable (fun n : ℕ => ‖LSeries.term a (sig + t * I) n‖) := by
-      convert hsummable sig hsig with n; simp [norm_term_eq_nterm_re]
-    exact (norm_tsum_le_tsum_norm hs_term).trans (by simp [C0, norm_term_eq_nterm_re])
+      exact ((hsummable sig hsig).of_re_le_re (by simp)).norm
+    refine (norm_tsum_le_tsum_norm hs_term).trans_eq ?_
+    apply tsum_congr
+    intro n
+    simp [C0, LSeries.norm_term_eq]
   have hLS_aesm : AEStronglyMeasurable (fun t : ℝ ↦ LSeries a (sig + t * I) * phiScaled t * x ^ (t * I)) :=
-    (((continuous_LSeries_aux (hsummable sig hsig)).measurable.mul hphiScaled_meas).mul
+    (((TauCeti.LSeries.continuous_vertical a (sig : ℂ)).measurable.mul hphiScaled_meas).mul
       (continuous_const.cpow (continuous_ofReal.mul continuous_const) (by simp [hx])).measurable).aestronglyMeasurable
   have hLS_int : Integrable (fun t : ℝ ↦ LSeries a (sig + t * I) * phiScaled t * x ^ (t * I)) :=
     .mono' (hphiScaled_int.norm.const_mul C0) hLS_aesm (.of_forall fun t => by
@@ -1056,10 +1064,10 @@ private lemma summable_I'_residual {a : ℕ → ℝ} (ha_pos : ∀ n, a n ≥ 0)
       · simp
     · exact h_bound
     · have h_summable_nterm : Summable (fun n : ℕ+ ↦ (a n : ℝ) / (n : ℝ) ^ σ) := by
-        convert! (summable_pnat_iff_summable_nat (f := nterm (fun n ↦ ↑(a n)) σ)).mpr ?_ using 1
-        · ext n ; simp only [nterm, PNat.ne_zero, ↓reduceIte, norm_real, norm_eq_abs]
+        convert! (summable_pnat_iff_summable_nat (f := fun n ↦ ‖LSeries.term (fun n ↦ (a n : ℂ)) (σ : ℂ) n‖)).mpr ?_ using 1
+        · ext n ; simp only [LSeries.norm_term_eq, PNat.ne_zero, ↓reduceIte, Complex.ofReal_re, Complex.norm_real, norm_eq_abs]
           rw [abs_of_nonneg (ha_pos _)]
-        · exact summable_nterm_of_log_weight hσ_gt ha
+        · exact (LSeriesSummable_of_log_weight hσ_gt ha).norm
       convert! h_summable_nterm.mul_left (x ^ σ) using 1
       ext n
       ring
@@ -2005,12 +2013,14 @@ lemma h_B_rational (ε : ℝ) : ∀ w : ℂ, w ≠ 0 → B ε w = w * (Complex.c
   simp +contextual [Complex.tanh_eq_sinh_div_cosh, B, coth]
 
 lemma h_comp (ε ν : ℝ) (hlam : ν ≠ 0) : ContDiff ℝ 2 (fun t : ℝ => (-2 * Real.pi * Complex.I * t + ν) * (Complex.cosh ((-2 * Real.pi * Complex.I * t + ν) / 2) / Complex.sinh ((-2 * Real.pi * Complex.I * t + ν) / 2) + ε) / 2) := by
-  apply_rules [ContDiff.div, ContDiff.mul, ContDiff.add, contDiff_const, contDiff_id] <;> try fun_prop
-  · exact Complex.conjCLE.contDiff.comp (by fun_prop)
-  · refine Complex.ofRealCLM.contDiff.comp ?_
-    refine ContDiff.inv (by fun_prop) ?_
-    intro x; rw [ne_eq, Complex.normSq_eq_zero]
-    exact sinh_ne_zero_of_re_ne_zero (by simp [hlam])
+  have hf : ContDiff ℝ 2 (fun t : ℝ ↦ -2 * Real.pi * Complex.I * t + ν) := by fun_prop
+  have hcos : ContDiff ℝ 2 (fun t : ℝ ↦ Complex.cosh ((-2 * Real.pi * Complex.I * t + ν) / 2)) :=
+    Complex.contDiff_cosh_real.comp (hf.div_const 2)
+  have hsin : ContDiff ℝ 2 (fun t : ℝ ↦ Complex.sinh ((-2 * Real.pi * Complex.I * t + ν) / 2)) :=
+    Complex.contDiff_sinh_real.comp (hf.div_const 2)
+  have hne (t : ℝ) : Complex.sinh ((-2 * Real.pi * Complex.I * t + ν) / 2) ≠ 0 :=
+    sinh_ne_zero_of_re_ne_zero (by simpa using hlam)
+  exact (hf.mul ((hcos.div_real_complex hsin hne).add contDiff_const)).div_const 2
 
 theorem Phi_star.contDiff_real (ν ε : ℝ) (hlam : ν ≠ 0) :
     ContDiff ℝ 2 (fun (t : ℝ) ↦ Phi_star ν ε (t : ℂ)) := by
@@ -2403,7 +2413,7 @@ theorem ϕ_circ_bound_right (ν₀ ν₁ ε c : ℝ) (hc : c > -ν₀ / (2 * π)
         _ ≤ ‖Complex.tanh u‖ := by
             rw [← Real.sqrt_sq (div_nonneg (Real.sinh_nonneg_iff.mpr
               (hκ.le.trans hu)) (Real.cosh_pos _ |>.le))]
-            exact Real.sqrt_le_sqrt (by rw [Complex.sq_norm] at htanh_sq; exact htanh_sq)
+            exact (Real.sqrt_le_sqrt htanh_sq).trans_eq (Real.sqrt_sq (norm_nonneg _))
   use (1 / 2) * ((Real.tanh κ)⁻¹ + |ε|)
   intros ν hν z hz
   have h_w : ‖(Complex.tanh ((-2 * Real.pi * Complex.I * z + ν) / 2))⁻¹‖ ≤
@@ -5934,9 +5944,11 @@ private lemma HorizontalStrip.hasBasis_atTop (c : ℝ) :
       (fun _ ↦ True) (fun R ↦ {z : ℂ | R ≤ |z.re| ∧ |z.im| ≤ c}) := by
   rw [show Complex.im ⁻¹' Set.Icc (-c) c = {z : ℂ | |z.im| ≤ c} by
     ext z; rw [Set.mem_preimage, Set.mem_Icc, Set.mem_ofPred_eq, abs_le]]
-  apply Filter.HasBasis.inf_principal
-  apply Filter.HasBasis.comap (abs ∘ Complex.re)
-  apply Filter.atTop_basis
+  convert (Filter.atTop_basis.comap (abs ∘ Complex.re)).inf_principal
+    {z : ℂ | |z.im| ≤ c} using 1
+  funext R
+  ext z
+  rfl
 
 private lemma tendsto_sinh_atTop : Filter.Tendsto Real.sinh Filter.atTop Filter.atTop := by
   have h_le : ∀ x : ℝ, 0 ≤ x → (Real.exp x - 1) / 2 ≤ Real.sinh x := by

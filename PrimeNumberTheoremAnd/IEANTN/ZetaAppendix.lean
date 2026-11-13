@@ -13,6 +13,8 @@ public import Mathlib.Data.Int.Star
 public import Mathlib.Algebra.Order.Star.Real
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.NumberTheory.ZetaValues
+public import TauCeti.NumberTheory.LSeries.RiemannZeta
+public import Mathlib.NumberTheory.ModularForms.EisensteinSeries.Summable
 public import PrimeNumberTheoremAnd.IEANTN.Mertens
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
@@ -446,16 +448,16 @@ theorem lemma_aachIBP (s : ℂ) (ν : ℝ) (hν : ν ≠ 0) (a b : ℝ)
     have h1 : ContDiffAt ℝ 1 (deriv φ) t := h.derivWithin (by norm_num)
     exact h1.differentiableAt (by norm_num)
   have h_cont : ContinuousOn φ (Set.Icc a b) :=
-    (hsmooth.mono (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)).continuousOn
+    (hsmooth.mono (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)).continuousOn
   have h_deriv_cont : ContinuousOn (fun t ↦ deriv φ t) (Set.Icc a b) := by
     have h1 : ContinuousOn (deriv φ) (Set.Ioi 0) :=
       hsmooth.continuousOn_deriv_of_isOpen isOpen_Ioi (by norm_num)
-    exact h1.mono (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)
+    exact h1.mono (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)
   have h_deriv2_cont : ContinuousOn (fun t ↦ deriv (deriv φ) t) (Set.Icc a b) := by
     have h1 : ContDiffOn ℝ 1 (deriv φ) (Set.Ioi 0) :=
       ((contDiffOn_succ_iff_deriv_of_isOpen isOpen_Ioi).mp hsmooth).2.2
     exact (h1.continuousOn_deriv_of_isOpen isOpen_Ioi (by norm_num)).mono
-      (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)
+      (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)
   exact integral_power_phase_ibp s.re φ a b hb ha_pos h_phi_ne h_diff h_diff2
     h_cont h_deriv_cont h_deriv2_cont
 
@@ -984,7 +986,7 @@ theorem lemma_IBP_bound_abs_antitone {a b : ℝ} (hab : a < b) (g : ℝ → ℝ)
       · convert this using 1 <;> norm_num [integral_neg]
         · ring_nf; rw [← norm_neg]; ring_nf
         · exact Or.inl <| by ring
-      · exact hgcont.neg
+      · exact hgcont
       · intro t ht u hu htu; have := hganti ht hu htu; simp_all [abs_of_nonneg]
       · assumption
     have hbd₂ : ‖g b * F b - g a * F a‖ ≤ (⨆ t ∈ Icc a b, ‖F t‖) * (g b + g a) := by
@@ -1264,18 +1266,18 @@ theorem lemma_aachfour (s : ℂ) (hsigma : 0 ≤ s.re) (ν : ℝ) (hν : ν ≠ 
     · fun_prop
     · apply ContDiffOn.mul contDiffOn_const
       exact contDiffOn_log.mono (fun x hx ↦ ne_of_gt hx)
-  have hcontdiffφ : ContDiffOn ℝ 1 φ (Set.Icc a b) := (hsmooth.mono (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)).of_le (by norm_num)
+  have hcontdiffφ : ContDiffOn ℝ 1 φ (Set.Icc a b) := (hsmooth.mono (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)).of_le (by norm_num)
   have h_cont : ContinuousOn φ (Set.Icc a b) :=
-    (hsmooth.mono (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)).continuousOn
+    (hsmooth.mono (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)).continuousOn
   have h_deriv_cont : ContinuousOn (fun t ↦ deriv φ t) (Set.Icc a b) := by
     have h1 : ContinuousOn (deriv φ) (Set.Ioi 0) :=
       hsmooth.continuousOn_deriv_of_isOpen isOpen_Ioi (by norm_num)
-    exact h1.mono (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)
+    exact h1.mono (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)
   have h_deriv2_cont : ContinuousOn (fun t ↦ deriv (deriv φ) t) (Set.Icc a b) := by
     have h1 : ContDiffOn ℝ 1 (deriv φ) (Set.Ioi 0) :=
       ((contDiffOn_succ_iff_deriv_of_isOpen isOpen_Ioi).mp hsmooth).2.2
     exact (h1.continuousOn_deriv_of_isOpen isOpen_Ioi (by norm_num)).mono
-      (fun x hx ↦ lt_of_lt_of_le ha_pos hx.1)
+      (fun x (hx : x ∈ Set.Icc a b) ↦ lt_of_lt_of_le ha_pos hx.1)
   have hφ_deriv : ∀ t ∈ Set.Icc a b, deriv φ t = ν - s.im / (2 * π * t) := by
     intro t ht
     have ht_pos : 0 < t := lt_of_lt_of_le (lt_of_le_of_lt (by positivity) ha) ht.1
@@ -1597,7 +1599,8 @@ lemma lemma_aachcanc_pointwise (s : ℂ) {n : ℤ} (hn : n ≠ 0)
     ring_nf
   · simp_all only [sub_eq_iff_eq_add, zero_add, ne_eq, mul_eq_zero, I_ne_zero, ofReal_eq_zero,
       pi_ne_zero, OfNat.ofNat_ne_zero, false_or, not_or]
-    constructor <;> exact fun h ↦ h_denom <| by linear_combination' h * h
+    constructor <;> exact fun h ↦ h_denom <| by
+      linear_combination congrArg (fun x ↦ x * x) h
   · simp_all [mul_assoc, mul_comm]
   · contrapose! h_deriv_n
     simp_all [mul_assoc, mul_comm, mul_left_comm, div_eq_mul_inv, sub_eq_iff_eq_add]
@@ -1912,7 +1915,7 @@ theorem lemma_abadeulmac {b : ℝ} (hb : 0 < b) (hb' : b.IsHalfInteger) {s : ℂ
       enter [2, 2]
       equals (k : ℝ) + 1 => ring_nf
     rw[integrableOn_Ioc_iff_integrableOn_Ioo,MeasureTheory.integrableOn_congr_fun (fun A B=>by rw [Int.fract,Int.floor_eq_iff.2 (B.imp_left (by linear_combination·))]) measurableSet_Ioo]
-    exact (ContinuousOn.mul (by fun_prop) (.cpow_const (by fun_prop) fun and c=>.inl (hb.trans_le c.1))).integrableOn_Icc.mono_set Set.Ioo_subset_Icc_self
+    exact (ContinuousOn.mul (by fun_prop) (.cpow_const (by fun_prop) fun and (c : and ∈ Set.Icc ((k : ℝ) + 1/2) (k + 1)) => .inl (hb.trans_le c.1))).integrableOn_Icc.mono_set Set.Ioo_subset_Icc_self
   · apply(integrableOn_Ioi_rpow_of_lt (by norm_num[*]:-1+-s.1< _) (by bound)).norm.mono' ((measurable_fract.complex_ofReal.sub_const _).mul (by fun_prop)).aestronglyMeasurable
     filter_upwards[MeasureTheory.ae_restrict_mem (by norm_num)] with S(F: S> _)
     have := k.cast_add_one_pos (α := ℝ)
@@ -1975,7 +1978,7 @@ theorem lemma_abadtoabsum {a b : ℝ} (ha : 0 < a) (hb' : b.IsHalfInteger) (hab 
     have hdisjoint : Disjoint (Finset.Icc 1 ⌊a⌋₊) (Ioc ⌊a⌋₊ ⌊b⌋₊) :=
       disjoint_left.mpr fun x hx₁ hx₂ ↦ by simp only [Finset.mem_Icc] at hx₁; simp only [Finset.mem_Ioc] at hx₂; omega
     rw [hfinset, sum_union hdisjoint] at hmac
-    linear_combination' hmac
+    linear_combination hmac
   · have h_integral_bound : ‖∫ y in Set.Ioi b, (Int.fract y - 1 / 2 : ℂ) * ((y : ℂ) ^ (-(s + 1)))‖ ≤
         (1 / 2) * (1 / (s.re * b ^ s.re)) := by
       have hstep1 : ‖∫ y in Set.Ioi b, (Int.fract y - 1 / 2 : ℂ) * ((y : ℂ) ^ (-(s + 1)))‖ ≤
@@ -2279,7 +2282,7 @@ lemma tendsto_exp_over_nat_eq_neg_log_of_not_int {x : ℝ} (hx : ¬ ∃ k : ℤ,
         ∑ n ∈ range N,
           ((1 : ℝ) / (n + 1 : ℝ)) •
             (Complex.exp ((2 * Real.pi * x : ℝ) * Complex.I)) ^ (n + 1))
-      atTop (𝓝 (-Complex.log (1 - expPhase x))) := by
+      atTop (𝓝 (-Complex.log (1 - Complex.exp ((2 * Real.pi * x : ℝ) * Complex.I)))) := by
   obtain ⟨L, hL⟩ := exists_tendsto_exp_over_nat_of_not_int hx
   have hL_div : Tendsto
       (fun N : ℕ ↦
@@ -3260,7 +3263,7 @@ lemma secondIBPExpr_eq_negB1IntegralExpr {a b : ℝ} (ha : 0 < a) (hab : a ≤ b
   have hP : ∀ d, P d := by
     intro d
     induction d using Nat.strong_induction_on with
-    | h d ih =>
+    | ind d ih =>
         intro a b ha hab hd
         by_cases hfloor_eq : ⌊b⌋₊ = ⌊a⌋₊
         · let m : ℕ := ⌊a⌋₊
@@ -4292,9 +4295,11 @@ lemma lemma_abadimpseri (ϑ : ℝ) (hϑ : |ϑ| < 1) :
           · exact_mod_cast summable_nat_add_iff 1 |>.2 <| summable_nat_pow_inv.2 <| by omega
           · exact_mod_cast summable_nat_add_iff 1 |>.2 <| summable_nat_pow_inv.2 <| by omega
           · exact_mod_cast summable_nat_add_iff 2 |>.2 <| summable_nat_pow_inv.2 <| by omega
-        convert h_sum_zeta.le using 2
-        erw [zeta_eq_tsum_one_div_nat_add_one_cpow] <;> norm_num
-        · convert ofReal_re _; simp [Complex.ofReal_tsum]
+        have hzeta := TauCeti.hasSum_nat_add_one_rpow_neg_riemannZeta_re
+          (s := 3) (by norm_num)
+        have hzeta' : (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ 3) = (riemannZeta 3).re := by
+          simpa [Real.rpow_neg, Real.rpow_natCast, one_div] using hzeta.tsum_eq
+        simpa only [hzeta'] using h_sum_zeta.le
     rw [Summable.tsum_eq_zero_add]
     · norm_num [add_assoc, add_left_comm, add_comm, div_eq_mul_inv, mul_add, mul_comm,
         mul_left_comm, tsum_mul_left] at *

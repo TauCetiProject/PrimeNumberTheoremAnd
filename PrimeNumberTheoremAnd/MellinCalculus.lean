@@ -4,6 +4,7 @@ public import Architect
 public import Batteries.Tactic.Lemma
 public import Mathlib.Algebra.GroupWithZero.Units.Basic
 public import Mathlib.Analysis.MellinTransform
+public import TauCeti.Analysis.MellinTransform.Convolution
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 public import Mathlib.Tactic.Bound
 public import Mathlib.Tactic.GCongr
@@ -14,20 +15,6 @@ public import PrimeNumberTheoremAnd.Auxiliary
 
 open scoped ContDiff
 
-set_option lang.lemmaCmd true
-
--- TODO: move near `MeasureTheory.setIntegral_prod`
-theorem MeasureTheory.setIntegral_integral_swap {α : Type*} {β : Type*} {E : Type*}
-    [MeasurableSpace α] [MeasurableSpace β] {μ : MeasureTheory.Measure α}
-    {ν : MeasureTheory.Measure β} [NormedAddCommGroup E]
-    [MeasureTheory.SigmaFinite ν] [NormedSpace ℝ E] [MeasureTheory.SigmaFinite μ]
-    (f : α → β → E) {s : Set α} {t : Set β}
-    (hf : IntegrableOn (f.uncurry) (s ×ˢ t) (μ.prod ν)) :
-    (∫ (x : α) in s, ∫ (y : β) in t, f x y ∂ν ∂μ)
-      = ∫ (y : β) in t, ∫ (x : α) in s, f x y ∂μ ∂ν := by
-  apply integral_integral_swap
-  convert hf.integrable
-  exact Measure.prod_restrict s t
 
 -- How to deal with this coercion?... Ans: (f ·)
 --- noncomputable def funCoe (f : ℝ → ℝ) : ℝ → ℂ := fun x ↦ f x
@@ -354,89 +341,6 @@ open Pointwise in
 lemma support_MellinConvolution (f g : ℝ → 𝕂) :
     (MellinConvolution f g).support ⊆ f.support * g.support :=
   support_MellinConvolution_subsets subset_rfl subset_rfl
-
-blueprint_comment /--
-The Mellin transform of a convolution is the product of the Mellin transforms.
--/
-set_option backward.isDefEq.respectTransparency false in
-@[blueprint
-  (title := "MellinConvolutionTransform")
-  (statement := /--
-  Let $f$ and $g$ be functions from $\mathbb{R}_{>0}$ to $\mathbb{C}$ such that
-  \begin{equation}
-    (x,y)\mapsto f(y)\frac{g(x/y)}yx^{s-1}
-    \label{eq:assm_integrable_Mconv}
-  \end{equation}
-  is absolutely integrable on $[0,\infty)^2$.
-  Then
-  $$\mathcal{M}(f\ast g)(s) = \mathcal{M}(f)(s)\mathcal{M}(g)(s).$$
-  -/)
-  (proof := /--
-  By Definitions \ref{MellinTransform} and \ref{MellinConvolution}
-  $$
-    \mathcal M(f\ast g)(s)=
-    \int_0^\infty \int_0^\infty f(y)g(x/y)x^{s-1}\frac{dy}ydx
-  $$
-  By (\ref{eq:assm_integrable_Mconv}) and Fubini's theorem,
-  $$
-    \mathcal M(f\ast g)(s)=
-    \int_0^\infty \int_0^\infty f(y)g(x/y)x^{s-1}dx\frac{dy}y
-  $$
-  in which we change variables from $x$ to $z=x/y$:
-  $$
-    \mathcal M(f\ast g)(s)=
-    \int_0^\infty \int_0^\infty f(y)g(z)y^{s-1}z^{s-1}dzdy
-  $$
-  which, by Definition \ref{MellinTransform}, is
-  $$
-    \mathcal M(f\ast g)(s)=
-    \mathcal M(f)(s)\mathcal M(g)(s)
-    .
-  $$
-  -/)]
-lemma MellinConvolutionTransform (f g : ℝ → ℂ) (s : ℂ)
-    (hf : IntegrableOn (fun x y ↦ f y * g (x / y) / (y : ℂ) * (x : ℂ) ^ (s - 1)).uncurry
-      (Ioi 0 ×ˢ Ioi 0)) :
-    𝓜 (MellinConvolution f g) s = 𝓜 f s * 𝓜 g s := by
-  dsimp [mellin, MellinConvolution]
-  set f₁ : ℝ × ℝ → ℂ :=
-    fun ⟨x, y⟩ ↦ f y * g (x / y) / (y : ℂ) * (x : ℂ) ^ (s - 1)
-  calc
-    _ = ∫ (x : ℝ) in Ioi 0, ∫ (y : ℝ) in Ioi 0, f₁ (x, y) := ?_
-    _ = ∫ (y : ℝ) in Ioi 0, ∫ (x : ℝ) in Ioi 0, f₁ (x, y) :=
-        setIntegral_integral_swap _ hf
-    _ = ∫ (y : ℝ) in Ioi 0, ∫ (x : ℝ) in Ioi 0,
-        f y * g (x / y) / ↑y * ↑x ^ (s - 1) := rfl
-    _ = ∫ (y : ℝ) in Ioi 0, ∫ (x : ℝ) in Ioi 0,
-        f y * g (x * y / y) / ↑y * ↑(x * y) ^ (s - 1) * y := ?_
-    _ = ∫ (y : ℝ) in Ioi 0, ∫ (x : ℝ) in Ioi 0,
-        f y * ↑y ^ (s - 1) * (g x * ↑x ^ (s - 1)) := ?_
-    _ = ∫ (y : ℝ) in Ioi 0,
-        f y * ↑y ^ (s - 1) * ∫ (x : ℝ) in Ioi 0, g x * ↑x ^ (s - 1) := ?_
-    _ = _ := integral_mul_const _ _
-  <;> try (rw [setIntegral_congr_fun (by simp)]; intro y hy; simp only [ofReal_mul])
-  · simp only [integral_mul_const, f₁, mul_comm]
-  · simp only [integral_mul_const]
-    have := integral_comp_mul_right_Ioi
-      (fun x ↦ f y * g (x / y) / (y : ℂ) * (x : ℂ) ^ (s - 1)) 0 hy
-    have y_ne_zeroℂ : (y : ℂ) ≠ 0 := slitPlane_ne_zero (Or.inl hy)
-    field_simp at this ⊢
-    simp only [ofReal_mul, one_div, mul_zero, real_smul, ofReal_inv, field] at this ⊢
-    rw [← this]
-    field_simp
-    congr with x
-    ring_nf
-  · rw [setIntegral_congr_fun (by simp)]
-    intro x hx
-    have y_ne_zeroℝ : y ≠ 0 := ne_of_gt (mem_Ioi.mp hy)
-    have y_ne_zeroℂ : (y : ℂ) ≠ 0 := by exact_mod_cast y_ne_zeroℝ
-    field_simp
-    rw [mul_cpow_ofReal_nonneg hy.le hx.le]
-    ring
-  · apply integral_const_mul
-  · congr <;> ext <;> ring
-
-
 
 lemma mem_within_strip (σ₁ σ₂ : ℝ) :
     {s : ℂ | σ₁ ≤ s.re ∧ s.re ≤ σ₂} ∈
@@ -779,20 +683,6 @@ $$1_{(0,1]}(x) = \begin{cases}
 This has Mellin transform:
 [Note: this already exists in mathlib]
 -/
-@[blueprint
-  (title := "MellinOf1")
-  (statement := /--
-  The Mellin transform of $1_{(0,1]}$ is
-  $$\mathcal{M}(1_{(0,1]})(s) = \frac{1}{s}.$$
-  -/)
-  (proof := /-- This is a straightforward calculation. -/)]
-lemma MellinOf1 (s : ℂ) (h : s.re > 0) :
-    𝓜 ((fun x ↦ if 0 < x ∧ x ≤ 1 then 1 else 0)) s = 1 / s := by
-  convert (hasMellin_one_Ioc h).right
-  congr
-
-
-
 blueprint_comment /--
 What will be essential for us is properties of the smooth version of $1_{(0,1]}$, obtained as the
  Mellin convolution of $1_{(0,1]}$ with $\nu_\epsilon$.
@@ -1214,7 +1104,7 @@ transform of $\widetilde{1_{\epsilon}}$.
     =\mathcal M(1_{(0,1]}\ast\nu_\epsilon)(s)
     .
   $$
-  We wish to apply Theorem \ref{MellinConvolutionTransform}.
+  We wish to apply the Mellin convolution product theorem from Tau Ceti.
   To do so, we must prove that
   $$
     (x,y)\mapsto 1_{(0,1]}(y)\nu_\epsilon(x/y)/y
@@ -1239,13 +1129,13 @@ transform of $\widetilde{1_{\epsilon}}$.
   $$
   has compact support that is bounded away from $y=0$ (specifically
   $y\in[2^{-\epsilon},2^\epsilon]$ and $x\in(0,y]$), so it is integrable.
-  We can thus apply Theorem \ref{MellinConvolutionTransform} and find
+  We can thus apply the Mellin convolution product theorem from Tau Ceti and find
   $$
     \mathcal M(\widetilde{1_\epsilon})(s)
     =\mathcal M(\nu_\epsilon)(s)\mathcal M(1_{(0,1]})(s)
     .
   $$
-  By Lemmas \ref{MellinOf1} and \ref{MellinOfDeltaSpike},
+  By Mathlib's Mellin transform of $1_{(0,1]}$ and Lemma \ref{MellinOfDeltaSpike},
   $$
     \mathcal M(\widetilde{1_\epsilon})(s)
     =\frac1s\mathcal M(\nu)(\epsilon s)
@@ -1259,70 +1149,36 @@ lemma MellinOfSmooth1a {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     𝓜 (fun x ↦ (Smooth1 ν ε x : ℂ)) s =
       s⁻¹ * 𝓜 (fun x ↦ (ν x : ℂ)) (ε * s) := by
   let f' : ℝ → ℂ := fun x ↦ DeltaSpike ν ε x
-  let f : ℝ → ℂ := fun x ↦ DeltaSpike ν ε x / x
   let g : ℝ → ℂ := fun x ↦ if 0 < x ∧ x ≤ 1 then 1 else 0
-  let F : ℝ × ℝ → ℂ := Function.uncurry fun x y ↦ f y * g (x / y) * (x : ℂ) ^ (s - 1)
-  let S := {⟨x, y⟩ : ℝ × ℝ | 0 < x  ∧ x ≤ y ∧ 2 ^ (-ε) ≤ y ∧ y ≤ 2 ^ ε}
-  let F' : ℝ × ℝ → ℂ := piecewise S (fun ⟨x, y⟩ ↦ f y * (x : ℂ) ^ (s - 1))
-     (fun _ ↦ 0)
-  let Tx := Ioc 0 ((2 : ℝ) ^ ε)
-  let Ty := Icc ((2 : ℝ) ^ (-ε)) ((2 : ℝ) ^ ε)
-
-  have Seq : S = (Tx ×ˢ Ty) ∩ {(x, y) : ℝ × ℝ | x ≤ y} := by
-    ext ⟨x, y⟩; constructor
-    · exact fun h ↦ ⟨⟨⟨h.1, le_trans h.2.1 h.2.2.2⟩, ⟨h.2.2.1, h.2.2.2⟩⟩, h.2.1⟩
-    · exact fun h ↦  ⟨h.1.1.1, ⟨h.2, h.1.2.1, h.1.2.2⟩⟩
-  have SsubI : S ⊆ Ioi 0 ×ˢ Ioi 0 :=
-    fun z hz ↦ ⟨hz.1, lt_of_lt_of_le (by apply rpow_pos_of_pos; norm_num) hz.2.2.1⟩
-  have SsubT: S ⊆ Tx ×ˢ Ty := by simp_rw [Seq, inter_subset_left]
-  have Smeas : MeasurableSet S := by
-    rw [Seq]; apply MeasurableSet.inter ?_ <| measurableSet_le measurable_fst measurable_snd
-    simp [measurableSet_prod, Tx, Ty]
-
-  have int_F: IntegrableOn F (Ioi 0 ×ˢ Ioi 0) := by
-    apply IntegrableOn.congr_fun (f := F') ?_ ?_ (by simp [measurableSet_prod]); swap
-    · simp only [F, F', f, g, mul_ite, mul_one, mul_zero]
-      intro ⟨x, y⟩ hz
-      by_cases hS : ⟨x, y⟩ ∈ S <;> simp only [hS, piecewise]
-      <;> simp only [mem_prod, mem_Ioi, mem_ofPred_eq, not_and, not_le, S] at hz hS
-      · simp [div_pos hz.1 hz.2, (div_le_one hz.2).mpr hS.2.1]
-      · by_cases hxy : x / y ≤ 1
-        swap
-        · simp [hxy]
-        have hy : y ∉ Icc (2 ^ (-ε)) (2 ^ ε) := by
-          simp only [mem_Icc, not_and, not_le]; exact hS hz.1 <| (div_le_one hz.2).mp hxy
-        simp [DeltaSpikeSupport εpos hz.2.le suppν hy]
-    · apply Integrable.piecewise Smeas.nullMeasurableSet ?_ integrableOn_zero
-      simp only [IntegrableOn, Measure.restrict_restrict_of_subset SsubI]
-      apply MeasureTheory.Integrable.mono_measure ?_
-      · apply MeasureTheory.Measure.restrict_mono' SsubT.eventuallyLE le_rfl
-      have : volume.restrict (Tx ×ˢ Ty) = (volume.restrict Tx).prod (volume.restrict Ty) := by
-        rw [Measure.prod_restrict, MeasureTheory.Measure.volume_eq_prod]
-      erw [this]; conv => lhs; intro; rw [mul_comm]
-      apply MeasureTheory.Integrable.mul_prod (f := fun x ↦ (x : ℂ) ^ (s - 1))
-        (μ := Measure.restrict volume Tx)
-      · simp only [Tx]
-        rw [← IntegrableOn, integrableOn_Ioc_iff_integrableOn_Ioo,
-          intervalIntegral.integrableOn_Ioo_cpow_iff]
-        · simp [hs]
-        · apply rpow_pos_of_pos (by norm_num)
-      · apply (ContinuousOn.div ?_ ?_ ?_).integrableOn_compact isCompact_Icc
-        · exact (DeltaSpikeOfRealContinuous εpos diffν).continuousOn
-        · exact continuous_ofReal.continuousOn
-        · intro x hx; simp only [mem_Icc] at hx; simp only [ofReal_ne_zero]
-          linarith [(by apply rpow_pos_of_pos (by norm_num) : (0 : ℝ) < 2 ^ (-ε))]
-
-  have : 𝓜 (MellinConvolution g f') s = 𝓜 g s * 𝓜 f' s := by
-    rw [mul_comm, ← MellinConvolutionTransform f' g s
-      (by convert int_F using 1; simp only [f', F, f]; field_simp)]
-    dsimp [mellin]; rw [setIntegral_congr_fun (by simp)]
-    intro x hx; simp_rw [MellinConvolutionSymmetric _ _ <| mem_Ioi.mp hx]
+  have hf : MellinConvergent f' s := by
+    have hA : (0 : ℝ) < 2 ^ (-ε) := rpow_pos_of_pos (by norm_num) _
+    have hcompact : IntegrableOn (fun x : ℝ ↦ (x : ℂ) ^ (s - 1) • f' x)
+        (Icc (2 ^ (-ε)) (2 ^ ε)) := by
+      apply ContinuousOn.integrableOn_compact isCompact_Icc
+      simp only [smul_eq_mul]
+      apply ContinuousOn.mul
+      · apply ContinuousOn.cpow continuous_ofReal.continuousOn continuousOn_const
+        intro x hx
+        exact Or.inl (by simpa using hA.trans_le hx.1)
+      · exact (DeltaSpikeOfRealContinuous εpos diffν).continuousOn
+    apply IntegrableOn.of_inter_support measurableSet_Ioi
+    apply hcompact.mono_set
+    intro x hx
+    apply DeltaSpikeSupport' εpos (le_of_lt hx.1) suppν
+    intro hz
+    exact hx.2 (by simp [f', hz])
+  have hg : HasMellin g s (1 / s) := by
+    convert hasMellin_one_Ioc hs using 1
+    funext x
+    simp [g, Set.indicator, Set.mem_Ioc]
+  have := (TauCeti.hasMellin_integral_mul_div hg.1 hf).2
+  change 𝓜 (MellinConvolution g f') s = 𝓜 g s * 𝓜 f' s at this
 
   convert! this using 1
   · congr; funext x; convert! integral_ofReal.symm
     simp only [MellinConvolution, RCLike.ofReal_div, ite_mul, one_mul, zero_mul, @apply_ite ℝ ℂ,
       algebraMap.coe_zero, g]; rfl
-  · rw [MellinOf1 s hs, MellinOfDeltaSpike ν εpos s]
+  · rw [hg.2, MellinOfDeltaSpike ν εpos s]
     simp
 
 

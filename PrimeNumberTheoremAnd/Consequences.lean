@@ -5,13 +5,15 @@ public import Mathlib.Algebra.Order.Floor.Semifield
 public import Mathlib.NumberTheory.Harmonic.Bounds
 public import PrimeNumberTheoremAnd.Defs
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
-public import PrimeNumberTheoremAnd.Wiener
+public import Mathlib.NumberTheory.LSeries.PrimesInAP
+public import TauCeti.NumberTheory.LSeries.WienerIkehara.SharpCutoff
+public import TauCeti.NumberTheory.PrimeCounting
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
 
 
 
 @[expose] public section
 
-set_option lang.lemmaCmd true
 
 open ArithmeticFunction hiding log
 open Nat hiding log
@@ -88,51 +90,44 @@ theorem Asymptotics.IsEquivalent.add_isLittleO'' {α : Type*} {β : Type*} [Norm
   rw [← sub_sub_self u w]
   exact sub_isLittleO huv hwu
 
-theorem WeakPNT' : Tendsto (fun N ↦ (∑ n ∈ Iic N, Λ n) / N) atTop (nhds 1) := by
-  have : (fun N ↦ (∑ n ∈ Iic N, Λ n) / N) =
-      (fun N ↦ (∑ n ∈ range N, Λ n)/N + Λ N / N) := by
-    ext N
-    have : N ∈ Iic N := mem_Iic.mpr (le_refl _)
-    rw [← Finset.sum_erase_add _ _ this, ← Nat.Iio_eq_range, Iic_erase]
-    exact add_div _ _ _
+/-- The native residue-class coefficients satisfy Wiener--Ikehara at real cutoffs. -/
+private theorem tendsto_inv_mul_mangoldt_residueClass {q : ℕ} [NeZero q]
+    (a : ZMod q) (ha : IsUnit a) :
+    Tendsto (fun x : ℝ ↦ x⁻¹ * ∑ n ∈ Icc 1 ⌊x⌋₊,
+      vonMangoldt.residueClass a n) atTop (nhds (q.totient : ℝ)⁻¹) := by
+  apply TauCeti.LSeries.wienerIkehara
+    (a := vonMangoldt.residueClass a)
+    (F := LSeries (fun n ↦ (vonMangoldt.residueClass a n : ℂ)))
+    (G := vonMangoldt.LFunctionResidueClassAux a)
+  · exact vonMangoldt.residueClass_nonneg a
+  · intro z hz
+    exact (LSeriesSummable_of_abscissaOfAbsConv_lt_re
+      ((vonMangoldt.abscissaOfAbsConv_residueClass_le_one a).trans_lt
+        (by exact_mod_cast hz))).LSeriesHasSum
+  · exact vonMangoldt.continuousOn_LFunctionResidueClassAux a
+  · intro z hz
+    simpa using vonMangoldt.eqOn_LFunctionResidueClassAux ha hz
 
-  rw [this, ← add_zero 1]
-  apply Tendsto.add WeakPNT
-  convert squeeze_zero (f := fun N ↦ Λ N / N) (g := fun N ↦ log N / N) (t₀ := atTop) ?_ ?_ ?_
-  · intro N
-    exact div_nonneg vonMangoldt_nonneg (cast_nonneg N)
-  · intro N
-    exact div_le_div_of_nonneg_right vonMangoldt_le_log (cast_nonneg N)
-  have := Real.tendsto_pow_log_div_pow_atTop 1 1 Real.zero_lt_one
-  simp only [rpow_one] at this
-  exact Tendsto.comp this tendsto_natCast_atTop_atTop
-
-/-- An alternate form of the Weak PNT. -/
-theorem WeakPNT'' : ψ ~[atTop] (fun x ↦ x) := by
-    rw [(by rfl : ψ = (fun x ↦ ψ x))]
-    simp_rw [Chebyshev.psi_eq_sum_Icc]
-    apply IsEquivalent.trans (v := fun x ↦ (⌊x⌋₊:ℝ))
-    · rw [isEquivalent_iff_tendsto_one]
-      · convert! Tendsto.comp WeakPNT' tendsto_nat_floor_atTop
-        infer_instance
-      rw [eventually_iff]
-      simp only [ne_eq, cast_eq_zero, floor_eq_zero, not_lt, mem_atTop_sets,
-        Set.mem_ofPred_eq]
-      use 1
-      simp only [imp_self, implies_true]
-    apply IsLittleO.isEquivalent
-    rw [← isLittleO_neg_left]
-    apply IsLittleO.of_bound
-    intro ε hε
-    simp only [Pi.sub_apply, neg_sub, norm_eq_abs, eventually_atTop]
-    use ε⁻¹
-    intro b hb
-    have hb' : 0 ≤ b := le_of_lt (lt_of_lt_of_le (inv_pos_of_pos hε) hb)
-    rw [abs_of_nonneg, abs_of_nonneg hb']
-    · apply LE.le.trans _ ((inv_le_iff_one_le_mul₀' hε).mp hb)
-      linarith [Nat.lt_floor_add_one b]
-    rw [sub_nonneg]
-    exact floor_le hb'
+@[blueprint "WeakPNT"
+  (title := "Weak prime number theorem")
+  (statement := /-- The Chebyshev function satisfies $\psi(x) \sim x$. -/)]
+theorem psi_isEquivalent_self : ψ ~[atTop] (fun x ↦ x) := by
+  have h := tendsto_inv_mul_mangoldt_residueClass (q := 1) 1 isUnit_one
+  have hsum (x : ℝ) : ∑ n ∈ Icc 1 ⌊x⌋₊,
+      vonMangoldt.residueClass (1 : ZMod 1) n = ψ x := by
+    rw [Chebyshev.psi_eq_sum_Icc]
+    simp only [vonMangoldt.residueClass, Set.indicator_apply,
+      show ∀ n : ℕ, (n : ZMod 1) = 1 from fun _ ↦ Subsingleton.elim _ _,
+      Set.mem_setOf_eq, ↓reduceIte]
+    exact sum_subset (Icc_subset_Icc_left (by omega : 0 ≤ 1)) fun n hn hn' ↦ by
+      have : n = 0 := by simp only [mem_Icc] at hn hn'; omega
+      simp [this]
+  simp only [hsum, totient_one, cast_one, inv_one] at h
+  refine (isEquivalent_iff_tendsto_one ?_).mpr ?_
+  · filter_upwards [eventually_gt_atTop 0] with x hx
+    exact hx.ne'
+  · change Tendsto (fun x : ℝ ↦ ψ x / x) atTop (nhds 1)
+    simpa only [div_eq_mul_inv, mul_comm] using h
 
 /-- `√x · log x = o(x)` as `x → ∞`. -/
 lemma isLittleO_sqrt_mul_log : (fun x : ℝ ↦ x.sqrt * x.log) =o[atTop] _root_.id := by
@@ -181,7 +176,7 @@ lemma Icc_zero_eq_insert (n : ℕ) : Icc 0 n = insert 0 (Icc 1 n) := by
   required.
   -/)]
 theorem chebyshev_asymptotic : θ ~[atTop] id := by
-  refine WeakPNT''.add_isLittleO'' (IsBigO.trans_isLittleO (g := fun x ↦ 2 * x.sqrt * x.log) ?_ ?_)
+  refine psi_isEquivalent_self.add_isLittleO'' (IsBigO.trans_isLittleO (g := fun x ↦ 2 * x.sqrt * x.log) ?_ ?_)
   · rw [isBigO_iff']; refine ⟨1, one_pos, ?_⟩
     simp only [one_mul, eventually_atTop]
     exact ⟨2, fun x hx ↦ by
@@ -918,21 +913,15 @@ theorem pi_alt' :
   all_goals ring
 
 
-lemma pi_nth_prime (n : ℕ) :
-    primeCounting (nth_prime n) = n + 1 := by
-  rw [primeCounting, primeCounting', count_nth_succ_of_infinite infinite_setOfPred_prime]
-
-lemma tendsto_nth_prime_atTop : Tendsto nth_prime atTop atTop :=
-  nth_strictMono infinite_setOfPred_prime |>.tendsto_atTop
-
 lemma pi_nth_prime_asymp :
     (fun n ↦ (nth_prime n) / (log (nth_prime n))) ~[atTop] (fun (n : ℕ) ↦ (n : ℝ)) := by
   trans (fun (n : ℕ) ↦ ( n + 1 : ℝ))
   · have : Tendsto (fun n ↦ ((nth_prime n) : ℝ)) atTop atTop := by
-      apply tendsto_natCast_atTop_iff.mpr tendsto_nth_prime_atTop
+      apply tendsto_natCast_atTop_iff.mpr
+        ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
     convert! pi_alt'.comp_tendsto this |>.symm
     simp only [Function.comp_apply, floor_natCast]
-    rw [pi_nth_prime]
+    rw [Nat.primeCounting_nth_prime]
     norm_cast
   · apply IsEquivalent.add_isLittleO (by rfl)
     exact isLittleO_const_id_atTop (1 : ℝ) |>.natCast_atTop
@@ -951,7 +940,8 @@ lemma log_nth_prime_asymp : (fun n ↦ log (nth_prime n)) ~[atTop] (fun n ↦ lo
     apply IsEquivalent.sub_isLittleO (by rfl)
     apply IsLittleO.comp_tendsto isLittleO_log_id_atTop
     have : Tendsto (fun n ↦ ((nth_prime n) : ℝ)) atTop atTop := by
-      apply tendsto_natCast_atTop_iff.mpr tendsto_nth_prime_atTop
+      apply tendsto_natCast_atTop_iff.mpr
+        ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
     apply tendsto_log_atTop.comp this
 
 lemma nth_prime_asymp : (fun n ↦ ((nth_prime n) : ℝ)) ~[atTop] (fun n ↦ n * log n) := by
@@ -1604,7 +1594,7 @@ theorem sum_mobius_div_self_le (N : ℕ) : |∑ n ∈ range N, μ n / (n : ℚ)|
     (1 : ℚ) = ∑ m ∈ Ioc 0 N, ∑ d ∈ m.divisors, μ d := by
       have (x : ℕ) (hx : x ∈ Ioc 0 N) : ∑ d ∈ divisors x, μ d = if x = 1 then 1 else 0 := by
         rw [mem_Ioc] at hx
-        rw [← coe_mul_zeta_apply, moebius_mul_coe_zeta, one_apply]
+        rw [← coe_mul_zeta_apply, moebius_mul_coe_zeta, ArithmeticFunction.one_apply]
       rw [sum_congr rfl this]
       simp [hN.ne']
     _ = ∑ d ∈ range (N + 1), μ d * (N / d : ℕ) := by
@@ -1662,7 +1652,7 @@ lemma sum_mobius_mul_floor (x : ℝ) (hx : 1 ≤ x) :
     norm_cast
     rw [← floor_div_natCast, Int.natCast_floor_eq_floor]
     positivity
-  · simpa [moebius_mul_coe_zeta, one_apply]
+  · simpa [moebius_mul_coe_zeta, ArithmeticFunction.one_apply]
 
 
 noncomputable def mu_log : ArithmeticFunction ℝ :=
@@ -1681,7 +1671,7 @@ lemma mu_log_mul_zeta : mu_log * ArithmeticFunction.zeta = -Λ := by
 lemma mu_log_eq_mu_mul_neg_lambda : mu_log = μ * -Λ := by
   rw [← mu_log_mul_zeta, mul_comm, mul_assoc, coe_zeta_mul_coe_moebius, mul_one]
 
-lemma sum_mu_Lambda (x : ℝ) : ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) * log n = - ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Psi (x/k) := by
+lemma sum_mu_Lambda (x : ℝ) : ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) * log n = - ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x/k) := by
   rw [Iic_eq_Icc, bot_eq_zero, ← add_sum_Ioc_eq_sum_Icc (by simp), ← add_sum_Ioc_eq_sum_Icc (by simp)]
   simp only [ArithmeticFunction.map_zero, Int.cast_zero, CharP.cast_eq_zero, log_zero, mul_zero,
     zero_add, div_zero, zero_mul]
@@ -1691,32 +1681,31 @@ lemma sum_mu_Lambda (x : ℝ) : ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) * log n =
   simp_rw [ArithmeticFunction.neg_apply, sum_neg_distrib]
   ring_nf
   congr 2
-  unfold Psi
   congr
   rw [← floor_div_natCast]
   rfl
 
-lemma M_log_identity (x : ℝ) (hx : 1 ≤ x) : M x * log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (log (x/k) - Psi (x/k)) := by
+lemma M_log_identity (x : ℝ) (hx : 1 ≤ x) : M x * log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (log (x/k) - Chebyshev.psi (x/k)) := by
   have h_log_identity : ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k) = (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x - ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k := by
     rw [Finset.sum_mul _ _ _]
     rw [← Finset.sum_sub_distrib] ; refine Finset.sum_congr rfl fun i hi => ?_ ; by_cases hi' : i = 0 <;> simp +decide [*, Real.log_div, ne_of_gt (zero_lt_one.trans_le hx)] ; ring
   generalize_proofs at *
-  have h_log_identity' : ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k = -∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Psi (x / k) := by
+  have h_log_identity' : ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k = -∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k) := by
     convert sum_mu_Lambda x using 1
   have h_psi_identity :
-      (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Psi (x / k)) =
+      (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k)) =
         -∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k := by
     simpa [neg_neg] using (congrArg Neg.neg h_log_identity').symm
   unfold M
   symm
   calc
-    (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Psi (x / k))) =
+    (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Chebyshev.psi (x / k))) =
         (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k)) -
-          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Psi (x / k) := by
+          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k) := by
           simp [mul_sub, Finset.sum_sub_distrib]
     _ = ((∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x -
           ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k) -
-          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Psi (x / k) := by
+          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k) := by
           simp [h_log_identity]
     _ = ((∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x -
           ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k) -
@@ -1724,12 +1713,12 @@ lemma M_log_identity (x : ℝ) (hx : 1 ≤ x) : M x * log x = ∑ k ∈ Iic ⌊x
           simp [h_psi_identity]
     _ = (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x := by ring
 
-noncomputable def R (x : ℝ) : ℝ := Psi x - x
+noncomputable def R (x : ℝ) : ℝ := Chebyshev.psi x - x
 
 lemma R_isLittleO : R =o[atTop] id := by
-  have h_pnt : (fun x => Psi x - x) =o[atTop] (fun x => x) := by
-    have h_psi : (fun x => Psi x) ~[atTop] (fun x => x) := by
-      simpa [Psi] using! WeakPNT''
+  have h_pnt : (fun x => Chebyshev.psi x - x) =o[atTop] (fun x => x) := by
+    have h_psi : (fun x => Chebyshev.psi x) ~[atTop] (fun x => x) := by
+      exact psi_isEquivalent_self
     exact h_psi
   convert! h_pnt using 1
 
@@ -1770,7 +1759,7 @@ lemma R_locally_bounded (K : ℝ) (hK : 0 ≤ K) : ∃ C, ∀ y ∈ Set.Icc 0 K,
   have hR_bounded : BddAbove (Set.image (fun y => |R y|) (Set.Icc 0 K)) := by
     have hR_bounded : ∀ y ∈ Set.Icc 0 K, |R y| ≤ ∑ p ∈ Iic ⌊K⌋₊, log p + K := by
       intro y hy
-      simp only [R, Psi, Chebyshev.psi_eq_sum_Icc]
+      simp only [R, Chebyshev.psi_eq_sum_Icc]
       refine abs_sub_le_iff.mpr ⟨?_, ?_⟩
       · refine le_trans (sub_le_self _ hy.1) ?_
         refine le_trans (Finset.sum_le_sum_of_subset_of_nonneg (Finset.Iic_subset_Iic.mpr <| Nat.floor_mono hy.2) fun ?_ ?_ ?_ => ?_) ?_
@@ -1842,7 +1831,7 @@ lemma sum_abs_R_isLittleO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, |R (x / k)
         ext n
         simp [Finset.mem_Iic, Finset.mem_Icc, Nat.one_le_iff_ne_zero, and_comm]
       rw [← Finset.sum_erase_add (Finset.Iic ⌊x⌋₊) (fun k => |R (x / k)|) h0]
-      simp [hI, R, Psi, Chebyshev.psi_eq_sum_Icc]
+      simp [hI, R, Chebyshev.psi_eq_sum_Icc]
     rw [Metric.tendsto_nhds]
     simp +zetaDelta only [gt_iff_lt, ge_iff_le, dist_zero_right, norm_div, norm_eq_abs, norm_mul,
     eventually_atTop] at *
@@ -1861,7 +1850,7 @@ lemma sum_abs_R_isLittleO' : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, |R (x / k
   apply sum_abs_R_isLittleO
 
 lemma M_isLittleO : M =o[atTop] id := by
-  have h_identity : ∀ x ≥ 1, M x * Real.log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Psi (x / k)) := by
+  have h_identity : ∀ x ≥ 1, M x * Real.log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Chebyshev.psi (x / k)) := by
     exact fun x a => M_log_identity x a
   have h_term1 : (fun x => ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k)) =O[atTop] id := by
     have h_abs : ∀ x ≥ 1, |∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k)| ≤ ∑ k ∈ Iic ⌊x⌋₊, Real.log (x / k) := by
@@ -1900,9 +1889,8 @@ lemma M_isLittleO : M =o[atTop] id := by
   have h_combined : (fun x => M x * Real.log x) =o[atTop] (fun x => x * Real.log x) := by
     have h_combined : (fun x => M x * Real.log x) = (fun x => ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k)) - (fun x => ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (x / k)) - (fun x => ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * R (x / k)) := by
       ext x; by_cases hx : 1 ≤ x <;> simp_all +decide only [ge_iff_le, mul_sub, sum_sub_distrib, not_le, Pi.sub_apply]
-      · simp +decide [sub_sub, mul_sub, Finset.sum_sub_distrib, Psi, R]
+      · simp +decide [sub_sub, mul_sub, Finset.sum_sub_distrib, R]
       · unfold M R; norm_num [Nat.floor_eq_zero.mpr hx]
-        norm_num [Finset.Iic_eq_Icc]
     rw [h_combined]
     refine Asymptotics.IsLittleO.sub ?_ h_term3
     refine Asymptotics.IsLittleO.sub ?_ ?_
@@ -2458,31 +2446,25 @@ theorem chebyshev_asymptotic_pnt
   let ψ_aq : ℝ → ℝ := fun x ↦ ∑ n ∈ Icc 1 ⌊x⌋₊, if n % q = a then Λ n else 0
   have htot_pos : (0 : ℝ) < q.totient := cast_pos.mpr (totient_pos.mpr hq)
   have hψ_equiv : ψ_aq ~[atTop] fun x ↦ x / q.totient := by
-    have hW := WeakPNT_AP hq ha ha'
-    simp only [cumsum, ← Iio_eq_range] at hW
-    have hψ_eq x : ψ_aq x = ∑ n ∈ Iio (⌊x⌋₊ + 1), if n % q = a then Λ n else 0 := by
-      simp only [ψ_aq, show Icc 1 ⌊x⌋₊ = (Iio (⌊x⌋₊ + 1)).filter (1 ≤ ·) by
-        ext n; simp [mem_Icc, mem_filter]; tauto, sum_filter]
-      refine sum_congr rfl fun n _ ↦ ?_
-      by_cases hn : 1 ≤ n <;> simp only [hn, ↓reduceIte]
-      push Not at hn; interval_cases n; simp
+    letI : NeZero q := NeZero.of_pos hq
+    have hW := tendsto_inv_mul_mangoldt_residueClass (a : ZMod q)
+      ((ZMod.isUnit_iff_coprime a q).mpr ha)
+    have hcoeff (n : ℕ) : vonMangoldt.residueClass (a : ZMod q) n =
+        if n % q = a then Λ n else 0 := by
+      simp [vonMangoldt.residueClass, Set.indicator_apply,
+        ZMod.natCast_eq_natCast_iff', Nat.mod_eq_of_lt ha']
+    simp only [hcoeff] at hW
     refine (isEquivalent_iff_tendsto_one ?_).mpr ?_
-    · filter_upwards [eventually_ge_atTop 1] with x hx; exact div_ne_zero (by linarith) htot_pos.ne'
-    have hlim1 : Tendsto (fun x : ℝ ↦ (∑ n ∈ Iio (⌊x⌋₊ + 1), if n % q = a then Λ n else 0) /
-        (⌊x⌋₊ + 1 : ℝ)) atTop (nhds (1 / q.totient)) := by
-      have heq : (fun x : ℝ ↦ (∑ n ∈ Iio (⌊x⌋₊ + 1), if n % q = a then Λ n else 0) /
-          (⌊x⌋₊ + 1 : ℝ)) = (fun N ↦ (∑ n ∈ Iio N, if n % q = a then Λ n else 0) / N) ∘
-          (fun x : ℝ ↦ ⌊x⌋₊ + 1) := by ext x; simp [Function.comp_apply]
-      exact heq ▸ hW.comp ((tendsto_add_atTop_nat 1).comp tendsto_nat_floor_atTop)
-    have hgoal_eq : (ψ_aq / fun x ↦ x / (q.totient : ℝ)) =
-        fun x ↦ ψ_aq x / x * q.totient := by ext x; simp only [Pi.div_apply, div_div_eq_mul_div]; ring
-    rw [hgoal_eq, show (1 : ℝ) = 1 / q.totient * 1 * q.totient by field_simp]
-    refine Tendsto.mul ?_ tendsto_const_nhds
-    have heq' : (fun x ↦ ψ_aq x / x) =ᶠ[atTop]
-        fun x ↦ (∑ n ∈ Iio (⌊x⌋₊ + 1), if n % q = a then Λ n else 0) / (⌊x⌋₊ + 1 : ℝ) * ((⌊x⌋₊ + 1 : ℝ) / x) := by
-      filter_upwards [eventually_gt_atTop 0] with x hx
-      simp only [hψ_eq]; field_simp
-    exact Tendsto.congr' heq'.symm (hlim1.mul tendsto_floor_add_one_div_self)
+    · filter_upwards [eventually_gt_atTop 0] with x hx
+      exact div_ne_zero hx.ne' htot_pos.ne'
+    have heq : (ψ_aq / fun x ↦ x / (q.totient : ℝ)) =
+        fun x ↦ (x⁻¹ * ψ_aq x) * q.totient := by
+      ext x
+      change ψ_aq x / (x / (q.totient : ℝ)) = (x⁻¹ * ψ_aq x) * q.totient
+      rw [div_div_eq_mul_div]
+      ring
+    rw [heq]
+    simpa using hW.mul_const (q.totient : ℝ)
   refine hψ_equiv.add_isLittleO'' (IsBigO.trans_isLittleO (g := fun x ↦ 2 * x.sqrt * x.log) ?_ ?_)
   · rw [isBigO_iff']; refine ⟨1, one_pos, eventually_atTop.mpr ⟨2, fun x hx ↦ ?_⟩⟩
     simp only [Pi.sub_apply, norm_eq_abs, one_mul]
@@ -2536,7 +2518,8 @@ theorem dirichlet_thm {q : ℕ} {a : ℕ} (hq : q ≥ 1) (ha : Nat.Coprime a q) 
       exact this (IsUnit.exists_right_inv (show IsUnit (a : ZMod q) from by
         rwa [ZMod.isUnit_iff_coprime])).choose (IsUnit.exists_right_inv (show IsUnit (a : ZMod q)
           from by rwa [ZMod.isUnit_iff_coprime])).choose_spec
-    exact this.mono fun p hp ↦ ⟨hp.1, by simpa [ModEq, mod_eq_of_lt ha'] using hp.2⟩
+    exact Set.Infinite.mono (s := {p | p.Prime ∧ p ≡ a [MOD q]})
+      (fun p hp ↦ ⟨hp.1, by simpa [ModEq, mod_eq_of_lt ha'] using hp.2⟩) this
   exact Set.infinite_coe_iff.mpr this
 
 blueprint_comment /--

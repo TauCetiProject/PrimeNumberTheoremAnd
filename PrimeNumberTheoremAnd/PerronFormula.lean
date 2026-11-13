@@ -3,14 +3,13 @@ module
 public import Architect
 public import Mathlib.Analysis.Calculus.ContDiff.Basic
 public import Mathlib.MeasureTheory.Integral.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Uniformly
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
-public import PrimeNumberTheoremAnd.Wiener
 
 
 @[expose] public section
 
-set_option lang.lemmaCmd true
 
 open Asymptotics Complex ComplexConjugate Topology Filter Real MeasureTheory Set
 
@@ -965,7 +964,7 @@ lemma residueAtZero (xpos : 0 < x) : ∀ᶠ (c : ℝ) in 𝓝[>] 0,
     simpa [Complex.ext_iff] using fun h ↦ by linarith
   have fHolo : HolomorphicOn (f x) (Square 0 c \ {0}) := (isHolomorphicOn xpos).mono RectSub
   have f1Holo : HolomorphicOn ((f x) - (fun (s : ℂ) ↦ 1 / s)) (Square 0 c \ {0}) :=
-    fHolo.sub (by simpa using differentiableOn_inv.mono fun s hs ↦ hs.2)
+    fHolo.sub (by simpa using differentiableOn_inv.mono fun s (hs : s ∈ Square 0 c \ {0}) ↦ hs.2)
 
   have RectMemNhds : Square 0 c ∈ 𝓝 0 := square_mem_nhds 0 (ne_of_gt cpos)
   /--
