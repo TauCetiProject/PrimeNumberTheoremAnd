@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Order
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
@@ -23,7 +23,8 @@ This file specializes Tao's finite-order Hadamard factorization theorem
 to the entire completed zeta function `completedRiemannZeta₀` (Λ₀) and to Riemann's entire
 `riemannXi`. The analytic input is the order-one bound `completedRiemannZeta₀_order_one` from
 `ZetaFiniteOrder`; the product is the divisor-indexed canonical Weierstrass product at genus
-`⌊ρ⌋ = 1`, with multiplicities from `MeromorphicOn.divisor`.
+`⌊ρ⌋ = 1`. Native-support products use `TauCeti.divisorProductOne`, with multiplicities
+from `MeromorphicOn.divisor`.
 
 Note: `completedRiemannZeta` (Λ with simple poles at `0` and `1`) is a different object; Hadamard
 applies to Λ₀.  The negative even integers are the trivial zeros of `riemannZeta`, not zeros of
@@ -49,7 +50,7 @@ formula for `Λ₀(1)` together with explicit numerical bounds.  Therefore the o
   `_sequence_no_monomial` : xi products with the origin monomial removed
 * `summable_riemannXi_divisorZeroIndex₀_norm_inv_sq` : genus-one summability of xi's nonzero
   zero divisor
-* `logDeriv_riemannXi_divisorCanonicalProduct_one_eq_tsum` and
+* `logDeriv_riemannXi_divisorProductOne_eq_tsum` and
   `logDeriv_riemannXi_eq_polynomial_derivative_add_tsum` : xi-specialized zero-sum identities
 * `riemannXi_hadamard_polynomial_derivative_eval_zero_eq` and
   `existsUnique_riemannXi_hadamard_polynomial_derivative_eval_zero` : theorem-level uniqueness
@@ -191,6 +192,13 @@ theorem summable_riemannXi_divisorZeroIndex₀_norm_inv_sq :
       (ρ := (1 : ℝ)) (f := riemannXi) riemannXi_entireOfOrderAtMost_one
       (by norm_num) riemannXi_nontrivial)
 
+private theorem riemannXi_product_eq :
+    Complex.Hadamard.divisorCanonicalProduct 1 riemannXi Set.univ =
+      TauCeti.divisorProductOne riemannXi := by
+  ext z
+  exact Complex.Hadamard.divisorCanonicalProduct_one_eq_native
+    summable_riemannXi_divisorZeroIndex₀_norm_inv_sq z
+
 /-- Since `ξ(0) = 1 / 2`, the monomial exponent in the origin-centered Hadamard product is zero. -/
 theorem analyticOrderNatAt_riemannXi_zero : analyticOrderNatAt riemannXi 0 = 0 := by
   by_contra h
@@ -223,16 +231,17 @@ theorem summable_riemannXi_logDerivTerms_divisorZeroIndex₀
 
 /-- The zero-sum formula for the logarithmic derivative of the genus-one divisor canonical product
 attached to Riemann's entire `ξ`. -/
-theorem logDeriv_riemannXi_divisorCanonicalProduct_one_eq_tsum
+theorem logDeriv_riemannXi_divisorProductOne_eq_tsum
     {z : ℂ}
     (hz : ∀ p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
       z ≠ Complex.Hadamard.divisorZeroIndex₀_val p) :
-    logDeriv (Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ)) z =
+    logDeriv (TauCeti.divisorProductOne riemannXi) z =
       ∑' p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
         (1 / (z - Complex.Hadamard.divisorZeroIndex₀_val p) +
           1 / Complex.Hadamard.divisorZeroIndex₀_val p) :=
-  Complex.Hadamard.logDeriv_divisorCanonicalProduct_one_eq_tsum_of_forall_ne
-    summable_riemannXi_divisorZeroIndex₀_norm_inv_sq hz
+  by simpa only [← riemannXi_product_eq] using
+    Complex.Hadamard.logDeriv_divisorCanonicalProduct_one_eq_tsum
+      summable_riemannXi_divisorZeroIndex₀_norm_inv_sq hz
 
 /-- Logarithmic derivative identity for a chosen `ξ` Hadamard factorization.
 
@@ -245,7 +254,7 @@ theorem logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
     {P : Polynomial ℂ} {z : ℂ}
     (hfac : ∀ w : ℂ, riemannXi w =
       Complex.exp (Polynomial.eval w P) *
-        Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) w)
+        TauCeti.divisorProductOne riemannXi w)
     (hz : ∀ p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
       z ≠ Complex.Hadamard.divisorZeroIndex₀_val p) :
     logDeriv riemannXi z =
@@ -254,16 +263,17 @@ theorem logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
           (1 / (z - Complex.Hadamard.divisorZeroIndex₀_val p) +
             1 / Complex.Hadamard.divisorZeroIndex₀_val p) := by
   let G : ℂ → ℂ :=
-    Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ)
+    TauCeti.divisorProductOne riemannXi
   have hfun : riemannXi = fun w : ℂ => Complex.exp (Polynomial.eval w P) * G w := by
     funext w
     simpa [G] using hfac w
   have hdiff_exp : DifferentiableAt ℂ (fun w : ℂ => Complex.exp (Polynomial.eval w P)) z :=
     ((Complex.hasDerivAt_exp (Polynomial.eval z P)).comp z (P.hasDerivAt z)).differentiableAt
   have hprod_ne :
-      Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) z ≠ 0 :=
-    Complex.Hadamard.divisorCanonicalProduct_ne_zero_of_forall_ne
-      1 riemannXi summable_riemannXi_divisorZeroIndex₀_norm_inv_sq hz
+      TauCeti.divisorProductOne riemannXi z ≠ 0 :=
+    by simpa only [← riemannXi_product_eq] using
+      Complex.Hadamard.divisorCanonicalProduct_ne_zero_of_forall_ne
+        1 riemannXi summable_riemannXi_divisorZeroIndex₀_norm_inv_sq hz
   calc
     logDeriv riemannXi z =
         logDeriv (fun w : ℂ => Complex.exp (Polynomial.eval w P) * G w) z := by
@@ -272,9 +282,10 @@ theorem logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
           exact logDeriv_mul z (Complex.exp_ne_zero _) (by simpa [G] using hprod_ne)
             hdiff_exp
             (by
-              simpa [G] using
-                Complex.Hadamard.differentiableAt_divisorCanonicalProduct_univ
-                  1 riemannXi summable_riemannXi_divisorZeroIndex₀_norm_inv_sq z)
+              simpa only [G] using
+                (TauCeti.differentiable_divisorProductOne
+                  (Complex.Hadamard.summable_native_divisor_inv_sq
+                    summable_riemannXi_divisorZeroIndex₀_norm_inv_sq)).differentiableAt)
     _ = Polynomial.eval z P.derivative +
         ∑' p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
           (1 / (z - Complex.Hadamard.divisorZeroIndex₀_val p) +
@@ -286,17 +297,17 @@ theorem logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
                   1 / Complex.Hadamard.divisorZeroIndex₀_val p) from
             by
               simpa [G] using
-                logDeriv_riemannXi_divisorCanonicalProduct_one_eq_tsum
+                logDeriv_riemannXi_divisorProductOne_eq_tsum
                   hz]
 
 /-- Any two xi Hadamard polynomials with the same divisor-canonical product have the same
 derivative at every point away from the nonzero divisor-indexed zero set. -/
 theorem riemannXi_hadamard_polynomial_derivative_eval_eq
     {P Q : Polynomial ℂ} {z : ℂ} (hPfac : ∀ w : ℂ, riemannXi w = Complex.exp (Polynomial.eval w P) *
-        Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) w)
+        TauCeti.divisorProductOne riemannXi w)
     (hQfac : ∀ w : ℂ, riemannXi w =
       Complex.exp (Polynomial.eval w Q) *
-        Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) w)
+        TauCeti.divisorProductOne riemannXi w)
     (hz : ∀ p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
       z ≠ Complex.Hadamard.divisorZeroIndex₀_val p) :
     Polynomial.eval z P.derivative = Polynomial.eval z Q.derivative := by
@@ -318,9 +329,9 @@ Hadamard polynomial realizing the no-monomial xi factorization. -/
 theorem riemannXi_hadamard_polynomial_derivative_eval_zero_eq
     {P Q : Polynomial ℂ} (hPfac : ∀ w : ℂ, riemannXi w =
       Complex.exp (Polynomial.eval w P) *
-        Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) w)
+        TauCeti.divisorProductOne riemannXi w)
     (hQfac : ∀ w : ℂ, riemannXi w = Complex.exp (Polynomial.eval w Q) *
-      Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) w) :
+      TauCeti.divisorProductOne riemannXi w) :
     Polynomial.eval 0 P.derivative = Polynomial.eval 0 Q.derivative := by
   refine riemannXi_hadamard_polynomial_derivative_eval_eq
     (P := P) (Q := Q) (z := 0) hPfac hQfac ?_
@@ -331,8 +342,8 @@ theorem riemannXi_hadamard_polynomial_derivative_eval_zero_eq
 theorem riemannXi_hadamard_factorization :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt riemannXi 0) *
-      Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) z := by
-  simpa using
+      TauCeti.divisorProductOne riemannXi z := by
+  simpa [riemannXi_product_eq] using
     (Complex.Hadamard.hadamard_factorization_of_order
       (f := riemannXi) (ρ := (1 : ℝ))
       (by norm_num) riemannXi_nontrivial
@@ -342,7 +353,7 @@ theorem riemannXi_hadamard_factorization :
 theorem riemannXi_hadamard_factorization_no_monomial :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) *
-      Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) z := by
+      TauCeti.divisorProductOne riemannXi z := by
   rcases riemannXi_hadamard_factorization with ⟨P, hdeg, hfac⟩
   refine ⟨P, hdeg, ?_⟩
   intro z
@@ -354,7 +365,7 @@ theorem-level formulation of Kadiri's Hadamard constant, without choosing a glob
 theorem existsUnique_riemannXi_hadamard_polynomial_derivative_eval_zero :
     ∃! B : ℂ, ∃ P : Polynomial ℂ, P.degree ≤ 1 ∧ (∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) *
-          Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) z) ∧
+          TauCeti.divisorProductOne riemannXi z) ∧
       B = Polynomial.eval 0 P.derivative := by
   rcases riemannXi_hadamard_factorization_no_monomial with ⟨P, hdeg, hfac⟩
   refine ⟨Polynomial.eval 0 P.derivative, ⟨P, hdeg, hfac, rfl⟩, ?_⟩
@@ -384,9 +395,9 @@ theorem riemannXi_hadamard_factorization_reindex
     {ι : Type*} (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt riemannXi 0) *
-      (∏' i : ι, Complex.weierstrassFactor 1
+      (∏' i : ι, Complex.weierstrassFactorOne
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
-  simpa using
+  simpa [Complex.weierstrassFactor_one] using
     (Complex.Hadamard.hadamard_factorization_of_order_reindex
       (f := riemannXi) (ρ := (1 : ℝ))
       (by norm_num) riemannXi_nontrivial
@@ -397,7 +408,7 @@ theorem riemannXi_hadamard_factorization_reindex_no_monomial
     {ι : Type*} (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) *
-      (∏' i : ι, Complex.weierstrassFactor 1
+      (∏' i : ι, Complex.weierstrassFactorOne
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
   rcases riemannXi_hadamard_factorization_reindex e with ⟨P, hdeg, hfac⟩
   refine ⟨P, hdeg, ?_⟩
@@ -429,12 +440,24 @@ theorem riemannXi_hadamard_factorization_sequence_no_monomial
   intro z
   simpa [analyticOrderNatAt_riemannXi_zero, mul_assoc] using hfac z
 
+private theorem completedRiemannZeta₀_product_eq :
+    Complex.Hadamard.divisorCanonicalProduct 1 completedRiemannZeta₀ Set.univ =
+      TauCeti.divisorProductOne completedRiemannZeta₀ := by
+  have hs : Summable (fun p : Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ Set.univ ↦
+      ‖Complex.Hadamard.divisorZeroIndex₀_val p‖⁻¹ ^ 2) := by
+    simpa using
+      (Complex.Hadamard.EntireOfOrderAtMost.summable_norm_inv_pow_divisorZeroIndex₀
+        (ρ := (1 : ℝ)) (f := completedRiemannZeta₀) completedRiemannZeta₀_entireOfOrderAtMost_one
+        (by norm_num) completedRiemannZeta₀_nontrivial)
+  ext z
+  exact Complex.Hadamard.divisorCanonicalProduct_one_eq_native hs z
+
 /-- **Hadamard factorization for `completedRiemannZeta₀` (Λ₀) at genus one**. -/
 theorem completedRiemannZeta₀_hadamard_factorization :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
         Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt completedRiemannZeta₀ 0) *
-      Complex.Hadamard.divisorCanonicalProduct 1 completedRiemannZeta₀ (Set.univ : Set ℂ) z := by
-  simpa using
+      TauCeti.divisorProductOne completedRiemannZeta₀ z := by
+  simpa [completedRiemannZeta₀_product_eq] using
     (Complex.Hadamard.hadamard_factorization_of_order
       (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
       (by norm_num) completedRiemannZeta₀_nontrivial
@@ -445,7 +468,7 @@ using `Λ₀(0) ≠ 0`. -/
 theorem completedRiemannZeta₀_hadamard_factorization_no_monomial :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
         Complex.exp (Polynomial.eval z P) *
-      Complex.Hadamard.divisorCanonicalProduct 1 completedRiemannZeta₀ (Set.univ : Set ℂ) z := by
+      TauCeti.divisorProductOne completedRiemannZeta₀ z := by
   rcases completedRiemannZeta₀_hadamard_factorization with ⟨P, hdeg, hfac⟩
   refine ⟨P, hdeg, ?_⟩
   intro z
@@ -457,9 +480,9 @@ theorem completedRiemannZeta₀_hadamard_factorization_reindex
     (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
         Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt completedRiemannZeta₀ 0) *
-      (∏' i : ι, Complex.weierstrassFactor 1
+      (∏' i : ι, Complex.weierstrassFactorOne
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
-  simpa using
+  simpa [Complex.weierstrassFactor_one] using
     (Complex.Hadamard.hadamard_factorization_of_order_reindex
       (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
       (by norm_num) completedRiemannZeta₀_nontrivial
@@ -471,7 +494,7 @@ theorem completedRiemannZeta₀_hadamard_factorization_reindex_no_monomial
     (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
         Complex.exp (Polynomial.eval z P) *
-      (∏' i : ι, Complex.weierstrassFactor 1
+      (∏' i : ι, Complex.weierstrassFactorOne
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
   rcases completedRiemannZeta₀_hadamard_factorization_reindex e with ⟨P, hdeg, hfac⟩
   refine ⟨P, hdeg, ?_⟩

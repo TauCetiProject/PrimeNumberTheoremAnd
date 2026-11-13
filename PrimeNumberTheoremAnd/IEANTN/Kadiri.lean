@@ -119,7 +119,7 @@ theorem hadamardB_spec :
     ∃ P : Polynomial ℂ, P.degree ≤ 1 ∧
       (∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) *
-          Complex.Hadamard.divisorCanonicalProduct 1 riemannXi (Set.univ : Set ℂ) z) ∧
+          TauCeti.divisorProductOne riemannXi z) ∧
       hadamardB = Polynomial.eval 0 P.derivative :=
   Classical.choose_spec existsUnique_riemannXi_hadamard_polynomial_derivative_eval_zero.exists
 

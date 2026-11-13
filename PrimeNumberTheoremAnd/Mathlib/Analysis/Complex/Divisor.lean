@@ -264,19 +264,6 @@ theorem divisorCanonicalProduct_ne_zero_of_forall_ne
       (by simp)).differentiableAt (by simp))
   exact (han.analyticOrderAt_eq_zero).1 horder
 
-/-- The logarithmic derivative of a genus-one divisor canonical product away from its indexed
-divisor, with product nonvanishing derived from the exact zero-multiplicity theorem. -/
-theorem logDeriv_divisorCanonicalProduct_one_eq_tsum_of_forall_ne
-    {f : ℂ → ℂ} {z : ℂ}
-    (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (2 : ℕ)))
-    (hz : ∀ p : divisorZeroIndex₀ f (Set.univ : Set ℂ), z ≠ divisorZeroIndex₀_val p) :
-    logDeriv (divisorCanonicalProduct 1 f (Set.univ : Set ℂ)) z =
-      ∑' p : divisorZeroIndex₀ f (Set.univ : Set ℂ),
-        (1 / (z - divisorZeroIndex₀_val p) + 1 / divisorZeroIndex₀_val p) :=
-  logDeriv_divisorCanonicalProduct_one_eq_tsum h_sum hz
-    (divisorCanonicalProduct_ne_zero_of_forall_ne 1 f h_sum hz)
-
 /-- At a nonzero divisor index, the canonical product has the same multiplicity as the original
 function. -/
 theorem analyticOrderAt_divisorCanonicalProduct_at_index

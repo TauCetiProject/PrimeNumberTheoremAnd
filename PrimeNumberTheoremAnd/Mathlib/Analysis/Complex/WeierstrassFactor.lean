@@ -7,6 +7,7 @@ module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Norm
+public import TauCeti.Analysis.Complex.CanonicalProduct.ElementaryFactor
 public import Mathlib.Analysis.Analytic.Order
 public import Mathlib.Analysis.Complex.CauchyIntegral
 public import Mathlib.Analysis.Normed.Group.Bounded
@@ -55,6 +56,10 @@ def weierstrassFactor (m : ℕ) (z : ℂ) : ℂ :=
 lemma weierstrassFactor_def (m : ℕ) (z : ℂ) :
     weierstrassFactor m z = (1 - z) * exp (partialLogSum m z) := by
   simp [weierstrassFactor]
+
+/-- The genus-one elementary factor is Tau Ceti's canonical elementary factor. -/
+lemma weierstrassFactor_one (z : ℂ) : weierstrassFactor 1 z = weierstrassFactorOne z := by
+  simp [weierstrassFactor_def, partialLogSum_eq_sum, weierstrassFactorOne_def]
 
 @[simp]
 lemma weierstrassFactor_zero (z : ℂ) : weierstrassFactor 0 z = 1 - z := by
