@@ -62,8 +62,9 @@ theorem norm_riemannZeta_ratio_le_on_vertical_line (t : ℝ) :
 /-- On `zetaAbelContinuationDomain`, `‖ζ s‖ ≤ 1 + ‖(s - 1)⁻¹‖ + ‖s‖ / re s`. -/
 theorem norm_riemannZeta_le (s : ℂ) (hs : s ∈ zetaAbelContinuationDomain) :
     ‖riemannZeta s‖ ≤ 1 + ‖1 / (s - 1)‖ + ‖s‖ / s.re := by
-  rw [riemannZeta_eq_zetaAbelContinuationFormula s hs]
-  exact norm_zetaAbelContinuationFormula_le s hs
+  rw [riemannZeta_eq_zetaAbelContinuationFormula s
+    (zetaAbelContinuationDomain_re_pos hs) hs.1]
+  exact norm_zetaAbelContinuationFormula_le s (zetaAbelContinuationDomain_re_pos hs)
 
 namespace StripBounds
 

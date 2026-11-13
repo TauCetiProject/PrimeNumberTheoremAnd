@@ -18,15 +18,15 @@ public import Mathlib.MeasureTheory.Integral.IntegrableOn
 /-!
 # Abel-summation continuation of the Riemann zeta function
 
-For `s ≠ 1` in the half-plane `{re s > σ₀}` with `σ₀ = 1/10`, the Riemann zeta function equals the
+For `s ≠ 1` in the full half-plane `{re s > 0}`, the Riemann zeta function equals the
 Abel-summation tail formula from [`Mathlib.NumberTheory.AbelSummation`]: writing `{u}` for the
 fractional part of `u > 0` and `K_s(u) = {u} · u^{-s-1}`, one has
 
 `ζ(s) = 1 + (s - 1)⁻¹ - s ∫_{(1,∞)} K_s(u) du`.
 
-The threshold `σ₀`, the domain, the kernel, and the renormalized integral are bundled in
+The fixed strip threshold `σ₀ = 1/10`, its domain, the kernel, and the renormalized integral are bundled in
 `zetaAbelContinuationReLower`, `zetaAbelContinuationDomain`, `zetaAbelFractKernel`, and
-`zetaAbelContinuationFormula`. The equality with `riemannZeta` on that domain is proved by analytic
+`zetaAbelContinuationFormula`. The equality with `riemannZeta` on the full punctured right half-plane is proved by analytic
 continuation from `re s > 1`, where the formula is the classical Abel partial-sum limit.
 
 Kernel and partial-sum input live in `RiemannZetaAbelKernel` and `RiemannZetaPartialSum`.
@@ -43,15 +43,11 @@ Kernel and partial-sum input live in `RiemannZetaAbelKernel` and `RiemannZetaPar
 open scoped Topology
 open Real Set Filter Topology MeasureTheory Complex ZetaPartialSum ZetaAbelFractKernel
 
-/-- Lower threshold on `re s` for the Abel integral continuation of `ζ`. -/
+/-- Fixed positive strip threshold used for quantitative bounds from the Abel formula. -/
 noncomputable def zetaAbelContinuationReLower : ℝ := 1 / 10
 
 theorem zetaAbelContinuationReLower_pos : 0 < zetaAbelContinuationReLower := by
   change 0 < (1 / 10 : ℝ)
-  norm_num
-
-theorem one_lt_zetaAbelContinuationReLower : zetaAbelContinuationReLower < (1 : ℝ) := by
-  change (1 / 10 : ℝ) < 1
   norm_num
 
 theorem one_sub_zetaAbelContinuationReLower :
@@ -63,32 +59,9 @@ theorem zetaAbelContinuationReLower_lt_half : zetaAbelContinuationReLower < (2�
   change (1 / 10 : ℝ) < (2⁻¹ : ℝ)
   norm_num
 
-/-- Domain `{s : ℂ | s ≠ 1 ∧ re s > 1/10}` where the Abel continuation of `ζ` is proved. -/
+/-- Quantitative substrip `{s : ℂ | s ≠ 1 ∧ re s > 1/10}` for uniform Abel-formula bounds. -/
 def zetaAbelContinuationDomain : Set ℂ :=
   {s | s ≠ (1 : ℂ) ∧ zetaAbelContinuationReLower < s.re}
-
-theorem isOpen_zetaAbelContinuationDomain : IsOpen zetaAbelContinuationDomain := by
-  change IsOpen ({s : ℂ | s ≠ 1} ∩ {s : ℂ | zetaAbelContinuationReLower < s.re})
-  exact isOpen_compl_singleton.inter (isOpen_lt continuous_const Complex.continuous_re)
-
-theorem isPreconnected_zetaAbelContinuationDomain : IsPreconnected zetaAbelContinuationDomain := by
-  have hp : zetaAbelContinuationReLower < (1 : ℂ).re :=
-    one_lt_zetaAbelContinuationReLower
-  obtain ⟨r, hr, hsub⟩ := Metric.isOpen_iff.mp
-    (isOpen_lt continuous_const Complex.continuous_re) (1 : ℂ) hp
-  have hpath : IsPathConnected
-      ({z : ℂ | zetaAbelContinuationReLower < z.re} \ {(1 : ℂ)}) :=
-    isPathConnected_iff_pathConnectedSpace.mpr
-      (((convex_halfSpace_re_gt zetaAbelContinuationReLower).starConvex hp).pathConnectedSpace_diff_singleton (by simp [Complex.rank_real_complex]) (half_pos hr)
-        ((Metric.sphere_subset_ball (half_lt_self hr)).trans hsub))
-  convert hpath.isConnected.isPreconnected using 1
-  ext z
-  simp [zetaAbelContinuationDomain, and_comm]
-
-theorem two_mem_zetaAbelContinuationDomain : (2 : ℂ) ∈ zetaAbelContinuationDomain := by
-  refine ⟨by norm_num, ?_⟩
-  change (1 / 10 : ℝ) < (2 : ℂ).re
-  norm_num
 
 theorem zetaAbelContinuationDomain_re_pos {s : ℂ} (hs : s ∈ zetaAbelContinuationDomain) :
     0 < s.re := lt_trans zetaAbelContinuationReLower_pos hs.2
@@ -152,12 +125,11 @@ theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
   have huniq := tendsto_nhds_unique hG_to_zeta hG_limit
   simpa [zetaAbelContinuationFormula, sub_eq_add_neg] using huniq
 
-/-- On `zetaAbelContinuationDomain`, the Abel formula satisfies the standard strip bound. -/
-theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs : s ∈ zetaAbelContinuationDomain) :
+/-- The Abel formula satisfies its standard norm bound whenever the real part is positive. -/
+theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs_re : 0 < s.re) :
     ‖zetaAbelContinuationFormula s‖ ≤ 1 + ‖1 / (s - 1)‖ + ‖s‖ / s.re := by
   set g : ℝ → ℝ := fun u => u ^ (-s.re - 1)
   let μ := (volume : Measure ℝ).restrict (Ioi (1 : ℝ))
-  have hs_re := zetaAbelContinuationDomain_re_pos hs
   have hint :
       ‖s‖ * ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ ≤ ‖s‖ / s.re :=
     mul_le_mul_of_nonneg_left
@@ -193,26 +165,37 @@ theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs : s ∈ zetaAbelContin
     _ ≤ 1 + ‖(s - 1)⁻¹‖ + ‖s‖ / s.re := add_le_add_right hint _
     _ ≤ 1 + ‖1 / (s - 1)‖ + ‖s‖ / s.re := by simp [one_div]
 
-/-- The Abel continuation formula is analytic on `zetaAbelContinuationDomain`. -/
+/-- The Abel continuation formula is analytic on the punctured right half-plane. -/
 theorem analyticOn_zetaAbelContinuationFormula :
-    AnalyticOn ℂ zetaAbelContinuationFormula zetaAbelContinuationDomain := by
-  simp only [AnalyticOn, zetaAbelContinuationDomain, Set.mem_ofPred_eq]
+    AnalyticOn ℂ zetaAbelContinuationFormula {s : ℂ | s ≠ 1 ∧ 0 < s.re} := by
+  simp only [AnalyticOn, Set.mem_ofPred_eq]
   intro s ⟨hs_ne, hs_re⟩
   apply AnalyticAt.analyticWithinAt
   refine analyticAt_const.add (analyticAt_const.div (analyticAt_id.sub analyticAt_const) ?_) |>.sub
-    (analyticAt_id.mul (integral_analytic s (lt_trans zetaAbelContinuationReLower_pos hs_re)))
+    (analyticAt_id.mul (integral_analytic s hs_re))
   exact sub_ne_zero.mpr hs_ne
 
-/-- The Abel integral formula agrees with `ζ` on `zetaAbelContinuationDomain`. -/
-theorem riemannZeta_eq_zetaAbelContinuationFormula (s : ℂ) (hs : s ∈ zetaAbelContinuationDomain) :
+/-- The Abel integral formula agrees with `ζ` throughout the punctured right half-plane. -/
+theorem riemannZeta_eq_zetaAbelContinuationFormula (s : ℂ) (hs_re : 0 < s.re) (hs_ne : s ≠ 1) :
     riemannZeta s = zetaAbelContinuationFormula s := by
-  have hUo := isOpen_zetaAbelContinuationDomain
-  have hζ : AnalyticOnNhd ℂ riemannZeta zetaAbelContinuationDomain := by
-    rw [← hUo.analyticOn_iff_analyticOnNhd]
-    have h : AnalyticOn ℂ riemannZeta ({1} : Set ℂ)ᶜ :=
-      isOpen_compl_singleton.analyticOn_iff_analyticOnNhd.mpr analyticOn_riemannZeta
-    exact AnalyticOn.mono h fun _ hz => hz.1
-  have hF : AnalyticOnNhd ℂ zetaAbelContinuationFormula zetaAbelContinuationDomain := by
+  let U : Set ℂ := {z | z ≠ 1 ∧ 0 < z.re}
+  have hUo : IsOpen U :=
+    isOpen_compl_singleton.inter (isOpen_lt continuous_const Complex.continuous_re)
+  have hUp : IsPreconnected U := by
+    have hp : (0 : ℝ) < (1 : ℂ).re := by norm_num
+    obtain ⟨r, hr, hsub⟩ := Metric.isOpen_iff.mp
+      (isOpen_lt continuous_const Complex.continuous_re) (1 : ℂ) hp
+    have hpath : IsPathConnected ({z : ℂ | 0 < z.re} \ {(1 : ℂ)}) :=
+      isPathConnected_iff_pathConnectedSpace.mpr
+        (((convex_halfSpace_re_gt 0).starConvex hp).pathConnectedSpace_diff_singleton
+          (by simp [Complex.rank_real_complex]) (half_pos hr)
+          ((Metric.sphere_subset_ball (half_lt_self hr)).trans hsub))
+    convert hpath.isConnected.isPreconnected using 1
+    ext z
+    simp [U, and_comm]
+  have hζ : AnalyticOnNhd ℂ riemannZeta U := by
+    exact analyticOn_riemannZeta.mono (fun _ hz ↦ hz.1)
+  have hF : AnalyticOnNhd ℂ zetaAbelContinuationFormula U := by
     rw [← hUo.analyticOn_iff_analyticOnNhd]
     exact analyticOn_zetaAbelContinuationFormula
   have hEq : riemannZeta =ᶠ[𝓝 (2 : ℂ)] zetaAbelContinuationFormula := by
@@ -221,4 +204,4 @@ theorem riemannZeta_eq_zetaAbelContinuationFormula (s : ℂ) (hs : s ∈ zetaAbe
     filter_upwards [hopen.mem_nhds (by norm_num : (1 : ℝ) < (2 : ℂ).re)] with w hw
       using riemannZeta_abel_integral w hw
   exact (AnalyticOnNhd.eqOn_of_preconnected_of_eventuallyEq
-    hζ hF isPreconnected_zetaAbelContinuationDomain two_mem_zetaAbelContinuationDomain hEq) hs
+    hζ hF hUp (by norm_num [U]) hEq) ⟨hs_ne, hs_re⟩

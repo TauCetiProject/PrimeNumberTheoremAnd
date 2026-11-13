@@ -1085,21 +1085,14 @@ lemma Zeta1AltFormula {s : ℂ} (hs : 0 < s.re) :
 
 
 
-@[blueprint "ZetaAltFormula"
-  (title := "ZetaAltFormula")
-  (statement := /--
-    We have that
+blueprint_comment /--
+\label{ZetaAltFormula}
+We have that
     $$\zeta(s)=\zeta_1(s)$$
     for all $s\in S$ with $S=\{s\in\mathbb{C}:0<\mathfrak{R}s,\,s\neq 1\}$.
-  -/)
-  (proof := /--
-    This immediately follows from Lemmas \ref{Zeta1AltFormula} and \ref{Zeta0EqZeta}.
-  -/)]
-lemma ZetaAltFormula {s : ℂ} (hs : 0 < s.re) (hs' : s ≠ 1) :
-    ζ s = ζ₁ s:= by
-  rw [Zeta1AltFormula hs, ← Zeta0EqZeta zero_lt_one hs hs']
 
-
+This is the canonical full right-half-plane identity \texttt{riemannZeta\_eq\_zetaAbelContinuationFormula}. The named formula also follows from Lemmas \ref{Zeta1AltFormula} and \ref{Zeta0EqZeta}.
+-/
 
 @[blueprint "GlobalBound"
   (title := "GlobalBound")
@@ -1110,7 +1103,7 @@ lemma ZetaAltFormula {s : ℂ} (hs : 0 < s.re) (hs' : s ≠ 1) :
   (proof := /--
     For the sake of clearer proof writing let $z=s+3/2+it$. Since $|s|\leq 1$ we know that
     $1/2\leq\mathfrak{R}z$; additionally, as $|t|\geq 2$, we know $1\leq|\mathfrak{I}z|$.
-    So, $z\in S$. Thus, from Lemma \ref{ZetaAltFormula} we know that
+    So, $z\in S$. The canonical Abel continuation identity (\ref{ZetaAltFormula}) gives
     $$|\zeta(z)|\leq 1+\frac{1}{|z-1|}
       +|z|\cdot\left|\int_1^\infty\{x\}\,x^{-z}\,\frac{dx}{x}\right|$$
     by applying the triangle inequality. Now note that $|z-1|\geq 1$. Likewise,
@@ -1132,37 +1125,27 @@ theorem GlobalBound
     refine ⟨by linarith, fun hs => ?_⟩
     cases abs_cases t <;>  linarith [abs_le.mp (Complex.abs_re_le_norm s),
       abs_le.mp (Complex.abs_im_le_norm s)]
-  have leadingTerms : ‖1 + 1 / (s + 3 / 2 + I * ↑t - 1)‖ ≤ 2 := by
-    rw [← one_add_one_eq_two (R := ℝ)]
-    apply norm_add_le_of_le (norm_one.le)
-    rw [norm_div, norm_one, div_le_one (norm_pos_iff.mpr (sub_ne_zero.mpr hz.2))]
-    simp only [norm_def, normSq, MonoidWithZeroHom.coe_mk, ZeroHom.coe_mk, sqrt_le_one, sub_re,
-      add_re, div_ofNat_re, re_ofNat, mul_re, I_re, ofReal_re, zero_mul, I_im, ofReal_im, mul_zero,
-      sub_self, add_zero, one_re, sub_im, add_im, div_ofNat_im, im_ofNat, zero_div, mul_im, one_mul,
-      zero_add, one_im, sub_zero, one_le_sqrt] at ⊢ hs
-    cases abs_cases t <;> nlinarith [sq_nonneg (s.re + 1 / 2), sq_nonneg (s.im + t - 1),
-      sq_nonneg (s.im + t + 1)]
-  have domBound {x : ℝ} (hu : x ∈ Ioi 1) : |Int.fract x| * ‖(x : ℂ) ^ (-(s + 3 / 2 + I * ↑t) - 1)‖
-    ≤ x ^ (-(s.re + 3 / 2) - 1) := by
-    rw [mem_Ioi] at hu
-    rw [Complex.norm_cpow_eq_rpow_re_of_pos (by linarith)]
-    simp only [neg_add_rev, sub_re, add_re, neg_re, mul_re, I_re, ofReal_re, zero_mul, I_im, one_re,
-      ofReal_im, mul_zero, sub_self, neg_zero, div_ofNat_re, re_ofNat, zero_add, Int.abs_fract]
-    refine mul_le_of_le_one_left (by apply Real.rpow_nonneg (by linarith)) ((Int.fract_lt_one x).le)
-  have domIntegral : Integrable (fun x : ℝ => x ^ (-(s.re + 3 / 2) - 1))
-    (volume.restrict (Set.Ioi 1)) := integrableOn_Ioi_rpow_of_lt (by linarith) zero_lt_one
-  have hint : ‖∫ (u : ℝ) in Ioi 1, (↑(Int.fract u) : ℂ) * (u : ℂ) ^ (-(s + 3 / 2 + I * ↑t) - 1)‖
-    ≤ 1 / (s.re + 3 / 2) := by
-    refine (MeasureTheory.norm_integral_le_integral_norm _).trans ?_
-    have hI := integral_Ioi_rpow_of_lt (a := -(s.re + 3 / 2) - 1) (by linarith) one_pos
-    simp only [sub_add_cancel, one_rpow, neg_div_neg_eq] at hI
-    simp only [Complex.norm_mul, norm_real, norm_eq_abs, ← hI]
-    refine integral_mono_ae (domIntegral.mono' (((measurable_fract.abs).mul
-      ((Complex.measurable_ofReal.pow_const _).norm)).aestronglyMeasurable) ?_) domIntegral
-      (by filter_upwards [self_mem_ae_restrict measurableSet_Ioi] with x hx using domBound hx)
-    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
-    rw [norm_mul, norm_eq_abs, abs_abs, norm_norm]
-    exact domBound hx
+  let z : ℂ := s + 3 / 2 + I * ↑t
+  have hz_re : (1 / 2 : ℝ) ≤ z.re := by
+    simp only [z, add_re, div_ofNat_re, re_ofNat, mul_re, I_re, ofReal_re, zero_mul,
+      I_im, ofReal_im, mul_zero, sub_self, add_zero]
+    linarith
+  have hz_im : 1 ≤ |z.im| := by
+    have H : |t| - |s.im| ≤ |s.im + t| := by
+      simpa only [abs_neg, sub_neg_eq_add, add_comm] using abs_sub_abs_le_abs_sub t (-s.im)
+    have hs_im := (Complex.abs_im_le_norm s).trans hs
+    simp only [z, add_im, div_ofNat_im, im_ofNat, zero_div, mul_im, I_re, ofReal_im,
+      mul_zero, I_im, ofReal_re, one_mul, add_zero, zero_add]
+    linarith
+  have hdist : 1 ≤ ‖z - 1‖ := hz_im.trans (by
+    simpa only [sub_im, one_im, sub_zero] using Complex.abs_im_le_norm (z - 1))
+  have hpole : ‖1 / (z - 1)‖ ≤ 1 := by
+    simpa only [one_div, norm_inv] using inv_le_one_of_one_le₀ hdist
+  have hratio : ‖z‖ / z.re ≤ 2 * ‖z‖ := by
+    calc
+      ‖z‖ / z.re ≤ ‖z‖ / (1 / 2 : ℝ) :=
+        div_le_div_of_nonneg_left (norm_nonneg z) (by norm_num) hz_re
+      _ = 2 * ‖z‖ := by ring
   have z_norm : ‖s + 3 / 2 + I * ↑t‖ ≤ 5 / 2 + |t| := by
     have It_norm : ‖I * (↑t : ℂ)‖ = |t| :=
       by rw [norm_mul, norm_I, one_mul, Complex.norm_real, Real.norm_eq_abs]
@@ -1171,15 +1154,11 @@ theorem GlobalBound
     apply le_trans
       (norm_add_le_of_le (norm_add_le_of_le hs (le_of_eq threeHalves_norm)) (le_of_eq It_norm))
     linarith
-  have hmul : ‖(s + 3 / 2 + I * ↑t) * ∫ (u : ℝ) in Ioi 1,
-    (↑(Int.fract u) : ℂ) * (u : ℂ) ^ (-(s + 3 / 2 + I * ↑t) - 1)‖ ≤ 5 + 2 * |t| := by
-    rw [norm_mul]
-    have hinv : (1 : ℝ) / (s.re + 3 / 2) ≤ 2 := by rw [div_le_iff₀ (by linarith)]; linarith
-    apply le_trans
-      (mul_le_mul z_norm (hint.trans hinv) (norm_nonneg _) (by linarith [abs_nonneg t]))
-    linarith
-  rw [ZetaAltFormula hz.1 hz.2]
-  exact (norm_sub_le_of_le leadingTerms hmul).trans (by linarith)
+  change ‖ζ z‖ ≤ 7 + 2 * |t|
+  rw [riemannZeta_eq_zetaAbelContinuationFormula z hz.1 hz.2]
+  exact (norm_zetaAbelContinuationFormula_le z hz.1).trans (by
+    change ‖z‖ ≤ 5 / 2 + |t| at z_norm
+    linarith)
 
 
 
