@@ -72,14 +72,9 @@ lemma p_n_lower_large (n : ℕ) (hn : n ≥ 32) :
         convert Dusart.corollary_5_3_b _ using 1
         have h_step1 : (nth_prime' n : ℝ) ≥ n + 1 := by
           norm_cast
-          have h_step1 : ∀ n ≥ 1, nth_prime' n ≥ n + 1 := by
-            intro n hn
-            induction n, hn using Nat.le_induction with
-            | base =>
-              exact Prime.two_le (prime_nth_prime 0) |> succ_le_of_lt |> le_trans <| le_refl _
-            | succ n _ ih =>
-              exact succ_le_of_lt (lt_of_le_of_lt ih (nth_strictMono (infinite_setOfPred_prime) (pred_lt (by positivity))))
-          exact h_step1 n (by linarith)
+          have hp := Nat.add_two_le_nth_prime (n - 1)
+          change n + 1 ≤ Nat.nth Nat.Prime (n - 1)
+          omega
         generalize_proofs at *
         have h_exp_approx : Real.exp 1.112 < 33 := by linarith [LogTables.exp_1_112_lt]
         linarith [show (n : ℝ) ≥ 32 by norm_cast]
