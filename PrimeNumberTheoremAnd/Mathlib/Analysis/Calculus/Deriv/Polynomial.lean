@@ -3,6 +3,7 @@ module
 public import Mathlib.Analysis.Calculus.Deriv.Polynomial
 public import Mathlib.Analysis.Calculus.LogDeriv
 public import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
 
 /-!
 # Polynomial derivatives and logarithmic derivatives
@@ -20,27 +21,17 @@ derivative. -/
 theorem logDeriv_exp_eval (P : ℂ[X]) (z : ℂ) :
     logDeriv (fun w : ℂ => Complex.exp (Polynomial.eval w P)) z =
       Polynomial.eval z P.derivative := by
-  have hderiv :
-      deriv (fun w : ℂ => Complex.exp (Polynomial.eval w P)) z =
-        Complex.exp (Polynomial.eval z P) * Polynomial.eval z P.derivative := by
-    simpa [Function.comp_def, mul_comm] using
-      ((Complex.hasDerivAt_exp (Polynomial.eval z P)).comp z (P.hasDerivAt z)).deriv
-  rw [logDeriv_apply, hderiv]
-  field_simp [Complex.exp_ne_zero (Polynomial.eval z P)]
+  simpa only [Function.comp_def, Complex.logDeriv_exp, Pi.one_apply, one_mul, P.deriv] using
+    (logDeriv_comp (Complex.differentiable_exp.differentiableAt) (P.hasDerivAt z).differentiableAt)
 
 /-- The derivative of a degree-one complex polynomial is constant. -/
 theorem degree_derivative_le_zero_of_degree_le_one {P : Polynomial ℂ}
     (hP : P.degree ≤ 1) :
     P.derivative.degree ≤ 0 := by
-  rw [Polynomial.degree_le_iff_coeff_zero]
-  intro m hm
-  rw [Polynomial.coeff_derivative]
-  have hmpos : 0 < m := by exact_mod_cast hm
-  have hlt : (1 : WithBot ℕ) < (m + 1 : ℕ) := by
-    norm_cast
-    exact Nat.succ_lt_succ hmpos
-  have hcoeff := (Polynomial.degree_le_iff_coeff_zero P 1).mp hP (m + 1) hlt
-  simp [hcoeff]
+  apply Polynomial.degree_le_of_natDegree_le (n := 0)
+  exact (Polynomial.natDegree_derivative_le P).trans (by
+    have hp : P.natDegree ≤ 1 := Polynomial.natDegree_le_of_degree_le hP
+    omega)
 
 /-- The derivative of a degree-one complex polynomial is independent of the evaluation point. -/
 theorem eval_derivative_eq_eval_derivative_zero_of_degree_le_one {P : Polynomial ℂ}

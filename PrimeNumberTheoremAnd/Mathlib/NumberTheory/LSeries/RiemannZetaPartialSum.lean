@@ -5,9 +5,9 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Algebra.Order.Floor.Ring
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.AbelSummation
+public import Mathlib.NumberTheory.AbelSummation
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
@@ -71,14 +71,17 @@ private lemma abel_summation (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
     sum_mul_eq_sub_integral_mul₀' (c := c) (f := f) (m := N)
       (hc := by simp [c]) (hf_diff := hdiff) (hf_int := hint)
   have hLHS : (∑ k ∈ Finset.Icc 0 N, f k * c k) = zetaPartialSum s N := by
-    rw [Finset.sum_Icc_zero_eq_sum_range_succ (by simp [c])]
+    rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range]
+    simp only [Nat.sub_zero, zero_add, Finset.sum_range_succ']
     simp [zetaPartialSum, f, c]
   have hInt_congr :
       (∫ u in (1 : ℝ)..N, deriv f u * ∑ k ∈ Finset.Icc 0 ⌊u⌋₊, c k)
         = ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (-s * (u : ℂ) ^ (-s - 1)) := by
     apply intervalIntegral.integral_congr_Ioc_of_le hle
     intro u hu
-    rw [sum_Icc_zero_floor_eq_sum_range (hc0 := by simp [c]) u, Complex.deriv_ofReal_cpow_neg s (lt_trans zero_lt_one hu.1)]
+    rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range,
+      Complex.deriv_ofReal_cpow_neg s (lt_trans zero_lt_one hu.1)]
+    simp only [Nat.sub_zero, zero_add, Finset.sum_range_succ']
     simp [c, Finset.sum_const, Finset.card_range, mul_comm, mul_left_comm]
   calc
     zetaPartialSum s N
@@ -91,7 +94,8 @@ private lemma abel_summation (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
     _ = (N : ℂ) * (N : ℂ) ^ (-s)
             - ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (-s * (u : ℂ) ^ (-s - 1)) := by
           have hMain : f N * (∑ k ∈ Finset.Icc 0 N, c k) = (N : ℂ) * f N := by
-            rw [Finset.sum_Icc_zero_eq_sum_range_succ (by simp [c])]
+            rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range]
+            simp only [Nat.sub_zero, zero_add, Finset.sum_range_succ']
             simp [c, f, Finset.sum_const, Finset.card_range, mul_comm]
           rw [hMain]; simp [f]
 
@@ -178,25 +182,10 @@ lemma tendsto_natCast_cpow_zero_of_neg_re (w : ℂ) (hw : w.re < 0) :
 /-- `zetaPartialSum` converges to `riemannZeta` for `re s > 1`. -/
 theorem tendsto_riemannZeta (s : ℂ) (hs : 1 < s.re) :
     Tendsto (fun N : ℕ => zetaPartialSum s N) atTop (𝓝 (riemannZeta s)) := by
-  set g : ℕ → ℂ := fun n => if n = 0 then 0 else (n : ℂ) ^ (-s)
-  set h : ℕ → ℂ := fun n => (n + 1 : ℂ) ^ (-s)
-  have hsne : s ≠ 0 := by
-    intro h0
-    have : (0 : ℝ) < s.re := lt_trans (show (0 : ℝ) < 1 by norm_num) hs
-    simpa [h0] using ne_of_gt this
-  have hgSumm : Summable g := by
-    simpa [g, one_div_natCast_cpow_eq_ite_cpow_neg s hsne] using
-      (Complex.summable_one_div_nat_cpow (p := s)).2 hs
-  have hhSumm : Summable h := by
-    have : Summable (fun n => g (n + 1)) := (summable_nat_add_iff (f := g) (k := 1)).2 hgSumm
-    simpa [Function.comp_apply, h, g] using this
-  have hg0 : g 0 = 0 := by simp [g]
-  have h_tsum_eq : (∑' n, h n) = ∑' n, g n := by
-    have : (∑' n, g n) = ∑' n, g (n + 1) := by simpa [hg0, add_comm] using Summable.tsum_eq_zero_add hgSumm
-    simpa [h, g] using this.symm
-  have hzeta : riemannZeta s = ∑' n, g n := by
-    simpa [g, one_div_natCast_cpow_eq_ite_cpow_neg s hsne] using
-      zeta_eq_tsum_one_div_nat_cpow (s := s) hs
-  simpa [zetaPartialSum, h, h_tsum_eq.trans hzeta.symm] using Summable.tendsto_sum_tsum_nat hhSumm
+  have hh : Summable fun n : ℕ => 1 / (n + 1 : ℂ) ^ s := by
+    simpa only [Nat.cast_add, Nat.cast_one] using
+      (summable_nat_add_iff 1).mpr ((Complex.summable_one_div_nat_cpow (p := s)).mpr hs)
+  rw [zeta_eq_tsum_one_div_nat_add_one_cpow hs]
+  simpa only [zetaPartialSum, one_div, Complex.cpow_neg] using hh.tendsto_sum_tsum_nat
 
 end ZetaPartialSum

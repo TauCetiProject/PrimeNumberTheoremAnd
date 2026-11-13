@@ -2402,7 +2402,7 @@ lemma I8I2 {SmoothingF : ℝ → ℝ}
   rw[map_mul, ← neg_mul]
   congr
   · simp[conj_ofNat]
-  · rw[← intervalIntegral_conj]
+  · rw[← intervalIntegral.intervalIntegral_conj]
     apply intervalIntegral.integral_congr
     intro σ hσ
     simp only []
@@ -2829,7 +2829,7 @@ lemma I7I3 {SmoothingF : ℝ → ℝ} {ε X T σ₁ : ℝ} (Xpos : 0 < X) :
   rw [neg_mul, mul_neg, ← neg_mul]
   congr
   · ring
-  · rw [← intervalIntegral_conj, ← intervalIntegral.integral_comp_neg]
+  · rw [← intervalIntegral.intervalIntegral_conj, ← intervalIntegral.integral_comp_neg]
     apply intervalIntegral.integral_congr
     intro t ht
     simp only
@@ -3262,7 +3262,7 @@ lemma I6I4 {SmoothingF : ℝ → ℝ} {ε X σ₁ σ₂ : ℝ} (Xpos : 0 < X) :
   rw [← neg_mul]
   congr
   · ring
-  · rw [← intervalIntegral_conj]
+  · rw [← intervalIntegral.intervalIntegral_conj]
     apply intervalIntegral.integral_congr
     intro σ hσ
     simp only

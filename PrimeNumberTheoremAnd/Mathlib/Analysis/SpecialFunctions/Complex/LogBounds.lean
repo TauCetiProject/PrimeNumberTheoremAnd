@@ -99,28 +99,8 @@ lemma partialLogSum_eq_sum (m : ℕ) (z : ℂ) :
 
 lemma hasDerivAt_partialLogSum (m : ℕ) (z : ℂ) :
     HasDerivAt (partialLogSum m) (∑ j ∈ Finset.range m, z ^ j) z := by
-  cases m with
-  | zero =>
-      have hzero : partialLogSum 0 = fun _ : ℂ ↦ (0 : ℂ) := by
-        funext w
-        exact partialLogSum_zero w
-      simpa [hzero] using (hasDerivAt_const z (c := (0 : ℂ)))
-  | succ m =>
-      have hsum :
-          (∑ j ∈ Finset.range (m + 1), z ^ j) =
-            ∑ j ∈ Finset.range (m + 1), (-1) ^ j * (-z) ^ j := by
-        refine Finset.sum_congr rfl ?_
-        intro j hj
-        symm
-        calc
-          (-1 : ℂ) ^ j * (-z) ^ j = (-1 : ℂ) ^ j * (((-1 : ℂ) * z) ^ j) := by simp
-          _ = ((-1 : ℂ) ^ j * (-1 : ℂ) ^ j) * z ^ j := by rw [mul_pow]; ring
-          _ = z ^ j := by
-                rw [← pow_add, show j + j = 2 * j by omega, pow_mul]
-                norm_num
-      rw [hsum]
-      simpa [partialLogSum] using!
-        (((hasDerivAt_logTaylor (m + 1) (-z)).comp z (hasDerivAt_neg z)).neg)
+  have h := (((hasDerivAt_logTaylor m (-z)).comp z (hasDerivAt_neg z)).neg)
+  simpa only [partialLogSum, mul_neg_one, neg_neg, ← mul_pow, neg_one_mul] using! h
 
 lemma differentiable_partialLogSum (m : ℕ) :
     Differentiable ℂ (fun z : ℂ => partialLogSum m z) := by
@@ -155,51 +135,38 @@ lemma summable_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
           exact pow_le_one₀ (norm_nonneg z) (le_of_lt hz)
     _ = ‖z‖ ^ k := one_mul _
 
+/-- Decompose the logarithm series into its first `m` terms and the remaining tail. -/
+lemma neg_log_one_sub_eq_partialLogSum_add_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
+    -log (1 - z) = partialLogSum m z + logTail m z := by
+  let f : ℕ → ℂ := fun k ↦ z ^ (k + 1) / ((k : ℂ) + 1)
+  have h_summable : Summable f := by
+    simpa [f, Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
+      (summable_logTail hz 0)
+  have h_decomp := h_summable.sum_add_tsum_nat_add m
+  rw [neg_log_one_sub_eq_tsum hz, partialLogSum_eq_sum, ← h_decomp]
+  congr 1
+  dsimp only [logTail]
+  refine tsum_congr fun k ↦ ?_
+  simp only [f, Nat.cast_add]
+  ring_nf
+
+
 /-- A coarse geometric-series bound for the logarithm tail. This intentionally drops the
 extra denominator `m + 1 + k`; the weaker estimate is the form used by the Weierstrass-factor
 bounds below. -/
 lemma norm_logTail_le {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
     ‖logTail m z‖ ≤ ‖z‖ ^ (m + 1) / (1 - ‖z‖) := by
-  dsimp only [logTail]
-  have h_rhs_summable : Summable (fun k => ‖z‖ ^ (m + 1 + k)) := by
-    simpa [pow_add] using
-      (summable_geometric_of_lt_one (norm_nonneg z) hz).mul_left (‖z‖ ^ (m + 1))
-  have h_norm_summable : Summable (fun k => ‖z ^ (m + 1 + k) / ((m + 1 + k) : ℂ)‖) := by
-    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) ?_ h_rhs_summable
-    intro k
-    rw [norm_div, norm_pow]
-    have hnorm : ‖(↑m + 1 + ↑k : ℂ)‖ = (m + 1 + k : ℝ) := by
-      simpa [Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
-        (Complex.norm_natCast (m + 1 + k))
-    rw [hnorm]
-    have hm : 1 ≤ (m + 1 + k : ℝ) := by
-      have : (0 : ℝ) ≤ (m + k : ℝ) := by positivity
-      nlinarith
-    exact div_le_self (pow_nonneg (norm_nonneg z) _) hm
-  calc
-    ‖∑' k, z ^ (m + 1 + k) / ((m + 1 + k) : ℂ)‖
-        ≤ ∑' k, ‖z ^ (m + 1 + k) / ((m + 1 + k) : ℂ)‖ :=
-          norm_tsum_le_tsum_norm h_norm_summable
-    _ ≤ ∑' k, ‖z‖ ^ (m + 1 + k) := by
-          refine h_norm_summable.tsum_le_tsum ?_ h_rhs_summable
-          intro k
-          rw [norm_div, norm_pow]
-          have hm : 1 ≤ (m + 1 + k : ℝ) := by
-            have : (0 : ℝ) ≤ (m + k : ℝ) := by positivity
-            nlinarith
-          have hnorm : ‖(↑m + 1 + ↑k : ℂ)‖ = (m + 1 + k : ℝ) := by
-            simpa [Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
-              (Complex.norm_natCast (m + 1 + k))
-          rw [hnorm]
-          exact div_le_self (pow_nonneg (norm_nonneg z) _) hm
-    _ = ‖z‖ ^ (m + 1) / (1 - ‖z‖) := by
-          have h_eq :
-              (fun k => ‖z‖ ^ (m + 1 + k)) = fun k => ‖z‖ ^ (m + 1) * ‖z‖ ^ k := by
-            ext k
-            rw [pow_add]
-          rw [h_eq, tsum_mul_left]
-          have h_geom := hasSum_geometric_of_lt_one (norm_nonneg z) hz
-          rw [h_geom.tsum_eq, div_eq_mul_inv]
+  have htail : logTail m z = -(log (1 - z) - logTaylor (m + 1) (-z)) := by
+    have h := neg_log_one_sub_eq_partialLogSum_add_logTail hz m
+    unfold partialLogSum at h
+    linear_combination -h
+  rw [htail, norm_neg]
+  have h := norm_log_sub_logTaylor_le m (z := -z) (by simpa using hz)
+  simp only [norm_neg, ← sub_eq_add_neg] at h
+  refine h.trans ?_
+  simpa only [div_eq_mul_inv] using
+    div_le_self (by positivity : 0 ≤ ‖z‖ ^ (m + 1) * (1 - ‖z‖)⁻¹)
+      (by norm_num : (1 : ℝ) ≤ (m : ℝ) + 1)
 
 lemma norm_logTail_le_two_mul_norm_pow {z : ℂ} (hz : ‖z‖ < 1) (hzhalf : ‖z‖ ≤ 1 / 2) (m : ℕ) :
     ‖logTail m z‖ ≤ 2 * ‖z‖ ^ (m + 1) :=
@@ -242,19 +209,5 @@ lemma norm_partialLogSum_le_nat_mul_max_one_norm_pow (m : ℕ) (z : ℂ) :
     simp [Finset.sum_const]
   exact hsum.trans (hsum_le.trans_eq hcard)
 
-/-- Decompose the logarithm series into its first `m` terms and the remaining tail. -/
-lemma neg_log_one_sub_eq_partialLogSum_add_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
-    -log (1 - z) = partialLogSum m z + logTail m z := by
-  let f : ℕ → ℂ := fun k ↦ z ^ (k + 1) / ((k : ℂ) + 1)
-  have h_summable : Summable f := by
-    simpa [f, Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
-      (summable_logTail hz 0)
-  have h_decomp := h_summable.sum_add_tsum_nat_add m
-  rw [neg_log_one_sub_eq_tsum hz, partialLogSum_eq_sum, ← h_decomp]
-  congr 1
-  dsimp only [logTail]
-  refine tsum_congr fun k ↦ ?_
-  simp only [f, Nat.cast_add]
-  ring_nf
 
 end Complex

@@ -23,19 +23,19 @@ variable [SeminormedAddCommGroup E'] [SeminormedAddCommGroup F'] [SeminormedAddC
   [SeminormedRing R']
 
 
-theorem isLittleO_const_id_cocompact [ProperSpace F'']
-    (c : E'') : (fun _x : F'' => c) =o[cocompact F''] id :=
-  isLittleO_const_left.2 <| Or.inr tendsto_norm_cocompact_atTop
-
 -- to replace existing `isLittleO_const_id_atTop`
 theorem isLittleO_const_id_atTop2 [LinearOrder F''] [NoMaxOrder F''] [ClosedIciTopology F'']
-    [ProperSpace F''] (c : E'') : (fun _x : F'' => c) =o[atTop] id :=
- (isLittleO_const_id_cocompact c).mono atTop_le_cocompact
+    [ProperSpace F''] (c : E'') : (fun _x : F'' => c) =o[atTop] id := by
+  have h := isLittleO_const_id_cobounded (E'' := F'') c
+  rw [Metric.cobounded_eq_cocompact] at h
+  exact h.mono atTop_le_cocompact
 
 -- to replace existing `isLittleO_const_id_atBot`
 theorem isLittleO_const_id_atBot2 [LinearOrder F''] [NoMinOrder F''] [ClosedIicTopology F'']
-    [ProperSpace F''] (c : E'') : (fun _x : F'' => c) =o[atBot] id :=
-  (isLittleO_const_id_cocompact c).mono atBot_le_cocompact
+    [ProperSpace F''] (c : E'') : (fun _x : F'' => c) =o[atBot] id := by
+  have h := isLittleO_const_id_cobounded (E'' := F'') c
+  rw [Metric.cobounded_eq_cocompact] at h
+  exact h.mono atBot_le_cocompact
 
 theorem _root_.Filter.Eventually.natCast {f : ℝ → Prop} (hf : ∀ᶠ x in atTop, f x) :
     ∀ᶠ n : ℕ in atTop, f n :=

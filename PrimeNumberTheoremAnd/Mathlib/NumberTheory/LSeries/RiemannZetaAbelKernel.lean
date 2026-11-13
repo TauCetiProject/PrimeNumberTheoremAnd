@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Algebra.Order.Floor.Ring
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
@@ -44,7 +44,8 @@ noncomputable def zetaAbelFractKernel (s : ℂ) (u : ℝ) : ℂ :=
 theorem norm_zetaAbelFractKernel_le (u : ℝ) (hu : 1 ≤ u) (s : ℂ) :
     ‖zetaAbelFractKernel s u‖ ≤ u ^ (-s.re - 1) := by
   have hu0 : 0 < u := one_pos.trans_le hu
-  have hfract_le1 : ‖((Int.fract u : ℝ) : ℂ)‖ ≤ 1 := by simpa using Int.fract_abs_le_one u
+  have hfract_le1 : ‖((Int.fract u : ℝ) : ℂ)‖ ≤ 1 := by
+    simpa only [Complex.norm_real, Real.norm_eq_abs, Int.abs_fract] using (Int.fract_lt_one u).le
   have hle : ‖zetaAbelFractKernel s u‖ ≤ ‖(u : ℂ) ^ (-s - 1)‖ := by
     calc
       _ = ‖((Int.fract u : ℝ) : ℂ)‖ * ‖(u : ℂ) ^ (-s - 1)‖ := by rw [zetaAbelFractKernel, norm_mul]
@@ -150,34 +151,6 @@ theorem kernel_deriv_norm_bound_on_ball (ε : ℝ) (u : ℝ) (hu : 1 < u) (x : �
         = Real.log u * ‖zetaAbelFractKernel x u‖ := by rw [norm_mul, hlognorm]
     _ ≤ Real.log u * u ^ (-1 - ε) := mul_le_mul_of_nonneg_left hinner (le_of_lt (Real.log_pos hu))
 
-private lemma ae_on_Ioi_of_all {p : ℝ → Prop} (h : ∀ u ∈ Ioi (1 : ℝ), p u) :
-    ∀ᵐ u ∂(volume.restrict (Ioi (1 : ℝ))), p u :=
-  ae_restrict_iff' measurableSet_Ioi |>.2 (ae_of_all _ fun u hu => h u hu)
-
-private lemma dist_lt_of_mem_ball_half {z s : ℂ} {δ : ℝ} (hz : z ∈ Metric.ball s (δ / 2)) (hδ : 0 < δ) :
-    dist z s < δ :=
-  lt_trans (Metric.mem_ball.mp hz) (half_lt_self hδ)
-
-/-- Dominated differentiation under `∫_{(1,∞)} F z`. -/
-lemma hasDerivAt_integral_param_dominated_Ioi
-  (F F' : ℂ → ℝ → ℂ) (s : ℂ) (δ : ℝ) (hδ : 0 < δ)
-  (hmeas : ∀ᶠ z in 𝓝 s, AEStronglyMeasurable (F z) (volume.restrict (Ioi (1 : ℝ))))
-  (hFint : Integrable (F s) (volume.restrict (Ioi (1 : ℝ))))
-  (hF'meas : AEStronglyMeasurable (F' s) (volume.restrict (Ioi (1 : ℝ))))
-  (bound : ℝ → ℝ) (hbound_int : Integrable bound (volume.restrict (Ioi (1 : ℝ))))
-  (hbound : ∀ᵐ u ∂(volume.restrict (Ioi (1 : ℝ))), ∀ z ∈ Metric.ball s δ, ‖F' z u‖ ≤ bound u)
-  (hderiv : ∀ᵐ u ∂(volume.restrict (Ioi (1 : ℝ))), ∀ z ∈ Metric.ball s δ,
-    HasDerivAt (fun w => F w u) (F' z u) z) :
-  HasDerivAt (fun z => ∫ u in Ioi (1 : ℝ), F z u) (∫ u in Ioi (1 : ℝ), F' s u) s := by
-  have h :=
-    hasDerivAt_integral_of_dominated_loc_of_deriv_le
-      (μ := volume.restrict (Ioi (1 : ℝ))) (F := F) (F' := F') (x₀ := s)
-      (s := Metric.ball s δ) (bound := bound) (Metric.ball_mem_nhds s hδ)
-      (hF_meas := hmeas) (hF_int := hFint) (hF'_meas := hF'meas)
-      (h_bound := hbound) (bound_integrable := hbound_int) (h_diff := hderiv)
-  rcases h with ⟨_, hDeriv⟩
-  exact hDeriv
-
 /-- `∫_{(1,∞)} K_z` is analytic in `z` for `re z > 0`. -/
 theorem integral_analytic (s : ℂ) (hs : 0 < s.re) :
     AnalyticAt ℂ (fun z => ∫ u in Ioi (1 : ℝ), zetaAbelFractKernel z u) s := by
@@ -195,19 +168,21 @@ theorem integral_analytic (s : ℂ) (hs : 0 < s.re) :
     refine Filter.eventually_of_mem (Metric.ball_mem_nhds s (half_pos hδpos)) ?_
     intro z hz
     set δ' : ℝ := δ / 2
-    have hz_lt : dist z s < δ := dist_lt_of_mem_ball_half hz hδpos
+    have hz_lt : dist z s < δ := Metric.mem_ball.mp (Metric.ball_subset_ball (half_le_self hδpos.le) hz)
     have hRe : ∀ y ∈ Metric.ball z δ', ε ≤ y.re := fun y hy =>
-      hδprop z y hz_lt (dist_lt_of_mem_ball_half hy hδpos)
+      hδprop z y hz_lt (Metric.mem_ball.mp (Metric.ball_subset_ball (half_le_self hδpos.le) hy))
     have hzRe : ε ≤ z.re := hδprop s z (by simpa [dist_self] using hδpos) hz_lt
-    exact (hasDerivAt_integral_param_dominated_Ioi F F' z δ' (half_pos hδpos)
+    exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (μ := volume.restrict (Ioi (1 : ℝ))) (F := F) (F' := F') (bound := bound)
+      (Metric.ball_mem_nhds z (half_pos hδpos))
       (eventually_aestronglyMeasurable_param z)
       (by simpa using integrableOn_Ioi z (lt_of_lt_of_le hεpos hzRe))
       (by simpa [F, F'] using aestronglyMeasurable_param_deriv z)
-      bound hbound_int
-      (ae_on_Ioi_of_all fun u hu w hw =>
+      (ae_restrict_of_forall_mem measurableSet_Ioi fun u hu w hw =>
         (kernel_deriv_norm_bound_on_ball ε u hu w (hRe w hw)).trans
           (by simpa [bound] using Real.log_mul_rpow_neg_le_two_div_mul_rpow_neg hεpos hu))
-      (ae_on_Ioi_of_all fun u hu w hw => by simpa [F, F'] using hasDerivAt_in_param u hu w)).differentiableAt
+      hbound_int
+      (ae_restrict_of_forall_mem measurableSet_Ioi fun u hu w hw => by simpa [F, F'] using hasDerivAt_in_param u hu w)).2.differentiableAt
   exact (Complex.analyticAt_iff_eventually_differentiableAt
     (f := fun z => ∫ u in Ioi (1 : ℝ), zetaAbelFractKernel z u)).2 hDiff
 

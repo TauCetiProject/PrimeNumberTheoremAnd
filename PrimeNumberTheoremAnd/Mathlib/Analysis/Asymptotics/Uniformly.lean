@@ -40,20 +40,14 @@ variable [Norm E] [Norm F] {f : ι × α → E} {g : α → F} {l : Filter α}
 /-- If f = O(g) uniformly on `s`, then f_i = O(g) for any i.` -/
 theorem isBigO_of_isBigOUniformly (h : f =O[𝓟 s ×ˢ l] (g ∘ Prod.snd)) {i : ι}
     (hi : i ∈ s) : (fun x ↦ f (i, x)) =O[l] g := by
-  obtain ⟨C, hC⟩ := h.bound
-  obtain ⟨t, htl, ht⟩ := hC.exists_mem
-  obtain ⟨u, hu, v, hv, huv⟩ := Filter.mem_prod_iff.mp htl
-  refine isBigO_iff.mpr ⟨C, Filter.eventually_iff_exists_mem.mpr ⟨v, hv, ?_⟩⟩
-  exact fun y hy ↦ ht _ <| huv ⟨hu hi, hy⟩
+  exact h.comp_tendsto
+    ((tendsto_principal.mpr (Filter.Eventually.of_forall fun _ ↦ hi)).prodMk tendsto_id)
 
 /-- If f = Ω(g) uniformly on `s`, then f_i = Ω(g) for any i.` -/
 theorem isBigO_rev_of_isBigOUniformly_rev (h : (g ∘ Prod.snd) =O[𝓟 s ×ˢ l] f) {i : ι}
     (hi : i ∈ s) : g =O[l] fun x ↦ f (i, x) := by
-  obtain ⟨C, hC⟩ := h.bound
-  obtain ⟨t, htl, ht⟩ := hC.exists_mem
-  obtain ⟨u, hu, v, hv, huv⟩ := Filter.mem_prod_iff.mp htl
-  refine isBigO_iff.mpr ⟨C, Filter.eventually_iff_exists_mem.mpr ⟨v, hv, ?_⟩⟩
-  exact fun y hy ↦ ht (i, y) <| huv ⟨hu hi, hy⟩
+  exact h.comp_tendsto
+    ((tendsto_principal.mpr (Filter.Eventually.of_forall fun _ ↦ hi)).prodMk tendsto_id)
 
 /-- If f = Θ(g) uniformly on `s`, then f_i = Θ(g) for any i.` -/
 theorem isTheta_of_isThetaUniformly (h : f =Θ[𝓟 s ×ˢ l] (g ∘ Prod.snd)) {i : ι}

@@ -67,26 +67,17 @@ lemma norm_cpow_neg_lt_one (p : Nat.Primes) (s : ℂ) (hs : 1 < s.re) :
   have hz : -s.re < 0 := neg_lt_zero.mpr (lt_trans zero_lt_one hs)
   simpa [hnorm] using Real.rpow_lt_one_of_one_lt_of_neg hx1 hz
 
-/-- `‖p^{-s}‖ = p^{- re s}` for a prime `p`. -/
-lemma norm_cpow_neg_eq_rpow_neg_re (p : Nat.Primes) (s : ℂ) :
-    ‖((p : ℕ) : ℂ) ^ (-s)‖ = ((p : ℕ) : ℝ) ^ (-s.re) := by
-  have hx : 0 < ((p : ℕ) : ℝ) := Nat.cast_pos.mpr p.property.pos
-  simpa [Complex.ofReal_natCast, Complex.neg_re] using
-    Complex.norm_cpow_eq_rpow_re_of_pos hx (-s)
-
-/-- `(p : ℝ)^(-r)` coerces to `(p : ℂ)^(-r)` for a prime `p` and real exponent `r`. -/
-lemma cpow_neg_ofReal (p : Nat.Primes) (r : ℝ) :
-    (((((p : ℕ) : ℝ) ^ (-r)) : ℝ) : ℂ) = ((p : ℕ) : ℂ) ^ (-((r : ℝ) : ℂ)) := by
-  have hp : 0 ≤ ((p : ℕ) : ℝ) := by positivity
-  simpa using Complex.ofReal_cpow (x := ((p : ℕ) : ℝ)) (hx := hp) (y := -r)
-
 /-- `(1 + p^{-r})⁻¹` in `ℂ` equals the real inverse cast from `ℝ`. -/
 lemma cast_inv_one_add (p : Nat.Primes) (r : ℝ) :
     ((1 + ((p : ℕ) : ℂ) ^ (-((r : ℝ) : ℂ)))⁻¹) =
       (((1 + ((p : ℕ) : ℝ) ^ (-r))⁻¹ : ℝ) : ℂ) := by
   calc
     ((1 + ((p : ℕ) : ℂ) ^ (-((r : ℝ) : ℂ)))⁻¹)
-        = ((1 + (((((p : ℕ) : ℝ) ^ (-r)) : ℝ) : ℂ))⁻¹) := by rw [← cpow_neg_ofReal p r]
+        = ((1 + (((((p : ℕ) : ℝ) ^ (-r)) : ℝ) : ℂ))⁻¹) := by
+          simpa only [Complex.ofReal_neg, Complex.ofReal_natCast] using
+            congrArg (fun w : ℂ => (1 + w)⁻¹)
+              (Complex.ofReal_cpow (x := ((p : ℕ) : ℝ))
+                (hx := Nat.cast_nonneg _) (y := -r)).symm
     _ = (((1 + ((p : ℕ) : ℝ) ^ (-r))⁻¹ : ℝ) : ℂ) := by
       simp [Complex.ofReal_add, Complex.ofReal_inv, Complex.ofReal_one]
 
@@ -105,7 +96,8 @@ lemma norm_one_sub_cpow_neg_vertical_le (p : Nat.Primes) (σ t : ℝ) :
     ‖1 - ((p : ℕ) : ℂ) ^ (-s)‖ ≤ 1 + ‖((p : ℕ) : ℂ) ^ (-s)‖ := by
       simpa [sub_eq_add_neg, norm_one, norm_neg] using
         norm_add_le (1 : ℂ) (-((p : ℕ) : ℂ) ^ (-s))
-    _ = 1 + ((p : ℕ) : ℝ) ^ (-σ) := by rw [norm_cpow_neg_eq_rpow_neg_re, hre]
+    _ = 1 + ((p : ℕ) : ℝ) ^ (-σ) := by
+      rw [Complex.norm_natCast_cpow_of_pos p.property.pos, Complex.neg_re, hre]
 
 /-- On the vertical line `σ + it` with `1 < σ`, the Euler factor `1 - p^{-s}` is nonzero. -/
 lemma one_sub_cpow_neg_vertical_ne_zero (p : Nat.Primes) (σ t : ℝ) (hσ : 1 < σ) :
@@ -149,34 +141,18 @@ lemma multipliable_complex_inv_one_add (r : ℝ) (hr : 1 < r) :
     exact cast_inv_one_add p r
   simpa [h_eq, Function.comp_def] using hmap
 
-/-- **`(1 - z²)⁻¹ = (1 - z)⁻¹ · (1 + z)⁻¹`** for `‖z‖ < 1`. -/
-lemma inv_one_sub_sq_eq_mul_inv_one_sub_one_add (z : ℂ) (hz : ‖z‖ < 1) :
-    (1 - z ^ 2)⁻¹ = (1 - z)⁻¹ * (1 + z)⁻¹ := by
-  have hz0 : 1 - z ≠ 0 := by
-    intro h
-    have : z = 1 := (sub_eq_zero.mp h).symm
-    simp [this, norm_one] at hz
-  have hz1 : 1 + z ≠ 0 := by
-    intro h
-    have : z = -1 := by exact Eq.symm (neg_eq_of_add_eq_zero_right h)
-    simp [this, norm_neg, norm_one] at hz
-  calc
-    (1 - z ^ 2)⁻¹ = ((1 - z) * (1 + z))⁻¹ := by ring
-    _ = (1 + z)⁻¹ * (1 - z)⁻¹ := by simp [mul_inv_rev]
-    _ = (1 - z)⁻¹ * (1 + z)⁻¹ := by ring
-
-lemma eulerFactor_two_mul (p : Nat.Primes) (s : ℂ) (hs : 1 < s.re) :
+lemma eulerFactor_two_mul (p : Nat.Primes) (s : ℂ) :
     (1 - ((p : ℕ) : ℂ) ^ (-(2 * s)))⁻¹ =
       (1 - ((p : ℕ) : ℂ) ^ (-s))⁻¹ * (1 + ((p : ℕ) : ℂ) ^ (-s))⁻¹ := by
   set z := ((p : ℕ) : ℂ) ^ (-s)
-  have hz : ‖z‖ < 1 := norm_cpow_neg_lt_one p s hs
   have hpow : ((p : ℕ) : ℂ) ^ (-(2 * s)) = z ^ 2 := by
     simp only [z]
     rw [show -(2 * s) = (2 : ℂ) * (-s) by ring,
       show (2 : ℂ) * (-s) = ((2 : ℕ) : ℂ) * (-s) by norm_num, Complex.cpow_nat_mul]
   calc
     (1 - ((p : ℕ) : ℂ) ^ (-(2 * s)))⁻¹ = (1 - z ^ 2)⁻¹ := by rw [hpow]
-    _ = (1 - z)⁻¹ * (1 + z)⁻¹ := inv_one_sub_sq_eq_mul_inv_one_sub_one_add z hz
+    _ = (1 - z)⁻¹ * (1 + z)⁻¹ := by
+      rw [← mul_inv]; congr 1; ring
     _ = (1 - ((p : ℕ) : ℂ) ^ (-s))⁻¹ * (1 + ((p : ℕ) : ℂ) ^ (-s))⁻¹ := by simp [z]
 
 end Nat.Primes
@@ -201,7 +177,7 @@ theorem riemannZeta_eq_mul_tprod_inv_one_add (r : ℝ) (hr : 1 < r) :
         = ∏' p : Nat.Primes, (1 - ((p : ℕ) : ℂ) ^ (-(2 * s)))⁻¹ :=
           (riemannZeta_eulerProduct_tprod hs2).symm
     _ = ∏' p : Nat.Primes, (1 - ((p : ℕ) : ℂ) ^ (-s))⁻¹ * (1 + ((p : ℕ) : ℂ) ^ (-s))⁻¹ := by
-      refine tprod_congr fun p => eulerFactor_two_mul p s hs
+      refine tprod_congr fun p => eulerFactor_two_mul p s
     _ = (∏' p : Nat.Primes, (1 - ((p : ℕ) : ℂ) ^ (-s))⁻¹) *
           ∏' p : Nat.Primes, (1 + ((p : ℕ) : ℂ) ^ (-s))⁻¹ := by
       rw [Multipliable.tprod_mul hζ hμ]
@@ -244,42 +220,6 @@ theorem norm_riemannZeta_div_riemannZeta (r : ℝ) (hr : 1 < r) :
     _ = ∏' p : Nat.Primes, (1 + ((p : ℕ) : ℝ) ^ (-r))⁻¹ := by
       refine tprod_congr fun p => norm_cast_inv_one_add p r
 
-private lemma multipliable_norm_eulerFactor_inv {ι : Type*} (g : ι → ℂ)
-    (h : Multipliable fun i => (1 - g i)⁻¹) :
-    Multipliable fun i => (‖1 - g i‖)⁻¹ := by
-  simpa [norm_inv] using Multipliable.norm h
-
-private lemma hasProd_nonneg_of_pos {ι : Type*} (f : ι → ℝ) (hf₀ : ∀ i, 0 < f i) (a : ℝ)
-    (ha : HasProd f a) : 0 ≤ a :=
-  ge_of_tendsto ha <| Filter.Eventually.of_forall fun _ =>
-    le_of_lt <| Finset.prod_pos fun i _ => hf₀ i
-
-private lemma hasProd_nnreal_of_coe {ι : Type*} (g : ι → NNReal) (b : NNReal)
-    (h : HasProd (fun i => (g i : ℝ)) (b : ℝ)) : HasProd g b := by
-  have h_eq : (fun s => ∏ i ∈ s, (g i : ℝ)) = fun s => ↑(∏ i ∈ s, g i) := by
-    ext s; exact (NNReal.coe_prod s g).symm
-  exact
-    (NNReal.isEmbedding_coe.tendsto_nhds_iff.mpr <| by
-      change Filter.Tendsto (fun s => ↑(∏ i ∈ s, g i)) Filter.atTop (𝓝 (b : ℝ))
-      rw [← h_eq]
-      exact h)
-
-private lemma multipliable_toNNReal {ι : Type*} (f : ι → ℝ) (hf₀ : ∀ i, 0 < f i)
-    (hf : Multipliable f) : Multipliable fun i => (⟨f i, (hf₀ i).le⟩ : NNReal) := by
-  obtain ⟨a, ha⟩ := hf
-  let a_nnreal : NNReal := ⟨a, hasProd_nonneg_of_pos f hf₀ a ha⟩
-  exact ⟨a_nnreal, hasProd_nnreal_of_coe _ _ (by simpa [a_nnreal] using! ha)⟩
-
-private lemma nnreal_coe_tprod {ι : Type*} (f : ι → NNReal) (hf : Multipliable f) :
-    ∏' i, (↑(f i) : ℝ) = ↑(∏' i, f i) :=
-  (HasProd.map (Multipliable.hasProd hf) NNReal.toRealHom NNReal.continuous_coe).tprod_eq
-
-private lemma nnreal_tprod_le_coe {ι : Type*} (f g : ι → NNReal) (hf : Multipliable f)
-    (hg : Multipliable g) (h : ∏' i, f i ≤ ∏' i, g i) :
-    ∏' i, (f i : ℝ) ≤ ∏' i, (g i : ℝ) := by
-  rw [nnreal_coe_tprod f hf, nnreal_coe_tprod g hg]
-  exact NNReal.coe_le_coe.mpr h
-
 /-- On the vertical line `re s = σ > 1`, the real product `∏_p (1 + p^{-σ})^{-1}` is dominated
 by the Euler product at `σ + it`. -/
 theorem tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine (σ t : ℝ) (hσ : 1 < σ) :
@@ -288,31 +228,14 @@ theorem tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine (σ t : ℝ) 
   set s := verticalLine σ t
   have hs : 1 < s.re := by rw [verticalLine_re]; exact hσ
   have hf₀ : ∀ p : Nat.Primes, 0 < (1 + ((p : ℕ) : ℝ) ^ (-σ))⁻¹ := fun _ => by positivity
-  have hg₀ : ∀ p : Nat.Primes, 0 < (‖1 - ((p : ℕ) : ℂ) ^ (-s)‖)⁻¹ := fun p =>
-    inv_pos.mpr (norm_pos_iff.mpr (Nat.Primes.one_sub_cpow_neg_vertical_ne_zero p σ t hσ))
-  let f : Nat.Primes → NNReal := fun p => ⟨(1 + ((p : ℕ) : ℝ) ^ (-σ))⁻¹, (hf₀ p).le⟩
-  let g : Nat.Primes → NNReal := fun p => ⟨(‖1 - ((p : ℕ) : ℂ) ^ (-s)‖)⁻¹, (hg₀ p).le⟩
-  have hf := multipliable_toNNReal _ hf₀ <| Nat.Primes.multipliable_inv_one_add σ hσ
-  have hg := multipliable_toNNReal _ hg₀ <|
-    multipliable_norm_eulerFactor_inv (g := fun p : Nat.Primes => ((p : ℕ) : ℂ) ^ (-s))
-      (riemannZeta_eulerProduct_hasProd hs).multipliable
-  have hle : ∏' p, f p ≤ ∏' p, g p :=
-    Multipliable.tprod_le_tprod (fun p =>
-      Nat.Primes.inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical p σ t hσ) hf hg
-  calc
-    ∏' p : Nat.Primes, (1 + ((p : ℕ) : ℝ) ^ (-σ))⁻¹
-        = ∏' p, (f p : ℝ) := tprod_congr fun p => by unfold f; rfl
-    _ ≤ ∏' p, (g p : ℝ) := nnreal_tprod_le_coe f g hf hg hle
-    _ = ∏' p : Nat.Primes, (‖1 - ((p : ℕ) : ℂ) ^ (-s)‖)⁻¹ :=
-        tprod_congr fun p => by unfold g; rfl
+  have hf := Nat.Primes.multipliable_inv_one_add σ hσ
+  have hg : Multipliable fun p : Nat.Primes => (‖1 - ((p : ℕ) : ℂ) ^ (-s)‖)⁻¹ := by
+    simpa only [norm_inv] using (riemannZeta_eulerProduct_hasProd hs).multipliable.norm
+  apply le_of_tendsto_of_tendsto' hf.hasProd hg.hasProd
+  intro v
+  exact Finset.prod_le_prod₀ (fun p _ => (hf₀ p).le) fun p _ =>
+    Nat.Primes.inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical p σ t hσ
 
 end RiemannZetaEulerProduct
-
-/-- `1 / (n : ℂ) ^ s` rewrites to `(n : ℂ) ^ (-s)` away from `n = 0`. -/
-theorem one_div_natCast_cpow_eq_ite_cpow_neg (s : ℂ) (hs : s ≠ 0) (n : ℕ) :
-    1 / (n : ℂ) ^ s = if n = 0 then 0 else (n : ℂ) ^ (-s) := by
-  by_cases h : n = 0
-  · simp [h, Complex.zero_cpow hs]
-  · simp [h, one_div, Complex.cpow_neg]
 
 end
