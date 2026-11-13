@@ -6,7 +6,7 @@ public import Mathlib.Analysis.Fourier.RiemannLebesgueLemma
 public import Mathlib.Analysis.SpecialFunctions.Complex.Log
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-public import PrimeNumberTheoremAnd.Mathlib.Topology.MetricSpace.Cauchy
+public import Mathlib.Topology.MetricSpace.Cauchy
 
 /-!
 # Bilateral Laplace inversion
