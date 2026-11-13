@@ -9,7 +9,6 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 public import TauCeti.Analysis.Complex.DivisorFactorization
 public import TauCeti.Analysis.Convex.SimplyConnected
 public import Mathlib.Analysis.Meromorphic.NormalForm
-public import PrimeNumberTheoremAnd.Mathlib.Topology.MetricSpace.Annulus
 
 
 
@@ -319,7 +318,7 @@ theorem exists_entire_nonzero_hadamardQuotient
 On any compact set separated from `z₀`, the quotient by `(z - z₀)^k` is bounded.
 -/
 
-theorem bddAbove_norm_divisorCanonicalProduct_div_pow_annulus
+theorem bddAbove_norm_divisorCanonicalProduct_div_pow_closedBall_diff_ball
     (m : ℕ) (f : ℂ → ℂ)
     (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)))
@@ -327,17 +326,17 @@ theorem bddAbove_norm_divisorCanonicalProduct_div_pow_annulus
     BddAbove
       (norm ∘
         (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k) ''
-          (Metric.annulusIcc z₀ r₁ r₂)) := by
-  set K : Set ℂ := Metric.annulusIcc z₀ r₁ r₂
+          (Metric.closedBall z₀ r₂ \ Metric.ball z₀ r₁)) := by
+  set K : Set ℂ := Metric.closedBall z₀ r₂ \ Metric.ball z₀ r₁
   have hK : IsCompact K := by
     have hclosed : IsClosed (Metric.ball z₀ r₁)ᶜ := Metric.isOpen_ball.isClosed_compl
-    simpa [K, Metric.annulusIcc_eq] using (isCompact_closedBall z₀ r₂).inter_right hclosed
+    simpa [K, Set.sdiff_eq] using (isCompact_closedBall z₀ r₂).inter_right hclosed
   have hKz : ∀ z ∈ K, z ≠ z₀ := by
     intro z hz hzz
     have hzBall : z ∈ Metric.ball z₀ r₁ := by
       simpa [hzz] using (Metric.mem_ball_self hr₁ : z₀ ∈ Metric.ball z₀ r₁)
     have hz' : z ∈ Metric.closedBall z₀ r₂ ∧ z ∉ Metric.ball z₀ r₁ := by
-      simpa [K, Metric.annulusIcc_eq] using hz
+      simpa [K, Set.sdiff_eq] using hz
     exact hz'.2 hzBall
   have hdiff : DifferentiableOn ℂ
         (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k)

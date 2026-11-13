@@ -6,11 +6,11 @@ Authors: Matteo Cipollina
 module
 
 
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Growth
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.Analysis.SpecialFunctions.Stirling
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.GammaBounds
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.GammaStirlingAux
 
 
 
@@ -248,98 +248,24 @@ lemma floor_shift_re_in_strip {s : ℂ} :
   · simp [s']
   · simpa [s'] using h₂
 
-/-- For `re s ≥ 1`, `‖Γ(s)‖` is bounded by a polynomial in `‖s‖`. -/
+/-- For `re s ≥ 1`, the real Gamma bound controls `‖Γ(s)‖` in terms of `‖s‖`. -/
 theorem norm_bound_re_ge_one :
     ∃ C : ℝ, 0 < C ∧
       ∀ s : ℂ, 1 ≤ s.re →
         ‖Gamma s‖ ≤ C * (1 + ‖s‖) ^ (‖s‖ + 1) := by
-  refine ⟨1, by norm_num, ?_⟩
-  intro s hs_re
-  classical
-  by_cases hs_small : s.re < 2
-  · -- On the strip `1 ≤ re s ≤ 2`, we have the sharp bound `‖Γ(s)‖ ≤ 1`.
-    have hΓ : ‖Gamma s‖ ≤ 1 := Complex.Gamma.norm_le_one hs_re
-      (le_of_lt hs_small)
-    have hpow : (1 : ℝ) ≤ (1 + ‖s‖) ^ (‖s‖ + 1) := by
-      have hbase : (1 : ℝ) ≤ 1 + ‖s‖ := by linarith [norm_nonneg s]
-      have hexp : (0 : ℝ) ≤ ‖s‖ + 1 := by linarith [norm_nonneg s]
-      have h := Real.rpow_le_rpow (by norm_num : (0 : ℝ) ≤ 1) hbase hexp
-      simpa [Real.one_rpow] using h
-    simpa [one_mul] using le_trans hΓ hpow
-  · -- For `2 ≤ re s`, shift into `[1,2)` using the functional equation.
-    have hs_ge_two : 2 ≤ s.re := le_of_not_gt hs_small
-    let m : ℕ := ⌊s.re⌋₊ - 1
-    have h_floor_ge2 : 2 ≤ ⌊s.re⌋₊ := Nat.le_floor (by exact_mod_cast hs_ge_two)
-    have h_floor_le : (⌊s.re⌋₊ : ℝ) ≤ s.re := Nat.floor_le (by linarith : (0 : ℝ) ≤ s.re)
-    have h_floor_gt : s.re < (⌊s.re⌋₊ : ℝ) + 1 := by
-      simpa using (Nat.lt_floor_add_one s.re)
-    have hm_eq : (m : ℝ) = (⌊s.re⌋₊ : ℝ) - 1 := by
-      have : (1 : ℕ) ≤ ⌊s.re⌋₊ := by omega
-      simp [m, Nat.cast_sub this, Nat.cast_one]
-    have hm_pos : 0 < m := by simp [m]; omega
-    have h_re_lo : 1 ≤ (s - (m : ℂ)).re := by
-      simp [sub_re, hm_eq]
-      linarith [h_floor_le]
-    have h_re_hi : (s - (m : ℂ)).re < 2 := by
-      simp [sub_re, hm_eq]
-      linarith [h_floor_gt]
-    have h_k_bound : ∀ k < m, (k : ℝ) + 1 < s.re := by
-      intro k hk
-      calc (k : ℝ) + 1 ≤ (m : ℝ) := by exact_mod_cast (Nat.lt_iff_add_one_le.mp hk)
-        _ = (⌊s.re⌋₊ : ℝ) - 1 := hm_eq
-        _ < (⌊s.re⌋₊ : ℝ) := by linarith
-        _ ≤ s.re := h_floor_le
-    have prod_norm_le_pow :
-        ‖∏ k ∈ Finset.range m, (s - 1 - (k : ℂ))‖ ≤ ‖s‖ ^ m := by
-      simpa using Stirling.GammaAux.prod_norm_le_pow (s := s) (m := m) h_k_bound
-    have Gamma_iterate :
-        Gamma s = Gamma (s - (m : ℂ)) * ∏ k ∈ Finset.range m, (s - 1 - (k : ℂ)) := by
-      have hs_nonzero : ∀ k < m, s - 1 - (k : ℂ) ≠ 0 := by
-        intro k hk hk0
-        have : (s - 1 - (k : ℂ)).re = 0 := by simp [hk0]
-        have hk' : (k : ℝ) + 1 < s.re := h_k_bound k hk
-        simp [Complex.sub_re] at this
-        linarith
-      simpa using Stirling.GammaAux.Gamma_iterate (s := s) (n := m) hs_nonzero
-    have h_gamma_base : ‖Gamma (s - (m : ℂ))‖ ≤ 1 :=
-      Complex.Gamma.norm_le_one h_re_lo (le_of_lt h_re_hi)
-    have hΓ_le_pow : ‖Gamma s‖ ≤ ‖s‖ ^ m := by
-      calc
-        ‖Gamma s‖ =
-            ‖Gamma (s - (m : ℂ)) * ∏ k ∈ Finset.range m, (s - 1 - (k : ℂ))‖ := by
-              simp [Gamma_iterate]
-        _ =
-            ‖Gamma (s - (m : ℂ))‖ *
-              ‖∏ k ∈ Finset.range m, (s - 1 - (k : ℂ))‖ := by
-              simp
-        _ ≤ 1 * ‖s‖ ^ m :=
-            mul_le_mul h_gamma_base prod_norm_le_pow (norm_nonneg _) (by norm_num)
-        _ = ‖s‖ ^ m := by ring
-    have hm_le_norm : (m : ℝ) ≤ ‖s‖ := by
-      have hm_le_floor : m ≤ ⌊s.re⌋₊ := Nat.sub_le _ _
-      have hm_le_re : (m : ℝ) ≤ s.re := by
-        have h_floor_le' : (⌊s.re⌋₊ : ℝ) ≤ s.re :=
-          Nat.floor_le (by linarith : (0 : ℝ) ≤ s.re)
-        exact le_trans (by exact_mod_cast hm_le_floor) h_floor_le'
-      exact le_trans hm_le_re (Complex.re_le_norm s)
-    have hpow_le : ‖s‖ ^ m ≤ (1 + ‖s‖) ^ (‖s‖ + 1) := by
-      have hx0 : (0 : ℝ) ≤ ‖s‖ := norm_nonneg _
-      have hm0 : (0 : ℝ) ≤ (m : ℝ) := by exact_mod_cast (Nat.cast_nonneg m)
-      have hbase_le : ‖s‖ ≤ 1 + ‖s‖ := by linarith [norm_nonneg s]
-      have h1 : (‖s‖ : ℝ) ^ m = (‖s‖ : ℝ) ^ (m : ℝ) := by
-        simp [Real.rpow_natCast]
-      have h2 : (‖s‖ : ℝ) ^ (m : ℝ) ≤ (1 + ‖s‖) ^ (m : ℝ) :=
-        Real.rpow_le_rpow hx0 hbase_le hm0
-      have hbase1 : (1 : ℝ) ≤ 1 + ‖s‖ := by linarith [norm_nonneg s]
-      have hm_le : (m : ℝ) ≤ ‖s‖ + 1 := by linarith [hm_le_norm]
-      have h3 : (1 + ‖s‖) ^ (m : ℝ) ≤ (1 + ‖s‖) ^ (‖s‖ + 1) :=
-        Real.rpow_le_rpow_of_exponent_le hbase1 hm_le
-      calc
-        ‖s‖ ^ m = (‖s‖ : ℝ) ^ (m : ℝ) := h1
-        _ ≤ (1 + ‖s‖) ^ (m : ℝ) := h2
-        _ ≤ (1 + ‖s‖) ^ (‖s‖ + 1) := h3
-    have : ‖Gamma s‖ ≤ (1 + ‖s‖) ^ (‖s‖ + 1) := le_trans hΓ_le_pow hpow_le
-    simpa [one_mul] using this
+  refine ⟨1, by norm_num, fun s hs ↦ ?_⟩
+  rw [one_mul]
+  by_cases hs2 : 2 ≤ s.re
+  · have hre := Complex.re_le_norm s
+    calc
+      ‖Gamma s‖ ≤ Real.Gamma s.re := Complex.norm_Gamma_le_Gamma_re (by linarith)
+      _ ≤ (s.re + 1) ^ (s.re + 1) := Real.Gamma_le_add_one_rpow hs2
+      _ ≤ (1 + ‖s‖) ^ (s.re + 1) :=
+        Real.rpow_le_rpow (by linarith) (by linarith) (by linarith)
+      _ ≤ (1 + ‖s‖) ^ (‖s‖ + 1) :=
+        Real.rpow_le_rpow_of_exponent_le (by linarith [norm_nonneg s]) (by linarith)
+  · exact (Complex.Gamma.norm_le_one hs (by linarith)).trans
+      (Real.one_le_rpow (by linarith [norm_nonneg s]) (by linarith [norm_nonneg s]))
 
 /-- **Main Stirling bound** for `Re(s) ≥ 0`.
 
