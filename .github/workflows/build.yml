@@ -22,15 +22,15 @@ jobs:
     runs-on: ubuntu-latest
     name: Build project
     steps:
-      - name: Cleanup to free disk space
+      - name: Free space for Mathlib and Tau Ceti artifacts
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
           android: true # saves approximately 12 GB
-          dotnet: false
-          haskell: false
+          dotnet: true
+          haskell: true
           large-packages: false
-          docker-images: false
+          docker-images: true
           swap-storage: false
 
       - name: Checkout project
