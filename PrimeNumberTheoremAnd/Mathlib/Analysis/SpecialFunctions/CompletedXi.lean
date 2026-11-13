@@ -5,6 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
+public import TauCeti.NumberTheory.LFunctions.Zeros.Completion.RiemannZeta
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFunctionalEquation
@@ -58,21 +59,19 @@ theorem riemannXi_nontrivial : ∃ s : ℂ, riemannXi s ≠ 0 := by
 
 /-- The Riemann xi function is entire. -/
 theorem differentiable_riemannXi : Differentiable ℂ riemannXi := by
-  exact (((differentiable_id.mul (differentiable_id.sub (differentiable_const (1 : ℂ)))).mul
-    differentiable_completedZeta₀).add (differentiable_const (1 : ℂ))).div_const 2
+  simpa only [riemannXi, TauCeti.LFunctions.zetaEntireCompletion_def] using!
+    TauCeti.LFunctions.differentiable_zetaEntireCompletion.div_const (2 : ℂ)
 
 /-- Away from the poles of `completedRiemannZeta`, `riemannXi` is the classical product
 `s * (s - 1) * completedRiemannZeta s / 2`. -/
 theorem riemannXi_eq_mul_completedRiemannZeta {s : ℂ} (hs0 : s ≠ 0) (hs1 : s ≠ 1) :
     riemannXi s = s * (s - 1) * completedRiemannZeta s / 2 := by
-  rw [riemannXi, completedRiemannZeta_eq]
-  have h1ms : 1 - s ≠ 0 := sub_ne_zero.mpr (Ne.symm hs1)
-  field_simp [hs0, h1ms]
-  ring
+  simpa only [TauCeti.LFunctions.zetaEntireCompletion_def, riemannXi] using
+    congrArg (fun w : ℂ ↦ w / 2) (TauCeti.LFunctions.zetaEntireCompletion_eq_mul hs0 hs1)
 
 /-- Functional equation for the Riemann xi function. -/
 theorem riemannXi_one_sub (s : ℂ) : riemannXi (1 - s) = riemannXi s := by
-  rw [riemannXi, riemannXi, completedRiemannZeta₀_one_sub]
-  ring
+  simpa only [TauCeti.LFunctions.zetaEntireCompletion_def, riemannXi] using
+    congrArg (fun w : ℂ ↦ w / 2) (TauCeti.LFunctions.zetaEntireCompletion_one_sub s)
 
 end Complex
