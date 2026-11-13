@@ -62,7 +62,7 @@ Co-authored-by: Aristotle (Harmonic) <aristotle-harmonic@harmonic.fun>
 import Mathlib
 
 
-import Mathlib.Tactic.GeneralizeProofs
+import Batteries.Tactic.GeneralizeProofs
 
 
 set_option linter.mathlibStandardSet false
@@ -153,7 +153,9 @@ def uniformPartition {a b : ℝ} (n : ℕ) (hab : a < b) : IPartition a b :=
   { n := N
     x := fun i => a + i * h
     monotone := by
-      exact fun i j hij => add_le_add_left ( mul_le_mul_of_nonneg_right ( Nat.cast_le.mpr hij ) ( div_nonneg ( sub_nonneg.mpr hab.le ) ( Nat.cast_nonneg _ ) ) ) _
+      intro i j hij
+      exact add_le_add_right (mul_le_mul_of_nonneg_right (Nat.cast_le.mpr hij)
+        (div_nonneg (sub_nonneg.mpr hab.le) (Nat.cast_nonneg N))) a
     left := by
       -- Since $0 * h = 0$, we have $a + 0 * h = a$.
       simp [zero_mul]
@@ -161,7 +163,6 @@ def uniformPartition {a b : ℝ} (n : ℕ) (hab : a < b) : IPartition a b :=
       -- Substitute h = (b - a) / (n + 1) into the expression and simplify.
       simp [h, Fin.last];
       rw [ mul_div_cancel₀ ] <;> norm_cast ; norm_num;
-      exact Nat.succ_ne_zero _
   }
 
 /-
@@ -199,8 +200,8 @@ def fromPoints {a b : ℝ} (s : Finset ℝ)
   have hn : n.succ = l.length := Nat.succ_pred_eq_of_pos hlpos
 
 
-  have hsorted : List.Sorted (· ≤ ·) l := by
-    simpa [l] using (Finset.sort_sorted (s := s) (r := (· ≤ ·)))
+  have hsorted : List.Pairwise (· ≤ ·) l := by
+    simpa [l] using (Finset.pairwise_sort (s := s) (r := (· ≤ ·)))
 
   refine
     { n := n
@@ -233,9 +234,9 @@ def fromPoints {a b : ℝ} (s : Finset ℝ)
             exact (h_sub this).2
           · exact Finset.le_max' (s := s) (H2 := hb) b
         have hlen_pred : l.length - 1 = n := by
-          simpa using congrArg Nat.pred hn
+          simpa using (congrArg Nat.pred hn).symm
         have hcard_len : s.card = l.length := by simp [l]
-        have hcard_pred : s.card - 1 = n := by simpa [hcard_len] using congrArg Nat.pred hn
+        have hcard_pred : s.card - 1 = n := by simpa [hcard_len] using (congrArg Nat.pred hn).symm
         simpa [l, hmax_eq_b, hcard_pred] using (Finset.max'_eq_sorted_last (s := s) (h := hs_nonempty)).symm
     }
 
@@ -266,7 +267,7 @@ lemma points_fromPoints {a b : ℝ} (s : Finset ℝ)
         -- this is exactly the bound proof used in fromPoints
         simpa [n, Nat.sub_add_cancel (Nat.succ_le_iff.mp hlpos)] using i.2⟩) := by
       -- this is what `points` is, after unfolding `fromPoints`
-      simpa [IPartition.points, fromPoints, l, n] using hy
+      exact hy
 
     rcases Finset.mem_image.mp hy' with ⟨i, hiuniv, rfl⟩
     -- Now show this list element is in s, since l = s.sort ...
@@ -304,7 +305,7 @@ lemma points_fromPoints {a b : ℝ} (s : Finset ℝ)
       simpa [hjlen]
 
     -- now translate back to the original goal
-    simpa [IPartition.points, fromPoints, l, n] using this
+    exact this
 
 /-
 The union of two partitions P and Q is the partition constructed from the union of their point sets.
@@ -355,8 +356,8 @@ lemma fromPoints_strictMono {a b : ℝ} {s : Finset ℝ} {ha : a ∈ s} {hb : b 
   have hn : n + 1 = l.length := Nat.succ_pred_eq_of_pos (by simpa [l, Finset.length_sort] using (Finset.card_pos.mpr ⟨a, ha⟩))
   -- The type of i, j is Fin (n + 1), so their values are < l.length
   -- The x function is l.get ⟨i.1, _⟩
-  have h_sorted : List.Sorted (· < ·) l := by
-    convert Finset.sort_sorted_lt s using 1
+  have h_sorted : List.Pairwise (· < ·) l := by
+    exact (Finset.sortedLT_sort s).pairwise
   -- Now, i < j in Fin (n + 1) means i.1 < j.1 < l.length
   -- So, l.get i.1 < l.get j.1 by strict sortedness
   -- Unfold the definition of IPart.fromPoints.x to see the indices
@@ -368,7 +369,7 @@ The points of the union of two partitions are strictly increasing.
 -/
 lemma union_strictMono {a b : ℝ} (P Q : IPartition a b) :
     StrictMono (union P Q).x := by
-      convert fromPoints_strictMono
+      exact fromPoints_strictMono
 
 /-
 If R is a strictly monotone partition refining P via index map k, then k maps 0 to 0.
@@ -418,7 +419,7 @@ lemma sum_telescope_block {a b : ℝ} (g : ℝ → ℝ) (R : IPartition a b) (u 
     ∑ j ∈ Finset.Ico u.val v.val, term g R j = g (R.x v) - g (R.x u) := by
       unfold term;
       induction' v using Fin.inductionOn with v ih ; aesop;
-      cases huv.eq_or_lt <;> simp_all +decide [ Fin.lt_iff_val_lt_val, Nat.lt_succ_iff ];
+      cases huv.eq_or_lt <;> simp_all +decide [ Fin.lt_def, Nat.lt_succ_iff ];
       rw [ Finset.sum_Ico_succ_top ( by linarith ), ih ( Nat.le_trans ( Nat.le_refl _ ) ‹_› ) ];
       simp +decide [ Fin.add_def, Nat.mod_eq_of_lt ] ; ring!
 
@@ -508,7 +509,7 @@ lemma mem_subinterval {a b : ℝ} (P : IPartition a b)
         exact ⟨ Finset.min' ( Finset.univ.filter fun i => y ≤ P.x i ) ⟨ h_exists_i.choose, Finset.mem_filter.mpr ⟨ Finset.mem_univ _, h_exists_i.choose_spec ⟩ ⟩, Finset.mem_filter.mp ( Finset.min'_mem ( Finset.univ.filter fun i => y ≤ P.x i ) ⟨ h_exists_i.choose, Finset.mem_filter.mpr ⟨ Finset.mem_univ _, h_exists_i.choose_spec ⟩ ⟩ ) |>.2, fun j hj => Finset.min'_le _ _ <| by aesop ⟩;
       induction' i using Fin.inductionOn with i IH;
       · exact ⟨ ⟨ 0, hn ⟩, by simpa [ P.left ] using hy.1, by simpa [ P.left ] using P.monotone ( Nat.zero_le _ ) |> le_trans hi.1 ⟩;
-      · exact ⟨ i, ⟨ by exact le_of_not_gt fun h => not_lt_of_ge ( hi.2 _ h.le ) ( Fin.castSucc_lt_succ i ), hi.1 ⟩ ⟩;
+      · exact ⟨ i, ⟨ by exact le_of_not_gt fun h => not_lt_of_ge ( hi.2 _ h.le ) ( Fin.castSucc_lt_succ (i := i) ), hi.1 ⟩ ⟩;
     exact h_contra <| h_cover y hy
 
 /-
@@ -585,9 +586,10 @@ If partition R refines partition P, then the mesh of R is less than or equal to 
 lemma mesh_le_of_refinement {a b : ℝ} {P R : IPartition a b}
   (h : IsRefinement R P) :
   R.mesh ≤ P.mesh := by
-    convert Basic.max_getD_le _ _;
-    · exact mesh_nonneg P;
-    · exact fun x hx => by rcases Finset.mem_image.mp hx with ⟨ i, _, rfl ⟩ ; exact step_le_mesh h i;
+    apply Basic.max_getD_le (mesh_nonneg P)
+    intro x hx
+    obtain ⟨i, _, rfl⟩ := Finset.mem_image.mp hx
+    exact step_le_mesh h i
 
 lemma exists_refinement_mesh_le {a b : ℝ} (hab : a < b) (P : RS.IPart.IPartition a b)
     {δ : ℝ} (hδ : 0 < δ) :
@@ -667,9 +669,14 @@ lemma sumAbsDiff_mono_of_refinement
       refine' Finset.sum_le_sum_of_subset_of_nonneg _ fun _ _ _ => abs_nonneg _;
       refine' Finset.Ico_subset_Ico _ _ <;> norm_num;
       exact Nat.le_of_lt_succ ( Fin.is_lt _ );
-    convert h_sum_le_double_sum.trans ( h_double_sum_to_single_sum.le.trans h_single_sum_le_range ) using 1;
-    simp +decide [ sumAbsDiff, Finset.sum_range, Fin.cast_val_eq_self ];
-    refine' Finset.sum_congr rfl fun i hi => _ ; unfold IPart.term ; aesop
+    have hsum : (∑ j ∈ Finset.Ico 0 R.n, |IPart.term g R j|) = sumAbsDiff g R := by
+      simp only [Nat.Ico_zero_eq_range, Finset.sum_range, sumAbsDiff]
+      apply Finset.sum_congr rfl
+      intro i _
+      simp [IPart.term, i.isLt]
+      congr 3
+    exact h_sum_le_double_sum.trans (h_double_sum_to_single_sum.le.trans
+      (h_single_sum_le_range.trans_eq hsum))
 
 /-
 `sumAbsDiff` is monotonic with respect to partition refinement.
@@ -713,13 +720,14 @@ lemma sum_le_sumAbsDiff_of_points_subset {a b : ℝ} (g : ℝ → ℝ) (P : RS.I
       -- Apply the lemma `sum_partition_blocks` to combine the sums over the intervals `[k i, k (i+1))`.
       have h_sum_partition_blocks : ∑ i : Fin p, ∑ j ∈ Finset.Ico (k (i.castSucc)).val (k (i.succ)).val, |RS.IPart.term g P j| ≤ ∑ j ∈ Finset.Ico (k 0).val (k (Fin.last p)).val, |RS.IPart.term g P j| := by
         have h_sum_partition_blocks : ∑ i : Fin p, ∑ j ∈ Finset.Ico (k (i.castSucc)).val (k (i.succ)).val, |RS.IPart.term g P j| = ∑ j ∈ Finset.Ico (k 0).val (k (Fin.last p)).val, |RS.IPart.term g P j| := by
-          convert RS.IPart.sum_partition_blocks p ( fun i => ( k i : ℕ ) ) hk.1 _ using 1;
+          exact RS.IPart.sum_partition_blocks p (fun i => (k i : ℕ)) hk.1
+            (fun j => |RS.IPart.term g P j|);
         grind;
       refine le_trans ( Finset.sum_le_sum fun i _ => h_telescope i ) ( h_sum_partition_blocks.trans ?_ );
       refine' le_trans ( Finset.sum_le_sum_of_subset_of_nonneg ( Finset.subset_iff.mpr _ ) fun _ _ _ => abs_nonneg _ ) _;
       exact Finset.range P.n;
       · simp +zetaDelta at *;
-        intro i hi₁ hi₂; exact lt_of_lt_of_le hi₂ ( Nat.le_of_lt_succ <| by simp [ Fin.is_lt ] ) ;
+        intro i hi₁ hi₂; exact lt_of_lt_of_le hi₂ (Nat.le_of_lt_succ (k (Fin.last p)).isLt) ;
       · simp +decide [ Finset.sum_range, IPart.term ];
         rfl
 
@@ -839,8 +847,9 @@ lemma TaggedPartitionFilter_neBot {a b : ℝ} (hab : a < b) : Filter.NeBot (Tagg
   refine' ⟨ taggedUniformPartition n hab, hε _ ⟩;
   simp +zetaDelta at *;
   rw [ abs_of_nonneg ( IPart.mesh_nonneg _ ) ];
-  convert hn using 1;
-  convert IPart.mesh_uniformPartition n hab using 1
+  change (IPart.uniformPartition n hab).mesh < ε
+  rw [IPart.mesh_uniformPartition]
+  exact hn
 
 /-
 A tagged partition where the tags are the left endpoints of the intervals.
@@ -1241,7 +1250,7 @@ lemma swap_diff_le {a b : ℝ} (P : TaggedPartition a b) (j : Fin (P.n + 1)) :
         have h_diff : P.x (i.succ.castLT hi).castSucc - P.x i.castSucc ≤ P.mesh := by
           have h_diff : ∀ j : Fin P.n, P.x (j.succ) - P.x j.castSucc ≤ P.mesh := by
             exact fun j ↦ IPart.mesh_ge_diff P.toIPartition j;
-          convert h_diff i using 1;
+          simpa only [show (i.succ.castLT hi).castSucc = i.succ by ext; rfl] using h_diff i;
         linarith [ P.h_xi i ];
       · rename_i i hi;
         -- Since $P.xi i \leq b$, we have $b - P.xi i \leq b - P.xi i$.
@@ -1263,10 +1272,10 @@ The mesh of the swapped partition is at most twice the mesh of the original part
 -/
 lemma mesh_swap_le {a b : ℝ} (P : TaggedPartition a b) :
   (swapTaggedPartition P).mesh ≤ 2 * P.mesh := by
-    convert Basic.max_getD_le _ _;
-    · exact mul_nonneg zero_le_two ( IPart.mesh_nonneg _ );
-    · simp +zetaDelta at *;
-      intro i; linarith! [ swap_diff_le P i ] ;
+    apply Basic.max_getD_le (mul_nonneg zero_le_two (IPart.mesh_nonneg P.toIPartition))
+    intro x hx
+    obtain ⟨i, _, rfl⟩ := Finset.mem_image.mp hx
+    exact swap_diff_le P i
 
 /-
 Given a partition P and a function g differentiable on [a,b] with derivative g', there exists a tagged partition T with the same points as P such that the increments of g satisfy the Mean Value Theorem equation on each subinterval.
@@ -1307,20 +1316,14 @@ lemma sumAbsDiff_eq_RSSum_abs_deriv
 The identity function has bounded variation on `[a, b]`.
 -/
 lemma boundedVariationOn_id {a b : ℝ} : BoundedVariationOn (fun x => x) (Set.Icc a b) := by
-  unfold BoundedVariationOn;
-  simp +decide [ eVariationOn ];
-  norm_num [ edist_dist ];
-  refine' ne_of_lt ( lt_of_le_of_lt ( iSup_le _ ) ENNReal.coe_lt_top );
-  swap;
-  exact ⟨ |b - a|, abs_nonneg _ ⟩;
-  norm_num [ dist_eq_norm ];
-  intro n f hf h; rw [ ← ENNReal.ofReal_sum_of_nonneg ] <;> norm_num;
-  -- The sum of the absolute differences of f over the range n is bounded by the total variation of f over [a, b], which is |b - a|.
-  have h_sum_abs_diff : ∑ i ∈ Finset.range n, |f (i + 1) - f i| ≤ |b - a| := by
-    rw [ Finset.sum_congr rfl fun i hi => abs_of_nonneg <| sub_nonneg.mpr <| hf <| Nat.le_succ _ ];
-    rw [ Finset.sum_range_sub ( fun i => f i ) ];
-    cases abs_cases ( b - a ) <;> linarith [ h 0, h n ];
-  exact ENNReal.ofReal_le_of_le_toReal ( by simpa using h_sum_abs_diff )
+  apply (monotone_id.monotoneOn (Set.Icc a b) : MonotoneOn (fun x : ℝ => x) (Set.Icc a b)).boundedVariationOn
+    (C := |a| + |b|)
+  intro x hx
+  change |x| ≤ |a| + |b|
+  apply abs_le.mpr
+  constructor
+  · linarith [neg_abs_le a, abs_nonneg b, hx.1]
+  · linarith [le_abs_self b, abs_nonneg a, hx.2]
 
 /-
 The Riemann-Stieltjes integral of |g'| is less than or equal to the total variation of g.
@@ -1445,12 +1448,12 @@ lemma boundedVariationOn_of_hasRSIntegral_abs_deriv
   (hg : ∀ x ∈ Set.Icc a b, HasDerivAt g (g' x) x)
   (I : ℝ) (hI : HasRSIntegral (fun x => |g' x|) id a b I) :
   BoundedVariationOn g (Set.Icc a b) := by
-apply boundedVariationOn_of_forall_sumAbsDiff_le hab g I;
-intro P;
--- By the properties of the Riemann-Stieltjes integral, we know that the sum of the absolute differences of g over P is less than or equal to I.
-have h_sum_le_I : ∀ ε > 0, RS.SumDiff.sumAbsDiff g P ≤ I + ε := by
-  exact fun ε a_1 ↦ sumAbsDiff_le_integral_add_eps hab g g' hg I hI ε a_1 P;
-exact le_of_forall_pos_le_add h_sum_le_I
+  apply boundedVariationOn_of_forall_sumAbsDiff_le hab g I;
+  intro P;
+  -- By the properties of the Riemann-Stieltjes integral, we know that the sum of the absolute differences of g over P is less than or equal to I.
+  have h_sum_le_I : ∀ ε > 0, RS.SumDiff.sumAbsDiff g P ≤ I + ε := by
+    exact fun ε a_1 ↦ sumAbsDiff_le_integral_add_eps hab g g' hg I hI ε a_1 P;
+  exact le_of_forall_pos_le_add h_sum_le_I
 
 namespace MVThms
 
@@ -1518,7 +1521,7 @@ theorem MV_Theorem_A3a
   have hI_le : I ≤ (eVariationOn g (Set.Icc a b)).toReal :=
     integral_le_variation (a := a) (b := b) hab g g' hg hg_bv I hI
   refine ⟨I, ?_, hg_bv, ?_⟩
-  · simpa [id] using hI
+  · exact hI
   exact (le_antisymm hVar_le hI_le)
 
 end MVThms
