@@ -250,57 +250,20 @@ theorem bddAbove_norm_divisorCanonicalProduct_div_pow_puncturedBall
       (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
         (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card) ''
       ((Metric.ball z₀ r) \ {z₀})) := by
-  rcases exists_ball_eq_divisorCanonicalProduct_div_pow_eq (m := m) (f := f) (h_sum := h_sum)
-    (z₀ := z₀) with ⟨ε, hε, u, huA, hu0, hEq⟩
-  have huC : ContinuousAt u z₀ := huA.continuousAt
-  have hpre : {z : ℂ | ‖u z - u z₀‖ < 1} ∈ 𝓝 z₀ := by
-    have : u ⁻¹' Metric.ball (u z₀) (1 : ℝ) ∈ 𝓝 z₀ :=
-      huC.preimage_mem_nhds (Metric.ball_mem_nhds (u z₀) (by norm_num))
-    simpa [Metric.ball, dist_eq_norm, Set.preimage] using this
-  rcases Metric.mem_nhds_iff.1 hpre with ⟨r0, hr0pos, hr0sub⟩
-  set r : ℝ := min (ε / 2) r0
-  have hrpos : 0 < r := lt_min (by nlinarith [hε]) hr0pos
-  have hr_lt_ε : r < ε := lt_of_le_of_lt (min_le_left _ _) (by nlinarith [hε])
-  have huBound : ∀ z ∈ Metric.ball z₀ r, ‖u z‖ ≤ ‖u z₀‖ + 1 := by
-    intro z hz
-    have hz0 : z ∈ Metric.ball z₀ r0 := by
-      have : r ≤ r0 := min_le_right _ _
-      exact Metric.ball_subset_ball this hz
-    have hdiff : ‖u z - u z₀‖ < 1 := hr0sub hz0
-    have htri : ‖u z‖ ≤ ‖u z - u z₀‖ + ‖u z₀‖ := by
-      simpa [sub_eq_add_neg, add_assoc] using
-        (norm_add_le (u z - u z₀) (u z₀))
-    have : ‖u z‖ ≤ 1 + ‖u z₀‖ := le_trans htri (by nlinarith [le_of_lt hdiff])
-    nlinarith [this]
-  have hdiffC :
-      DifferentiableOn ℂ (divisorComplementCanonicalProduct m f z₀) (Set.univ : Set ℂ) :=
-    differentiableOn_divisorComplementCanonicalProduct_univ (m := m) (f := f) (z₀ := z₀) h_sum
-  have hcontC : ContinuousOn (divisorComplementCanonicalProduct m f z₀) (Metric.closedBall z₀ r) :=
-    (hdiffC.continuousOn).mono (by intro z hz; simp)
-  have hK : IsCompact (Metric.closedBall z₀ r) := isCompact_closedBall _ _
-  rcases (isBounded_iff_forall_norm_le.1 (hK.image_of_continuousOn hcontC).isBounded) with ⟨C, hC⟩
-  refine ⟨r, hrpos, ⟨C * (‖u z₀‖ + 1), ?_⟩⟩
-  rintro _ ⟨z, hzset, rfl⟩
-  rcases hzset with ⟨hzr, hzne⟩
-  have hz_in_ε : z ∈ Metric.ball z₀ ε := Metric.ball_subset_ball hr_lt_ε.le hzr
-  have hz_ne : z ≠ z₀ := by simpa [Set.mem_singleton_iff] using hzne
-  have hq :
-      (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-          (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card
-        = divisorComplementCanonicalProduct m f z₀ z * u z :=
-    hEq z hz_in_ε hz_ne
-  have hCz : ‖divisorComplementCanonicalProduct m f z₀ z‖ ≤ C := by
-    have hzK : z ∈ Metric.closedBall z₀ r := Metric.mem_closedBall.2 (le_of_lt hzr)
-    exact hC _ ⟨z, hzK, rfl⟩
-  have huZ : ‖u z‖ ≤ ‖u z₀‖ + 1 := huBound z hzr
-  have hCnonneg : 0 ≤ C := le_trans (norm_nonneg _) hCz
-  have hmul : ‖divisorComplementCanonicalProduct m f z₀ z * u z‖ ≤ C * (‖u z₀‖ + 1) := by
-    calc
-      ‖divisorComplementCanonicalProduct m f z₀ z * u z‖
-          = ‖divisorComplementCanonicalProduct m f z₀ z‖ * ‖u z‖ := by simp
-      _ ≤ C * (‖u z₀‖ + 1) := by
-            exact mul_le_mul hCz huZ (norm_nonneg _) hCnonneg
-  simpa [Function.comp, hq] using hmul
+  obtain ⟨ε, hε, u, huA, _, hEq⟩ :=
+    exists_ball_eq_divisorCanonicalProduct_div_pow_eq m f h_sum z₀
+  have hcont : ContinuousAt (fun z ↦ divisorComplementCanonicalProduct m f z₀ z * u z) z₀ :=
+    ((differentiableOn_divisorComplementCanonicalProduct_univ m f z₀ h_sum).differentiableAt
+      (by simp)).continuousAt.mul huA.continuousAt
+  obtain ⟨C, hC⟩ := hcont.norm.isBoundedUnder_le
+  obtain ⟨δ, hδ, hbound⟩ := Metric.mem_nhds_iff.mp hC
+  refine ⟨min ε δ, lt_min hε hδ, C, ?_⟩
+  rintro _ ⟨z, ⟨hz, hzne⟩, rfl⟩
+  have hzε : z ∈ Metric.ball z₀ ε := Metric.ball_subset_ball (min_le_left _ _) hz
+  have hzδ : z ∈ Metric.ball z₀ δ := Metric.ball_subset_ball (min_le_right _ _) hz
+  have hz_ne : z ≠ z₀ := by simpa using hzne
+  simpa only [Set.mem_preimage, Set.mem_ofPred_eq, Function.comp_apply, hEq z hzε hz_ne]
+    using hbound hzδ
 
 /-!
 ## Nonvanishing of the complement canonical product near `z₀`
