@@ -646,11 +646,25 @@ theorem psi_bound_2 (x : ℝ) (hx : x ≥ 2) :
       convert! this x hx using 1; norm_num [exp_neg, sqrt_eq_rpow, rpow_neg, div_eq_mul_inv]; ring_nf
       norm_num [admissible_bound, exp_neg, sqrt_eq_rpow, rpow_neg, div_eq_mul_inv]; ring_nf
     rw [div_le_iff₀] at h_ineq <;> ring_nf at * <;> grind
-  refine le_trans h_ineq ?_
-  norm_num [rpow_def_of_pos (log_pos (by grind : 1 < x))] at *
-  norm_num [mul_assoc, ← exp_add] at *; ring_nf at *; norm_num at *
-  exact mul_le_mul (mul_le_mul_of_nonneg_left (exp_le_exp.mpr <| by grind) <| by grind)
-    (by norm_num) (by positivity) <| by positivity
+  have hlog : 0 < log x := log_pos (by linarith)
+  have hfactor : (log x) ^ (1.515 : ℝ) * exp (-0.8274 * sqrt (log x)) =
+      ((log x) ^ (1.5 : ℝ) * exp (-0.8476836 * sqrt (log x))) *
+        ((log x) ^ (0.015 : ℝ) * exp (0.0202836 * sqrt (log x))) := by
+    rw [mul_mul_mul_comm, ← rpow_add hlog, ← exp_add]
+    rw [show (1.5 : ℝ) + 0.015 = 1.515 by norm_num,
+      show -0.8476836 * sqrt (log x) + 0.0202836 * sqrt (log x) =
+        -0.8274 * sqrt (log x) by ring]
+  refine h_ineq.trans ?_
+  calc
+    _ = (x * 9.22022) * ((log x) ^ (1.5 : ℝ) * exp (-0.8476836 * sqrt (log x))) := by ring
+    _ ≤ (x * 9.39) * ((log x) ^ (1.5 : ℝ) * exp (-0.8476836 * sqrt (log x))) :=
+      mul_le_mul_of_nonneg_right
+        (mul_le_mul_of_nonneg_left (by norm_num : (9.22022 : ℝ) ≤ 9.39) (by linarith))
+        (by positivity)
+    _ ≤ (x * 9.39) * (((log x) ^ (1.5 : ℝ) * exp (-0.8476836 * sqrt (log x))) *
+        ((log x) ^ (0.015 : ℝ) * exp (0.0202836 * sqrt (log x)))) :=
+      mul_le_mul_of_nonneg_left (le_mul_of_one_le_right (by positivity) h_exp) (by positivity)
+    _ = _ := by rw [← hfactor]; ring
 
 @[blueprint
   "thm:jy-psi-3"
@@ -1029,12 +1043,9 @@ theorem p_n_gt_1 (n : ℕ) (hn : n ≥ 2) :
     · exact key 30 113 count_prime_113_le_29 (by interval_auto)
     · exact key 31 127 count_prime_127_le_30 (by interval_auto)
   · have h_pn_ge_succ : nth_prime' n ≥ n + 1 := by
-      have : ∀ n ≥ 1, nth_prime' n ≥ n + 1 := by
-        intro n hn
-        induction n, hn using Nat.le_induction with
-        | base => exact Nat.Prime.two_le (Nat.prime_nth_prime 0) |> Nat.succ_le_of_lt
-        | succ n _ ih => exact Nat.succ_le_of_lt (lt_of_le_of_lt ih (Nat.nth_strictMono Nat.infinite_setOfPred_prime (Nat.pred_lt (by positivity))))
-      exact this n (by omega)
+      have hp := Nat.add_two_le_nth_prime (n - 1)
+      change n + 1 ≤ Nat.nth Nat.Prime (n - 1)
+      omega
     have h_dusart : (nth_prime' n : ℝ) ≥ n * (log (nth_prime' n) - 1.112) := by
       have h_pi_le : (n : ℝ) ≤ (nth_prime' n : ℝ) / (log (nth_prime' n) - 1.112) := by
         have h_pi_le' : pi (nth_prime' n) ≤ (nth_prime' n : ℝ) / (log (nth_prime' n) - 1.112) := by
