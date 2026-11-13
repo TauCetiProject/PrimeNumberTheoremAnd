@@ -556,10 +556,13 @@ theorem isTheta_uniformlyOn_uIcc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
   · suffices (fun (σ, _y) ↦ |x| ^ σ) =Θ[l] fun _ ↦ (1 : ℝ) by
       simpa [Complex.norm_cpow_of_ne_zero <| ofReal_ne_zero.mpr (ne_of_gt xpos),
         arg_ofReal_of_nonneg xpos.le] using this
-    exact (continuousOn_const.rpow continuousOn_id fun _ _ ↦
-        Or.inl <| ne_of_gt (abs_pos_of_pos xpos))
-      |>.const_isThetaUniformlyOn_isCompact isCompact_uIcc (by norm_num)
-      (fun i _ ↦ ne_of_gt <| rpow_pos_of_pos (abs_pos_of_pos xpos) _) _
+    have hcont : ContinuousOn (fun σ : ℝ ↦ |x| ^ σ) [[σ', σ'']] :=
+      continuousOn_const.rpow continuousOn_id fun _ _ ↦
+        Or.inl <| ne_of_gt (abs_pos_of_pos xpos)
+    exact ⟨(hcont.isBigO_principal isCompact_uIcc (by norm_num)).comp_tendsto tendsto_fst,
+      (hcont.isBigO_rev_principal isCompact_uIcc
+        (fun i _ ↦ ne_of_gt <| rpow_pos_of_pos (abs_pos_of_pos xpos) _) (1 : ℝ)).comp_tendsto
+          tendsto_fst⟩
   · have h_c {c : ℂ} : (fun (_ : ℝ × ℝ) ↦ c) =o[l] Prod.snd := by
       rewrite [hl, Filter.prod_sup, isLittleO_sup]
       exact ⟨isLittleO_const_snd_atBot c _, isLittleO_const_snd_atTop c _⟩
@@ -567,8 +570,8 @@ theorem isTheta_uniformlyOn_uIcc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
       IsTheta.of_norm_eventuallyEq_norm (by simp)
     have h_σ_yI : (fun (σy : ℝ × ℝ) ↦ σy.1 + σy.2 * I) =Θ[l] Prod.snd := by
       refine IsLittleO.add_isTheta ?_ h_yI
-      exact continuous_ofReal.continuousOn.const_isBigOUniformlyOn_isCompact isCompact_uIcc
-        (by norm_num : ‖(1 : ℂ)‖ ≠ 0) _ |>.trans_isLittleO h_c
+      exact ((continuous_ofReal.continuousOn.isBigO_principal isCompact_uIcc
+        (by norm_num : ‖(1 : ℂ)‖ ≠ 0)).comp_tendsto tendsto_fst).trans_isLittleO h_c
     simp_rw [sq]; exact h_σ_yI.mul (h_σ_yI.add_isLittleO h_c)
 
 theorem isTheta_uniformlyOn_uIoc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :

@@ -7,10 +7,6 @@ Authors: Lawrence Wu
 module
 
 public import Mathlib.Analysis.Asymptotics.Theta
-public import Mathlib.MeasureTheory.Integral.Asymptotics
-public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
-public import Mathlib.MeasureTheory.Integral.Bochner.FundThmCalculus
-public import Mathlib.MeasureTheory.Integral.Bochner.Set
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
 
 /-!
@@ -62,101 +58,23 @@ variable [NormedAddCommGroup α] [LinearOrder α] [ProperSpace α] [NormedAddCom
 
 theorem isLittleO_const_fst_atBot [NoMinOrder α] [ClosedIicTopology α] (c : F) (ly : Filter E) :
     (fun (_ : α × E) ↦ c) =o[atBot ×ˢ ly] Prod.fst := by
-  refine ly.eq_or_neBot.casesOn (fun h ↦ by simp [h]) (fun _ ↦ ?_)
-  change ((fun _ ↦ c) ∘ Prod.fst) =o[atBot ×ˢ ly] (id ∘ Prod.fst)
-  rewrite [← isLittleO_map, map_fst_prod]
-  exact isLittleO_const_id_atBot2 c
+  exact (isLittleO_const_id_atBot2 c).comp_tendsto tendsto_fst
+
 
 theorem isLittleO_const_snd_atBot [NoMinOrder α] [ClosedIicTopology α] (c : F) (lx : Filter E) :
     (fun (_ : E × α) ↦ c) =o[lx ×ˢ atBot] Prod.snd := by
-  refine lx.eq_or_neBot.casesOn (fun h ↦ by simp [h]) (fun _ ↦ ?_)
-  change ((fun _ ↦ c) ∘ Prod.snd) =o[lx ×ˢ atBot] (id ∘ Prod.snd)
-  rewrite [← isLittleO_map, map_snd_prod]
-  exact isLittleO_const_id_atBot2 c
+  exact (isLittleO_const_id_atBot2 c).comp_tendsto tendsto_snd
+
 
 theorem isLittleO_const_fst_atTop [NoMaxOrder α] [ClosedIciTopology α] (c : F) (ly : Filter E) :
     (fun (_ : α × E) ↦ c) =o[atTop ×ˢ ly] Prod.fst := by
-  refine ly.eq_or_neBot.casesOn (fun h ↦ by simp [h]) (fun _ ↦ ?_)
-  change ((fun _ ↦ c) ∘ Prod.fst) =o[atTop ×ˢ ly] (id ∘ Prod.fst)
-  rewrite [← isLittleO_map, map_fst_prod]
-  exact isLittleO_const_id_atTop2 c
+  exact (isLittleO_const_id_atTop2 c).comp_tendsto tendsto_fst
+
 
 theorem isLittleO_const_snd_atTop [NoMaxOrder α] [ClosedIciTopology α] (c : F) (lx : Filter E) :
     (fun (_ : E × α) ↦ c) =o[lx ×ˢ atTop] Prod.snd := by
-  refine lx.eq_or_neBot.casesOn (fun h ↦ by simp [h]) (fun _ ↦ ?_)
-  change ((fun _ ↦ c) ∘ Prod.snd) =o[lx ×ˢ atTop] (id ∘ Prod.snd)
-  rewrite [← isLittleO_map, map_snd_prod]
-  exact isLittleO_const_id_atTop2 c
+  exact (isLittleO_const_id_atTop2 c).comp_tendsto tendsto_snd
 
 end Order
 
-section ContinuousOn
-
-variable [TopologicalSpace ι] {C : ι → E} {c : F}
-
-section IsBigO
-
-variable [SeminormedAddGroup E] [Norm F]
-
-/-- A family of constant functions `f (i, x) = C i` is uniformly bounded w.r.t. `s` by
-`⨆ i ∈ s, ‖C i‖`, if `s` is compact and `C` is continuous. -/
-theorem _root_.ContinuousOn.const_isBigOWithUniformlyOn_isCompact
-    (hf : ContinuousOn C s) (hs : IsCompact s) (hc : ‖c‖ ≠ 0) (l : Filter α) :
-    IsBigOWith (sSup (norm '' (C '' s)) / ‖c‖) (𝓟 s ×ˢ l)
-    (fun (i, _x) ↦ C i) fun _ => c := by
-  refine isBigOWith_iff.mpr <| eventually_of_mem ?_ (fun x hx ↦ ?_) (U := s ×ˢ Set.univ)
-  · exact prod_mem_prod (mem_principal_self s) univ_mem
-  · rw [div_mul_cancel₀ _ hc]
-    replace hs := hs.image_of_continuousOn hf |>.image continuous_norm
-    have h_sSup := hs.isLUB_sSup <| Set.image_nonempty.mpr <| Set.image_nonempty.mpr ⟨x.1, hx.1⟩
-    exact h_sSup.1 <| Set.mem_image_of_mem _ <| Set.mem_image_of_mem _ hx.1
-
-/-- A family of constant functions `f (i, x) = C i` is uniformly O(1) w.r.t. `s`,
-if `s` is compact and `C` is continuous. -/
-theorem _root_.ContinuousOn.const_isBigOUniformlyOn_isCompact
-    (hf : ContinuousOn C s) (hs : IsCompact s) (hc : ‖c‖ ≠ 0) (l : Filter α) :
-    (fun (i, _x) ↦ C i) =O[𝓟 s ×ˢ l] fun _ => c :=
-  (hf.const_isBigOWithUniformlyOn_isCompact hs hc l).isBigO
-
-end IsBigO
-
-section IsTheta
-
-variable [NormedAddGroup E] [SeminormedAddGroup F]
-
-/-- A family of constant functions `f (i, x) = C i` is uniformly bounded below w.r.t. `s` by
-`⊓ i ∈ s, ‖C i‖`, if `s` is compact and `C` is continuous. -/
-theorem _root_.ContinuousOn.const_isBigOWithUniformlyOn_isCompact_rev
-    (hf : ContinuousOn C s) (hs : IsCompact s) (hC : ∀ i ∈ s, C i ≠ 0) (l : Filter α) :
-    IsBigOWith (‖c‖ / sInf (norm '' (C '' s))) (𝓟 s ×ˢ l)
-    (fun _ => c) fun (i, _x) ↦ C i := by
-  refine isBigOWith_iff.mpr <| eventually_of_mem ?_ (fun x hx ↦ ?_) (U := s ×ˢ Set.univ)
-  · exact prod_mem_prod (mem_principal_self s) univ_mem
-  · rewrite [mul_comm_div]
-    replace hs := hs.image_of_continuousOn hf |>.image continuous_norm
-    have h_sInf := hs.isGLB_sInf <| Set.image_nonempty.mpr <| Set.image_nonempty.mpr ⟨x.1, hx.1⟩
-    refine le_mul_of_one_le_right (norm_nonneg c) <| (one_le_div ?_).mpr <|
-      h_sInf.1 <| Set.mem_image_of_mem _ <| Set.mem_image_of_mem _ hx.1
-    obtain ⟨_, ⟨x, hx, hCx⟩, hnormCx⟩ := hs.sInf_mem h_sInf.nonempty
-    rewrite [← hnormCx, ← hCx]
-    exact (norm_ne_zero_iff.mpr (hC x hx)).symm.lt_of_le (norm_nonneg _)
-
-/-- A family of constant functions `f (i, x) = C i` is uniformly Ω(1) w.r.t. `s`,
-if `s` is compact and `C` is continuous with no zeros on `s`. -/
-theorem _root_.ContinuousOn.const_isBigOUniformlyOn_isCompact_rev
-    (hf : ContinuousOn C s) (hs : IsCompact s) (hC : ∀ i ∈ s, C i ≠ 0) (l : Filter α) :
-    (fun _ => c) =O[𝓟 s ×ˢ l] (fun (i, _x) ↦ C i) :=
-  (hf.const_isBigOWithUniformlyOn_isCompact_rev hs hC l).isBigO
-
-/-- A family of constant functions `f (i, x) = C i` is uniformly Θ(1) w.r.t. `s`,
-if `s` is compact and `C` is continuous with no zeros on `s`. -/
-theorem _root_.ContinuousOn.const_isThetaUniformlyOn_isCompact (hf : ContinuousOn C s)
-    (hs : IsCompact s) (hc : ‖c‖ ≠ 0) (hC : ∀ i ∈ s, C i ≠ 0) (l : Filter α) :
-    (fun (i, _x) ↦ C i) =Θ[𝓟 s ×ˢ l] fun _ => c :=
-  ⟨hf.const_isBigOUniformlyOn_isCompact hs hc l,
-    hf.const_isBigOUniformlyOn_isCompact_rev hs hC l⟩
-
-end IsTheta
-
-end ContinuousOn
 end Asymptotics
