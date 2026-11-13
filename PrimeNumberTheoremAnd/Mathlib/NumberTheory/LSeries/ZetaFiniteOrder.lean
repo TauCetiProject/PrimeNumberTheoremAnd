@@ -17,6 +17,7 @@ public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
 public import Mathlib.NumberTheory.LSeries.DirichletContinuation
 public import Mathlib.Analysis.Real.Pi.Bounds
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
+import TauCeti.Analysis.SpecialFunctions.Gamma.Basic
 
 
 /-!
@@ -321,7 +322,7 @@ theorem zeta_minus_pole_entire_growth :
           have hw_ne1 : w ≠ 1 := by
             simpa [w] using Complex.one_sub_ne_one_of_norm_pos (lt_trans (by norm_num) hz_large)
           have hw_ne_neg : ∀ n : ℕ, w ≠ -n := by
-            exact Complex.ne_neg_nat_of_re_pos (lt_trans zetaAbelContinuationReLower_pos hw_re1)
+            exact Complex.ne_neg_natCast_of_re_pos (lt_trans zetaAbelContinuationReLower_pos hw_re1)
           have hzeta_fe :
               riemannZeta z =
                 2 * (2 * π) ^ (-w) * Complex.Gamma w * Complex.cos (π * w / 2) * riemannZeta w := by

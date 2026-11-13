@@ -41,12 +41,5 @@ lemma one_sub_ne_one_of_norm_pos {z : ℂ} (hz : 0 < ‖z‖) : 1 - z ≠ 1 := b
   intro h
   exact hz.ne' (by simpa using sub_eq_self.mp h)
 
-/-- A point with positive real part is not a nonpositive integer. -/
-lemma ne_neg_nat_of_re_pos {w : ℂ} (hw : 0 < w.re) : ∀ n : ℕ, w ≠ -n := by
-  intro n hn
-  have hre : w.re = -(n : ℝ) := by
-    have := congrArg Complex.re hn
-    simpa using this
-  nlinarith
 
 end Complex
