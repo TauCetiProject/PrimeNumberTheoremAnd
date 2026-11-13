@@ -39,16 +39,10 @@ blueprint_comment /--
 Informally, a highly abundant number has an unusually large sum of divisors.
 -/
 
-@[blueprint
-  "Ln-def"
-  (statement := /--
-  For each integer \(n \ge 1\), define
-  \[
-    L_n := \mathrm{lcm}(1,2,\dots,n).
-  \]
-  We call \((L_n)_{n \ge 1}\) the \emph{least common multiple sequence}.
-  -/)]
-def L (n : ℕ) : ℕ := (Finset.Icc 1 n).lcm _root_.id
+blueprint_comment /--
+For each integer $n \ge 1$, write $L_n=\mathrm{lcm}(1,\ldots,n)$.
+The Lean statements use Mathlib's `Nat.lcmUpto` directly.
+-/
 
 blueprint_comment /--
 Clearly $L_n$ has a lot of divisors, and numerical experiments for small $n$ suggests that $L_n$
@@ -164,94 +158,52 @@ blueprint_comment /--
 \subsection{Factorisation of \(L_n\) and construction of a competitor}
 -/
 
-noncomputable def Criterion.L' (c : Criterion) : ℕ := L c.n / ∏ i, c.q i
+noncomputable def Criterion.L' (c : Criterion) : ℕ := Nat.lcmUpto c.n / ∏ i, c.q i
 
-lemma Criterion.prod_q_dvd_L (c : Criterion) : ∏ i, c.q i ∣ L c.n :=
+lemma Criterion.prod_q_dvd_L (c : Criterion) : ∏ i, c.q i ∣ Nat.lcmUpto c.n :=
   Fintype.prod_dvd_of_isRelPrime (fun i j h ↦ coprime_iff_isRelPrime.mp <|
     (coprime_primes (c.hq i) (c.hq j)).mpr (c.hq_mono.injective.ne h)) fun i ↦ dvd_lcm <|
       mem_Icc.mpr ⟨(c.hq i).one_le, (c.hq_mono.monotone (Fin.le_last i)).trans c.h_ord_3.le⟩
 
-lemma Criterion.L_pos (c : Criterion) : 0 < L c.n :=
-  lt_of_lt_of_le Nat.zero_lt_one <| one_le_iff_ne_zero.mpr fun h ↦ by simp_all [L]
-
 lemma Criterion.L'_pos (c : Criterion) : 0 < c.L' :=
-  div_pos (le_of_dvd c.L_pos c.prod_q_dvd_L) (prod_pos fun i _ ↦ (c.hq i).pos)
+  div_pos (le_of_dvd (Nat.lcmUpto_pos c.n) c.prod_q_dvd_L) (prod_pos fun i _ ↦ (c.hq i).pos)
 
-lemma Criterion.L_eq_prod_q_mul_L' (c : Criterion) : L c.n = (∏ i, c.q i) * c.L' := by
+lemma Criterion.L_eq_prod_q_mul_L' (c : Criterion) : Nat.lcmUpto c.n = (∏ i, c.q i) * c.L' := by
   rw [L', Nat.mul_div_cancel' c.prod_q_dvd_L]
 
 lemma Criterion.val_two_L' (c : Criterion) : (c.L').factorization 2 = Nat.log 2 c.n := by
-  have h_lcm : ∀ n : ℕ, n ≥ 1 → Nat.factorization (L n) 2 = Nat.log 2 n := by
-    have h_lcm_exp : ∀ n : ℕ, n ≥ 1 → (Nat.factorization (Finset.lcm (Finset.Icc 1 n)
-        (fun x ↦ x)) 2) = Finset.sup (Finset.Icc 1 n) (fun x ↦ Nat.factorization x 2) := by
-      intros n hn
-      have h_lcm_exp : ∀ {S : Finset ℕ}, (∀ x ∈ S, x ≠ 0) → (Nat.factorization (Finset.lcm S
-          (fun x ↦ x)) 2) = Finset.sup S (fun x ↦ Nat.factorization x 2) := by
-        intro S hS
-        induction S using Finset.induction with
-        | empty => simp
-        | insert x S hxS ih =>
-            simp_all only [lcm_insert]
-            erw [Nat.factorization_lcm] <;> simp_all
-      exact h_lcm_exp fun x hx ↦ by linarith [Finset.mem_Icc.mp hx]
-    have h_sup : ∀ n : ℕ, n ≥ 1 → Finset.sup (Finset.Icc 1 n) (fun x ↦ Nat.factorization x 2) =
-       Nat.log 2 n := fun n hn ↦ by
-      apply le_antisymm
-      · exact Finset.sup_le fun x hx ↦ Nat.le_log_of_pow_le (by decide) <|
-          Nat.le_trans (Nat.le_of_dvd (by linarith [Finset.mem_Icc.mp hx])
-          <| Nat.ordProj_dvd _ _) <| by linarith [Finset.mem_Icc.mp hx]
-      · refine le_trans ?_ (Finset.le_sup <| Finset.mem_Icc.mpr ⟨Nat.one_le_pow _ _ zero_lt_two,
-          Nat.pow_log_le_self 2 <| by linarith⟩)
-        norm_num [Nat.Prime.factorization_self (prime_two)]
-    aesop
-  rw [show c.L' = L c.n / (∏ i, c.q i) by rfl, Nat.factorization_div] <;> norm_num [h_lcm, c.hn]
-  · rw [Nat.factorization_eq_zero_of_not_dvd] <;> norm_num [Fin.prod_univ_three]
-    norm_num [Nat.mul_mod, Nat.mod_mod, Nat.odd_iff.mp (Nat.Prime.odd_of_ne_two (c.hq 0)
-      (by linarith [c.p_gt_two 0, c.q_gt_two 0])), Nat.odd_iff.mp (Nat.Prime.odd_of_ne_two (c.hq 1)
-      (by linarith [c.p_gt_two 1, c.q_gt_two 1])), Nat.odd_iff.mp (Nat.Prime.odd_of_ne_two (c.hq 2)
-      (by linarith [c.p_gt_two 2, c.q_gt_two 2]))]
-  · exact prod_q_dvd_L c
+  have hq0 : (∏ i, c.q i).factorization 2 = 0 := by
+    apply Nat.factorization_eq_zero_of_not_dvd
+    norm_num [Fin.prod_univ_three, Nat.mul_mod, Nat.mod_mod,
+      Nat.odd_iff.mp (Nat.Prime.odd_of_ne_two (c.hq 0)
+        (by linarith [c.p_gt_two 0, c.q_gt_two 0])),
+      Nat.odd_iff.mp (Nat.Prime.odd_of_ne_two (c.hq 1)
+        (by linarith [c.p_gt_two 1, c.q_gt_two 1])),
+      Nat.odd_iff.mp (Nat.Prime.odd_of_ne_two (c.hq 2)
+        (by linarith [c.p_gt_two 2, c.q_gt_two 2]))]
+  rw [show c.L' = Nat.lcmUpto c.n / (∏ i, c.q i) by rfl,
+    Nat.factorization_div c.prod_q_dvd_L, Finsupp.tsub_apply,
+    Nat.factorization_lcmUpto c.n Nat.prime_two, hq0, Nat.sub_zero]
 
 lemma Criterion.val_p_L' (c : Criterion) (i : Fin 3) : (c.L').factorization (c.p i) = 1 := by
-  have h_pi_factor : Nat.factorization (L c.n) (c.p i) = 1 := by
+  have h_pi_factor : Nat.factorization (Nat.lcmUpto c.n) (c.p i) = 1 := by
     have h_prime_factor : ∀ {p : ℕ}, Nat.Prime p → Real.sqrt c.n < p → p < c.n →
-        (Nat.factorization (L c.n)) p = 1 := @fun p hp hp_sqrt hp_lt_n ↦ by
-      have h_prime_factor : (Nat.factorization (L c.n)) p = 1 := by
-        have h_prime_factor_def : (Nat.factorization (L c.n)) p = Finset.sup (Finset.Icc 1 c.n)
-            (fun i ↦ Nat.factorization i p) := by
-          have h_prime_factor_def : (Nat.factorization (Finset.lcm (Finset.Icc 1 c.n) (fun i ↦ i)))
-              p = Finset.sup (Finset.Icc 1 c.n) (fun i ↦ Nat.factorization i p) := by
-            have h_lcm_factorization : ∀ {S : Finset ℕ}, (∀ i ∈ S, i ≠ 0) →
-                (Nat.factorization (Finset.lcm S (fun i ↦ i))) p =
-                Finset.sup S (fun i ↦ Nat.factorization i p) := by
-              intros S hS_nonzero
-              induction S using Finset.induction with
-              | empty => simp [Finset.lcm]
-              | insert i S hiS ih =>
-                  by_cases hi : i = 0
-                  · simp_all
-                  simp only [lcm_insert]
-                  erw [Nat.factorization_lcm] <;> simp_all
-            exact h_lcm_factorization fun i hi ↦ by linarith [Finset.mem_Icc.mp hi]
-          exact h_prime_factor_def
-        have h_prime_power : ∀ i ∈ Finset.Icc 1 c.n, Nat.factorization i p ≤ 1 := fun i hi ↦ by
-          have h_prime_power : p^2 > c.n := by
-            rw [Real.sqrt_lt] at hp_sqrt <;> norm_cast at * <;> nlinarith only [hp_sqrt, hp_lt_n]
-          exact le_of_not_gt fun h ↦ absurd (Nat.dvd_trans (pow_dvd_pow p h) (Nat.ordProj_dvd i p))
-            (Nat.not_dvd_of_pos_of_lt (Finset.mem_Icc.mp hi |>.1)
-            (by nlinarith [Finset.mem_Icc.mp hi |>.2]))
-        refine h_prime_factor_def.trans (le_antisymm (Finset.sup_le h_prime_power) ?_)
-        exact le_trans (by norm_num [hp]) (Finset.le_sup (f := fun i ↦ Nat.factorization i p)
-          (Finset.mem_Icc.mpr ⟨hp.pos, hp_lt_n.le⟩))
-      exact (Nat.add_right_cancel (congrFun (congrArg HAdd.hAdd ((h_prime_factor.symm))) p)).symm
+        (Nat.factorization (Nat.lcmUpto c.n)) p = 1 := @fun p hp hp_sqrt hp_lt_n ↦ by
+      rw [Nat.factorization_lcmUpto c.n hp]
+      apply Nat.log_eq_one_iff'.mpr
+      refine ⟨hp_lt_n.le, ?_⟩
+      have h_prime_power : p ^ 2 > c.n := by
+        rw [Real.sqrt_lt] at hp_sqrt <;> norm_cast at * <;>
+          nlinarith only [hp_sqrt, hp_lt_n]
+      simpa only [pow_two] using h_prime_power
     apply h_prime_factor (c.hp i) (c.h_ord_1.trans_le (by
       exact_mod_cast c.hp_mono.monotone (Nat.zero_le _))) (by
         have := c.h_ord_2; have := c.h_ord_3; fin_cases i <;> linarith! [c.hp_mono <|
           show 0 < 1 by decide, c.hp_mono <| show 1 < 2 by decide, c.hq_mono <|
           show 0 < 1 by decide, c.hq_mono <| show 1 < 2 by decide])
-  have h_pi_factor_L' : Nat.factorization (L c.n) (c.p i) = Nat.factorization (c.L')
+  have h_pi_factor_L' : Nat.factorization (Nat.lcmUpto c.n) (c.p i) = Nat.factorization (c.L')
       (c.p i) + Nat.factorization (∏ i, c.q i) (c.p i) := by
-    have h_pi_factor_L' : Nat.factorization (L c.n) = Nat.factorization (c.L') +
+    have h_pi_factor_L' : Nat.factorization (Nat.lcmUpto c.n) = Nat.factorization (c.L') +
         Nat.factorization (∏ i, c.q i) := by
       rw [← Nat.factorization_mul] <;> norm_num [c.L'_pos.ne']
       · rw [mul_comm, Criterion.L_eq_prod_q_mul_L']
@@ -281,7 +233,7 @@ lemma Criterion.val_p_L' (c : Criterion) (i : Fin 3) : (c.L').factorization (c.p
   these prime factors.  By construction, \(q_i \nmid L'\) for each \(i\).
   -/)
   (latexEnv := "lemma")]
-theorem Criterion.ln_eq (c : Criterion) : L c.n = c.q 0 * c.q 1 * c.q 2 * c.L' := by
+theorem Criterion.ln_eq (c : Criterion) : Nat.lcmUpto c.n = c.q 0 * c.q 1 * c.q 2 * c.L' := by
   rw [L', ← Fin.prod_univ_three, Nat.mul_div_cancel' <| Fintype.prod_dvd_of_isRelPrime ?_ ?_]
   · refine fun i j h ↦ Nat.coprime_iff_isRelPrime.mp ?_
     exact Nat.coprime_primes (c.hq i) (c.hq j) |>.mpr <| c.hq_mono.injective.ne h
@@ -311,7 +263,7 @@ theorem Criterion.q_not_dvd_L' (c : Criterion) : ∀ i, ¬(c.q i ∣ c.L') := by
     show c.p 0 ≤ c.q i by
       grw [c.hp_mono.monotone <| Fin.zero_le 2, c.h_ord_2, c.hq_mono.monotone <| Fin.zero_le i]
   norm_cast at hn_lt_q_sq
-  suffices ¬(c.q i) ^ 2 ∣ L c.n from this <| Nat.pow_two _ ▸ by
+  suffices ¬(c.q i) ^ 2 ∣ Nat.lcmUpto c.n from this <| Nat.pow_two _ ▸ by
     refine mul_dvd_mul_right (Finset.dvd_prod_of_mem c.q <| Finset.mem_univ i) _ |>.trans ?_
     exact Fin.prod_univ_three c.q ▸ c.ln_eq ▸ mul_dvd_mul_left _ hqi
 
@@ -376,7 +328,7 @@ theorem Criterion.q_not_dvd_L' (c : Criterion) : ∀ i, ¬(c.q i ∣ c.L') := by
   (proofUses := ["lem:Lprime-def"])
   (latexEnv := "lemma")]
 theorem Criterion.σnorm_ln_eq (c : Criterion) :
-    σnorm (L c.n) = σnorm c.L' * ∏ i, (1 + (1 : ℝ) / c.q i) := by
+    σnorm (Nat.lcmUpto c.n) = σnorm c.L' * ∏ i, (1 + (1 : ℝ) / c.q i) := by
   have hcop : ∀ i j, i ≠ j → (c.q i).Coprime (c.q j) := fun i j h ↦
     (coprime_primes (c.hq i) (c.hq j)).mpr (c.hq_mono.injective.ne h)
   have hcopL' : ∀ i, (c.q i).Coprime c.L' := fun i ↦
@@ -468,7 +420,7 @@ lemma Criterion.val_two_M_ge_L' (c : Criterion) : (c.M).factorization 2 ≥ (c.L
       Nat.Prime.ne_zero (c.hp _), or_self, not_false_eq_true, Nat.ne_of_gt (Criterion.m_pos c),
       factorization_mul]
     rw [show (4 : ℕ) = 2 ^ 2 by norm_num, Nat.factorization_pow]; norm_num; ring_nf;
-      linarith [Nat.Prime.factorization_self (prime_two)]
+      omega
   · simp only [ne_eq, _root_.mul_eq_zero, OfNat.ofNat_ne_zero, prod_eq_zero_iff, mem_univ,
     true_and, false_or, not_or, not_exists]
     exact ⟨fun i ↦ Nat.Prime.ne_zero (c.hp i), Nat.ne_of_gt (c.m_pos)⟩
@@ -538,11 +490,11 @@ lemma Criterion.val_p_M_ge_two (c : Criterion) (i : Fin 3) : (c.M).factorization
   \]
   -/)
   (latexEnv := "lemma")]
-theorem Criterion.M_lt (c : Criterion) : c.M < L c.n := by
+theorem Criterion.M_lt (c : Criterion) : c.M < Nat.lcmUpto c.n := by
   calc c.M < ((4 * ∏ i, c.p i) * c.m + c.r) * c.L' :=
         mul_lt_mul_of_pos_right (Nat.lt_add_of_pos_right c.r_ge) c.L'_pos
     _ = (∏ i, c.q i) * c.L' := by rw [← c.prod_q_eq]
-    _ = L c.n := c.L_eq_prod_q_mul_L'.symm
+    _ = Nat.lcmUpto c.n := c.L_eq_prod_q_mul_L'.symm
 
 @[blueprint
   "lem:M-basic"
@@ -582,7 +534,7 @@ theorem Criterion.M_lt (c : Criterion) : c.M < L c.n := by
   \]
   -/)
   (latexEnv := "lemma")]
-theorem Criterion.Ln_div_M_gt (c : Criterion) : (1 : ℝ) < L c.n / c.M := by
+theorem Criterion.Ln_div_M_gt (c : Criterion) : (1 : ℝ) < Nat.lcmUpto c.n / c.M := by
   rw [one_lt_div (cast_pos.mpr c.M_pos)]
   exact_mod_cast c.M_lt
 
@@ -625,17 +577,17 @@ theorem Criterion.Ln_div_M_gt (c : Criterion) : (1 : ℝ) < L c.n / c.M := by
   -/)
   (latexEnv := "lemma")]
 theorem Criterion.Ln_div_M_lt (c : Criterion) :
-    L c.n / c.M < (1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i))⁻¹ := by
+    Nat.lcmUpto c.n / c.M < (1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i))⁻¹ := by
   have hprod_q_pos_R : (0 : ℝ) < (∏ i, c.q i) :=
     cast_pos.mpr <| prod_pos fun i _ ↦ (c.hq i).pos
   have hLM_eq :
-      (L c.n : ℝ) / c.M = ((∏ i, c.q i) : ℝ) / (((4 * ∏ i, c.p i) * c.m) : ℕ) := by
+      (Nat.lcmUpto c.n : ℝ) / c.M = ((∏ i, c.q i) : ℝ) / (((4 * ∏ i, c.p i) * c.m) : ℕ) := by
     simp only [c.L_eq_prod_q_mul_L', M, cast_mul]
     have hL'_ne : (c.L' : ℝ) ≠ 0 := cast_ne_zero.mpr c.L'_pos.ne'
     field_simp
     congr 1
     exact prod_natCast univ c.q
-  have hLM_eq' : (L c.n : ℝ) / c.M = (1 - (c.r : ℝ) / (∏ i, c.q i))⁻¹ := by
+  have hLM_eq' : (Nat.lcmUpto c.n : ℝ) / c.M = (1 - (c.r : ℝ) / (∏ i, c.q i))⁻¹ := by
     have hprod_q_eq_R : ((∏ i, c.q i) : ℝ) = ((4 * ∏ i, c.p i) * c.m : ℕ) + c.r := by
       exact_mod_cast c.prod_q_eq
     have h4pm_pos : 0 < (4 * ∏ i, c.p i) * c.m := mul_pos
@@ -696,29 +648,29 @@ We give a sufficient condition for $\sigma(M) \geq \sigma(L_n)$.
   (proofUses := ["lem:M-basic"])
   (latexEnv := "lemma")]
 theorem Criterion.not_highlyAbundant_1 (c : Criterion)
-    (h : σnorm c.M * (1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i)) ≥ σnorm (L c.n)) :
-    ¬HighlyAbundant (L c.n) := by
+    (h : σnorm c.M * (1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i)) ≥ σnorm (Nat.lcmUpto c.n)) :
+    ¬HighlyAbundant (Nat.lcmUpto c.n) := by
   intro hHA
   have hM_pos : (0 : ℝ) < c.M := cast_pos.mpr c.M_pos
-  have hLn_pos : (0 : ℝ) < L c.n := cast_pos.mpr c.L_pos
-  have hσnorm_Ln_pos : 0 < σnorm (L c.n) := by
-    rw [σnorm]; exact div_pos (cast_pos.mpr <| by rw [σ, sigma_pos_iff]; exact c.L_pos) hLn_pos
+  have hLn_pos : (0 : ℝ) < Nat.lcmUpto c.n := cast_pos.mpr (Nat.lcmUpto_pos c.n)
+  have hσnorm_Ln_pos : 0 < σnorm (Nat.lcmUpto c.n) := by
+    rw [σnorm]; exact div_pos (cast_pos.mpr <| by rw [σ, sigma_pos_iff]; exact (Nat.lcmUpto_pos c.n)) hLn_pos
   have hprod_q_pos : (0 : ℝ) < (∏ i, c.q i) := cast_pos.mpr (prod_pos fun i _ ↦ (c.hq i).pos)
   have h1_sub_pos : (0 : ℝ) < 1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i) := by
     rw [sub_pos, div_lt_one hprod_q_pos]; exact_mod_cast c.prod_p_le_prod_q
-  have h1_sub_lt : 1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i) < c.M / L c.n := by
+  have h1_sub_lt : 1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i) < c.M / Nat.lcmUpto c.n := by
     have hinv_lt := c.Ln_div_M_lt
     rw [lt_inv_comm₀ (div_pos hLn_pos hM_pos) h1_sub_pos, inv_div] at hinv_lt
     exact hinv_lt
-  have hσM_gt : (σ c.M : ℝ) > σ (L c.n) := by
-    have hσnorm_gt : σnorm c.M > σnorm (L c.n) * (L c.n / c.M) :=
-      calc σnorm c.M ≥ σnorm (L c.n) / (1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i)) := by
+  have hσM_gt : (σ c.M : ℝ) > σ (Nat.lcmUpto c.n) := by
+    have hσnorm_gt : σnorm c.M > σnorm (Nat.lcmUpto c.n) * (Nat.lcmUpto c.n / c.M) :=
+      calc σnorm c.M ≥ σnorm (Nat.lcmUpto c.n) / (1 - (4 : ℝ) * (∏ i, c.p i) / (∏ i, c.q i)) := by
             rw [ge_iff_le, div_le_iff₀ h1_sub_pos]; exact h
-        _ > σnorm (L c.n) / (c.M / L c.n) := by gcongr
-        _ = σnorm (L c.n) * (L c.n / c.M) := by rw [div_div_eq_mul_div, mul_div_assoc]
+        _ > σnorm (Nat.lcmUpto c.n) / (c.M / Nat.lcmUpto c.n) := by gcongr
+        _ = σnorm (Nat.lcmUpto c.n) * (Nat.lcmUpto c.n / c.M) := by rw [div_div_eq_mul_div, mul_div_assoc]
     calc (σ c.M : ℝ) = σnorm c.M * c.M := by field_simp [σnorm]
-      _ > σnorm (L c.n) * (L c.n / c.M) * c.M := by nlinarith
-      _ = σ (L c.n) := by field_simp [σnorm, c.M_pos.ne']
+      _ > σnorm (Nat.lcmUpto c.n) * (Nat.lcmUpto c.n / c.M) * c.M := by nlinarith
+      _ = σ (Nat.lcmUpto c.n) := by field_simp [σnorm, c.M_pos.ne']
   exact not_lt.mpr (cast_lt.mp hσM_gt).le (hHA c.M c.M_lt)
 
 blueprint_comment /--
@@ -748,7 +700,7 @@ suffices to bound \(\sigma(M)/M\) from below in terms of \(\sigma(L')/L'\):
   (latexEnv := "lemma")]
 theorem Criterion.not_highlyAbundant_2 (c : Criterion)
     (h : σnorm c.M ≥ σnorm c.L' * (∏ i, (1 + 1 / (c.p i * (c.p i + 1 : ℝ)))) *
-    (1 + (3 : ℝ) / (8 * c.n))) : ¬HighlyAbundant (L c.n) := by
+    (1 + (3 : ℝ) / (8 * c.n))) : ¬HighlyAbundant (Nat.lcmUpto c.n) := by
   refine c.not_highlyAbundant_1 ?_
   have hL'_pos : 0 < σnorm c.L' := by
     rw [σnorm]; exact div_pos (cast_pos.mpr <| by rw [σ, sigma_pos_iff]; exact c.L'_pos)
@@ -913,7 +865,7 @@ theorem Criterion.σnorm_M_ge_σnorm_L'_mul (c : Criterion) :
       ((∑ i ∈ Finset.range (Nat.factorization c.M p + 1), (1 / p : ℝ) ^ i) /
       (∑ i ∈ Finset.range (Nat.factorization (c.L' : ℕ) p + 1), (1 / p : ℝ) ^ i))) ≥
       (∏ p ∈ Finset.image c.p Finset.univ, (1 + 1/(p * (p + 1) : ℝ)))*(1 + 3 / (8 * c.n : ℝ)) := by
-    refine le_trans ?_ (Finset.prod_le_prod ?_ h_ratio_terms)
+    refine le_trans ?_ (Finset.prod_le_prod₀ ?_ h_ratio_terms)
     · rw [Finset.prod_ite]
       refine mul_le_mul ?_ ?_ (by positivity) (Finset.prod_nonneg fun _ _ ↦ by positivity)
       · rw [Finset.prod_subset]
@@ -929,7 +881,8 @@ theorem Criterion.σnorm_M_ge_σnorm_L'_mul (c : Criterion) :
           [mem_primeFactors, true_and, prod_const]
         · simp only [one_pow, mul_one]
           refine le_self_pow₀ (M₀ := ℝ) (by norm_num ; positivity) ?_
-          · norm_num; exact ⟨2, Nat.prime_two, h.1, h.2, fun i ↦ by linarith [c.p_gt_two i], rfl⟩
+          · norm_num
+            exact ⟨h.1, h.2, fun i ↦ ne_of_gt (c.p_gt_two i)⟩
         · contrapose! h
           refine ⟨dvd_mul_of_dvd_left ?_ _, Nat.ne_of_gt (Criterion.M_pos c)⟩
           · exact dvd_mul_of_dvd_left (dvd_mul_of_dvd_left (by decide) _) _
@@ -969,7 +922,7 @@ $L_n$ is not highly abundant:
   Applying Lemma~\ref{lem:criterion-sufficient}, we obtain \(\sigma(M) \ge \sigma(L_n)\) with
   \(M < L_n\), so \(L_n\) cannot be highly abundant.
   -/)]
-theorem Criterion.not_highlyAbundant (c : Criterion) : ¬HighlyAbundant (L c.n) :=
+theorem Criterion.not_highlyAbundant (c : Criterion) : ¬HighlyAbundant (Nat.lcmUpto c.n) :=
   c.not_highlyAbundant_2 c.σnorm_M_ge_σnorm_L'_mul
 
 blueprint_comment /--
@@ -1250,7 +1203,7 @@ theorem prod_q_ge {n : ℕ} (hn : n ≥ X₀ ^ 2) :
   rw [show ∏ i : Fin 3, (1 + (1 + 1 / (log √(n : ℝ)) ^ 3) ^ ((i : ℕ) + 1 : ℝ) / n) =
       ∏ i : Fin 3, (1 + (1 + 1 / (log √(n : ℝ)) ^ 3) ^ ((3 : ℝ) - (i : ℕ)) / n) by
     simp only [Fin.prod_univ_three, Fin.val_zero, Fin.val_one, Fin.val_two]; ring_nf]
-  apply Finset.prod_le_prod (fun _ _ ↦ by positivity)
+  apply Finset.prod_le_prod₀ (fun _ _ ↦ by positivity)
   intro i _
   suffices h : (1 : ℝ) / (exists_q_primes hn).choose i ≤
       (1 + 1 / (log √(n : ℝ)) ^ 3) ^ ((3 : ℝ) - (i : ℕ)) / n from (by linarith)
@@ -1303,7 +1256,7 @@ theorem prod_p_ge {n : ℕ} (hn : n ≥ X₀ ^ 2) :
         ((exists_p_primes hn).choose i * ((exists_p_primes hn).choose i + 1))) ≥
       ∏ i : Fin 3,
         (1 + 1 / ((1 + 1 / (log √(n : ℝ)) ^ 3) ^ (2 * (i : ℕ) + 2 : ℝ) * (n + √n))) := by
-  refine Finset.prod_le_prod (fun i _ => by positivity [hlog hn]) fun i _ => ?_
+  refine Finset.prod_le_prod₀ (fun i _ => by positivity [hlog hn]) fun i _ => ?_
   set p := (exists_p_primes hn).choose
   have h₀ (i) : √n < p i := by
     have : p 0 ≤ p i := by
@@ -1664,7 +1617,7 @@ blueprint_comment /--
   \(p_1,p_2,p_3,q_1,q_2,q_3\) satisfying the hypotheses of Theorem~\ref{thm:criterion}.
   Hence \(L_n\) is not highly abundant. -/)
   (proofUses := ["prop:ineq-holds-large-n", "thm:criterion"])]
-theorem L_not_HA_of_ge (n : ℕ) (hn : n ≥ 89693 ^ 2) : ¬HighlyAbundant (L n) :=
+theorem L_not_HA_of_ge (n : ℕ) (hn : n ≥ 89693 ^ 2) : ¬HighlyAbundant (Nat.lcmUpto n) :=
   (Criterion.mk' hn).not_highlyAbundant
 
 blueprint_comment /--
@@ -1673,37 +1626,20 @@ blueprint_comment /--
 The following result is not needed for this application, but is worth recording nevertheless.
 -/
 
-@[blueprint
-  "thm:lcm-eq"
-  (title := "Formula for log of L equals Chebyshev psi")
-  (statement := /-- For every $n$, $\log L_n = \sum_{p \leq n} \lfloor \log n / \log p \rfloor \log p$. -/)
-  (proof := /-- Compute the number of times $p$ divides $L_n$ and use the fundamental theorem of arithmetic. -/)
-  (latexEnv := "sublemma")]
-theorem L_eq_prod (n : ℕ) :
-    L n = ∏ p ∈ Finset.filter Nat.Prime (Finset.range (n + 1)),
-      p ^ ⌊Real.log n / Real.log p⌋₊ := Nat.lcmUpto_eq_prod_pow_floor n
-
-@[blueprint
-  "thm:psi-eq"
-  (title := "Formula for Chebyshev psi")
-  (statement := /-- For every $n$, $\psi(n) = \sum_{p \leq n} \lfloor \log n / \log p \rfloor \log p$, where $\psi$ is the Chebyshev psi function. -/)
-  (proof := /-- Compute the number of times $p$ divides $L_n$ and use the fundamental theorem of arithmetic. -/)
-  (latexEnv := "sublemma")]
-theorem psi_eq_prod (n : ℕ) :
-    Chebyshev.psi n = ∑ p ∈ Finset.filter Nat.Prime (Finset.range (n + 1)),
-      ⌊Real.log n / Real.log p⌋₊ * Real.log p := by
-      convert! Chebyshev.psi_eq_sum_mul_log_prime n
-      rw [←natFloor_logb_natCast, ←log_div_log]
-
-@[blueprint
-  "thm:lcm-psi"
-  (title := "Log of L equals Chebyshev psi")
-  (statement := /-- For every $n$, $\log L_n = \psi(n)$, where $\psi$ is the Chebyshev psi function. -/)
-  (proof := /-- Combine the previous results. -/)
-  (latexEnv := "proposition")]
-theorem log_L_eq_psi (n : ℕ) : Real.log (L n) = Chebyshev.psi n := by
-  rw [Chebyshev.psi_eq_log_lcmUpto n]
-  rfl
-
+blueprint_comment /--
+The identities for $L_n$ and $\psi(n)$ are provided by Mathlib's
+`Nat.lcmUpto_eq_prod_pow_floor`, `Chebyshev.psi_eq_sum_mul_log_prime`, and
+`Chebyshev.psi_eq_log_lcmUpto`. In particular,
+\begin{equation}\label{thm:lcm-eq}
+L_n = \prod_{p\le n} p^{\lfloor \log n/\log p\rfloor},
+\end{equation}
+\begin{equation}\label{thm:psi-eq}
+\psi(n) = \sum_{p\le n}\lfloor\log n/\log p\rfloor\log p,
+\end{equation}
+and hence
+\begin{equation}\label{thm:lcm-psi}
+\log L_n=\psi(n).
+\end{equation}
+-/
 
 end Lcm
