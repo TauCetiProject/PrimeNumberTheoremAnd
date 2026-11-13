@@ -59,8 +59,9 @@ jobs:
 
       - name: Install cache tooling
         run: |
-          python3 -m pip install --user uv==0.13.5
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          python3 -m venv "$RUNNER_TEMP/pnt-cache-tools"
+          "$RUNNER_TEMP/pnt-cache-tools/bin/python" -m pip install uv==0.13.5
+          echo "$RUNNER_TEMP/pnt-cache-tools/bin" >> "$GITHUB_PATH"
 
       - name: Restore Tau Ceti artifacts
         run: bash .lake/packages/TauCeti/scripts/lake-cache-get.sh .lake/packages/TauCeti
