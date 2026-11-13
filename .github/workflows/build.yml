@@ -14,14 +14,8 @@ concurrency:
   group: ${{ github.ref }}  # Group runs by the ref (branch or PR)
   cancel-in-progress: true  # Cancel any ongoing runs in the same group
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read          # Read access to repository contents
-  pages: write            # Write access to GitHub Pages
-  id-token: write         # Write access to ID tokens
-  issues: write           # Write access to issues
-  pull-requests: write    # Write access to pull requests
-  actions: write          # Write access to GitHub Actions
+  contents: read
 
 jobs:
   build_project:
@@ -55,22 +49,24 @@ jobs:
           path: .lake/packages/leancert
           key: leancert-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}
 
-      - name: Build the project
+      - name: Install Lean and restore Mathlib
         uses: leanprover/lean-action@50fcf42d2e460296f1a34b402e990d1b24f8b596 # v1.6.0
         with:
           use-github-cache: false
-          build-args: :blueprint
+          build: false
+          test: false
+          lint: false
 
-      - name: Generate upstreaming dashboard
-        uses: leanprover-community/upstreaming-dashboard-action@main
-        with:
-          website-directory: ./home_page
-          project-name: PrimeNumberTheoremAnd
-          include-drafts: true
+      - name: Install cache tooling
+        run: |
+          python3 -m pip install --user uv==0.13.5
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Compile blueprint and documentation
-        uses: leanprover-community/docgen-action@main
-        with:
-          blueprint: true
-          homepage: home_page
-          references: 'blueprint/src/references.bib'
+      - name: Restore Tau Ceti artifacts
+        run: bash .lake/packages/TauCeti/scripts/lake-cache-get.sh .lake/packages/TauCeti
+
+      - name: Check every retained Lean module
+        run: lake build
+
+      - name: Check blueprint metadata
+        run: lake build :blueprint

@@ -25,7 +25,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactorBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanMajorantBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanProductBound
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CauchyIntegral
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Convex
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorComplement
@@ -77,7 +76,6 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.AuxResults
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.LambdaSquared
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
-import PrimeNumberTheoremAnd.Mathlib.Topology.MetricSpace.Cauchy
 import PrimeNumberTheoremAnd.MediumPNT
 import PrimeNumberTheoremAnd.MellinCalculus
 import PrimeNumberTheoremAnd.PerronFormula

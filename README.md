@@ -9,6 +9,7 @@ To build the fork, run `lake exe cache get`, then
 `bash .lake/packages/TauCeti/scripts/lake-cache-get.sh .lake/packages/TauCeti`, then `lake build`.
 The library target checks every retained Lean source, including IEANTN and `Unused/` experiments.
 Inherited unfinished proofs remain unfinished; a successful build does not certify them as complete.
+Fork CI runs the same full source build, restores Tau Ceti artifacts, and checks blueprint metadata.
 
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-lightblue.svg)](https://opensource.org/licenses/Apache-2.0)
