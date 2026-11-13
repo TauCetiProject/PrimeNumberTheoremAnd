@@ -172,7 +172,7 @@ lemma kadiri_gamma_laplace_product_holomorphicOn_strip
       rw [hre]
       linarith
     exact DifferentiableAt.differentiableWithinAt
-      ((Complex.differentiableAt_digamma_of_re_pos hpos).comp s (by fun_prop))
+      (((Complex.analyticOnNhd_digamma_re_pos _ hpos).differentiableAt).comp s (by fun_prop))
   have harg2 : DifferentiableOn ℂ (fun s : ℂ => digamma ((1 - s) / 2)) S := by
     intro s hs
     have hsrect := Complex.mem_reProdIm.mp hs.1 |>.1
@@ -183,7 +183,7 @@ lemma kadiri_gamma_laplace_product_holomorphicOn_strip
       rw [hre]
       linarith
     exact DifferentiableAt.differentiableWithinAt
-      ((Complex.differentiableAt_digamma_of_re_pos hpos).comp s (by fun_prop))
+      (((Complex.analyticOnNhd_digamma_re_pos _ hpos).differentiableAt).comp s (by fun_prop))
   have hinv : DifferentiableOn ℂ (fun s : ℂ => s⁻¹) S := by
     intro s hs
     have hsne : s ≠ 0 := by simpa [S] using hs.2

@@ -1,7 +1,7 @@
 module
 
 public import PrimeNumberTheoremAnd.Defs
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaBounds
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma
 
 
@@ -70,14 +70,14 @@ lemma kadiri_gamma_factor_shifted_tendsto_zero :
   have h1 : ContinuousAt (fun s : ℂ => digamma (s / 2 + 1)) 0 := by
     simpa [Function.comp_def] using
       ContinuousAt.comp (g := digamma) (f := fun s : ℂ => s / 2 + 1)
-        (Complex.continuousAt_digamma_of_re_pos
-          (by norm_num : (0 : ℝ) < ((fun s : ℂ => s / 2 + 1) 0).re)) h1arg
+        ((Complex.analyticOnNhd_digamma_re_pos _
+          (by norm_num : (0 : ℝ) < ((fun s : ℂ => s / 2 + 1) 0).re)).continuousAt) h1arg
   have h2arg : ContinuousAt (fun s : ℂ => (1 - s) / 2) 0 := by fun_prop
   have h2 : ContinuousAt (fun s : ℂ => digamma ((1 - s) / 2)) 0 := by
     simpa [Function.comp_def] using
       ContinuousAt.comp (g := digamma) (f := fun s : ℂ => (1 - s) / 2)
-        (Complex.continuousAt_digamma_of_re_pos
-          (by norm_num : (0 : ℝ) < ((fun s : ℂ => (1 - s) / 2) 0).re)) h2arg
+        ((Complex.analyticOnNhd_digamma_re_pos _
+          (by norm_num : (0 : ℝ) < ((fun s : ℂ => (1 - s) / 2) 0).re)).continuousAt) h2arg
   simpa using ((h1.add h2).const_mul (1 / 2 : ℂ)).tendsto
 
 lemma kadiri_gamma_factor_add_inv_isBigO_one :

@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Vertical
 public import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
 
 /-!
@@ -18,7 +18,6 @@ completed zeta functions. These follow from the Euler integral representation an
 ## Main results
 
 * `Real.Gamma.le_one_of_mem_Icc` : `Γ(x) ≤ 1` for `x ∈ [1, 2]`
-* `Complex.Gamma.norm_le_Gamma_re` : `‖Γ z‖ ≤ Γ (re z)` for `0 < re z`
 * `Complex.Gamma.norm_le_one` : `‖Γ z‖ ≤ 1` for `1 ≤ re z ≤ 2`
 
 ## References
@@ -57,34 +56,17 @@ end Real
 namespace Complex
 namespace Gamma
 
-/-- The Euler integral gives `‖Γ z‖ ≤ Γ (re z)` for `0 < re z`; compare [DLMF], §5.2.1. -/
-theorem norm_le_Gamma_re {z : ℂ} (hz : 0 < z.re) : ‖Gamma z‖ ≤ Real.Gamma z.re := by
-  rw [Gamma_eq_integral hz, Real.Gamma_eq_integral hz]
-  have h_norm_eq : ∀ t ∈ Set.Ioi (0 : ℝ),
-      ‖((-t).exp : ℂ) * (t : ℂ) ^ (z - 1)‖ = Real.exp (-t) * t ^ (z.re - 1) := by
-    intro t ht
-    have hcpow : ‖(t : ℂ) ^ (z - 1)‖ = t ^ (z.re - 1) := by
-      simpa using norm_cpow_eq_rpow_re_of_pos ht (z - 1)
-    simp [norm_exp, hcpow]
-  calc
-    ‖GammaIntegral z‖
-        ≤ ∫ t in Set.Ioi (0 : ℝ), ‖((-t).exp : ℂ) * (t : ℂ) ^ (z - 1)‖ := by
-          unfold GammaIntegral
-          exact norm_integral_le_integral_norm _
-    _ = ∫ t in Set.Ioi (0 : ℝ), Real.exp (-t) * t ^ (z.re - 1) := by
-          exact setIntegral_congr_fun measurableSet_Ioi h_norm_eq
-
 /-- For `1 ≤ re z ≤ 2`, `‖Γ z‖ ≤ 1`. -/
 theorem norm_le_one {z : ℂ} (hlo : 1 ≤ z.re) (hhi : z.re ≤ 2) : ‖Gamma z‖ ≤ 1 := by
   have hz_pos : 0 < z.re := by linarith
   calc
-    ‖Gamma z‖ ≤ Real.Gamma z.re := norm_le_Gamma_re hz_pos
+    ‖Gamma z‖ ≤ Real.Gamma z.re := Complex.norm_Gamma_le_Gamma_re hz_pos
     _ ≤ 1 := Real.Gamma.le_one_of_mem_Icc hlo hhi
 
-/-- Squared form of `Complex.Gamma.norm_le_Gamma_re`. -/
+/-- Squared form of `Complex.norm_Gamma_le_Gamma_re`. -/
 theorem norm_sq_le_Gamma_re_sq {z : ℂ} (hz : 0 < z.re) :
     ‖Gamma z‖ ^ 2 ≤ (Real.Gamma z.re) ^ 2 := by
-  have h := norm_le_Gamma_re hz
+  have h := Complex.norm_Gamma_le_Gamma_re hz
   have hΓ : 0 ≤ Real.Gamma z.re := (Real.Gamma_pos_of_pos hz).le
   simpa [pow_two] using mul_le_mul h h (norm_nonneg _) hΓ
 

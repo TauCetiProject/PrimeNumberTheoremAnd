@@ -6,7 +6,7 @@ public import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 public import PrimeNumberTheoremAnd.IEANTN.KadiriZeroCounting
 public import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaBounds
 public import PrimeNumberTheoremAnd.LaplaceInversion
 public import Mathlib.Analysis.Normed.Group.Tannery
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Digamma

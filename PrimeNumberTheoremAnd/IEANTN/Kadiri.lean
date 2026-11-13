@@ -8,7 +8,7 @@ public import PrimeNumberTheoremAnd.IEANTN.KadiriEq12Helpers
 public import PrimeNumberTheoremAnd.IEANTN.HadamardLogDerivative
 public import PrimeNumberTheoremAnd.IEANTN.KadiriEq15
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaHadamard
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaBounds
 public import PrimeNumberTheoremAnd.LaplaceInversion
 public import PrimeNumberTheoremAnd.IEANTN.KadiriEq13
 public import PrimeNumberTheoremAnd.IEANTN.KadiriEq11Reduction
@@ -882,7 +882,7 @@ private theorem u1541_shifted_digamma_coefficient_continuous {a T : ℝ} (ha : 0
   have hψ_shift : Continuous fun t : ℝ => digamma (z t + 1) := by
     rw [continuous_iff_continuousAt]
     intro t
-    refine (Complex.continuousAt_digamma_of_re_pos ?_).comp
+    refine ((Complex.analyticOnNhd_digamma_re_pos _ ?_).continuousAt).comp
       (hz_shift_cont.continuousAt (x := t))
     dsimp [z]
     norm_num [Complex.add_re, Complex.mul_re, Complex.div_re]
@@ -890,7 +890,7 @@ private theorem u1541_shifted_digamma_coefficient_continuous {a T : ℝ} (ha : 0
   have hψ_ref : Continuous fun t : ℝ => digamma (r t) := by
     rw [continuous_iff_continuousAt]
     intro t
-    refine (Complex.continuousAt_digamma_of_re_pos ?_).comp (hr_cont.continuousAt (x := t))
+    refine ((Complex.analyticOnNhd_digamma_re_pos _ ?_).continuousAt).comp (hr_cont.continuousAt (x := t))
     dsimp [r]
     norm_num [Complex.add_re, Complex.mul_re, Complex.div_re]
     linarith

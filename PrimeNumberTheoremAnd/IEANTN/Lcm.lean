@@ -1,7 +1,6 @@
 import Architect
 import Mathlib.NumberTheory.Chebyshev
 import PrimeNumberTheoremAnd.IEANTN.SecondarySummary
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Chebyshev
 
 namespace Lcm
 
@@ -1682,7 +1681,7 @@ The following result is not needed for this application, but is worth recording 
   (latexEnv := "sublemma")]
 theorem L_eq_prod (n : ℕ) :
     L n = ∏ p ∈ Finset.filter Nat.Prime (Finset.range (n + 1)),
-      p ^ ⌊Real.log n / Real.log p⌋₊ := Chebyshev.lcmUpto_eq_prod_pow_floor n
+      p ^ ⌊Real.log n / Real.log p⌋₊ := Nat.lcmUpto_eq_prod_pow_floor n
 
 @[blueprint
   "thm:psi-eq"

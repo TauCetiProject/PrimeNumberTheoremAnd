@@ -15,7 +15,7 @@ namespace Complex
 theorem continuousOn_ofReal_cpow {r : ℂ} {a b : ℝ} (ha : 0 < a) :
     ContinuousOn (fun u : ℝ => (u : ℂ) ^ r) (Set.Icc a b) :=
   (continuous_ofReal.continuousOn.cpow continuousOn_const
-    (fun _ hu => (ofReal_mem_slitPlane).2 (lt_of_lt_of_le ha hu.1))).mono Set.Subset.rfl
+    (fun x (hx : x ∈ Set.Icc a b) => ofReal_mem_slitPlane.mpr (lt_of_lt_of_le ha hx.1))).mono Set.Subset.rfl
 
 theorem deriv_ofReal_cpow_neg (s : ℂ) {x : ℝ} (hx : 0 < x) :
     deriv (fun (t : ℝ) => (t : ℂ) ^ (-s)) x = -s * (x : ℂ) ^ (-s - 1) := by

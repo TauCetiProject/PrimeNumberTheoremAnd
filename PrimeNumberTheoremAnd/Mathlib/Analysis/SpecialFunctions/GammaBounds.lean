@@ -6,6 +6,7 @@ Authors: Matteo Cipollina
 module
 
 
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Vertical
 public import Mathlib.Analysis.CStarAlgebra.Classes
 public import Mathlib.Analysis.Complex.RemovableSingularity
 public import Mathlib.Analysis.Real.Pi.Bounds
@@ -138,26 +139,11 @@ namespace Gamma
 lemma norm_le_one_div_add_sqrt_pi_of_re_ge_of_re_le {w : ℂ} {a : ℝ}
     (ha_pos : 0 < a) (hw : a ≤ w.re) (hw_ub : w.re ≤ 1) :
     ‖Complex.Gamma w‖ ≤ 1 / a + Real.sqrt Real.pi := by
-  set f : ℝ → ℂ := fun t ↦ Complex.exp (-t) * t ^ (w - 1)
   set g : ℝ → ℝ := fun t ↦ Real.exp (-t) * t ^ (w.re - 1)
   have hw_pos : 0 < w.re := ha_pos.trans_le hw
-  have hΓ : Complex.Gamma w = ∫ t in Ioi (0 : ℝ), f t := by
-    rw [Complex.Gamma_eq_integral hw_pos]
-    simp [Complex.GammaIntegral, f]
-  have h_norm :
-      ‖Complex.Gamma w‖ =
-        ‖∫ t in Ioi (0 : ℝ), f t‖ := by
-    simp [hΓ]
-  have h_le_int :
-      ‖∫ t in Ioi (0 : ℝ), f t‖
-        ≤ ∫ t in Ioi (0 : ℝ), ‖f t‖ :=
-    MeasureTheory.norm_integral_le_integral_norm _
-  have h_int_real :
-      ∫ t in Ioi (0 : ℝ), ‖f t‖
-        = ∫ t in Ioi (0 : ℝ), g t := by
-    refine MeasureTheory.setIntegral_congr_fun measurableSet_Ioi ?_
-    intro t ht
-    simp [f, g, Complex.norm_exp, Complex.norm_cpow_eq_rpow_re_of_pos ht (w - 1)]
+  have h_le_int : ‖Complex.Gamma w‖ ≤ ∫ t in Ioi (0 : ℝ), g t := by
+    simpa only [Real.Gamma_eq_integral hw_pos, g] using
+      Complex.norm_Gamma_le_Gamma_re hw_pos
   have h_split :
       (∫ t in Ioi (0 : ℝ), g t)
         = (∫ t in Ioc 0 1, g t) + (∫ t in Ioi 1, g t) := by
@@ -198,13 +184,8 @@ lemma norm_le_one_div_add_sqrt_pi_of_re_ge_of_re_le {w : ℂ} {a : ℝ}
   have h_big :
       ‖Complex.Gamma w‖
         ≤ (∫ t in Ioc 0 1, t ^ (w.re - 1)) + (∫ t in Ioi 1, g t) := by
-    have step1 : ‖∫ t in Ioi (0 : ℝ), f t‖
-        ≤ (∫ t in Ioc 0 1, g t) + (∫ t in Ioi 1, g t) := by
-      simpa [h_int_real, h_split] using h_le_int
-    have step2 : (∫ t in Ioc 0 1, g t) + (∫ t in Ioi 1, g t)
-        ≤ (∫ t in Ioc 0 1, t ^ (w.re - 1)) + (∫ t in Ioi 1, g t) :=
-      add_le_add_left h_drop_exp _
-    simpa [h_norm] using (le_trans step1 step2)
+    rw [h_split] at h_le_int
+    exact h_le_int.trans (_root_.add_le_add h_drop_exp le_rfl)
   have h_Ioc_exact :
       ∫ t in Ioc 0 1, t ^ (w.re - 1) = 1 / w.re :=
     integral_rpow_Ioc_zero_one hw_pos
