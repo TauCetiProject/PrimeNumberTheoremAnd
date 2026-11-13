@@ -222,11 +222,11 @@ lemma support_pre413 {f : ℝ → ℝ} {x : ℝ} (hx : 2 ≤ x) :
       MeasurableSet.inter, Measure.restrict_apply'] at hn
     by_cases n_eq: n = 0
     · simp only [n_eq, CharP.cast_eq_zero, zero_add] at hn
-      conv at hn =>
-        pattern _ ∩ _
-        rhs
-        equals ∅ => grind
-      simp at hn
+      have hempty : Set.Ioc (0 : ℝ) 1 ∩ Set.Icc 2 x = ∅ := by
+        apply Set.eq_empty_iff_forall_notMem.mpr
+        intro t ht
+        linarith [ht.1.2, ht.2.1]
+      simp [hempty] at hn
     by_contra!
     conv at hn =>
       rhs
@@ -483,10 +483,8 @@ theorem pre_413 {f : ℝ → ℝ} {x : ℝ} (hf : ContinuousOn f (Set.Icc 2 (x +
         simp at ha
         grind
       · simpa using ha
-    · apply ContinuousAt.continuousWithinAt
-      fun_prop (disch := assumption)
-    · simp
-      grind
+    · exact (Real.continuousAt_log a_ne).continuousWithinAt
+    · exact (Real.log_pos (lt_of_lt_of_le (by norm_num : (1 : ℝ) < 2) ha.1)).ne'
 
 @[blueprint
   "rs-413"
@@ -625,10 +623,15 @@ theorem _root_.intervalIntegral.interval_add_Ioi {E : Type*} [NormedAddCommGroup
 theorem intervalIntegrable_inv_log_pow (n : ℕ) (m : ℕ) {x : ℝ} (hx : 1 < x) (y : ℝ) :
     IntegrableOn (fun t ↦ 1 / (t ^ n * Real.log t ^ m)) (Set.Ioc x y) volume := by
   by_cases h : x < y
-  · refine (ContinuousOn.integrableOn_Icc ?_).mono_set Set.Ioc_subset_Icc_self
-    refine ContinuousOn.div₀ (by fun_prop) (ContinuousOn.mul (by fun_prop) ?_) ?_
-    · exact (continuousOn_log.mono (by grind)).pow m
-    · simp_all; grind
+  · refine (ContinuousOn.integrableOn_Icc (f := fun t : ℝ ↦ 1 / (t ^ n * Real.log t ^ m)) ?_).mono_set Set.Ioc_subset_Icc_self
+    have hc : ContinuousOn (fun t : ℝ ↦ t) (Set.Icc x y) := continuousOn_id
+    have hl : ContinuousOn Real.log (Set.Icc x y) := Real.continuousOn_log.mono fun t ht ↦
+      ne_of_gt (zero_lt_one.trans (hx.trans_le ht.1))
+    refine continuousOn_const.div ((hc.pow n).mul (hl.pow m)) ?_
+    intro t ht
+    have ht1 : 1 < t := hx.trans_le ht.1
+    exact mul_ne_zero (pow_ne_zero n (zero_lt_one.trans ht1).ne')
+      (pow_ne_zero m (Real.log_pos ht1).ne')
   · simp_all
 
 theorem ioiIntegrable_inv_log_pow {n : ℕ} (hn : 1 < n) {x : ℝ} (hx : 1 < x) :
@@ -763,8 +766,11 @@ theorem eq_418 {x : ℝ} (hx : 2 ≤ x) :
       ring
     · refine  ContinuousOn.intervalIntegrable fun t ht ↦ ContinuousAt.continuousWithinAt ?_
       rw [Set.uIcc_of_le hx] at ht
-      apply ContinuousAt.div (by fun_prop (disch := grind)) (by fun_prop (disch := grind))
-      simp; grind
+      have ht1 : 1 < t := lt_of_lt_of_le (by norm_num : (1 : ℝ) < 2) ht.1
+      have ht0 := (zero_lt_one.trans ht1).ne'
+      have hl := Real.continuousAt_log ht0
+      exact (continuousAt_const.add hl).neg.div ((continuousAt_id.pow 2).mul (hl.pow 2))
+        (mul_ne_zero (pow_ne_zero 2 ht0) (pow_ne_zero 2 (Real.log_pos ht1).ne'))
   rw [eq_413 (f := fun x => 1 / x) hx this integrable, mul_comm_div, one_mul, div_div, sub_eq_add_neg,
     ← intervalIntegral.integral_neg, add_left_cancel_iff]
   refine intervalIntegral.integral_congr fun y hy => ?_
