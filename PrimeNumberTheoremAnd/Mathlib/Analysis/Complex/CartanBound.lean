@@ -10,6 +10,7 @@ public import Mathlib.Analysis.SpecialFunctions.Pow.Integral
 public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.SpecialFunctions.Integrability.Basic
+import Mathlib.Analysis.SpecialFunctions.Integrability.PosLog
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 
 
@@ -261,80 +262,24 @@ lemma intervalIntegrable_sqrt_two_div_abs_one_sub_Icc :
     IntervalIntegrable
       (fun t : ℝ => Real.sqrt (2 / |1 - t|))
       volume (1 / 4 : ℝ) (4 : ℝ) := by
-  let f : ℝ → ℝ := fun u => Real.sqrt (2 / |u|)
-  have hf0 : IntervalIntegrable f volume (0 : ℝ) (3 : ℝ) := by
-    have hpow :
-        IntervalIntegrable (fun u : ℝ => u ^ (- (2⁻¹ : ℝ))) volume (0 : ℝ) (3 : ℝ) := by
-      simpa using
-        (intervalIntegral.intervalIntegrable_rpow' (a := (0 : ℝ)) (b := (3 : ℝ))
-          (r := (- (2⁻¹ : ℝ))) (by linarith : (-1 : ℝ) < - (2⁻¹ : ℝ)))
-    have hpow2 :
-        IntervalIntegrable (fun u : ℝ => Real.sqrt 2 * u ^ (- (2⁻¹ : ℝ))) volume (0 : ℝ) (3 : ℝ) :=
-      hpow.const_mul (Real.sqrt 2)
-    have hEq :
-        Set.EqOn f (fun u : ℝ => Real.sqrt 2 * u ^ (- (2⁻¹ : ℝ))) (Set.uIoc (0 : ℝ) (3 : ℝ)) := by
-      intro u hu
-      have hu' : u ∈ Set.Ioc (0 : ℝ) (3 : ℝ) := by
-        simpa [Set.uIoc_of_le (show (0 : ℝ) ≤ 3 by norm_num)] using hu
-      have hu0 : 0 < u := hu'.1
-      have hu0' : 0 ≤ u := le_of_lt hu0
-      have habs : |u| = u := abs_of_nonneg hu0'
-      have : f u = Real.sqrt (2 / u) := by simp [f, habs]
-      calc
-        f u = Real.sqrt (2 / u) := this
-        _ = Real.sqrt 2 / Real.sqrt u := by simp
-        _ = Real.sqrt 2 * (Real.sqrt u)⁻¹ := by simp [div_eq_mul_inv]
-        _ = Real.sqrt 2 * (u ^ (2⁻¹ : ℝ))⁻¹ := by simp [Real.sqrt_eq_rpow]
-        _ = Real.sqrt 2 * u ^ (- (2⁻¹ : ℝ)) := by
-              have h : (u ^ (2⁻¹ : ℝ))⁻¹ = u ^ (- (2⁻¹ : ℝ)) := by
-                simpa using (Real.rpow_neg hu0' (2⁻¹ : ℝ)).symm
-              simp [h]
-    exact
-      (IntervalIntegrable.congr (a := (0 : ℝ)) (b := (3 : ℝ))
-          (μ := (volume : MeasureTheory.Measure ℝ))
-          (f := fun u : ℝ => Real.sqrt 2 * u ^ (- (2⁻¹ : ℝ))) (g := f) hEq.symm)
-        hpow2
-  have hf0' : IntervalIntegrable f volume (0 : ℝ) (3 / 4 : ℝ) :=
-    hf0.mono_set (by
-      intro u hu
-      have hsub : Set.uIcc (0 : ℝ) (3 / 4 : ℝ) ⊆ Set.uIcc (0 : ℝ) (3 : ℝ) := by
-        refine Set.uIcc_subset_uIcc ?_ ?_
-        · simp
-        · have h0 : (0 : ℝ) ≤ (3 / 4 : ℝ) := by nlinarith
-          have h1 : (3 / 4 : ℝ) ≤ (3 : ℝ) := by nlinarith
-          exact (Set.mem_uIcc).2 (Or.inl ⟨h0, h1⟩)
-      exact hsub hu)
-  have hleft :
-      IntervalIntegrable (fun t : ℝ => Real.sqrt (2 / |1 - t|)) volume (1 / 4 : ℝ) (1 : ℝ) := by
-    have htmp :
-        IntervalIntegrable (fun t : ℝ => f (1 - t)) volume (1 : ℝ) ((1 : ℝ) - (3 / 4 : ℝ)) := by
-      simpa using (hf0'.comp_sub_left (c := (1 : ℝ)))
-    have htmp' :
-        IntervalIntegrable (fun t : ℝ => f (1 - t)) volume ((1 : ℝ) - (3 / 4 : ℝ)) (1 : ℝ) :=
-      htmp.symm
-    have hsub : ((1 : ℝ) - (3 / 4 : ℝ)) = (1 / 4 : ℝ) := by norm_num
-    have htmp'' : IntervalIntegrable (fun t : ℝ => f (1 - t)) volume (1 / 4 : ℝ) (1 : ℝ) := by
-      simpa [hsub] using htmp'
-    simpa [f] using htmp''
-  have hright :
-      IntervalIntegrable (fun t : ℝ => Real.sqrt (2 / |1 - t|)) volume (1 : ℝ) (4 : ℝ) := by
-    have htmp :
-        IntervalIntegrable (fun t : ℝ => f (t - 1)) volume (1 : ℝ) ((3 : ℝ) + (1 : ℝ)) := by
-      simpa using (hf0.comp_sub_right (c := (1 : ℝ)))
-    have hsub : ((3 : ℝ) + (1 : ℝ)) = (4 : ℝ) := by norm_num
-    have htmp' : IntervalIntegrable (fun t : ℝ => f (t - 1)) volume (1 : ℝ) (4 : ℝ) := by
-      simpa [hsub] using htmp
-    have hcongr :
-        Set.EqOn (fun t : ℝ => f (t - 1)) (fun t : ℝ => Real.sqrt (2 / |1 - t|))
-          (Set.uIoc (1 : ℝ) (4 : ℝ)) := by
-      intro t _ht
-      simp [f, abs_sub_comm]
-    exact
-      (IntervalIntegrable.congr (a := (1 : ℝ)) (b := (4 : ℝ))
-          (μ := (volume : MeasureTheory.Measure ℝ))
-          (f := fun t : ℝ => f (t - 1)) (g := fun t : ℝ => Real.sqrt (2 / |1 - t|)) hcongr)
-        htmp'
-  exact hleft.trans hright
+  let f : ℝ → ℝ := fun u ↦ Real.sqrt (2 / |u|)
+  have hnorm (u : ℝ) : ‖f u‖ = Real.sqrt 2 * ‖u‖ ^ (-(1 / 2 : ℝ)) := by
+    dsimp [f]
+    rw [abs_of_nonneg (Real.sqrt_nonneg _),
+      Real.sqrt_div (by norm_num)]
+    simp only [Real.sqrt_eq_rpow, div_eq_mul_inv, Real.rpow_neg (abs_nonneg u)]
+  have hlocal : LocallyIntegrable f volume :=
+    locallyIntegrable_of_norm_le_rpow (by simp : 1 ≤ Module.finrank ℝ ℝ)
+      (α := (1 / 2 : ℝ)) (by norm_num)
+      (Filter.Eventually.of_forall fun u ↦ (hnorm u).le)
+      (by
+        apply Measurable.aestronglyMeasurable
+        dsimp [f]
+        fun_prop)
+  have hf : IntervalIntegrable f volume (-3 : ℝ) (3 / 4 : ℝ) := by
+    rw [intervalIntegrable_iff]
+    exact (hlocal.integrableOn_isCompact isCompact_uIcc).mono_set Set.uIoc_subset_uIcc
+  convert (hf.comp_sub_left (c := (1 : ℝ))).symm using 1 <;> norm_num [f]
 
 lemma phi_le_log_two_on_dyadic_of_le_quarter {A t : ℝ} (hA : A ≤ (1 / 4 : ℝ))
     (ht : t ∈ Set.Icc A (2 * A)) :
@@ -351,40 +296,13 @@ lemma phi_eq_zero_of_two_le {t : ℝ} (ht : (2 : ℝ) ≤ t) : φ t = 0 := by
     simpa [abs_sub_comm] using this
   exact phi_eq_zero_of_one_le_abs_one_sub hden
 
-lemma intervalIntegrable_phi_dyadic_small {A : ℝ} (hA0 : 0 ≤ A)
-    (hA : A ≤ (1 / 4 : ℝ)) :
-    IntervalIntegrable φ volume A (2 * A) := by
-  have hA_le : A ≤ 2 * A := by nlinarith
-  have hconst : IntervalIntegrable (fun _ : ℝ => (Real.log 2 : ℝ)) volume A (2 * A) :=
-    intervalIntegrable_const
-  have hmeas :
-      AEStronglyMeasurable (fun t : ℝ => φ t) (volume.restrict (Set.uIoc A (2 * A))) :=
-    (measurable_phi.aestronglyMeasurable : _)
-  have hdom :
-      (fun t : ℝ => ‖φ t‖) ≤ᶠ[ae (volume.restrict (Set.uIoc A (2 * A)))]
-        fun _ => ‖(Real.log 2 : ℝ)‖ := by
-    refine ae_restrict_norm_phi_le_of_forall_mem (A := A) (B := 2 * A) hA_le
-      (g := fun _ => (Real.log 2 : ℝ)) (hg := fun _ => ?_) ?_
-    · simpa using (Real.log_nonneg (by norm_num : (1 : ℝ) ≤ 2))
-    · intro t ht
-      exact phi_le_log_two_on_dyadic_of_le_quarter hA ht
-  exact IntervalIntegrable.mono_fun hconst hmeas hdom
-
-lemma intervalIntegrable_phi_dyadic_large {A : ℝ} (hA : (2 : ℝ) ≤ A) :
-    IntervalIntegrable φ volume A (2 * A) := by
-  have hA_le : A ≤ 2 * A := by nlinarith
-  have hEq : Set.EqOn (fun t : ℝ => φ t) (fun _ => (0 : ℝ)) (Set.uIoc A (2 * A)) := by
-    intro t ht
-    have htIoc : t ∈ Set.Ioc A (2 * A) := by
-      simpa [Set.uIoc_of_le hA_le] using ht
-    exact phi_eq_zero_of_two_le (le_trans hA (le_of_lt htIoc.1))
-  have hz : IntervalIntegrable (fun _ : ℝ => (0 : ℝ)) volume A (2 * A) :=
-    intervalIntegrable_const
-  exact (IntervalIntegrable.congr (a := A) (b := (2 * A))
-    (μ := (volume : MeasureTheory.Measure ℝ))
-    (f := fun _ => (0 : ℝ)) (g := fun t => φ t) (by
-      intro t ht
-      simpa using (hEq (x := t) ht).symm)) hz
+private lemma intervalIntegrable_phi_comp_div (a A B : ℝ) :
+    IntervalIntegrable (fun r : ℝ ↦ φ (r / a)) volume A B := by
+  have hm : MeromorphicOn (fun r : ℝ ↦ 1 / (1 - r / a)) (Set.uIcc A B) := by
+    intro t _
+    fun_prop
+  simpa only [φ, Real.norm_eq_abs, abs_div, abs_one, one_div, abs_inv] using
+    hm.intervalIntegrable_posLog_norm
 
 lemma intervalIntegrable_sqrt_two_div_abs_one_sub_dyadic_middle {A : ℝ}
     (hA_lower : (1 / 4 : ℝ) ≤ A) (hA_upper : A ≤ (2 : ℝ)) :
@@ -397,52 +315,6 @@ lemma intervalIntegrable_sqrt_two_div_abs_one_sub_dyadic_middle {A : ℝ}
   refine Set.uIcc_subset_uIcc ?_ ?_
   · exact (Set.mem_uIcc).2 (Or.inl ⟨hA_lower, by nlinarith [hA_upper]⟩)
   · exact (Set.mem_uIcc).2 (Or.inl ⟨by nlinarith [hA_lower], by nlinarith [hA_upper]⟩)
-
-lemma intervalIntegrable_phi_dyadic_middle {A : ℝ}
-    (hA_lower : (1 / 4 : ℝ) ≤ A) (hA_upper : A ≤ (2 : ℝ)) :
-    IntervalIntegrable φ volume A (2 * A) := by
-  have hA_le : A ≤ 2 * A := by nlinarith [hA_lower]
-  have hsqrt :
-      IntervalIntegrable (fun t : ℝ => Real.sqrt (2 / |1 - t|)) volume A (2 * A) :=
-    intervalIntegrable_sqrt_two_div_abs_one_sub_dyadic_middle hA_lower hA_upper
-  have hmeas :
-      AEStronglyMeasurable (fun t : ℝ => φ t) (volume.restrict (Set.uIoc A (2 * A))) :=
-    (measurable_phi.aestronglyMeasurable : _)
-  have hdom :
-      (fun t : ℝ => ‖φ t‖) ≤ᶠ[ae (volume.restrict (Set.uIoc A (2 * A)))]
-        fun t => ‖Real.sqrt (2 / |1 - t|)‖ := by
-    refine ae_restrict_norm_phi_le_of_forall_mem (A := A) (B := 2 * A) hA_le
-      (g := fun t => Real.sqrt (2 / |1 - t|)) (hg := fun _ => Real.sqrt_nonneg _) ?_
-    intro t _ht
-    exact φ_le_sqrt t
-  exact IntervalIntegrable.mono_fun hsqrt hmeas hdom
-
-lemma intervalIntegrable_phi_dyadic {A : ℝ} (hA : 0 ≤ A) :
-    IntervalIntegrable φ volume A (2 * A) := by
-  by_cases hA0 : A = 0
-  · subst hA0
-    simp
-  cases le_total A (1 / 4 : ℝ) with
-  | inl hsmall =>
-      exact intervalIntegrable_phi_dyadic_small hA hsmall
-  | inr hge_quarter =>
-      cases le_total (2 : ℝ) A with
-      | inl hbig =>
-          exact intervalIntegrable_phi_dyadic_large hbig
-      | inr hA_le_two =>
-          exact intervalIntegrable_phi_dyadic_middle hge_quarter hA_le_two
-
-lemma intervalIntegrable_phi_div {a R : ℝ} (ha : 0 < a) (hR : 0 ≤ R) :
-    IntervalIntegrable (fun r : ℝ => φ (r / a)) volume R (2 * R) := by
-  have ha0 : a ≠ 0 := ne_of_gt ha
-  have hRa_nonneg : 0 ≤ R / a := by
-    exact div_nonneg hR (le_of_lt ha)
-  have hφ : IntervalIntegrable φ volume (R / a) (2 * (R / a)) :=
-    intervalIntegrable_phi_dyadic (A := (R / a)) hRa_nonneg
-  have := (hφ.comp_mul_right (c := (a⁻¹ : ℝ)))
-  have hupper : a * (R * (a⁻¹ * 2)) = (2 * R) := by
-    field_simp [ha0]
-  simpa [div_eq_mul_inv, ha0, hupper, mul_assoc, mul_left_comm, mul_comm] using this
 
 lemma log_two_le_Cφ : Real.log 2 ≤ Cφ := by
   dsimp [Cφ]
@@ -457,8 +329,8 @@ lemma four_mul_K_add_one_le_Cφ : (4 * K + 1 : ℝ) ≤ Cφ := by
 lemma integral_phi_le_Cφ_mul_small {A : ℝ} (hA0 : 0 ≤ A) (hA : A ≤ (1 / 4 : ℝ)) :
     (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ Cφ * A := by
   have hA_le : A ≤ 2 * A := by nlinarith
-  have hφ_int : IntervalIntegrable φ volume A (2 * A) :=
-    intervalIntegrable_phi_dyadic_small hA0 hA
+  have hφ_int : IntervalIntegrable φ volume A (2 * A) := by
+    simpa only [div_one] using intervalIntegrable_phi_comp_div 1 A (2 * A)
   have hconst : IntervalIntegrable (fun _ : ℝ => (Real.log 2 : ℝ)) volume A (2 * A) :=
     intervalIntegrable_const
   have hle_int :
@@ -517,8 +389,8 @@ lemma integral_phi_le_Cφ_mul_middle {A : ℝ}
     (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ Cφ * A := by
   let s (t : ℝ) : ℝ := Real.sqrt (2 / |1 - t|)
   have hA_le : A ≤ 2 * A := by nlinarith [hA_lower]
-  have hφ_int : IntervalIntegrable φ volume A (2 * A) :=
-    intervalIntegrable_phi_dyadic_middle hA_lower hA_upper
+  have hφ_int : IntervalIntegrable φ volume A (2 * A) := by
+    simpa only [div_one] using intervalIntegrable_phi_comp_div 1 A (2 * A)
   have hsqrt : IntervalIntegrable s volume A (2 * A) := by
     simpa [s] using
       intervalIntegrable_sqrt_two_div_abs_one_sub_dyadic_middle hA_lower hA_upper
@@ -615,14 +487,14 @@ lemma integral_phi_div_le_Cφ_mul {a R : ℝ} (ha : 0 < a) (hR : 0 ≤ R) :
 
 lemma intervalIntegrable_sum_mul_phi_div
     {ι : Type} (s : Finset ι) (w : ι → ℝ) (a : ι → ℝ)
-    (ha : ∀ i ∈ s, 0 < a i) {R : ℝ} (hR : 0 ≤ R) :
+    {R : ℝ} :
     IntervalIntegrable (∑ i ∈ s, fun r : ℝ => w i * φ (r / a i))
       volume R (2 * R) := by
   refine IntervalIntegrable.sum (μ := volume) (a := R) (b := 2 * R)
     (s := s) (f := fun i : ι => fun r : ℝ => w i * φ (r / a i)) ?_
-  intro i hi
+  intro i _
   have hφi : IntervalIntegrable (fun r : ℝ => φ (r / a i)) volume R (2 * R) :=
-    intervalIntegrable_phi_div (a := a i) (R := R) (ha i hi) hR
+    intervalIntegrable_phi_comp_div (a i) R (2 * R)
   simpa [mul_assoc] using hφi.const_mul (w i)
 
 lemma integral_sum_mul_phi_div_le_Cφ_mul_sum
@@ -632,9 +504,9 @@ lemma integral_sum_mul_phi_div_le_Cφ_mul_sum
       ≤ Cφ * (∑ i ∈ s, w i) * R := by
   have hint : ∀ i ∈ s, IntervalIntegrable (fun r : ℝ => w i * φ (r / a i))
       volume R (2 * R) := by
-    intro i hi
+    intro i _
     have hφi : IntervalIntegrable (fun r : ℝ => φ (r / a i)) volume R (2 * R) :=
-      intervalIntegrable_phi_div (a := a i) (R := R) (ha i hi) hR
+      intervalIntegrable_phi_comp_div (a i) R (2 * R)
     simpa [mul_assoc] using hφi.const_mul (w i)
   have hsum_int :
       (∫ r in R..(2 * R), (∑ i ∈ s, fun r : ℝ => w i * φ (r / a i)) r ∂volume)
@@ -674,7 +546,7 @@ lemma exists_radius_Ioc_sum_mul_phi_div_le_Cφ_mul_sum_avoid
   have hnull : volume (bad : Set ℝ) = 0 := bad.measure_zero volume
   have hS : S =ᵐ[volume] Set.Ioc R (2 * R) := sdiff_null_ae_eq_self hnull
   have hg : IntegrableOn g (Set.Ioc R (2 * R)) :=
-    (intervalIntegrable_sum_mul_phi_div s w a ha hR.le).1
+    (intervalIntegrable_sum_mul_phi_div s w a).1
   obtain ⟨r, hr, hle⟩ := exists_le_setAverage
     (volume_Ioc_two_mul_diff_finset_ne_zero bad hR)
     (ne_top_of_le_ne_top (by simp : volume (Set.Ioc R (2 * R)) ≠ ∞)
