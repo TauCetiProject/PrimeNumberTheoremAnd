@@ -27,9 +27,8 @@ factorization conclusion itself.  It is step 1 of the intrinsic Hadamard pipelin
   log-growth of order `ρ`
 * `summable_norm_inv_pow_divisorZeroIndex₀_of_growth` : growth implies convergence of the
   canonical product
-* `jensen_formula_logCounting_eq_circleAverage_sub_log_trailingCoeff` : Hadamard alias for Jensen's
-  formula (see also
-  `Function.locallyFinsuppWithin.logCounting_divisor_eq_circleAverage_sub_const_of_differentiable`)
+Jensen's formula for entire functions is
+`Function.locallyFinsuppWithin.logCounting_divisor_eq_circleAverage_sub_const_of_differentiable`.
 
 Jensen's formula and log-counting growth bounds live in
 `Analysis.Complex.ValueDistribution.LogCounting`.
@@ -68,15 +67,6 @@ open scoped Real
 /-- The total multiplicity of the nonzero divisor of `f` in the closed ball of radius `R`. -/
 noncomputable def divisorMassClosedBall₀ (f : ℂ → ℂ) (R : ℝ) : ℝ :=
   Function.locallyFinsuppWithin.massClosedBall₀ (MeromorphicOn.divisor f (Set.univ : Set ℂ)) R
-
-/-- Hadamard-facing alias for Jensen's formula on the zero divisor. -/
-theorem jensen_formula_logCounting_eq_circleAverage_sub_log_trailingCoeff {f : ℂ → ℂ}
-    (hf : Differentiable ℂ f) {R : ℝ} (hR : R ≠ 0) :
-    Function.locallyFinsuppWithin.logCounting (MeromorphicOn.divisor f (Set.univ : Set ℂ)) R
-      = Real.circleAverage (fun z : ℂ => Real.log ‖f z‖) 0 R
-        - Real.log ‖meromorphicTrailingCoeffAt f 0‖ :=
-  Function.locallyFinsuppWithin.logCounting_divisor_eq_circleAverage_sub_const_of_differentiable
-    hf hR
 
 lemma log_two_mul_divisorMassClosedBall₀_le_logCounting_two_mul {f : ℂ → ℂ}
     (hf : Differentiable ℂ f) {R : ℝ} (hR : 1 ≤ R) :

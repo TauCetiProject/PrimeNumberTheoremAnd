@@ -219,17 +219,12 @@ lemma norm_bounded_on_compact_of_no_poles {K : Set ℂ}
   rcases hK.exists_bound_of_continuousOn h_cont with ⟨M, hM⟩
   exact ⟨M, fun s hs => hM s hs⟩
 
-/-- When `0 < a ≤ re w ≤ 1`, we have `‖Γ(w)‖ ≤ 1 / a + √π`. -/
-theorem norm_le_strip {w : ℂ} {a : ℝ}
-    (ha : 0 < a) (hw_lo : a ≤ w.re) (hw_hi : w.re ≤ 1) :
-    ‖Gamma w‖ ≤ 1 / a + Real.sqrt Real.pi :=
-  Complex.Gamma.norm_le_one_div_add_sqrt_pi_of_re_ge_of_re_le ha hw_lo hw_hi
-
 /-- For `1/2 ≤ re w ≤ 1`, `‖Γ(w)‖ ≤ 4`. -/
 lemma norm_le_four_of_re_half_to_one {w : ℂ}
     (hw_lo : (1 / 2 : ℝ) ≤ w.re) (hw_hi : w.re ≤ 1) :
     ‖Gamma w‖ ≤ 4 := by
-  have h := norm_le_strip (w := w) (a := (1 / 2 : ℝ)) (by norm_num) hw_lo hw_hi
+  have h := Complex.Gamma.norm_le_one_div_add_sqrt_pi_of_re_ge_of_re_le
+    (w := w) (a := (1 / 2 : ℝ)) (by norm_num) hw_lo hw_hi
   calc ‖Gamma w‖ ≤ 1 / (1 / 2 : ℝ) + Real.sqrt Real.pi := h
     _ = 2 + Real.sqrt Real.pi := by norm_num
     _ ≤ 2 + 2 := by linarith [Real.Stirling.sqrt_pi_lt_two]

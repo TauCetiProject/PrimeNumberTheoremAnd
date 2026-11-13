@@ -8,7 +8,6 @@ module
 public import TauCeti.NumberTheory.LFunctions.Zeros.Completion.RiemannZeta
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.NumberTheory.LSeries.RiemannZeta
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFunctionalEquation
 
 /-!
 # Local API for Mathlib's completed Riemann zeta and xi functions
@@ -16,6 +15,9 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFunctionalE
 This file records basic local facts about Mathlib's `completedRiemannZeta`
 
 `Λ(s) = Γ_ℝ(s) * ζ(s)`.
+
+Its functional equation is Mathlib's `completedRiemannZeta_one_sub`; expanding
+`completedRiemannZeta` gives the corresponding equality of gamma-zeta products.
 
 It also defines the classical entire Riemann xi function
 `ξ(s) = s * (s - 1) * Λ(s) / 2` via the pole-removed expression
