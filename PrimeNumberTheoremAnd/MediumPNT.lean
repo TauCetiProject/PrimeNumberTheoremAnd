@@ -1006,10 +1006,6 @@ def LogDerivZetaIsHoloSmall (σ₂ : ℝ) : Prop :=
     DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
     (((uIcc σ₂ 2)  ×ℂ (uIcc (-3) 3)) \ {1})
 
-theorem dlog_riemannZeta_bdd_on_vertical_lines_explicit {σ₀ : ℝ} (σ₀_gt : 1 < σ₀) :
-  ∀(t : ℝ), ‖(-ζ' (σ₀ + t * I) / ζ (σ₀ + t * I))‖ ≤ ‖(ζ' σ₀ / ζ σ₀)‖ :=
-  fun _ ↦ dlog_riemannZeta_bdd_on_vertical_lines_generalized _ _ _ σ₀_gt <| le_refl _
-
 -- TODO : Move elsewhere (should be in Mathlib!) NOT NEEDED
 @[blueprint
   (title := "dlog-riemannZeta-bdd-on-vertical-lines")
@@ -1027,7 +1023,7 @@ theorem dlog_riemannZeta_bdd_on_vertical_lines_explicit {σ₀ : ℝ} (σ₀_gt 
 theorem dlog_riemannZeta_bdd_on_vertical_lines {σ₀ : ℝ} (σ₀_gt : 1 < σ₀) :
     ∃ c > 0, ∀(t : ℝ), ‖ζ' (σ₀ + t * I) / ζ (σ₀ + t * I)‖ ≤ c := by
   refine ⟨1 + ‖(ζ' σ₀ / ζ σ₀)‖, (by positivity), fun t ↦ ?_⟩
-  have := dlog_riemannZeta_bdd_on_vertical_lines_explicit σ₀_gt t
+  have := dlog_riemannZeta_bdd_on_vertical_lines_generalized σ₀ σ₀ t σ₀_gt le_rfl
   rw [neg_div, norm_neg] at this
   exact le_trans this (lt_one_add _).le
 
@@ -1111,17 +1107,12 @@ theorem SmoothedChebyshevPull1_aux_integrable {SmoothingF : ℝ → ℝ} {ε : �
       norm_cast
       linarith
 
-@[blueprint
-  (title := "BddAboveOnRect")
-  (statement := /-- Let $g : \C \to \C$ be a holomorphic function on a rectangle, then $g$ is bounded above on the rectangle. -/)
-  (proof := /-- Use the compactness of the rectangle and the fact that holomorphic functions are continuous. -/)
-  (latexEnv := "lemma")]
-lemma BddAboveOnRect {g : ℂ → ℂ} {z w : ℂ} (holoOn : DifferentiableOn ℂ g (z.Rectangle w)) :
-    BddAbove (norm ∘ g '' (z.Rectangle w)) := by
-  have compact_rect : IsCompact (z.Rectangle w) := by
-    apply IsCompact.reProdIm <;> apply isCompact_uIcc
-  refine IsCompact.bddAbove_image compact_rect ?_
-  apply holoOn.continuousOn.norm
+blueprint_comment /--
+\label{BddAboveOnRect}
+Let $g : \C \to \C$ be a holomorphic function on a rectangle, then $g$ is bounded above on the rectangle.
+
+Use the compactness of the rectangle and the fact that holomorphic functions are continuous.
+-/
 
 @[blueprint
   (title := "SmoothedChebyshevPull1")

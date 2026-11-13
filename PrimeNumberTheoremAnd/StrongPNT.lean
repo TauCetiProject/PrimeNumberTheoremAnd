@@ -1,5 +1,7 @@
 module
 
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
+
 public import Architect
 public import Mathlib.Algebra.Lie.OfAssociative
 public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
@@ -1420,24 +1422,6 @@ def ZeroWindow (t : ℝ) : Set ℂ := {ρ : ℂ | ζ ρ = 0 ∧ ‖ρ - (3 / 2 +
 
 /- API for analyticOrderNatAt -/
 
-lemma analyticOrderNatAt_fun_comp_add_left (g : ℂ → ℂ) (c z : ℂ) :
-    analyticOrderNatAt (fun z : ℂ => g (c + z)) z = analyticOrderNatAt g (c + z) := by
-  have asComp : analyticOrderAt (g ∘ fun z : ℂ => c + z) z = analyticOrderAt g (c + z) := by
-    apply analyticOrderAt_comp_of_deriv_ne_zero (AnalyticAt.add analyticAt_const analyticAt_id)
-    simp only [differentiableAt_const, differentiableAt_id, deriv_add, deriv_const', deriv_id',
-      zero_add, ne_eq, one_ne_zero, not_false_eq_true]
-  simp only [analyticOrderNatAt, ← asComp, comp_def]
-
-lemma analyticOrderNatAt_fun_comp_add_right (g : ℂ → ℂ) (c z : ℂ) :
-    analyticOrderNatAt (fun z : ℂ => g (z + c)) z = analyticOrderNatAt g (z + c) := by
-  have asComp : analyticOrderAt (g ∘ fun z : ℂ => z + c) z = analyticOrderAt g (z + c) := by
-    apply analyticOrderAt_comp_of_deriv_ne_zero (AnalyticAt.add analyticAt_id analyticAt_const)
-    simp only [differentiableAt_const, differentiableAt_id, deriv_add, deriv_const', deriv_id',
-      ne_eq, add_zero, one_ne_zero, not_false_eq_true]
-  simp only [analyticOrderNatAt, ← asComp, comp_def]
-
-
-
 @[blueprint "SumBoundI"
   (title := "SumBoundI")
   (statement := /--
@@ -1525,7 +1509,8 @@ lemma SumBoundI :
       · simp only [← add_assoc, hρ.2]
       · simp only [add_sub_cancel_right, r, hρ.1]
     · ring_nf
-      rw [mul_comm, analyticOrderNatAt_fun_comp_add_left]
+      rw [mul_comm]
+      simp only [add_comm, analyticOrderNatAt_comp_add_const]
       ring_nf
 
 
@@ -2164,7 +2149,9 @@ lemma SumBoundII :
       · simp only [add_sub_cancel_right, r, hρ.1]
     · ring_nf
       simp only [add_assoc _ _ (I * t), add_comm _ (I * t), ← add_assoc _ (I * t) _]
-      rw [mul_comm, analyticOrderNatAt_fun_comp_add_left, hZ]
+      rw [mul_comm]
+      simp only [add_comm, analyticOrderNatAt_comp_add_const]
+      rw [hZ]
       ring_nf
       simp only [add_assoc, hz, neg_add_eq_sub ρ z, mul_comm]
 
@@ -2380,7 +2367,7 @@ lemma LogDerivZetaUniformLogSquaredBoundStrip : ∃ (F : ℝ) (_ : F = E / 3)
           zero_add, zero_sub, abs_neg] at h
         linarith
       have horder := analyticOrderNatAt_fun_mul_const hAnal (inv_ne_zero zetaThreeHalfNonzero)
-      simpa only [div_eq_mul_inv, add_assoc, analyticOrderNatAt_fun_comp_add_right,
+      simpa only [div_eq_mul_inv, add_assoc, analyticOrderNatAt_comp_add_const,
         sub_add_cancel] using horder.symm
   set z : ℂ := σ + t * I with hz
   have zIm : t = z.im := by

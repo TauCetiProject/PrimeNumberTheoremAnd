@@ -343,7 +343,7 @@ theorem card_range_filter_prime_isBigO :
     convert tmp N using 4 <;> norm_num
     positivity
   _ =O[atTop] _ :=
-    ((isBigO_refl ..).const_mul_left ..).add (err_isBigO.natCast.const_mul_left _)
+    ((isBigO_refl ..).const_mul_left ..).add ((err_isBigO.comp_tendsto tendsto_natCast_atTop_atTop).const_mul_left _)
 
 theorem prime_or_pow (N n : ℕ) (hnN : n < N) (hnprime : IsPrimePow n) :
     Nat.Prime n ∨ (∃ (m : ℕ), m < Real.sqrt N ∧ ∃ k ≤ Nat.log 2 N, n = m ^ k) := by
@@ -440,7 +440,8 @@ theorem card_pows_aux :
     (fun N ↦ (((Finset.Ico 1 (Nat.ceil (Real.sqrt N))) ×ˢ
       Finset.range (Nat.log 2 N + 1)).image (fun p ↦ p.1 ^ p.2)).card : ℕ → ℝ) =O[atTop]
         fun N ↦ N / Real.log N := by
-  apply IsBigO.trans ?_ pow_half_mul_one_add_log_div_isBigO.natCast
+  apply IsBigO.trans ?_ (pow_half_mul_one_add_log_div_isBigO.comp_tendsto tendsto_natCast_atTop_atTop)
+  dsimp only [Function.comp_def]
   apply isBigO_of_le
   intro N
   simp only [RCLike.norm_natCast, one_div, norm_mul, Real.norm_eq_abs]

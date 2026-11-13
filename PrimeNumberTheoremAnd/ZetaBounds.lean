@@ -1,6 +1,9 @@
 module
 
 public import Architect
+public import TauCeti.Analysis.Contour.Residue.SimplePole
+public import TauCeti.Analysis.Contour.Argument.Principle
+public import TauCeti.Topology.Homotopy.PuncturedStarConvex
 public import Batteries.Tactic.Lemma
 public import Mathlib.Analysis.PSeriesComplex
 public import Mathlib.MeasureTheory.Function.Floor
@@ -37,10 +40,32 @@ blueprint_comment /--
 We record here some prelimiaries about the zeta function and general
 holomorphic functions.
 -/
+/-- Native meromorphic factorization supplies an analytic numerator even when the residue is zero. -/
+private theorem analytic_factor_of_simple_pole_limit {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
+    (hU : U ∈ 𝓝 p) (hf : DifferentiableOn ℂ f (U \ {p})) {A : ℂ}
+    (hlim : Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A)) :
+    ∃ g : ℂ → ℂ, AnalyticAt ℂ g p ∧ g p = A ∧
+      f =ᶠ[𝓝[≠] p] fun z ↦ (z - p)⁻¹ * g z := by
+  have hd : ∀ᶠ z in 𝓝[≠] p, DifferentiableAt ℂ f z := by
+    obtain ⟨V, hVU, hVo, hpV⟩ := mem_nhds_iff.mp hU
+    filter_upwards [sdiff_mem_nhdsWithin_compl (hVo.mem_nhds hpV) {p}] with z hz
+    exact hf.differentiableAt (Filter.mem_of_superset
+      ((hVo.sdiff isClosed_singleton).mem_nhds hz) (sdiff_subset_sdiff_left hVU))
+  have hm := TauCeti.Contour.meromorphicAt_of_tendsto_sub_mul hd hlim
+  obtain ⟨g, hg, heq⟩ := TauCeti.Contour.exists_analyticAt_eventuallyEq_zpow_smul hm
+    (TauCeti.Contour.neg_one_le_meromorphicOrderAt_of_tendsto_sub_mul hlim)
+  have heq' : f =ᶠ[𝓝[≠] p] fun z ↦ (z - p)⁻¹ * g z := by
+    simpa only [zpow_neg_one, smul_eq_mul] using heq
+  have hglim : Tendsto g (𝓝[≠] p) (𝓝 A) := hlim.congr' (by
+    filter_upwards [heq', self_mem_nhdsWithin] with z hz hzp
+    rw [hz, ← mul_assoc, mul_inv_cancel₀ (sub_ne_zero.mpr hzp), one_mul])
+  exact ⟨g, hg, tendsto_nhds_unique (hg.continuousAt.tendsto.mono_left nhdsWithin_le_nhds)
+    hglim, heq'⟩
+
 @[blueprint
   (title := "ResidueOfTendsTo")
   (statement := /--
-  If a function $f$ is holomorphic in a neighborhood of $p$ and
+  If a function $f$ is holomorphic in a punctured neighborhood of $p$ and
   $\lim_{s\to p} (s-p)f(s) = A$, then
   $f(s) = \frac{A}{s-p} + O(1)$ near $p$.
   -/)
@@ -58,107 +83,17 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (h_limit : Tendsto (fun s ↦ (s - p) * f s) (𝓝[≠] p) (𝓝 A)) :
     ∃ V ∈ 𝓝 p,
     BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (V \ {p})) := by
-  -- Step 1.  `(s-p) f s` is bounded on some punctured nbhd `V`.
-  have h_event : ∀ᶠ s in 𝓝[≠] p, ‖(s - p) * f s - A‖ < 1 := by
-    simp_rw [← dist_eq_norm_sub]
-    exact h_limit.eventually (Metric.ball_mem_nhds _ (by norm_num))
-  have h_event_nhds :
-      ∀ᶠ s in 𝓝 p, s ≠ p → ‖(s - p) * f s - A‖ < 1 := by
-    exact (eventually_nhdsWithin_iff).1 h_event
-  rcases (eventually_nhds_iff.1 h_event_nhds) with ⟨V₀, hV₀_mem, hV₀_prop⟩
-  have h_bound :
-      ∀ s, s ∈ V₀ \ {p} → ‖(s - p) * f s‖ ≤ ‖A‖ + 1 := by
-    intro s hs
-    rcases hs with ⟨hV₀, hsne⟩
-    calc ‖(s - p) * f s‖ = ‖((s - p) * f s - A) + A‖ := by
-          ring_nf
-        _ ≤ ‖(s - p) * f s - A‖ + ‖A‖ := norm_add_le ((s - p) * f s - A) A
-        _ ≤ 1 + ‖A‖ := add_le_add_left (le_of_lt (hV₀_mem s hV₀ hsne)) ‖A‖
-        _ = ‖A‖ + 1 := add_comm 1 ‖A‖
-  have h_bdd :
-      BddAbove (norm ∘ (fun s ↦ (s - p) * f s) '' (V₀ \ {p})) := by
-    refine ⟨‖A‖ + 1, ?_⟩
-    rintro _ ⟨s, hs, rfl⟩
-    exact h_bound s hs
-  -- From now on work inside `W = V₀ ∩ U`,   still a nbhd of `p`.
-  set W : Set ℂ := V₀ ∩ U with hW_def
-  have hW_mem : (W : Set ℂ) ∈ 𝓝 p := inter_mem (IsOpen.mem_nhds hV₀_prop.1 hV₀_prop.2) hU
-  have h_subset_V₀ : (W \ {p}) ⊆ (V₀ \ {p}) := by
-    intro z hz; exact ⟨hz.1.1, hz.2⟩
-  have h_prod_holo : DifferentiableOn ℂ (fun z ↦ (z - p) * f z) (W \ {p}) := by
-    have h_id : DifferentiableOn ℂ (fun z : ℂ ↦ z - p) (W \ {p}) :=
-      Differentiable.differentiableOn (Differentiable.sub_const differentiable_fun_id p)
-    have hfW : DifferentiableOn ℂ f (W \ {p}) := by
-      apply hf.mono
-      exact Set.sdiff_subset_sdiff_left inter_subset_right
-    simpa using! h_id.mul hfW
-  have h_bdd_W : BddAbove (norm ∘ (fun s ↦ (s - p) * f s) '' (W \ {p})) :=
-    h_bdd.mono (image_mono h_subset_V₀)
-  -- Step 2.  Extend the product across `p`; obtain holomorphic `g`.
-  obtain ⟨g, hg_holo, hg_eq⟩ :=
-    existsDifferentiableOn_of_bddAbove hW_mem h_prod_holo h_bdd_W
-  have h_event_eq :
-      (fun z ↦ g z) =ᶠ[𝓝[≠] p] fun z ↦ (z - p) * f z := by
-    have hW_diff_mem : (W \ {p} : Set ℂ) ∈ 𝓝[≠] p :=
-      sdiff_mem_nhdsWithin_compl hW_mem {p}
-    exact (hg_eq.eventuallyEq_of_mem hW_diff_mem).symm
-  have h_tendsto_gA : Tendsto g (𝓝[≠] p) (𝓝 A) :=
-      h_limit.congr' (id (EventuallyEq.symm h_event_eq))
-  have hpW : p ∈ W := by
-    exact mem_of_mem_nhds hW_mem
-  have h_cont_g : ContinuousAt g p := by
-    apply (hg_holo.continuousOn.continuousWithinAt hpW).continuousAt hW_mem
-  have h_tendsto_gp : Tendsto g (𝓝[≠] p) (𝓝 (g p)) :=
-    h_cont_g.tendsto.mono_left inf_le_left
-  have g_p_eq : g p = A :=
-    tendsto_nhds_unique' (NormedField.nhdsNE_neBot p) h_tendsto_gp h_tendsto_gA
-  let q : ℂ → ℂ := fun z ↦ (g z - A) / (z - p)
-  have h_deriv : HasDerivAt g (deriv g p) p := by
-    exact DifferentiableOn.hasDerivAt hg_holo hW_mem
-  have h_q_limit : Tendsto q (𝓝[≠] p) (𝓝 (deriv g p)) := by
-    rw [hasDerivAt_iff_tendsto_slope] at h_deriv
-    unfold slope at h_deriv
-    simp only [vsub_eq_sub, smul_eq_mul, inv_mul_eq_div, g_p_eq] at h_deriv
-    exact h_deriv
-  have h_event_q : ∀ᶠ z in 𝓝[≠] p, ‖q z - deriv g p‖ < 1 := by
-    simp_rw [← dist_eq_norm_sub]
-    exact h_q_limit.eventually (Metric.ball_mem_nhds _ (by norm_num))
-  have h_event_q_nhds : ∀ᶠ z in 𝓝 p, z ≠ p → ‖q z - deriv g p‖ < 1 := by
-    simpa using (eventually_nhdsWithin_iff).1 h_event_q
-  rcases (eventually_nhds_iff.1 h_event_q_nhds) with
-    ⟨V₁, hV₁_mem, hV₁_prop⟩
-  have h_q_bound :
-      ∀ z, z ∈ V₁ \ {p} → ‖q z‖ ≤ ‖deriv g p‖ + 1 := by
-    intro z hz
-    rcases hz with ⟨hV₁, hz_ne⟩
-    calc ‖q z‖ = ‖(q z - deriv g p) + (deriv g p)‖ := by
-          ring_nf
-        _ ≤ ‖q z - deriv g p‖ + ‖deriv g p‖ := norm_add_le (q z - deriv g p) (deriv g p)
-        _ ≤ 1 + ‖deriv g p‖  := add_le_add_left (le_of_lt (hV₁_mem z hV₁ hz_ne)) ‖deriv g p‖
-        _ = ‖deriv g p‖ + 1 := add_comm 1 ‖deriv g p‖
-  -- Step 4.  Relate `f` to `q` and pass the bound.
-  have h_eq_diff :
-      EqOn (fun z ↦ f z - A * (z - p)⁻¹) q (W \ {p}) := by
-    intro z hz
-    simp only
-    have hz_ne : (z - p) ≠ 0 := sub_ne_zero.mpr hz.2
-    have hgz : g z = (z - p) * f z := by
-      exact id (EqOn.symm hg_eq) hz
-    simp only [hgz, q]
-    field_simp
-  apply IsBigO_to_BddAbove
-  rw [isBigO_iff]
-  use ‖deriv g p‖ + 1
-  apply eventually_nhdsWithin_iff.mpr
-  filter_upwards [IsOpen.mem_nhds hV₁_prop.1 hV₁_prop.2, hW_mem] with z hV₁ hW z_ne_p
-  specialize h_eq_diff ⟨ hW, z_ne_p⟩
-  simp only [Pi.sub_apply, Pi.one_apply, one_mem, CStarRing.norm_of_mem_unitary,
-    mul_one] at h_eq_diff ⊢
-  rw [h_eq_diff]
-  exact h_q_bound _ ⟨hV₁, z_ne_p⟩
-
-
-
+  obtain ⟨g, hg, hgp, heq⟩ := analytic_factor_of_simple_pole_limit hU hf h_limit
+  have he : (f - fun z ↦ A * (z - p)⁻¹) =ᶠ[𝓝[≠] p]
+      (fun z ↦ (g z - A) / (z - p)) := by
+    filter_upwards [heq] with z hz
+    change f z - A * (z - p)⁻¹ = (g z - A) / (z - p)
+    rw [hz, sub_div, div_eq_mul_inv, div_eq_mul_inv, mul_comm ((z - p)⁻¹)]
+  have H := hg.differentiableAt.hasDerivAt
+  rw [hasDerivAt_iff_tendsto_slope] at H
+  unfold slope at H
+  simp only [vsub_eq_sub, smul_eq_mul, inv_mul_eq_div, hgp] at H
+  exact IsBigO_to_BddAbove (he.trans_isBigO (H.isBigO_one ℂ))
 
 @[blueprint
   (title := "riemannZetaResidue")
@@ -180,52 +115,6 @@ theorem riemannZetaResidue :
   convert ResidueOfTendsTo univ_mem zeta_holc riemannZeta_residue_one using 6
   simp
 
-
--- Main theorem: if functions agree on a punctured set, their derivatives agree there too
-theorem deriv_eqOn_of_eqOn_punctured (f g : ℂ → ℂ) (U : Set ℂ) (p : ℂ)
-    (hU_open : IsOpen U)
-    (h_eq : EqOn f g (U \ {p})) :
-    EqOn (deriv f) (deriv g) (U \ {p}) := by
-  intro x hx
-  apply EventuallyEq.deriv_eq
-  filter_upwards [IsOpen.mem_nhds (hU_open.sdiff isClosed_singleton) hx] with t ht using h_eq ht
-
-/- New two theorems to be proven -/
-
-theorem analytic_deriv_bounded_near_point
-    (f : ℂ → ℂ) {U : Set ℂ} {p : ℂ} (hU : IsOpen U) (hp : p ∈ U) (hf : DifferentiableOn ℂ f U) :
-    (deriv f) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-  have U_in_filter : U ∈ 𝓝 p := by
-    exact IsOpen.mem_nhds hU hp
-  have T := (analyticOn_iff_differentiableOn hU).mpr hf
-  have T2 : ContDiffOn ℂ 1 f U :=
-      DifferentiableOn.contDiffOn hf hU
-  have T3 : ContinuousOn (fun x ↦ ((deriv f) x)) U := by
-    apply T2.continuousOn_deriv_of_isOpen hU (by simp)
-  have T4 := T3.continuousAt U_in_filter
-  have T5 : (deriv f) =O[𝓝 p] (1 : ℂ → ℂ) :=
-    T4.norm.isBoundedUnder_le.isBigO_one ℂ
-  exact Asymptotics.IsBigO.mono T5 inf_le_left
-
-theorem derivative_const_plus_product {g : ℂ → ℂ} (A p x : ℂ) (hg : DifferentiableAt ℂ g x) :
-    deriv ((fun _ ↦ A) + g * fun s ↦ s - p) x = deriv g x * (x - p) + g x := by
-  rw [deriv_add (by fun_prop) (by fun_prop), deriv_const, deriv_mul hg (by fun_prop)]
-  simp
-
-lemma deriv_inv_sub {x p : ℂ} (hp : x ≠ p) :
-  deriv (fun z => (z - p)⁻¹) x =  -((x - p) ^ 2)⁻¹ := by
-  rw [deriv_fun_inv'' (by fun_prop) (by grind)]
-  simp
-  field
-
--- Alternative cleaner proof using more direct approach
-theorem deriv_f_minus_A_inv_sub_clean (f : ℂ → ℂ) (A x p : ℂ)
-    (hf : DifferentiableAt ℂ f x) (hp : x ≠ p) :
-    deriv (f  - (fun z ↦ A * (z - p)⁻¹)) x = deriv f x + A * ((x - p) ^ 2)⁻¹ := by
-  have h1 : DifferentiableAt ℂ (fun z => (z - p)⁻¹) x := by
-    fun_prop (disch := grind)
-  rw [deriv_sub hf (h1.const_mul A), deriv_const_mul A h1, deriv_inv_sub hp]
-  ring
 
 @[blueprint
   (title := "nonZeroOfBddAbove")
@@ -296,116 +185,30 @@ theorem nonZeroOfBddAbove {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (Real.le_norm_self M))
   norm_num at this
 
-/- The set should be open so that f'(p) = O(1) for all p ∈ U -/
-
-theorem logDerivResidue' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (U_is_open : IsOpen U)
-    (non_zero : ∀ x ∈ U \ {p}, f x ≠ 0)
-    (holc : DifferentiableOn ℂ f (U \ {p}))
-    (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
-    (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-
-
-  have simpleHolo : DifferentiableOn ℂ (fun s ↦ A / (s - p)) (U \ {p}) := by
-    apply DifferentiableOn.mono (t := {p}ᶜ)
-    · apply DifferentiableOn.div
-      · exact differentiableOn_const _
-      · exact DifferentiableOn.sub differentiableOn_id (differentiableOn_const _)
-      · exact fun x hx => by rw [sub_ne_zero]; exact hx
-    · rintro s ⟨_, hs⟩ ; exact hs
-
-  have f_minus_pole_is_holomorphic : DifferentiableOn ℂ (f - (fun s ↦ A * (s - p)⁻¹)) (U \ {p}) := by
-    exact (DifferentiableOn.sub_iff_right holc).mpr simpleHolo
-
-  let ⟨g, ⟨g_is_holomorphic, g_is_f_minus_pole⟩⟩ := existsDifferentiableOn_of_bddAbove
-    U_in_nhds f_minus_pole_is_holomorphic f_near_p
-
-      /- TODO: Assert that the derivatives match too -/
-
-  let h := (fun _ ↦ A) + g * (fun (s : ℂ) ↦ (s - p))
-
-
-  have linear_is_holomorphic : DifferentiableOn ℂ (fun (s : ℂ ) ↦ (s - p)) U := by
-    exact DifferentiableOn.sub_const differentiableOn_id p
-
-  have h_is_holomorphic : DifferentiableOn ℂ h U := by
-    have T := DifferentiableOn.mul g_is_holomorphic linear_is_holomorphic
-    exact DifferentiableOn.const_add A T
-
-  have h_continuous : ContinuousOn h U :=
-    by exact DifferentiableOn.continuousOn h_is_holomorphic
-
-  have deriv_h_identity : ∀x ∈ (U \ {p}), (deriv h) x = f x + (deriv f x) * (x - p) := by
-    intro x x_in_u_not_p
-    have x_in_u : x ∈ U := by exact Set.mem_of_mem_sdiff x_in_u_not_p
-    have x_not_p : x ≠ p := by
-      exact ((Set.mem_sdiff x).mp x_in_u_not_p).2
-
-    have weird : U ∈ 𝓝 x := by
-      exact IsOpen.mem_nhds (U_is_open) (x_in_u)
-
-    rw [derivative_const_plus_product, ← g_is_f_minus_pole x_in_u_not_p,
-      ← deriv_eqOn_of_eqOn_punctured _ _ U p U_is_open g_is_f_minus_pole x_in_u_not_p,
-      deriv_f_minus_A_inv_sub_clean]
-    · simp only [Pi.sub_apply]
-      have := sub_ne_zero_of_ne x_not_p
-      field_simp
-      ring
-    · apply holc.differentiableAt
-      exact Filter.inter_mem weird <| compl_singleton_mem_nhds x_not_p
-    · exact x_not_p
-    · exact g_is_holomorphic.differentiableAt weird
-  have h_identity : ∀x ∈ (U \ {p}), h x = (f x) * (x - p)  := by
-    intro x x_in_u_not_p
-    have hyp_x_not_p : x ≠ p := by
-      exact ((Set.mem_sdiff x).mp x_in_u_not_p).2
-    simp only [h, Pi.add_apply, Pi.mul_apply]
-    rw [← g_is_f_minus_pole x_in_u_not_p]
-    simp only [Pi.sub_apply]
-    field [sub_ne_zero.mpr hyp_x_not_p]
-  have log_deriv_f_plus_pole_equal_log_deriv_h :
-      EqOn (deriv f * f⁻¹ + fun s ↦ (s - p)⁻¹) ((deriv h) * h⁻¹) (U \ {p}) := by
-    simp only [Set.mem_sdiff, mem_singleton_iff, ne_eq, and_imp, Function.comp_apply, Pi.sub_apply,
-      DifferentiableOn.sub_iff_right, differentiableOn_const, DifferentiableOn.fun_sub_iff_left,
-      holc] at *
-    intro x hyp_x
-    have x_not_p : x ≠ p := by
-      exact ((Set.mem_sdiff x).mp hyp_x).2
-    have x_in_u : x ∈ U := by exact Set.mem_of_mem_sdiff hyp_x
-    simp only [Pi.add_apply, Pi.mul_apply, Pi.inv_apply]
-    rw [deriv_h_identity _ x_in_u x_not_p, h_identity _ x_in_u x_not_p]
-
-    /- This is just an identity at this point -/
-    field [sub_ne_zero.mpr x_not_p, non_zero x (x_in_u) x_not_p]
-  have h_inv_bounded :
-      h⁻¹ =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-    have : ContinuousAt h⁻¹ p := by
-      apply ContinuousOn.continuousAt h_continuous U_in_nhds |>.inv₀
-      simp [h, A_ne_zero]
-    exact Asymptotics.IsBigO.mono (this.norm.isBoundedUnder_le.isBigO_one ℂ) inf_le_left
-
-  have h_deriv_bounded :
-        (deriv h) =O[𝓝[≠] p] (1 : ℂ → ℂ) :=
-          analytic_deriv_bounded_near_point h U_is_open
-            (by exact mem_of_mem_nhds U_in_nhds) h_is_holomorphic
-
-
-  have h_log_deriv_bounded :
-    ((deriv h) * h⁻¹) =O[𝓝[≠] p] (1 : ℂ → ℂ)  := by
-      have T := Asymptotics.IsBigO.mul h_deriv_bounded h_inv_bounded
-      exact IsBigO.of_const_mul_right T
-
-  have u_not_p_in_filter : U \ {p} ∈ 𝓝[≠] p := by
-    exact sdiff_mem_nhdsWithin_compl U_in_nhds {p}
-  have T := Set.EqOn.eventuallyEq_of_mem log_deriv_f_plus_pole_equal_log_deriv_h u_not_p_in_filter
-  exact EventuallyEq.trans_isBigO T h_log_deriv_bounded
-
+/-- A bounded remainder vanishes after multiplication by the displacement from the pole. -/
+private theorem simple_pole_limit_of_bounded_remainder {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
+    (hU : U ∈ 𝓝 p) {A : ℂ}
+    (hb : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
+    Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
+  have hz : Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 0) := by
+    simpa only [id_eq, sub_self] using
+      ((tendsto_id.sub tendsto_const_nhds).mono_left nhdsWithin_le_nhds :
+        Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 (p - p)))
+  have hb' : IsBoundedUnder (· ≤ ·) (𝓝[≠] p)
+      (fun z ↦ ‖f z - A * (z - p)⁻¹‖) :=
+    hb.isBoundedUnder (sdiff_mem_nhdsWithin_compl hU {p})
+  have hprod := hz.zero_mul_isBoundedUnder_le hb'
+  have H := hprod.add_const A
+  simp only [zero_add] at H
+  apply H.congr'
+  filter_upwards [self_mem_nhdsWithin] with z hz
+  field_simp [sub_ne_zero.mpr hz]
+  ring
 
 @[blueprint
   (title := "logDerivResidue")
   (statement := /--
-  If $f$ is holomorphic in a neighborhood of $p$, and there is a simple pole at $p$, then $f'/
+  If $f$ is holomorphic in a punctured neighborhood of $p$ with nonzero residue $A$ there, then $f'/
   f$ has a simple pole at $p$ with residue $-1$:
   $$ \frac{f'(s)}{f(s)} = \frac{-1}{s - p} + O(1).$$
   -/)
@@ -422,63 +225,35 @@ theorem logDerivResidue' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   Since $h$ is nonvanishing near $p$, this remains bounded in a neighborhood of $p$.
   -/)]
 theorem logDerivResidue {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (non_zero : ∀ x ∈ U \ {p}, f x ≠ 0)
     (holc : DifferentiableOn ℂ f (U \ {p}))
     (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
     (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) :=
-    by
-      let ⟨U', ⟨a,b,c⟩⟩ := mem_nhds_iff.mp U_in_nhds
-      have W : (U' \ {p}) ⊆ U' := by
-        exact Set.sdiff_subset
+    (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
+  have hlim := simple_pole_limit_of_bounded_remainder U_in_nhds f_near_p
+  obtain ⟨g, hg, hgp, heq⟩ := analytic_factor_of_simple_pole_limit U_in_nhds holc hlim
+  have hm : MeromorphicAt f p :=
+    ((TauCeti.Contour.meromorphicAt_sub_inv p).mul hg.meromorphicAt).congr heq.symm
+  have hord : meromorphicOrderAt f p = ((-1 : ℤ) : WithTop ℤ) := by
+    apply (meromorphicOrderAt_eq_int_iff hm).2
+    refine ⟨g, hg, hgp ▸ A_ne_zero, ?_⟩
+    filter_upwards [heq] with z hz
+    simpa only [zpow_neg_one, smul_eq_mul] using hz
+  obtain ⟨v, hv, hv0, hlog⟩ := TauCeti.Contour.logDeriv_eventuallyEq_principalPart hm hord
+  have hb : logDeriv v =O[𝓝[≠] p] (1 : ℂ → ℂ) :=
+    ((TauCeti.Contour.analyticAt_logDeriv_of_analyticAt hv hv0).continuousAt.tendsto.isBigO_one ℂ).mono
+      nhdsWithin_le_nhds
+  have he : (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =ᶠ[𝓝[≠] p] logDeriv v := by
+    filter_upwards [hlog] with z hz
+    change deriv f z * (f z)⁻¹ + (z - p)⁻¹ = logDeriv v z
+    rw [← div_eq_mul_inv, ← logDeriv_apply, hz]
+    simp
+  exact he.trans_isBigO hb
 
-      have T : (U' \ {p}) ⊆ (U \ {p}) := by
-        exact Set.sdiff_subset_sdiff a (subset_refl _)
-
-
-      refine logDerivResidue' b ?_ ?_ (IsOpen.mem_nhds b c) A_ne_zero ?_
-      · intro x hyp_x
-        exact non_zero x <| T hyp_x
-      · exact DifferentiableOn.mono holc T
-      · exact (f_near_p.mono (image_mono (Set.sdiff_subset_sdiff a (subset_refl _))))
-
-
-
-@[blueprint
-  (title := "BddAbove-to-IsBigO")
-  (statement := /--
-  If $f$ is bounded above in a punctured neighborhood of $p$, then $f$ is $O(1)$ in that
-  neighborhood.
-  -/)
-  (proof := /-- Elementary. -/)]
-lemma BddAbove_to_IsBigO {f : ℂ → ℂ} {p : ℂ}
-    {U : Set ℂ} (hU : U ∈ 𝓝 p) (bdd : BddAbove (norm ∘ f '' (U \ {p}))) :
-    f =O[𝓝[≠] p] (1 : ℂ → ℂ)  := by
-  dsimp [BddAbove, upperBounds] at bdd
-  rcases bdd with ⟨C, hC⟩
-
-  have h : ∀ x ∈ U \ {p}, ‖f x‖ ≤ C := by
-    intro x hx
-    have fx_is_norm : ‖f x‖ ∈ norm ∘ f ''(U \ {p}) := by
-      exact ⟨x, hx, rfl⟩
-    exact hC fx_is_norm
-
-  rw [Asymptotics.isBigO_iff]
-  use C
-  rw [eventually_nhdsWithin_iff]
-  simp only [Set.mem_sdiff, mem_singleton_iff, and_imp, mem_compl_iff, Pi.one_apply, one_mem,
-    CStarRing.norm_of_mem_unitary, mul_one] at h ⊢
-  filter_upwards [hU] using h
-
-
-theorem logDerivResidue'' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (non_zero : ∀ x ∈ U \ {p}, f x ≠ 0)
-    (holc : DifferentiableOn ℂ f (U \ {p}))
-    (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
-    (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    ∃ V ∈ 𝓝 p, BddAbove (norm ∘ (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) '' (V \ {p})) := by
-  apply IsBigO_to_BddAbove
-  exact logDerivResidue non_zero holc U_in_nhds A_ne_zero f_near_p
+blueprint_comment /--
+\label{BddAbove-to-IsBigO}
+If $f$ is bounded above in a punctured neighborhood of $p$, then $f$ is $O(1)$ there.
+This is the native bounded-filter characterization of $O(1)$.
+-/
 
 blueprint_comment /--
 Let's also record that if a function $f$ has a simple pole at $p$ with residue $A$, and $g$ is
@@ -530,36 +305,12 @@ theorem ResidueMult {f g : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     -- Use continuity to get boundedness
     have := g_cont.norm.isBoundedUnder_le.isBigO_one ℂ
     exact IsBigO.mono this inf_le_left
-  · -- Show that (fun s ↦ A * (g s - g p) / (s - p)) =O[𝓝[≠] p] 1
-
-    suffices (fun s ↦ A * ((s - p)⁻¹ * (g s - g p))) =O[𝓝[≠] p] 1 by
-      convert! this using 2
-      rw[div_eq_mul_inv]
-      ring
-    apply Asymptotics.IsBigO.const_mul_left
-
-    -- g is differentiable at p since it's holomorphic on U
-    have g_diff : HasDerivAt g (deriv g p) p :=
-        (DifferentiableOn.differentiableAt g_holc U_in_nhds).hasDerivAt
-
-    rw [hasDerivAt_iff_isLittleO] at g_diff
-    apply Asymptotics.IsLittleO.isBigO at g_diff
-    have : (fun x' ↦ deriv g p * (x' - p)) =O[𝓝 p] fun x' ↦ x' - p := by
-      apply Asymptotics.IsBigO.const_mul_left
-      exact Asymptotics.isBigO_refl (fun x ↦ x - p) (𝓝 p)
-    have h1 := g_diff.add this
-    have h2 : (fun x ↦ g x - g p) =O[𝓝 p] fun x' ↦ x' - p := by
-      convert! h1 using 2
-      simp
-      ring
-    refine (Asymptotics.isBigO_mul_iff_isBigO_div ?_).mpr ?_
-    · filter_upwards [self_mem_nhdsWithin] with x hx
-      simp only [mem_compl_iff, mem_singleton_iff] at hx
-      exact inv_ne_zero (sub_ne_zero.mpr hx)
-    · simp only [div_inv_eq_mul]
-      refine Asymptotics.IsBigO.mono ?_ inf_le_left
-      simpa
-
+  · have H := (g_holc.differentiableAt U_in_nhds).hasDerivAt
+    rw [hasDerivAt_iff_tendsto_slope] at H
+    unfold slope at H
+    simp only [vsub_eq_sub, smul_eq_mul, inv_mul_eq_div] at H
+    convert! (H.isBigO_one ℂ).const_mul_left A using 2
+    rw [mul_div_assoc]
 
 blueprint_comment /--
 As a corollary, the log derivative of the Riemann zeta function has a simple pole at $s=1$:
@@ -575,47 +326,25 @@ As a corollary, the log derivative of the Riemann zeta function has a simple pol
   -/)]
 theorem riemannZetaLogDerivResidue :
     ∃ U ∈ 𝓝 1, BddAbove (norm ∘ (-(ζ' / ζ) - (fun s ↦ (s - 1)⁻¹)) '' (U \ {1})) := by
-  obtain ⟨U,U_in_nhds, hU⟩ := riemannZetaResidue
-  have hU' : BddAbove (norm ∘ (ζ - fun s ↦ 1 * (s - 1)⁻¹) '' (U \ {1})) := by
-    simp only [Function.comp_apply, Pi.sub_apply, one_mul] at hU ⊢
-    exact hU
-  obtain ⟨V,V_in_nhds, V_is_open, hV⟩ := nonZeroOfBddAbove U_in_nhds one_ne_zero hU'
-  let W := V ∩ interior U
-  have hW : ∀ s ∈ W \ {1}, ζ s ≠ 0 := by
-    intro s hs
-    have s_in_V_diff : s ∈ V \ {1} := ⟨hs.1.1, hs.2⟩
-    exact hV s s_in_V_diff
-  have ζ_holc: DifferentiableOn ℂ ζ (W \ {1}) := by
-    intro y hy
-    simp only [Set.mem_sdiff, mem_singleton_iff] at hy
-    refine DifferentiableAt.differentiableWithinAt ?_
-    apply differentiableAt_riemannZeta hy.2
-  have W_in_nhds : W ∈ 𝓝 1 := by
-    refine inter_mem V_in_nhds ?_
-    exact interior_mem_nhds.mpr U_in_nhds
-  have := logDerivResidue'' hW ζ_holc W_in_nhds one_ne_zero
-  have HW : BddAbove (norm ∘ (ζ - fun s ↦ (s - 1)⁻¹) '' (W \ {1})) := by
-    obtain ⟨c, hc⟩ := bddAbove_def.mp hU
-    apply bddAbove_def.mpr
-    use c
-    rintro y ⟨x, x_in_W, fxy⟩
-    apply hc
-    exact ⟨x, ⟨interior_subset x_in_W.1.2, x_in_W.2⟩, fxy⟩
-  simp only [one_mul] at this
-  have aux: ∀ a, ‖-(deriv ζ a / ζ a) - (a - 1)⁻¹‖ = ‖(deriv ζ a / ζ a) + (a - 1)⁻¹‖ := by
-    intro a
-    calc ‖-(deriv ζ a / ζ a) - (a - 1)⁻¹‖
-         = ‖-((deriv ζ a / ζ a) + (a - 1)⁻¹)‖ := by ring_nf
-       _ = ‖(deriv ζ a / ζ a) + (a - 1)⁻¹‖ := by rw [norm_neg]
-  simp only [Function.comp_apply, Pi.sub_apply] at hU
-  simp only [Function.comp_apply, Pi.sub_apply, Pi.neg_apply, Pi.div_apply, aux]
-  apply this HW
-
+  obtain ⟨U, hU, hb⟩ := riemannZetaResidue
+  have hd : DifferentiableOn ℂ ζ (U \ {1}) := by
+    intro z hz
+    exact (differentiableAt_riemannZeta hz.2).differentiableWithinAt
+  have H := logDerivResidue hd hU one_ne_zero (by simpa only [one_mul] using hb)
+  have he : (-(ζ' / ζ) - (fun s ↦ (s - 1)⁻¹)) =
+      -(deriv ζ * ζ⁻¹ + (fun s ↦ (s - 1)⁻¹)) := by
+    ext z
+    simp only [Pi.sub_apply, Pi.neg_apply, Pi.add_apply, Pi.mul_apply, Pi.inv_apply,
+      div_eq_mul_inv, neg_add_rev, sub_eq_add_neg, add_comm]
+  rw [he]
+  exact IsBigO_to_BddAbove H.neg_left
 
 theorem riemannZetaLogDerivResidueBigO :
     (-ζ' / ζ - fun z ↦ (z - 1)⁻¹) =O[nhdsWithin 1 {1}ᶜ] (1 : ℂ → ℂ) := by
-  obtain ⟨U, hU, bdd⟩ := riemannZetaLogDerivResidue
-  convert BddAbove_to_IsBigO hU bdd using 2
+  obtain ⟨U, hU, hb⟩ := riemannZetaLogDerivResidue
+  have H : (-(ζ' / ζ) - fun z ↦ (z - 1)⁻¹) =O[𝓝[≠] 1] (1 : ℂ → ℂ) :=
+    (hb.isBoundedUnder (sdiff_mem_nhdsWithin_compl hU {1})).isBigO_one ℂ
+  convert H using 2
   rw [neg_div]
 
 @[blueprint
@@ -1260,59 +989,26 @@ lemma HolomorphicOn_riemannZeta0 {N : ℕ} (N_pos : 0 < N) :
   -/)
   (latexEnv := "lemma")]
 lemma isPathConnected_aux : IsPathConnected {z : ℂ | z ≠ 1 ∧ 0 < z.re} := by
-  use (2 : ℂ)
-  constructor
-  · simp
-  intro w hw; simp only [ne_eq, mem_ofPred_eq] at hw
-  by_cases w_im : w.im = 0
-  · apply JoinedIn.trans (y := 1 + I)
-    · let f : ℝ → ℂ := fun t ↦ (1 + I) * t + 2 * (1 - t)
-      have cont : Continuous f := by continuity
-      apply JoinedIn.ofLine cont.continuousOn (by simp [f]) (by simp [f])
-      simp only [unitInterval, ne_eq, image_subset_iff, preimage_ofPred_eq, add_re, mul_re, one_re,
-        I_re, add_zero, ofReal_re, one_mul, add_im, one_im, I_im, zero_add, ofReal_im, mul_zero,
-        sub_zero, re_ofNat, sub_re, im_ofNat, sub_im, sub_self, f]
-      intro x hx; simp only [mem_Icc] at hx
-      refine ⟨?_, by linarith⟩
-      intro h
-      rw [Complex.ext_iff] at h; simp [(by apply And.right; simpa [w_im] using h : x = 0)] at h
-    · let f : ℝ → ℂ := fun t ↦ w * t + (1 + I) * (1 - t)
-      have cont : Continuous f := by continuity
-      apply JoinedIn.ofLine cont.continuousOn (by simp [f]) (by simp [f])
-      simp only [unitInterval, ne_eq, image_subset_iff, preimage_ofPred_eq, add_re, mul_re,
-        ofReal_re, ofReal_im, mul_zero, sub_zero, one_re, I_re, add_zero, sub_re, one_mul, add_im,
-        one_im, I_im, zero_add, sub_im, sub_self, f]
-      intro x hx; simp only [mem_Icc] at hx
-      simp only [mem_ofPred_eq]
-      constructor
-      · intro h
-        refine hw.1 ?_
-        rw [Complex.ext_iff] at h
-        have : x = 1 := by linarith [(by apply And.right; simpa [w_im] using h : 1 - x = 0)]
-        rw [Complex.ext_iff, one_re, one_im]; exact ⟨by simpa [this, w_im] using h, w_im⟩
-      · by_cases hxx : x = 0
-        · simp only [hxx]; linarith
-        · have : 0 < x := lt_of_le_of_ne hx.1 (Ne.symm hxx)
-          have : 0 ≤ 1 - x := by linarith
-          have := hw.2
-          positivity
-  · let f : ℝ → ℂ := fun t ↦ w * t + 2 * (1 - t)
-    have cont : Continuous f := by continuity
-    apply JoinedIn.ofLine cont.continuousOn (by simp [f]) (by simp [f])
-    simp only [unitInterval, ne_eq, image_subset_iff, preimage_ofPred_eq, add_re, mul_re, ofReal_re,
-      ofReal_im, mul_zero, sub_zero, re_ofNat, sub_re, one_re, im_ofNat, sub_im, one_im, sub_self,
-      f]
-    intro x hx; simp only [mem_Icc] at hx
-    constructor
-    · intro h
-      rw [Complex.ext_iff] at h;
-      simp [(by apply And.right; simpa [w_im] using h : x = 0)] at h
-    · by_cases hxx : x = 0
-      · simp only [hxx]; linarith
-      · have : 0 < x := lt_of_le_of_ne hx.1 (Ne.symm hxx)
-        have : 0 ≤ 1 - x := by linarith
-        have := hw.2
-        positivity
+  have hV : StarConvex ℝ (1 : ℂ) {z : ℂ | 0 < z.re} :=
+    (convex_halfSpace_re_gt 0).starConvex (by simp)
+  have hS : Metric.sphere (1 : ℂ) (1 / 2) ⊆ {z : ℂ | 0 < z.re} := by
+    intro z hz
+    have H := Complex.abs_re_le_norm (z - 1)
+    rw [mem_sphere_iff_norm] at hz
+    rw [Complex.sub_re, Complex.one_re, hz] at H
+    have := (abs_le.mp H).1
+    simp only [Set.mem_ofPred_eq]
+    linarith
+  have : PathConnectedSpace ↥({z : ℂ | 0 < z.re} \ {1}) :=
+    hV.pathConnectedSpace_diff_singleton (by simp [Complex.rank_real_complex])
+      (by norm_num : (0 : ℝ) < 1 / 2) hS
+  have H : IsPathConnected ({z : ℂ | 0 < z.re} \ {1}) :=
+    isPathConnected_iff_pathConnectedSpace.mpr this
+  convert H using 1
+  ext z
+  simp only [Set.mem_ofPred_eq, Set.mem_sdiff, Set.mem_singleton_iff]
+  exact and_comm
+
 
 @[blueprint
   (title := "Zeta0EqZeta")
@@ -2377,37 +2073,8 @@ lemma ZetaLowerBound3 :
   (latexEnv := "lemma")]
 lemma ZetaInvBound1 {σ t : ℝ} (σ_gt : 1 < σ) :
     1 / ‖ζ (σ + t * I)‖ ≤ ‖ζ σ‖ ^ ((3 : ℝ) / 4) * ‖ζ (σ + 2 * t * I)‖ ^ ((1 : ℝ) / 4) := by
-  apply (div_le_iff₀ ?_).mpr
-  · apply (Real.rpow_le_rpow_iff (z := 4) (by norm_num) ?_ (by norm_num)).mp
-    · simp only [Real.one_rpow]
-      rw [Real.mul_rpow, Real.mul_rpow, ← Real.rpow_mul, ← Real.rpow_mul]
-      · simp only [isUnit_iff_ne_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
-          IsUnit.div_mul_cancel, Real.rpow_one]
-        conv => rw [mul_assoc]; rhs; rhs; rw [mul_comm]
-        rw [← mul_assoc]
-        have := norm_zeta_product_ge_one (x := σ - 1) (by linarith) t
-        simp_rw [ge_iff_le, norm_mul, norm_pow, ofReal_sub, ofReal_one, add_sub_cancel, ← Real.rpow_natCast] at this
-        convert this using 3 <;> ring_nf
-      any_goals ring_nf
-      any_goals apply norm_nonneg
-      any_goals apply Real.rpow_nonneg <| norm_nonneg _
-      apply mul_nonneg <;> apply Real.rpow_nonneg <| norm_nonneg _
-    · refine mul_nonneg (mul_nonneg ?_ ?_) ?_ <;> simp [Real.rpow_nonneg]
-  · have s_ne_one : σ + t * I ≠ 1 := by
-      contrapose! σ_gt; apply le_of_eq; apply And.left; simpa [Complex.ext_iff] using σ_gt
-    simpa using riemannZeta_ne_zero_of_one_le_re (by simp [σ_gt.le])
-
-lemma Ioi_union_Iio_mem_cocompact {a : ℝ} (ha : 0 ≤ a) : Ioi (a : ℝ) ∪ Iio (-a : ℝ) ∈ cocompact ℝ := by
-  simp only [Filter.mem_cocompact]
-  use Icc (-a) a
-  constructor
-  · exact isCompact_Icc
-  · rw [@compl_subset_iff_union, ← union_assoc, Icc_union_Ioi_eq_Ici, union_comm, Iio_union_Ici]
-    linarith
-
-lemma lt_abs_mem_cocompact {a : ℝ} (ha : 0 ≤ a) : {t | a < |t|} ∈ cocompact ℝ := by
-  convert Ioi_union_Iio_mem_cocompact ha using 1; ext t
-  simp only [mem_ofPred_eq, mem_union, mem_Ioi, mem_Iio, lt_abs, lt_neg]
+  exact (div_le_iff₀ (norm_pos_iff.mpr (riemannZeta_ne_zero_of_one_lt_re
+    (by simp [σ_gt])))).2 (ZetaLowerBound1 σ_gt)
 
 @[blueprint
   (title := "ZetaInvBound2")
@@ -2518,9 +2185,6 @@ lemma ZetaInvBnd_aux' {t : ℝ} (logt_gt_one : 1 < Real.log |t|) : Real.log |t| 
   nth_rewrite 1 [← Real.rpow_one <| Real.log |t|]
   exact mod_cast Real.rpow_lt_rpow_left_iff (y := 1) (z := 9) logt_gt_one |>.mpr (by norm_num)
 
-lemma ZetaInvBnd_aux {t : ℝ} (logt_gt_one : 1 < Real.log |t|) : Real.log |t| ≤ Real.log |t| ^ (9 : ℝ) :=
-    ZetaInvBnd_aux' logt_gt_one |>.le
-
 lemma ZetaInvBnd_aux2 {A C₁ C₂ : ℝ} (Apos : 0 < A) (C₁pos : 0 < C₁) (C₂pos : 0 < C₂)
     (hA : A ≤ 1 / 2 * (C₁ / (C₂ * 2)) ^ (4 : ℝ)) :
     0 < (C₁ * A ^ (3 / 4 : ℝ) - C₂ * 2 * A)⁻¹ := by
@@ -2590,7 +2254,7 @@ lemma ZetaInvBnd :
   have σ_ge : 1 - A / Real.log |t| ≤ σ := by
     apply le_trans ?_ hσ.1
     suffices A / Real.log |t| ^ (9 : ℝ) ≤ A / Real.log |t| by linarith
-    exact div_le_div₀ Apos.le (by rfl) (by positivity) <| ZetaInvBnd_aux logt_gt_one
+    exact div_le_div₀ Apos.le (by rfl) (by positivity) <| (ZetaInvBnd_aux' logt_gt_one).le
   obtain ⟨_, _, neOne⟩ := UpperBnd_aux ⟨Apos, Ale⟩ t_gt σ_ge
   set σ' := 1 + A / Real.log |t| ^ (9 : ℝ)
   have σ'_gt : 1 < σ' := by simp only [σ', lt_add_iff_pos_right]; positivity
@@ -2628,7 +2292,7 @@ lemma ZetaInvBnd :
       refine hC₂ σ σ' t t_gt ?_ σ'_le <| by rw [Set.mem_Ico] at hσ; exact hσ.2
       apply le_trans ?_ hσ.1
       rw [tsub_le_iff_right, ← add_sub_right_comm, le_sub_iff_add_le, add_le_add_iff_left]
-      exact div_le_div₀ hA'.1.le (by simp [A]) (by positivity) <| ZetaInvBnd_aux logt_gt_one
+      exact div_le_div₀ hA'.1.le (by simp [A]) (by positivity) <| (ZetaInvBnd_aux' logt_gt_one).le
   · apply sub_le_sub (by simp only [add_sub_cancel_left, σ']; exact_mod_cast le_rfl) ?_
     rw [mul_div_assoc, mul_assoc _ 2 _]
     apply mul_le_mul (by exact_mod_cast le_rfl) ?_ (by linarith [hσ.2]) (by positivity)
@@ -3293,7 +2957,7 @@ lemma LogDerivZetaBndUnif99 : LogDerivZetaBndUnifGenProp 9 9 := by
   have logt_gt' : (1 : ℝ) < Real.log |t| ^ (9 : ℝ) := by
     calc
       1 < Real.log |t| := logt_gt_one hyp_t.le
-      _ ≤ (Real.log |t|) ^ (9 : ℝ) := ZetaInvBnd_aux (logt_gt_one hyp_t.le)
+      _ ≤ (Real.log |t|) ^ (9 : ℝ) := (ZetaInvBnd_aux' (logt_gt_one hyp_t.le)).le
 
   have logt_gt'' : (1 : ℝ) < 1 + A / Real.log |t| ^ (9 : ℝ) := by
     simp only [lt_add_iff_pos_right, div_pos_iff_of_pos_left, T0]

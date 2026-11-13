@@ -59,20 +59,33 @@ To cite Aristotle, tag @Aristotle-Harmonic on GitHub PRs/issues, and add as co-a
 Co-authored-by: Aristotle (Harmonic) <aristotle-harmonic@harmonic.fun>
 -/
 
-import Mathlib
+import Mathlib.Algebra.BigOperators.Intervals
+import Mathlib.Algebra.Order.Floor.Semiring
+import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.Data.Finset.Max
+import Mathlib.Data.Finset.Sort
+import Mathlib.Topology.MetricSpace.Cauchy
+import Mathlib.Topology.UniformSpace.HeineCantor
+import Mathlib.Tactic.Cases
+import Mathlib.Tactic.Convert
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.FunProp
+import Mathlib.Tactic.GCongr
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.SplitIfs
+import Mathlib.Tactic.Tauto
 import TauCeti.Analysis.Calculus.MetricVariation
 
 
 import Batteries.Tactic.GeneralizeProofs
 
 
-set_option linter.mathlibStandardSet false
 
-set_option linter.unusedSimpArgs false
 
-set_option linter.unusedVariables false
 
-set_option linter.unnecessarySimpa false
 
 open scoped BigOperators
 
@@ -84,9 +97,7 @@ open scoped Classical
 
 open scoped Pointwise
 
-set_option relaxedAutoImplicit false
 
-set_option autoImplicit false
 
 namespace RS
 

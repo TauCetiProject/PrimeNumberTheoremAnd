@@ -1180,27 +1180,12 @@ private lemma tau_sq_tsum_prime_pow {s : ℂ} (hs : 1 < s.re) (p : Primes) :
         (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.2.one_lt) (neg_lt_zero.mpr (by linarith)))
         (by norm_num)
   have hx0 : 1 - x ≠ 0 := by simpa [x] using hsub
-  have hxpow : ∀ e : ℕ, (p.val : ℂ) ^ (-(e : ℂ) * s) = x ^ e := by
-    intro e
-    simp only [x]
-    rw [← Complex.cpow_nat_mul]
-    ring_nf
-  have h_term : ∀ e : ℕ,
+  have h_term (e : ℕ) :
       LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s (p.val ^ e) =
         (2 * (e : ℂ) + 1) * x ^ e := by
-    intro e
-    calc
-      LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s (p.val ^ e)
-          = (↑(2 * e + 1) : ℂ) * (p.val : ℂ) ^ (-(e : ℂ) * s) := by
-            simp only [neg_mul, LSeries.term, Nat.pow_eq_zero, ne_eq, cast_pow,
-              Nat.Prime.ne_zero p.prop, false_and, ↓reduceIte]
-            rw [tau_sq_apply_prime_pow p.prop]
-            simp only [Complex.cpow_neg, div_eq_mul_inv, ← Complex.natCast_cpow_natCast_mul,
-              cast_add, cast_mul, cast_one]
-      _ = (2 * (e : ℂ) + 1) * x ^ e := by
-            rw [hxpow]
-            push_cast
-            ring
+    rw [TauCeti.LSeries.term_pow p.val p.prop.ne_zero e, tau_sq_apply_prime_pow p.prop]
+    push_cast
+    rfl
   have hid : 2 * (x / (1 - x) ^ 2) + (1 - x)⁻¹ = (1 + x) / (1 - x) ^ 2 := by
     field_simp [hx0]
     ring
@@ -1649,7 +1634,43 @@ L(\lambda, s) = \prod_{p} \left(1 + \lambda(p)p^{-s} + \lambda(p^2)p^{-2s} + \ld
   -/)]
 lemma LSeries_liouville_eq {s : ℂ} (hs : 1 < s.re) :
     LSeries ↗liouville s = riemannZeta (2 * s) / riemannZeta s := by
-  sorry
+  let a : ℕ → ℂ := fun n ↦ (liouville n : ℂ)
+  have hsum : LSeriesSummable a s := by
+    apply LSeriesSummable_of_le_const_mul_rpow (x := 1) hs
+    refine ⟨1, fun n hn ↦ ?_⟩
+    simp only [a, liouville_apply hn, Int.cast_pow, Int.cast_neg, Int.cast_one,
+      one_mul, sub_self, Real.rpow_zero, norm_pow, norm_neg, norm_one, one_pow]
+    exact le_rfl
+  have hmul (m n : ℕ) : a (m * n) = a m * a n := by
+    simp only [a, liouville_apply_mul, Int.cast_mul]
+  have hp (p : ℕ) (hp : p.Prime) : a p = -1 := by
+    simp [a, liouville_apply hp.ne_zero, cardFactors_apply_prime hp]
+  have hprod : HasProd (fun p : Primes ↦ (1 + (p : ℂ) ^ (-s))⁻¹) (LSeries a s) := by
+    have H := TauCeti.LSeries.LSeries_eulerProduct_hasProd_of_recurrence
+      (a := a) (c := fun _ ↦ (0 : ℂ))
+      (by simp [a, liouville_apply_one]) (fun {_ _} _ _ _ ↦ hmul _ _) (fun p _ r ↦ ?_) hsum
+    · convert H using 1
+      funext p
+      rw [hp p p.prop]
+      simp only [zero_mul, add_zero, neg_mul, one_mul, sub_neg_eq_add]
+    · rw [show r + 2 = (r + 1) + 1 by omega, pow_succ, hmul]
+      ring
+  have h2 : 1 < (2 * s).re := by
+    simp only [Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat, zero_mul, sub_zero]
+    linarith
+  have H := hprod.mul (riemannZeta_eulerProduct_hasProd hs)
+  have H' : HasProd (fun p : Primes ↦ (1 - (p : ℂ) ^ (-(2 * s)))⁻¹)
+      (LSeries a s * riemannZeta s) := by
+    convert H using 1
+    funext p
+    rw [show -(2 * s) = -s + -s by ring,
+      Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero), ← mul_inv]
+    congr 1
+    ring
+  have heq : LSeries a s * riemannZeta s = riemannZeta (2 * s) :=
+    H'.unique (riemannZeta_eulerProduct_hasProd h2)
+  exact (eq_div_iff (riemannZeta_ne_zero_of_one_lt_re hs)).mpr heq
+
 
 /-- `liouville` agrees with `moebius` on square-free numbers -/
 @[blueprint

@@ -5,6 +5,8 @@ Authors: Matteo Cipollina
 -/
 module
 
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
+
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Growth
 public import TauCeti.Analysis.Complex.GrowthOrder
 public import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
@@ -44,25 +46,6 @@ open Set Filter Asymptotics Bornology
 open scoped Topology BigOperators
 
 namespace Complex.Hadamard
-
-/-- Translating the input moves the origin order to the order at the translation center. -/
-lemma analyticOrderNatAt_comp_add_const (f : ℂ → ℂ) (c : ℂ) :
-    analyticOrderNatAt (fun w : ℂ => f (w + c)) 0 = analyticOrderNatAt f c := by
-  let g : ℂ → ℂ := fun w => w + c
-  have hg : AnalyticAt ℂ g 0 := by fun_prop
-  have hg' : deriv g 0 ≠ 0 := by
-    simp [g]
-  have h :=
-    analyticOrderAt_comp_of_deriv_ne_zero (f := f) (g := g) (z₀ := (0 : ℂ)) hg hg'
-  have h' :
-      analyticOrderAt ((fun x : ℂ => f x) ∘ g) 0 = analyticOrderAt f c := by
-    simpa [g] using h
-  simpa [analyticOrderNatAt, g] using! congrArg ENat.toNat h'
-
-/-- Subtracting a constant is the corresponding special case of translation for the origin order. -/
-lemma analyticOrderNatAt_comp_sub_const (f : ℂ → ℂ) (c : ℂ) :
-    analyticOrderNatAt (fun w : ℂ => f (w - c)) 0 = analyticOrderNatAt f (-c) := by
-  simpa [sub_eq_add_neg] using analyticOrderNatAt_comp_add_const f (-c)
 
 /-- The centered Hadamard denominator is the ordinary denominator for the translated function. -/
 theorem centeredHadamardDenom_eq_hadamardDenom_translate
@@ -307,7 +290,7 @@ theorem hadamard_factorization_of_order_centered {f : ℂ → ℂ} {ρ : ℝ} (h
   intro z
   have h := hfac (z - c)
   have horder0 : analyticOrderNatAt g 0 = analyticOrderNatAt f c := by
-    simpa [g] using analyticOrderNatAt_comp_add_const f c
+    simpa [g] using analyticOrderNatAt_comp_add_const f c 0
   simpa [g, horder0] using h
 
 /-- Reindexed centered finite-order Hadamard factorization, for any index type equivalent to the
