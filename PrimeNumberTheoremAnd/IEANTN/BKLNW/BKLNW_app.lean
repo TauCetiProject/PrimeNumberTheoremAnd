@@ -917,7 +917,7 @@ lemma μ_antitoneOn {c ε : ℝ} (hc : 0 < c) (hε : 0 < ε) :
     if_pos hs, pre_μ, pre_μ, neg_neg, neg_neg]
   refine MeasureTheory.setIntegral_mono_set ((integrable_η hc hε).integrableOn)
     (MeasureTheory.ae_of_all _ fun ξ ↦ η_nonneg hc hε ξ) ?_
-  exact (Set.Iic_subset_Iic.mpr (by linarith : -t ≤ -s)).eventuallyLE
+  exact Filter.Eventually.of_forall fun x hx ↦ le_trans hx (neg_le_neg hst)
 
 lemma ν_nonpos_of_nonpos {c ε : ℝ} (hc : 0 < c) (hε : 0 < ε) {t : ℝ} (ht : t ≤ 0) :
     ν c ε t ≤ 0 := by
@@ -972,7 +972,7 @@ lemma pre_μ_antitone {c ε : ℝ} (hc : 0 < c) (hε : 0 < ε) : Antitone (pre_�
   rw [neg_le_neg_iff]
   exact MeasureTheory.setIntegral_mono_set ((integrable_η hc hε).integrableOn)
     (MeasureTheory.ae_of_all _ fun ξ ↦ η_nonneg hc hε ξ)
-    (Set.Iic_subset_Iic.mpr hst).eventuallyLE
+    (Filter.Eventually.of_forall fun x hx ↦ le_trans hx hst)
 
 lemma measurable_μ {c ε : ℝ} (hc : 0 < c) (hε : 0 < ε) : Measurable (μ c ε) := by
   unfold μ
@@ -1215,13 +1215,8 @@ theorem bklnw_cor_15_1' (b : ℝ)
           (lt_of_lt_of_le (by positivity) hx),
         theorem_2 b₀ hb₀.le x hx]) x hx]
   apply max_le_max_left
-  suffices 43 < 19 * Real.log 10 ∧
-      19 * Real.log 10 < 44 by
-    grw [table_8_ε.le_simp (19 * log 10)
-      (by grind)]
-    grind [table_8_ε']
-  constructor <;>
-    nlinarith [LogTables.log_10_gt,
-      LogTables.log_10_lt]
+  have hb40 : (40 : ℝ) ≤ 19 * Real.log 10 := by
+    nlinarith [LogTables.log_10_gt]
+  exact (table_8_ε_le_of_row table_8_mem_40 hb40).trans (by norm_num [table_8_margin])
 
 end BKLNW_app

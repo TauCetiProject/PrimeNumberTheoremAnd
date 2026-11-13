@@ -612,7 +612,9 @@ theorem psi_num_2 (x : ℝ) (hx : x > 0) (hx2 : x ≤ 11723) : ψ x ≤ 1.11 * x
 lemma hlog_y (y : ℝ) (hy : 11723 < y) : log y ≤ log 11723 + (y / 11723 - 1) := by
   calc log y = log (11723 * (y / 11723)) := by rw [mul_div_cancel₀ _ (by positivity)]
     _ = log 11723 + log (y / 11723) := Real.log_mul (by norm_num) (by positivity)
-    _ ≤ log 11723 + (y / 11723 - 1) := by grind [Real.log_le_sub_one_of_pos]
+    _ ≤ log 11723 + (y / 11723 - 1) :=
+      _root_.add_le_add le_rfl
+        (Real.log_le_sub_one_of_pos (x := y / 11723) (by positivity))
 
 @[blueprint
   "psi-upper-clean"
