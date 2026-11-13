@@ -24,13 +24,12 @@ lemma table_10_bcol_length : table_10_bcol.length = 287 := by
 
 set_option maxRecDepth 100000 in
 lemma table_10_bcol_sortedLT : table_10_bcol.SortedLT := by
+  have h43 : (43 : ℝ) < 19 * Real.log 10 := by
+    nlinarith [LogTables.log_10_gt]
+  have h44 : 19 * Real.log 10 < (44 : ℝ) := by
+    nlinarith [LogTables.log_10_lt]
   rw [List.sortedLT_iff_isChain]
-  simp only [table_10_bcol, table_10, List.map_cons, List.map_nil]
-  repeat' constructor
-  all_goals
-    try norm_num
-    try nlinarith [LogTables.log_10_gt]
-    try nlinarith [LogTables.log_10_lt]
+  norm_num [table_10_bcol, table_10, List.isChain_cons_cons, h43, h44]
 
 set_option maxRecDepth 100000 in
 lemma table_10_bcol_le_K :
@@ -689,8 +688,8 @@ lemma a1_le_small {b : ℝ} (hb : b ≤ 86) : Inputs.default.a₁ b ≤ (1.00000
     constructor <;> nlinarith [LogTables.log_10_gt, LogTables.log_10_lt]
   have hε19 : Inputs.default.ε (log Inputs.default.x₁) ≤ 1.93378e-8 * BKLNW_app.table_8_margin := by
     change BKLNW_app.table_8_ε (log Inputs.default.x₁) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
-    grw [BKLNW_app.table_8_ε.le_simp (log Inputs.default.x₁) (by linarith [hlog.1])]
-    grind [BKLNW_app.table_8_ε']
+    exact (BKLNW_app.table_8_ε_le_of_row BKLNW_app.table_8_mem_40
+      (by linarith [hlog.1])).trans (by norm_num [BKLNW_app.table_8_margin])
   unfold Inputs.a₁
   rw [if_pos (by linarith [hlog.1] : b ≤ 2 * log Inputs.default.x₁)]
   have hb' : (1.93378e-8 * BKLNW_app.table_8_margin : ℝ) ≤ 1.00000002 - 1 := by
