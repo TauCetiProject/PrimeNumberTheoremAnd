@@ -35,7 +35,7 @@ Standalone `2^ω`, `μ²` and totient quotient evaluations, and broader semiring
 
 ## Upstream queue
 
-Two contributions have landed through Bors and are present in the pinned dependency; sixteen remain open. All eighteen are independent and target `main`. Each passes its complete local build, axiom/module audits and environment/source lint. Remote CI and review states below refer to the current source head.
+Two contributions have landed through Bors and are present in the pinned dependency; seventeen remain open. All nineteen are independent and target `main`. Each passes its complete local build, axiom/module audits and environment/source lint. Remote statuses below are the latest verified observations for each source head.
 
 | PR | Contribution | Remote state |
 | --- | --- | --- |
@@ -57,8 +57,9 @@ Two contributions have landed through Bors and are present in the pinned depende
 | [#39787](https://github.com/TauCetiProject/TauCeti/pull/39787) | Supplied and totalized exponential product bounds for seminormed commutative rings | Reuse/generality fixes pushed; fresh CI/re-review pending |
 | [#39802](https://github.com/TauCetiProject/TauCeti/pull/39802) | Local logarithmic derivative at arbitrary nested radii; shared proofs and public canonical-factor estimates; sharp constants retained | API/proof reuse fixes pushed; fresh CI/re-review pending |
 | [#40057](https://github.com/TauCetiProject/TauCeti/pull/40057) | Weighted good-radius logarithmic estimate with the exact original constant, arbitrary real scales and finite exclusions | CI pending |
+| [#40135](https://github.com/TauCetiProject/TauCeti/pull/40135) | Normalized finite Selberg weights on Mathlib’s sieve carrier; exact quadratic main term and complete weighted remainder | CI pending |
 
-No unmerged API is consumed. Checked adoption packets cover Fejér, primary factors, polar parts, divisor arithmetic, ordinary Abel, Gamma, Fourier, and the new polynomial and supplied-product bounds. Fourier, product and StrongPNT packets were refreshed against the repaired provider APIs. They recover the original hypotheses, constants and endpoint conventions; adoption requires actual merge, a forward pin and full current-source checks. A checked direct StrongPNT adopter for #39802 removes 507 lines while preserving all retained statements and constants; it remains conditional on that PR’s merge. The fork already obtains arbitrary-origin divisor summability from a merged generic counting theorem; reassess #39330 against current code.
+No unmerged API is consumed. Checked adoption packets cover Fejér, primary factors, polar parts, divisor arithmetic, ordinary Abel, Gamma, Fourier, and the new polynomial and supplied-product bounds. Fourier, product and StrongPNT packets were refreshed against the repaired provider APIs. They recover the original hypotheses, constants and endpoint conventions; adoption requires actual merge, a forward pin and full current-source checks. A checked direct StrongPNT adopter for #39802 removes 507 lines while preserving all retained statements and constants; it remains conditional on that PR’s merge. The fork already obtains arbitrary-origin divisor summability from a merged generic counting theorem; reassess #39330 against current code. For #40135, strict comparison proves that the fork’s normalizer and coprime-factorized weights agree exactly with the new definitions at `z = √level`; adoption awaits merge and full client checks.
 
 ## Verification and retained distinctions
 
