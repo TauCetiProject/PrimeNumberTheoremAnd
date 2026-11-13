@@ -2517,18 +2517,22 @@ theorem Params.initial.bound_score_3 (ε : ℝ) (hε : ε > 0) (M : ℕ) :
     (max 16 (max N₀ ((⌈N₁⌉₊ + 1) ^ 2)))] with n hn P hPM hPn
   simp only [hPM, hPn]; have hn16 : n ≥ 16 := le_of_max_le_left hn
   have hnpos : (n : ℝ) > 0 := by positivity
-  have hlogn_pos : Real.log n > 0 := log_pos (by exact_mod_cast lt_of_add_left_lt hn16)
+  have hlogn_pos : Real.log n > 0 := log_pos (by exact_mod_cast (show 1 < n by omega))
   have hsqrt_pos : Real.sqrt n > 0 := sqrt_pos.mpr hnpos
   have hn16' : (16 : ℝ) ≤ n := by exact_mod_cast hn16
   have hsqrt_ge_4 : Real.sqrt n ≥ 4 := by
     nlinarith [Real.sq_sqrt hnpos.le, sq_nonneg (Real.sqrt n - 4)]
   have hfloor_gt_1 : (1 : ℝ) < ⌊Real.sqrt n⌋₊ := by
-    exact_mod_cast lt_of_add_left_lt (le_floor (by linarith : (3 : ℝ) ≤ Real.sqrt n))
+    have hfloor : 3 ≤ ⌊Real.sqrt n⌋₊ :=
+      Nat.le_floor (show (3 : ℝ) ≤ Real.sqrt n by linarith)
+    exact_mod_cast (show 1 < ⌊Real.sqrt n⌋₊ by omega)
   conv_lhs => rw [sum_const, nsmul_eq_mul]
   rw [show (filter Nat.Prime (Finset.Iic ⌊Real.sqrt n⌋₊)).card =
     primeCounting ⌊Real.sqrt n⌋₊ by
-    simp only [primeCounting, primeCounting', card_filter, count_eq_card_filter_range]
-    congr 1; ext p; simp only [Finset.mem_Iic, Finset.mem_range, Nat.lt_succ_iff]]
+    rw [show filter Nat.Prime (Finset.Iic ⌊Real.sqrt n⌋₊) = Nat.primesLE ⌊Real.sqrt n⌋₊ by
+      ext p
+      simp [Nat.mem_primesLE, and_comm]]
+    exact Nat.primesLE_card_eq_primeCounting _]
   rcases eq_or_ne M 0 with rfl | hMne; · simp [mul_nonneg hε.le (cast_nonneg _)]
   have hsqrt_N₁ : (⌊Real.sqrt n⌋₊ : ℝ) > N₁ := by
     have hnsq : n ≥ (⌈N₁⌉₊ + 1) ^ 2 := (le_max_right _ _).trans (le_of_max_le_right hn)

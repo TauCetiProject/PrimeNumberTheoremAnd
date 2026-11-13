@@ -225,9 +225,9 @@ private lemma euler_maclaurin_bound (n : ℕ) (hn : 1 ≤ n) :
 
 /-- Computational verification: `γ₂ 16 ≤ 0.577216`, using `log 2 > 0.6931471803`. -/
 private lemma euler_maclaurin_numerical : γ₂ 16 ≤ 0.577216 := by
-  norm_num [γ₂]
-  rw [show (16 : ℝ) = 2 ^ 4 by norm_num]
-  grind [Real.log_pow, Real.log_two_gt_d9]
+  norm_num [γ₂, harmonic, Finset.sum_range_succ]
+  rw [show (16 : ℝ) = 2 ^ 4 by norm_num, Real.log_pow]
+  linarith [Real.log_two_gt_d9]
 
 lemma hγ_hi : Real.eulerMascheroniConstant ≤ 0.577216 :=
   le_of_lt (lt_of_lt_of_le (euler_maclaurin_bound 16 (by norm_num)) (by grind [euler_maclaurin_numerical]))
@@ -373,8 +373,10 @@ private lemma log_ineq_5 (u : ℝ) (hu : 0 < u) :
     0 < 1680 * u ^ 4 + 3360 * u ^ 3 - 1440 * u ^ 2 + 2880 * u
       - 2880 * Real.log (1 + u) := by
   apply pos_of_mvt hu (by simp [Real.log_one])
-  · fun_prop (disch := intro x hx; linarith [hx.1])
-  · intro x hx; fun_prop (disch := linarith [hx.1])
+  · intro x hx
+    exact (hasDerivAt_log_ineq_5 x (by linarith [hx.1])).continuousAt.continuousWithinAt
+  · intro x hx
+    exact (hasDerivAt_log_ineq_5 x (by linarith [hx.1])).differentiableAt
   · intro x hx
     have h1p : (0 : ℝ) < 1 + x := by linarith [hx]
     have hd := hasDerivAt_log_ineq_5 x h1p
@@ -384,8 +386,10 @@ private lemma log_ineq_6 (u : ℝ) (hu : 0 < u) :
     0 < 336 * u ^ 5 + 840 * u ^ 4 - 480 * u ^ 3 + 1440 * u ^ 2 + 2880 * u
       - 2880 * (1 + u) * Real.log (1 + u) := by
   apply pos_of_mvt hu (by simp [Real.log_one])
-  · fun_prop (disch := intro x hx; linarith [hx.1])
-  · intro x hx; fun_prop (disch := linarith [hx.1])
+  · intro x hx
+    exact (hasDerivAt_log_ineq_6 x (by linarith [hx.1])).continuousAt.continuousWithinAt
+  · intro x hx
+    exact (hasDerivAt_log_ineq_6 x (by linarith [hx.1])).differentiableAt
   · intro x hx
     have h1p : (0 : ℝ) < 1 + x := by linarith [hx]
     have hd := hasDerivAt_log_ineq_6 x h1p
@@ -396,8 +400,9 @@ private lemma log_ineq_7 (u : ℝ) (hu : 0 < u) :
       - 1440 * (1 + u) ^ 2 * Real.log (1 + u) := by
   apply pos_of_mvt hu (by simp [Real.log_one])
   · intro x hx
-    fun_prop (disch := linarith[hx.1])
-  · intro x hx; fun_prop (disch := linarith [hx.1])
+    exact (hasDerivAt_log_ineq_7 x (by linarith [hx.1])).continuousAt.continuousWithinAt
+  · intro x hx
+    exact (hasDerivAt_log_ineq_7 x (by linarith [hx.1])).differentiableAt
   · intro x hx
     have h1p : (0 : ℝ) < 1 + x := by linarith [hx]
     have hd := hasDerivAt_log_ineq_7 x h1p
@@ -407,8 +412,10 @@ private lemma log_ineq_8 (u : ℝ) (hu : 0 < u) :
     0 < 8 * u ^ 7 + 28 * u ^ 6 - 24 * u ^ 5 + 120 * u ^ 4 + 880 * u ^ 3 + 1200 * u ^ 2
       + 480 * u - 480 * (1 + u) ^ 3 * Real.log (1 + u) := by
   apply pos_of_mvt hu (by simp [Real.log_one])
-  · fun_prop (disch := grind)
-  · fun_prop (disch := grind)
+  · intro x hx
+    exact (hasDerivAt_log_ineq_8 x (by linarith [hx.1])).continuousAt.continuousWithinAt
+  · intro x hx
+    exact (hasDerivAt_log_ineq_8 x (by linarith [hx.1])).differentiableAt
   · intro x hx
     have h1p : (0 : ℝ) < 1 + x := by linarith [hx]
     have hd := hasDerivAt_log_ineq_8 x h1p
@@ -421,9 +428,10 @@ private lemma log_ineq_9 (u : ℝ) (hu : 0 < u) :
   suffices h : 0 < u ^ 8 + 4 * u ^ 7 - 4 * u ^ 6 + 24 * u ^ 5 + 250 * u ^ 4 + 520 * u ^ 3
       + 420 * u ^ 2 + 120 * u - 120 * (1 + u) ^ 4 * Real.log (1 + u) by linarith
   apply pos_of_mvt hu (by simp [Real.log_one])
-  · intro x hx; fun_prop (disch := linarith [hx.1])
   · intro x hx
-    fun_prop (disch := linarith [hx.1])
+    exact (hasDerivAt_log_ineq_9 x (by linarith [hx.1])).continuousAt.continuousWithinAt
+  · intro x hx
+    exact (hasDerivAt_log_ineq_9 x (by linarith [hx.1])).differentiableAt
   · intro x hx
     have h1p : (0 : ℝ) < 1 + x := by linarith [hx]
     have hd := hasDerivAt_log_ineq_9 x h1p
