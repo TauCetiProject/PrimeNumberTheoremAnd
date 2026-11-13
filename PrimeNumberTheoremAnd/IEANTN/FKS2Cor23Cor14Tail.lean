@@ -43,9 +43,7 @@ theorem mu_asymp_num_le_cor14 :
       unfold pi
       rw [show ⌊(2:ℝ)⌋₊ = 2 from by norm_num, hpc]
       norm_num
-    have hLi2 : TauCeti.Real.logIntegral 2 = 0 := by
-      unfold TauCeti.Real.logIntegral
-      exact intervalIntegral.integral_same
+    have hLi2 : TauCeti.Real.logIntegral 2 = 0 := TauCeti.Real.logIntegral_two
     have hθ0 : (0:ℝ) ≤ θ 2 := Chebyshev.theta_nonneg 2
     have hθ3 : θ 2 ≤ 3 := by
       have h4 := theta_le_log4_mul_x (by norm_num : (0:ℝ) ≤ 2)
@@ -89,22 +87,15 @@ theorem mu_asymp_num_le_cor14 :
           Real.exp (-2 * Real.sqrt ((20000:ℝ) / 5.5666305)) * Real.exp 20000 :=
         mul_pos (Real.exp_pos _) (Real.exp_pos _)
       have hK : (2:ℝ) ^ (60:ℕ) ≤ Real.exp (19880:ℝ) := by
-        have h1 : Real.exp (19880:ℝ) = Real.exp 1 ^ (19880:ℕ) := by
-          rw [← Real.exp_nat_mul]
-          norm_num
-        rw [h1]
-        calc (2:ℝ) ^ (60:ℕ) ≤ (2:ℝ) ^ (19880:ℕ) :=
-              pow_le_pow_right₀ (by norm_num) (by norm_num)
-          _ ≤ Real.exp 1 ^ (19880:ℕ) := by
-              apply pow_le_pow_left₀ (by norm_num)
-              nlinarith [Real.exp_one_gt_d9]
+        calc (2:ℝ) ^ (60:ℕ) = Real.exp (60 * Real.log 2) := by
+              simpa only [Nat.cast_ofNat, Real.exp_log (by norm_num : (0:ℝ) < 2)] using
+                (Real.exp_nat_mul (Real.log 2) 60).symm
+          _ ≤ Real.exp (19880:ℝ) := Real.exp_le_exp.mpr (by linarith [hlog2_hi])
       have hstep :
           Real.exp (-2 * Real.sqrt ((20000:ℝ) / 5.5666305)) * Real.exp 20000 ≤
           (121.0961 * ((20000:ℝ) / 5.5666305) ^ (1.5:ℝ)) *
             (Real.exp (-2 * Real.sqrt ((20000:ℝ) / 5.5666305)) * Real.exp 20000) := by
-        nlinarith [mul_nonneg
-          (by linarith [hAP] : (0:ℝ) ≤ 121.0961 * ((20000:ℝ) / 5.5666305) ^ (1.5:ℝ) - 1)
-          hEpos.le]
+        exact le_mul_of_one_le_left hEpos.le hAP
       calc (2:ℝ) ^ (60:ℕ) ≤ Real.exp (19880:ℝ) := hK
         _ ≤ Real.exp (-2 * Real.sqrt ((20000:ℝ) / 5.5666305)) * Real.exp 20000 := hE
         _ ≤ (121.0961 * ((20000:ℝ) / 5.5666305) ^ (1.5:ℝ)) *
@@ -117,7 +108,7 @@ theorem mu_asymp_num_le_cor14 :
         Real.log 2) ≤ 40000 / (1152921504606846976 * 0.6931471803) := by
       gcongr
       · norm_num
-      · nlinarith [hbig, hlog2_lo, hpow60]
+      · simpa only [hpow60] using hbig
     calc (2 * 20000) /
         (admissible_bound 121.0961 1.5 2 5.5666305 (exp 20000) * exp 20000 *
         Real.log 2) * δ 2
