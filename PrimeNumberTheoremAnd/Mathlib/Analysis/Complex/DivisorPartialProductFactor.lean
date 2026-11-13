@@ -9,6 +9,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorComplement
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorFiber
 public import Mathlib.Analysis.Analytic.Order
 public import Mathlib.Analysis.Analytic.Uniqueness
+import TauCeti.Analysis.Analytic.Order
 
 
 /-!
@@ -41,101 +42,26 @@ theorem analyticOrderAt_finset_prod_weierstrassFactor_divisorZeroIndex₀
     (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) (z₀ : ℂ) :
     analyticOrderAt (fun z : ℂ => ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p))
         z₀ = ((s.filter (fun p => divisorZeroIndex₀_val p = z₀)).card : ℕ∞) := by
-  classical -- needed
-  refine Finset.induction_on s ?base ?step
-  · simp [analyticOrderAt_eq_zero]
-  · intro p s hp hs
-    by_cases hEq : divisorZeroIndex₀_val p = z₀
-    · have hp0 : divisorZeroIndex₀_val p ≠ 0 := p.property
-      have han_fac :
-          AnalyticAt ℂ (fun z : ℂ => weierstrassFactor m (z / divisorZeroIndex₀_val p)) z₀ := by
-        exact (differentiable_weierstrassFactor_divisorZeroIndex₀ m p).analyticAt z₀
-      have han_rest : AnalyticAt ℂ (fun z : ℂ => ∏ q ∈ s, weierstrassFactor m
-          (z / divisorZeroIndex₀_val q)) z₀ := by
-        simpa [divisorPartialProduct] using! analyticAt_divisorPartialProduct m f s z₀
-      let fac : ℂ → ℂ := fun z : ℂ => weierstrassFactor m (z / divisorZeroIndex₀_val p)
-      let rest : ℂ → ℂ := fun z : ℂ => ∏ q ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val q)
-      have hmul :
-          analyticOrderAt (fac * rest) z₀ =
-            analyticOrderAt fac z₀ + analyticOrderAt rest z₀ := by
-        simpa [fac, rest] using (analyticOrderAt_mul (z₀ := z₀) han_fac han_rest)
-      have hcard :
-          (Finset.filter (fun q => divisorZeroIndex₀_val q = z₀) (insert p s)).card =
-            (Finset.filter (fun q => divisorZeroIndex₀_val q = z₀) s).card + 1 := by
-        simp [hEq, hp, Finset.filter_insert]
-      have hfac : analyticOrderAt fac z₀ = (1 : ℕ∞) := by
-        simpa [fac, hEq] using
-          (analyticOrderAt_weierstrassFactor_div_self (m := m) (a := divisorZeroIndex₀_val p) hp0)
-      have hrest : analyticOrderAt rest z₀ = ((s.filter
-          (fun q => divisorZeroIndex₀_val q = z₀)).card : ℕ∞) := by
-        simpa [rest] using hs
-      have hcongr :
-          (fun z : ℂ => ∏ q ∈ insert p s, weierstrassFactor m (z / divisorZeroIndex₀_val q))
-            =ᶠ[𝓝 z₀] (fac * rest) := by
-        refine Filter.Eventually.of_forall ?_
-        intro z
-        simp [fac, rest, Finset.prod_insert, hp, Pi.mul_apply]
-      calc
-        analyticOrderAt (fun z : ℂ => ∏ q ∈ insert p s, weierstrassFactor m
-            (z / divisorZeroIndex₀_val q)) z₀ = analyticOrderAt (fac * rest) z₀ := by
-              simpa using (analyticOrderAt_congr hcongr)
-        _ = analyticOrderAt fac z₀ + analyticOrderAt rest z₀ := hmul
-        _ = (1 : ℕ∞) + ((s.filter (fun q => divisorZeroIndex₀_val q = z₀)).card : ℕ∞) := by
-              simp [hfac, hrest]
-        _ = (((insert p s).filter (fun q => divisorZeroIndex₀_val q = z₀)).card : ℕ∞) := by
-              simp [hcard, Nat.add_comm]
-    · have han_fac :
-          AnalyticAt ℂ (fun z : ℂ => weierstrassFactor m (z / divisorZeroIndex₀_val p)) z₀ := by
-        exact (differentiable_weierstrassFactor_divisorZeroIndex₀ m p).analyticAt z₀
-      have hfac0 : analyticOrderAt (fun z : ℂ => weierstrassFactor m
-          (z / divisorZeroIndex₀_val p)) z₀ = 0 := by
-        have hp0 : divisorZeroIndex₀_val p ≠ 0 := p.property
-        have hval : weierstrassFactor m (z₀ / divisorZeroIndex₀_val p) ≠ 0 := by
-          have : (z₀ / divisorZeroIndex₀_val p) ≠ 1 := by
-            intro h1
-            have : z₀ = divisorZeroIndex₀_val p := by
-              have : z₀ = (z₀ / divisorZeroIndex₀_val p) * (divisorZeroIndex₀_val p) := by
-                simp [div_eq_mul_inv]
-              simpa [h1, div_eq_mul_inv, hp0] using this
-            exact hEq (this.symm)
-          exact (weierstrassFactor_ne_zero_iff m (z₀ / divisorZeroIndex₀_val p)).2 this
-        simpa using (han_fac.analyticOrderAt_eq_zero).2 (by simpa using hval)
-      have hcard :
-          (Finset.filter (fun q => divisorZeroIndex₀_val q = z₀) (insert p s)).card =
-            (Finset.filter (fun q => divisorZeroIndex₀_val q = z₀) s).card := by
-        simp [hEq, Finset.filter_insert]
-      have han_rest : AnalyticAt ℂ (fun z : ℂ => ∏ q ∈ s, weierstrassFactor m
-          (z / divisorZeroIndex₀_val q)) z₀ := by
-        simpa [divisorPartialProduct] using! analyticAt_divisorPartialProduct m f s z₀
-      let fac : ℂ → ℂ := fun z : ℂ => weierstrassFactor m (z / divisorZeroIndex₀_val p)
-      let rest : ℂ → ℂ := fun z : ℂ => ∏ q ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val q)
-      have hmul :
-          analyticOrderAt (fac * rest) z₀ =
-            analyticOrderAt fac z₀ + analyticOrderAt rest z₀ := by
-        simpa [fac, rest] using (analyticOrderAt_mul (z₀ := z₀) han_fac han_rest)
-      have hcongr :
-          (fun z : ℂ => ∏ q ∈ insert p s, weierstrassFactor m (z / divisorZeroIndex₀_val q))
-            =ᶠ[𝓝 z₀] (fac * rest) := by
-        refine Filter.Eventually.of_forall ?_
-        intro z
-        simp [fac, rest, Finset.prod_insert, hp, Pi.mul_apply]
-      calc
-        analyticOrderAt (fun z : ℂ => ∏ q ∈ insert p s, weierstrassFactor m
-        (z / divisorZeroIndex₀_val q)) z₀
-            = analyticOrderAt (fac * rest) z₀ := by
-              simpa using (analyticOrderAt_congr hcongr)
-        _ = analyticOrderAt rest z₀ := by
-              calc
-                analyticOrderAt (fac * rest) z₀ = analyticOrderAt fac z₀ +
-                    analyticOrderAt rest z₀ := hmul
-                _ = analyticOrderAt rest z₀ := by
-                      have hfac0' : analyticOrderAt fac z₀ = 0 := by
-                        simpa [fac] using hfac0
-                      simp [hfac0']
-        _ = ((s.filter (fun q => divisorZeroIndex₀_val q = z₀)).card : ℕ∞) := by
-              simpa [rest] using hs
-        _ = (((insert p s).filter (fun q => divisorZeroIndex₀_val q = z₀)).card : ℕ∞) := by
-              simpa using congrArg (fun n : ℕ => (n : ℕ∞)) hcard.symm
+  classical
+  have heq :
+      (fun z : ℂ => ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p)) =
+        ∏ p ∈ s, (fun z : ℂ => weierstrassFactor m (z / divisorZeroIndex₀_val p)) := by
+    ext z
+    simp
+  rw [heq, TauCeti.analyticOrderAt_prod
+    (fun p _ ↦ (differentiable_weierstrassFactor_divisorZeroIndex₀ m p).analyticAt z₀)]
+  calc
+    _ = ∑ p ∈ s, if divisorZeroIndex₀_val p = z₀ then (1 : ℕ∞) else 0 := by
+      refine Finset.sum_congr rfl fun p _ ↦ ?_
+      split_ifs with hp
+      · simpa only [hp] using
+          (analyticOrderAt_weierstrassFactor_div_self m (divisorZeroIndex₀_val_ne_zero p))
+      · have han := (differentiable_weierstrassFactor_divisorZeroIndex₀ m p).analyticAt z₀
+        apply han.analyticOrderAt_eq_zero.mpr
+        apply (weierstrassFactor_ne_zero_iff m _).mpr
+        exact mt (div_eq_one_iff_eq (divisorZeroIndex₀_val_ne_zero p)).mp (Ne.symm hp)
+    _ = _ := by simp
+
 
 theorem analyticOrderNatAt_finset_prod_weierstrassFactor_divisorZeroIndex₀
     (m : ℕ) (f : ℂ → ℂ)
