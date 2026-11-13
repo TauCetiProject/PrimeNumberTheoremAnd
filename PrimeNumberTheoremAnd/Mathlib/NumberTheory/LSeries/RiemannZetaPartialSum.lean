@@ -81,7 +81,7 @@ private lemma abel_summation (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
     filter_upwards with u hu
     rw [uIoc_of_le hle] at hu
     rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range,
-      Complex.deriv_ofReal_cpow_neg s (lt_trans zero_lt_one hu.1)]
+      Complex.deriv_ofReal_cpow_const (-s) (ne_of_gt (lt_trans zero_lt_one hu.1))]
     simp only [Nat.sub_zero, zero_add, Finset.sum_range_succ']
     simp [c, Finset.sum_const, Finset.card_range, mul_comm, mul_left_comm]
   calc

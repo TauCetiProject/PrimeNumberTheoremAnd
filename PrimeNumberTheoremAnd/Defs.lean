@@ -1,6 +1,6 @@
 module
 
-public import Mathlib.Data.Real.Archimedean
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 public import Mathlib.NumberTheory.ArithmeticFunction.Moebius
 
 /-!

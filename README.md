@@ -8,7 +8,8 @@ targets, pending roadmap proposals, and scope that still needs human-written spe
 To build the fork, run `lake exe cache get`, then
 `bash .lake/packages/TauCeti/scripts/lake-cache-get.sh .lake/packages/TauCeti`, then `lake build`.
 The library target checks every retained Lean source, including `Unused/` experiments.
-Inherited unfinished proofs remain unfinished; a successful build does not certify them as complete.
+The retained library has no unfinished proofs; a separate compiled-declaration audit verifies
+that it uses only `propext`, `Classical.choice` and `Quot.sound`.
 Fork CI runs the same full source build, restores Tau Ceti artifacts, and checks blueprint metadata.
 
 

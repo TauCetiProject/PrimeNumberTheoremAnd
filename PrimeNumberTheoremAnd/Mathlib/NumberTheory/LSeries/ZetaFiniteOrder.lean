@@ -15,6 +15,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
 public import Mathlib.NumberTheory.LSeries.DirichletContinuation
+public import TauCeti.NumberTheory.LSeries.CompletedRiemannZeta
 public import Mathlib.Analysis.Real.Pi.Bounds
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 
@@ -433,21 +434,6 @@ theorem completedRiemannZeta₀_order_one :
       have : ‖completedRiemannZeta₀ w‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (1 + ε)) := by
         exact le_trans hbig (Real.exp_le_exp.2 hdom)
       simpa [htransfer] using this
-
-/-- In the half-plane of absolute convergence, the completed zeta function does not vanish. -/
-theorem completedRiemannZeta_ne_zero_of_one_lt_re {s : ℂ} (hs : 1 < s.re) :
-    completedRiemannZeta s ≠ 0 := by
-  have hGamma_ne0 : Gammaℝ s ≠ 0 :=
-    Gammaℝ_ne_zero_of_re_pos (zero_lt_one.trans hs)
-  have hzeta_ne0 : riemannZeta s ≠ 0 := riemannZeta_ne_zero_of_one_lt_re hs
-  have hΛ_def : completedRiemannZeta s = riemannZeta s * Gammaℝ s := by
-    have hzeta_def := riemannZeta_def_of_ne_zero (s := s) (ne_zero_of_one_lt_re hs)
-    have hzeta_mul := congrArg (fun x => x * Gammaℝ s) hzeta_def
-    have : riemannZeta s * Gammaℝ s = completedRiemannZeta s := by
-      simpa [div_eq_mul_inv, mul_assoc, hGamma_ne0] using hzeta_mul
-    exact this.symm
-  rw [hΛ_def]
-  exact mul_ne_zero hzeta_ne0 hGamma_ne0
 
 /-- A coarse global growth bound for the removable extension of `(s - 1)ζ(s)`.
 

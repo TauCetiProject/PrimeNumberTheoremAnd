@@ -79,78 +79,9 @@ theorem logDeriv_residue_eq_meromorphicOrderAt
     (tendsto_mul_self_of_sub_principal_isBigO_one
       (logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt hf hord))
 
-private lemma meromorphicOrderAt_nonneg_of_isBigO_one
-    {f : ℂ → ℂ} {p : ℂ} (_hf : MeromorphicAt f p)
-    (hO : f =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
-    0 ≤ meromorphicOrderAt f p := by
-  by_contra hnonneg
-  have hneg : meromorphicOrderAt f p < 0 := lt_of_not_ge hnonneg
-  have hnorm :
-      Tendsto (fun z : ℂ => ‖f z‖) (𝓝[≠] p) Filter.atTop := by
-    rw [tendsto_norm_atTop_iff_cobounded]
-    exact tendsto_cobounded_of_meromorphicOrderAt_neg hneg
-  exact (Filter.not_isBoundedUnder_of_tendsto_atTop hnorm) hO.isBoundedUnder_le
-
-private lemma meromorphicOrderAt_eq_neg_one_of_sub_principal_isBigO_one
-    {f : ℂ → ℂ} {p c : ℂ}
-    (hf : MeromorphicAt f p) (hc : c ≠ 0)
-    (h : (f - fun z : ℂ => c / (z - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
-    meromorphicOrderAt f p = (-1 : ℤ) := by
-  let principal : ℂ → ℂ := fun z => c / (z - p)
-  let rem : ℂ → ℂ := f - principal
-  have hconst_mero : MeromorphicAt (fun _ : ℂ => c) p := MeromorphicAt.const c p
-  have hlin_mero : MeromorphicAt (fun z : ℂ => z - p) p := by fun_prop
-  have hprincipal_mero : MeromorphicAt principal p := hconst_mero.div hlin_mero
-  have hrem_mero : MeromorphicAt rem p := hf.sub hprincipal_mero
-  have hrem_nonneg : 0 ≤ meromorphicOrderAt rem p :=
-    meromorphicOrderAt_nonneg_of_isBigO_one hrem_mero (by simpa [rem, principal] using h)
-  have hprincipal_order : meromorphicOrderAt principal p = (-1 : ℤ) := by
-    dsimp [principal]
-    change meromorphicOrderAt ((fun _ : ℂ => c) / fun z : ℂ => z - p) p = (-1 : ℤ)
-    rw [meromorphicOrderAt_div hconst_mero hlin_mero, meromorphicOrderAt_const,
-      ite_eq_right hc, meromorphicOrderAt_id_sub_const]
-    norm_num
-  have hlt : meromorphicOrderAt principal p < meromorphicOrderAt rem p := by
-    rw [hprincipal_order]
-    exact lt_of_lt_of_le (WithTop.coe_lt_coe.2 (by norm_num : (-1 : ℤ) < 0)) hrem_nonneg
-  have hsum_order :
-      meromorphicOrderAt (principal + rem) p = meromorphicOrderAt principal p :=
-    meromorphicOrderAt_add_eq_left_of_lt hrem_mero hlt
-  have hcongr : f =ᶠ[𝓝[≠] p] principal + rem := by
-    filter_upwards with z
-    dsimp [principal, rem]
-    ring
-  calc
-    meromorphicOrderAt f p = meromorphicOrderAt (principal + rem) p :=
-      meromorphicOrderAt_congr hcongr
-    _ = meromorphicOrderAt principal p := hsum_order
-    _ = (-1 : ℤ) := hprincipal_order
-
-private lemma logDeriv_meromorphicOrderAt_nonneg_of_order_zero
-    {f : ℂ → ℂ} {p : ℂ}
-    (hf : MeromorphicAt f p) (hlog : MeromorphicAt (logDeriv f) p)
-    (hord : meromorphicOrderAt f p = (0 : WithTop ℤ)) :
-    0 ≤ meromorphicOrderAt (logDeriv f) p := by
-  have hO :=
-    logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt hf hord
-  have hO' : logDeriv f =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-    exact hO.congr_left (by intro z; simp)
-  exact meromorphicOrderAt_nonneg_of_isBigO_one hlog hO'
-
-private lemma logDeriv_meromorphicOrderAt_eq_neg_one_of_order_ne_zero
-    {f : ℂ → ℂ} {p : ℂ} {n : ℤ}
-    (hf : MeromorphicAt f p) (hlog : MeromorphicAt (logDeriv f) p)
-    (hord : meromorphicOrderAt f p = (n : WithTop ℤ)) (hn : n ≠ 0) :
-    meromorphicOrderAt (logDeriv f) p = (-1 : ℤ) := by
-  have hO :=
-    logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt hf hord
-  exact meromorphicOrderAt_eq_neg_one_of_sub_principal_isBigO_one hlog
-    (by exact_mod_cast hn) hO
-
-
 theorem logDeriv_poles_eq_divisor_support
     {f : ℂ → ℂ} {R : Set ℂ}
-    (hf : MeromorphicOn f R) (hlog : MeromorphicOn (logDeriv f) R)
+    (hf : MeromorphicOn f R)
     (hfinite_order : ∀ p ∈ R, meromorphicOrderAt f p ≠ ⊤) :
     R ∩ {p | meromorphicOrderAt (logDeriv f) p < 0} =
       (MeromorphicOn.divisor f R).support := by
@@ -165,7 +96,7 @@ theorem logDeriv_poles_eq_divisor_support
     · have hord0 : meromorphicOrderAt f p = (0 : WithTop ℤ) := by
         simpa [hn0] using hn.symm
       have hnonneg :=
-        logDeriv_meromorphicOrderAt_nonneg_of_order_zero (hf p hpR) (hlog p hpR) hord0
+        meromorphicOrderAt_logDeriv_nonneg (hf p hpR) hord0
       exact False.elim (not_lt_of_ge hnonneg hpneg)
     · have hpD_ne : D p ≠ 0 := by
         change (MeromorphicOn.divisor f R) p ≠ 0
@@ -183,8 +114,8 @@ theorem logDeriv_poles_eq_divisor_support
       intro hn0
       exact hpD_ne (by rw [← hn]; simp [hn0])
     have hneg_one :=
-      logDeriv_meromorphicOrderAt_eq_neg_one_of_order_ne_zero (hf p hpR) (hlog p hpR)
-        hn.symm hn0
+      meromorphicOrderAt_logDeriv_eq_neg_one
+        (by rw [← hn]; exact_mod_cast hn0) (hfinite_order p hpR)
     refine ⟨hpR, ?_⟩
     change meromorphicOrderAt (logDeriv f) p < 0
     rw [hneg_one]
@@ -229,7 +160,7 @@ theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
   have hlog_poles_eq :
       R ∩ {s | meromorphicOrderAt (logDeriv f) s < 0} = D.support := by
     simpa [R, D] using
-      logDeriv_poles_eq_divisor_support (f := f) (R := R) hf hlog hfinite_order
+      logDeriv_poles_eq_divisor_support (f := f) (R := R) hf hfinite_order
   have hlog_no_boundary :
       Disjoint (RectangleBorder z w) {s | meromorphicOrderAt (logDeriv f) s < 0} := by
     rw [Set.disjoint_left]

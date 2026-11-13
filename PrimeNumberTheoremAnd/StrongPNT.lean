@@ -1311,7 +1311,7 @@ theorem LogDerivZetaFinalBound {r' r R' R : ℝ} (r'_pos : 0 < r') (r'_lt_r : r'
         congr 1
         · simp only [g_def', deriv_div_const, div_div_div_cancel_right₀ f0nonzero]
         · refine Finset.sum_congr rfl fun ρ hρ => ?_
-          rw [div_left_inj', Nat.cast_inj, g_def']
+          rw [div_left_inj₀, Nat.cast_inj, g_def']
           · suffices hρAnal : AnalyticAt ℂ f ρ by
               simpa only [div_eq_mul_inv] using
                 (analyticOrderNatAt_fun_mul_const hρAnal (inv_ne_zero f0nonzero)).symm
