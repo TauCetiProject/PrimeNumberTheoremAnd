@@ -63,6 +63,18 @@ private lemma row90_eps_le : Inputs.default.ε (90 : ℝ) ≤ 2.5214e-12 :=
 private lemma row95_eps_le : Inputs.default.ε (95 : ℝ) ≤ 2.4920e-12 :=
   BKLNW_app.table_8_ε_le_of_row BKLNW_app.table_8_mem_95 le_rfl
 
+/-- A coarse exponential bound sufficient for all five columns of row 95. -/
+private lemma row95_exp_le {t : ℝ} (ht : 40 ≤ t) : Real.exp (-t) ≤ (1e-17 : ℝ) :=
+  (exp_neg_le_pow' 40 ht).trans (by norm_num [exp_neg_one_ub])
+
+private lemma row95_scalar_bound :
+    2 * Real.exp (-(1 / 2 * 95)) + 140 * Real.exp (-(2 / 3 * 95)) + 2.4920e-12 ≤
+      (2.4919e-12 * table_10_margin : ℝ) := by
+  have h1 := row95_exp_le (t := 1 / 2 * 95) (by norm_num)
+  have h2 := row95_exp_le (t := 2 / 3 * 95) (by norm_num)
+  norm_num [table_10_margin, BKLNW_app.table_8_margin] at h1 h2 ⊢
+  linarith
+
 /-- Row 90 (k = 1), exact Table-10 margin target. -/
 theorem table_10_row90_k1_margin : B_8_exact 1 90 95 ≤ (2.3952e-10 * table_10_margin : ℝ) :=
   row_bound_pointwise 1 90 95 2 132 2.5214e-12 (2.3952e-10 * table_10_margin)
@@ -103,34 +115,54 @@ theorem table_10_row95_k1_margin : B_8_exact 1 95 100 ≤ (2.4919e-10 * table_10
   row_bound_pointwise 1 95 100 2 140 2.4920e-12 (2.4919e-10 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     row95_a1_le row95_a2_le row95_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row95_scalar_bound
+        (show (0 : ℝ) ≤ 100 ^ 1 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 95 (k = 2), exact Table-10 margin target. -/
 theorem table_10_row95_k2_margin : B_8_exact 2 95 100 ≤ (2.4919e-8 * table_10_margin : ℝ) :=
   row_bound_pointwise 2 95 100 2 140 2.4920e-12 (2.4919e-8 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     row95_a1_le row95_a2_le row95_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row95_scalar_bound
+        (show (0 : ℝ) ≤ 100 ^ 2 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 95 (k = 3), exact Table-10 margin target. -/
 theorem table_10_row95_k3_margin : B_8_exact 3 95 100 ≤ (2.4919e-6 * table_10_margin : ℝ) :=
   row_bound_pointwise 3 95 100 2 140 2.4920e-12 (2.4919e-6 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     row95_a1_le row95_a2_le row95_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row95_scalar_bound
+        (show (0 : ℝ) ≤ 100 ^ 3 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 95 (k = 4), exact Table-10 margin target. -/
 theorem table_10_row95_k4_margin : B_8_exact 4 95 100 ≤ (2.4919e-4 * table_10_margin : ℝ) :=
   row_bound_pointwise 4 95 100 2 140 2.4920e-12 (2.4919e-4 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     row95_a1_le row95_a2_le row95_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row95_scalar_bound
+        (show (0 : ℝ) ≤ 100 ^ 4 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 95 (k = 5), exact Table-10 margin target. -/
 theorem table_10_row95_k5_margin : B_8_exact 5 95 100 ≤ (2.4919e-2 * table_10_margin : ℝ) :=
   row_bound_pointwise 5 95 100 2 140 2.4920e-12 (2.4919e-2 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     row95_a1_le row95_a2_le row95_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row95_scalar_bound
+        (show (0 : ℝ) ≤ 100 ^ 5 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 end BKLNW

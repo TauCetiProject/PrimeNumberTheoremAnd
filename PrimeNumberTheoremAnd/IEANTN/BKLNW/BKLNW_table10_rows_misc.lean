@@ -6,21 +6,8 @@ namespace BKLNW
 
 /-! Extra row checks kept outside the dense generated shards. -/
 
-private lemma row60_a1_le : Inputs.default.a₁ (60 : ℝ) ≤ (1.00000002 : ℝ) := by
-  have hlog : (43 : ℝ) < log Inputs.default.x₁ ∧ log Inputs.default.x₁ < 44 := by
-    change (43 : ℝ) < log (1e19 : ℝ) ∧ log (1e19 : ℝ) < 44
-    have h1e19 : (1e19 : ℝ) = (10 : ℝ) ^ 19 := by norm_num
-    rw [h1e19, Real.log_pow]; push_cast
-    constructor <;> nlinarith [LogTables.log_10_gt, LogTables.log_10_lt]
-  have hε19 : Inputs.default.ε (log Inputs.default.x₁) ≤ 1.93378e-8 * BKLNW_app.table_8_margin := by
-    change BKLNW_app.table_8_ε (log Inputs.default.x₁) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
-    grw [BKLNW_app.table_8_ε.le_simp (log Inputs.default.x₁) (by linarith [hlog.1])]
-    grind [BKLNW_app.table_8_ε']
-  unfold Inputs.a₁
-  rw [if_pos (by linarith [hlog.1] : (60 : ℝ) ≤ 2 * log Inputs.default.x₁)]
-  have hb : (1.93378e-8 * BKLNW_app.table_8_margin : ℝ) ≤ 1.00000002 - 1 := by
-    norm_num [BKLNW_app.table_8_margin]
-  linarith [hε19, hb]
+private lemma row60_a1_le : Inputs.default.a₁ (60 : ℝ) ≤ (1.00000002 : ℝ) :=
+  a1_le_small (by norm_num)
 
 private lemma row60_a2_le : Inputs.default.a₂ (60 : ℝ) ≤ (89 : ℝ) := by
   have h := a2_crude_le 60 (by norm_num)
@@ -99,25 +86,8 @@ private lemma r19_ge20 : (20 : ℝ) ≤ 19 * log 10 := by nlinarith [LogTables.l
 private lemma r19_le44 : 19 * log 10 ≤ 44 := by nlinarith [LogTables.log_10_lt]
 private lemma r19_le_4375 : 19 * log 10 ≤ (43.75 : ℝ) := by nlinarith [LogTables.log_10_lt]
 
-private lemma row19_a1_le : Inputs.default.a₁ (19 * log 10) ≤ (1.00000002 : ℝ) := by
-  have hlog : (43 : ℝ) < log Inputs.default.x₁ ∧ log Inputs.default.x₁ < 44 := by
-    change (43 : ℝ) < log (1e19 : ℝ) ∧ log (1e19 : ℝ) < 44
-    have h1e19 : (1e19 : ℝ) = (10 : ℝ) ^ 19 := by norm_num
-    rw [h1e19, Real.log_pow]; push_cast
-    constructor <;> nlinarith [LogTables.log_10_gt, LogTables.log_10_lt]
-  have hε19 : Inputs.default.ε (log Inputs.default.x₁) ≤ 1.93378e-8 * BKLNW_app.table_8_margin := by
-    change BKLNW_app.table_8_ε (log Inputs.default.x₁) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
-    grw [BKLNW_app.table_8_ε.le_simp (log Inputs.default.x₁) (by linarith [hlog.1])]
-    grind [BKLNW_app.table_8_ε']
-  have hlx1 : log Inputs.default.x₁ = 19 * log 10 := by
-    change log (1e19 : ℝ) = 19 * log 10
-    have h1e19 : (1e19 : ℝ) = (10 : ℝ) ^ 19 := by norm_num
-    rw [h1e19, Real.log_pow]; push_cast; ring
-  unfold Inputs.a₁
-  rw [if_pos (by rw [hlx1]; nlinarith [LogTables.log_10_gt] : (19 * log 10 : ℝ) ≤ 2 * log Inputs.default.x₁)]
-  have hb : (1.93378e-8 * BKLNW_app.table_8_margin : ℝ) ≤ 1.00000002 - 1 := by
-    norm_num [BKLNW_app.table_8_margin]
-  linarith [hε19, hb]
+private lemma row19_a1_le : Inputs.default.a₁ (19 * log 10) ≤ (1.00000002 : ℝ) :=
+  a1_le_small (by nlinarith [LogTables.log_10_lt])
 
 private lemma row19_a2_le : Inputs.default.a₂ (19 * log 10) ≤ (66 : ℝ) := by
   have h := a2_crude_le (19 * log 10) (by linarith [r19_ge20])
