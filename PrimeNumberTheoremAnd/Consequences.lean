@@ -3,7 +3,9 @@ module
 public import Architect
 public import Mathlib.Algebra.Order.Floor.Semifield
 public import Mathlib.NumberTheory.Harmonic.Bounds
+public import Mathlib.NumberTheory.Chebyshev
 public import PrimeNumberTheoremAnd.Defs
+public import TauCeti.Analysis.SpecialFunctions.LogIntegral
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.NumberTheory.LSeries.PrimesInAP
 public import TauCeti.NumberTheory.LSeries.WienerIkehara.SharpCutoff
@@ -603,9 +605,9 @@ theorem pi_alt' :
 
 
 lemma pi_nth_prime_asymp :
-    (fun n ↦ (nth_prime n) / (log (nth_prime n))) ~[atTop] (fun (n : ℕ) ↦ (n : ℝ)) := by
+    (fun n ↦ (Nat.nth Nat.Prime n) / (log (Nat.nth Nat.Prime n))) ~[atTop] (fun (n : ℕ) ↦ (n : ℝ)) := by
   trans (fun (n : ℕ) ↦ ( n + 1 : ℝ))
-  · have : Tendsto (fun n ↦ ((nth_prime n) : ℝ)) atTop atTop := by
+  · have : Tendsto (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) atTop atTop := by
       apply tendsto_natCast_atTop_iff.mpr
         ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
     convert! pi_alt'.comp_tendsto this |>.symm
@@ -615,10 +617,10 @@ lemma pi_nth_prime_asymp :
   · apply IsEquivalent.add_isLittleO (by rfl)
     exact isLittleO_const_id_atTop (1 : ℝ) |>.natCast_atTop
 
-lemma log_nth_prime_asymp : (fun n ↦ log (nth_prime n)) ~[atTop] (fun n ↦ log n) := by
+lemma log_nth_prime_asymp : (fun n ↦ log (Nat.nth Nat.Prime n)) ~[atTop] (fun n ↦ log n) := by
   have := pi_nth_prime_asymp.log tendsto_natCast_atTop_atTop
   · apply IsEquivalent.trans _ this
-    apply IsEquivalent.congr_right (v := (fun n ↦ log (nth_prime n) - log (log (nth_prime n))))
+    apply IsEquivalent.congr_right (v := (fun n ↦ log (Nat.nth Nat.Prime n) - log (log (Nat.nth Nat.Prime n))))
     swap
     · filter_upwards with n
       rw [log_div]
@@ -628,17 +630,17 @@ lemma log_nth_prime_asymp : (fun n ↦ log (nth_prime n)) ~[atTop] (fun n ↦ lo
     symm
     apply IsEquivalent.sub_isLittleO (by rfl)
     apply IsLittleO.comp_tendsto isLittleO_log_id_atTop
-    have : Tendsto (fun n ↦ ((nth_prime n) : ℝ)) atTop atTop := by
+    have : Tendsto (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) atTop atTop := by
       apply tendsto_natCast_atTop_iff.mpr
         ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
     apply tendsto_log_atTop.comp this
 
-lemma nth_prime_asymp : (fun n ↦ ((nth_prime n) : ℝ)) ~[atTop] (fun n ↦ n * log n) := by
+lemma nth_prime_asymp : (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) ~[atTop] (fun n ↦ n * log n) := by
   have := pi_nth_prime_asymp.mul log_nth_prime_asymp
   convert! this using 1
   ext n
   simp only [Pi.mul_apply]
-  have : log (nth_prime n) ≠ 0 :=by
+  have : log (Nat.nth Nat.Prime n) ≠ 0 :=by
     apply log_ne_zero.mpr ⟨?_, ?_, ?_⟩
       <;> norm_cast<;> linarith [prime_nth_prime n |>.two_le]
   field
@@ -657,8 +659,8 @@ lemma nth_prime_asymp : (fun n ↦ ((nth_prime n) : ℝ)) ~[atTop] (fun n ↦ n 
   -/)
   (latexEnv := "proposition")]
 theorem pn_asymptotic : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) ∧
-    ∀ n : ℕ, n > 1 → nth_prime n = (1 + c n) * n * log n := by
-  let c : ℕ → ℝ := fun n ↦ (nth_prime n) / (n * log n) - 1
+    ∀ n : ℕ, n > 1 → Nat.nth Nat.Prime n = (1 + c n) * n * log n := by
+  let c : ℕ → ℝ := fun n ↦ (Nat.nth Nat.Prime n) / (n * log n) - 1
   refine ⟨c, ?_, ?_⟩
   swap
   · intro n hn
@@ -688,8 +690,8 @@ theorem pn_asymptotic : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) �
   (proof := /-- Easy consequence of preceding proposition. -/)
   (latexEnv := "corollary")]
 theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) ∧
-    ∀ n : ℕ, nth_prime (n + 1) - nth_prime n = (c n) * nth_prime n := by
-  use (fun n => (nth_prime (n+1) - nth_prime n) / nth_prime n)
+    ∀ n : ℕ, Nat.nth Nat.Prime (n + 1) - Nat.nth Nat.Prime n = (c n) * Nat.nth Nat.Prime n := by
+  use (fun n => (Nat.nth Nat.Prime (n+1) - Nat.nth Nat.Prime n) / Nat.nth Nat.Prime n)
   refine ⟨?_, ?_⟩
   · obtain ⟨k, k_o1, p_n_eq⟩ := pn_asymptotic
     simp only [isLittleO_one_iff]
@@ -850,7 +852,7 @@ theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) 
         rw [div_self (denom_nonzero n)]
       simp
   · intro n
-    have nth_nonzero: nth_prime n ≠ 0 := by
+    have nth_nonzero: Nat.nth Nat.Prime n ≠ 0 := by
       exact Nat.Prime.ne_zero (prime_nth_prime n)
     simp [nth_nonzero]
 
