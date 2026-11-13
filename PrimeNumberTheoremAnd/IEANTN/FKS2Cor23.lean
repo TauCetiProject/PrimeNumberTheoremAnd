@@ -28,14 +28,6 @@ upstream of both — exactly as `corollary_22` lives in `Cor22Floor.lean`.
 namespace FKS2
 open Real Table4Ext LeanCert.Core LeanCert.ANT.Asymp
 
-/- Guards for the `exact` bridges to `FKS2.TrustedNumerics` below: the expanded local
-defs there are definitionally equal to these root-namespace defs.  If `Eπ` or
-`admissible_bound` (`Defs.lean`) ever changes, these `rfl`s break *here* — pointing at
-the duplicated defs — instead of failing obscurely at each `exact` call site. -/
-example (x : ℝ) : Eπ x = FKS2.TrustedNumerics.Epi x := rfl
-example (A B C R x : ℝ) :
-    admissible_bound A B C R x = FKS2.TrustedNumerics.classicalCurve A B C R x := rfl
-
 /-! ## Shared `R = 5.5666305` numeric enclosures (used by every row-5 segment) -/
 
 /-- `√5.5666305 ≥ 2.359370`. -/

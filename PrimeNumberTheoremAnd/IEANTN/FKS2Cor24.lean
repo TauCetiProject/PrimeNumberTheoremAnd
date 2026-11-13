@@ -17,12 +17,6 @@ in `x^{-1/2}` form.  Each row then splits as Buthe `[e^a, e^10]` + envelope
 namespace FKS2
 open Real Table4Ext LeanCert.Core LeanCert.ANT.Asymp
 
-/- Guard for the `exact` bridges to `FKS2.Cor24Trusted`: its file-local `Epi` is
-definitionally equal to this development's root-namespace `Eπ`.  If `Eπ` (`Defs.lean`)
-ever changes, this `rfl` breaks *here* — pointing at the duplicated def — instead of
-failing obscurely at each `exact` call site in the row files. -/
-example (x : ℝ) : Eπ x = FKS2.Cor24Trusted.Epi x := rfl
-
 /-- **Buthe bound in `x^{-1/2}` form** (shared core for all Table-7 rows): from
 `Buthe.theorem_2e/2f` (valid `x ∈ [2, 10^19]`),
 `Eπ x ≤ (1.95 + 3.9/log x + 19.5/(log x)²)·x^{-1/2} + 1.0452·(log x)/x`. -/
