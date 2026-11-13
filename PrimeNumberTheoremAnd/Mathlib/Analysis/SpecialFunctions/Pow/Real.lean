@@ -38,11 +38,3 @@ theorem log_mul_rpow_neg_le_two_div_mul_rpow_neg {ε : ℝ} (hε : 0 < ε) {u : 
     _ = (2 / ε) * u ^ (-1 - ε / 2) := by rw [mul_assoc, hpow_mul]
 
 end Real
-
-namespace Complex
-
-/-- For `0 ≤ p`, one has `1 ≤ (1 + ‖z‖)^p`. -/
-theorem one_le_one_add_norm_rpow (z : ℂ) {p : ℝ} (hp : 0 ≤ p) : (1 : ℝ) ≤ (1 + ‖z‖) ^ p :=
-  Real.one_le_rpow (by linarith [norm_nonneg z]) hp
-
-end Complex

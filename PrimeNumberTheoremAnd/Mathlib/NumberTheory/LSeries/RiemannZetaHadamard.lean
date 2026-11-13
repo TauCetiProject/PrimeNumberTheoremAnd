@@ -111,7 +111,7 @@ theorem riemannXi_entireOfOrderAtMost_one :
   have hpoly : ‖z * (z - 1)‖ ≤ R ^ 2 := by
     have hz : ‖z‖ ≤ R := by dsimp [R]; linarith [norm_nonneg z]
     have hz1 : ‖z - 1‖ ≤ R := by
-      simpa [R] using Complex.norm_sub_one_le_one_add_norm z
+      simpa [R, add_comm] using norm_sub_le z (1 : ℂ)
     calc
       ‖z * (z - 1)‖ ≤ ‖z‖ * ‖z - 1‖ := norm_mul_le z (z - 1)
       _ ≤ R * R := mul_le_mul hz hz1 (norm_nonneg _) (by positivity)

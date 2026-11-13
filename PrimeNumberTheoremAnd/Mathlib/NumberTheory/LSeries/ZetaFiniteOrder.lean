@@ -226,7 +226,7 @@ theorem completedRiemannZeta₀_order_one :
     have htransfer : ‖completedRiemannZeta₀ z‖ = ‖completedRiemannZeta₀ w‖ := by
       simp [hw_eq]
     have hz_base : (1 : ℝ) ≤ (1 + ‖z‖) ^ (1 + ε) :=
-      one_le_one_add_norm_rpow (z := z) (by linarith [le_of_lt hε])
+      Real.one_le_rpow (by linarith [norm_nonneg z]) (by linarith [le_of_lt hε])
     by_cases hw_small : ‖w‖ ≤ 3
     · have hbw : ‖completedRiemannZeta₀ w‖ ≤ M := hM w hw_small
       have hlogC : Real.log (M + 1) ≤ C := by
@@ -585,7 +585,7 @@ theorem zeta_minus_pole_entire_growth :
             (by simpa [zetaAbelContinuationReLower] using hz_re)
           have hζ := norm_riemannZeta_le z hs_dom
           have hzm1_le : ‖z - 1‖ ≤ A := by
-            simpa [A] using norm_sub_one_le_one_add_norm z
+            simpa [A, add_comm] using norm_sub_le z (1 : ℂ)
           have hfrac : ‖z‖ / z.re ≤ 10 * ‖z‖ := norm_div_re_le_ten_mul_norm_of_mem hs_dom
           have hpoly :
               ‖(z - 1) * riemannZeta z‖ ≤ (40 : ℝ) * A ^ (2 : ℝ) := by
@@ -653,7 +653,7 @@ theorem zeta_minus_pole_entire_growth :
           have hpow_le1 : ‖(2 * π : ℂ) ^ (-w)‖ ≤ 1 :=
             Complex.Gammaℝ.Stirling.norm_cpow_two_mul_pi_neg_le_one hw_re0
           have hw_norm_le : ‖w‖ ≤ A := by
-            simpa [w, A] using norm_one_sub_le_one_add_norm z
+            simpa [w, A] using norm_sub_le (1 : ℂ) z
           have hw_norm_ge1 : (1 : ℝ) ≤ ‖w‖ := by
             simpa [w] using one_le_norm_one_sub_of_norm_gt_three hz_large
           have hΓw : ‖Complex.Gamma w‖ ≤ Real.exp (CΓ * A ^ (2 : ℝ)) := by

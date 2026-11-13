@@ -20,16 +20,6 @@ variable {z : ℂ}
 theorem neg_norm_le_re (z : ℂ) : -‖z‖ ≤ z.re :=
   neg_le_of_abs_le (abs_re_le_norm z)
 
-/-- `‖z - 1‖ ≤ 1 + ‖z‖`. -/
-lemma norm_sub_one_le_one_add_norm (z : ℂ) : ‖z - 1‖ ≤ 1 + ‖z‖ := by
-  have hone : ‖(1 : ℂ)‖ = (1 : ℝ) := by simpa using Complex.norm_natCast 1
-  simpa [hone, add_comm] using norm_sub_le z (1 : ℂ)
-
-/-- `‖1 - z‖ ≤ 1 + ‖z‖`. -/
-lemma norm_one_sub_le_one_add_norm (z : ℂ) : ‖1 - z‖ ≤ 1 + ‖z‖ := by
-  have hone : ‖(1 : ℂ)‖ = (1 : ℝ) := by simpa using Complex.norm_natCast 1
-  simpa [hone] using norm_sub_le (1 : ℂ) z
-
 /-- If `3 < ‖z‖`, then `1 ≤ ‖1 - z‖`; the constant leaves the margin needed in the
 Cartan-product estimates. -/
 lemma one_le_norm_one_sub_of_norm_gt_three {z : ℂ} (hz : 3 < ‖z‖) : (1 : ℝ) ≤ ‖1 - z‖ := by
