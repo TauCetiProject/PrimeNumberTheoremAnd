@@ -102,6 +102,69 @@ private lemma floor_59 : ⌊(59 : ℝ) / log 2⌋₊ = 85 := by
   refine ⟨by rw [le_div_iff₀ hlog2]; push_cast; nlinarith [LogTables.log_2_lt_d9],
           by rw [div_lt_iff₀ hlog2]; push_cast; nlinarith [LogTables.log_2_gt_d9]⟩
 
+private lemma row44_exp_head_le :
+    1
+      + Real.exp ((-11 : ℝ) / 3)
+      + Real.exp ((-88 : ℝ) / 15)
+      + Real.exp ((-22 : ℝ) / 3) ≤ (1030 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((11 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((88 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((22 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((11 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((88 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((22 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row44_exp_middle_le :
+    Real.exp ((-176 : ℝ) / 21)
+      + Real.exp ((-55 : ℝ) / 6)
+      + Real.exp ((-88 : ℝ) / 9)
+      + Real.exp ((-154 : ℝ) / 15) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((176 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((55 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((88 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((154 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((176 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((55 : ℝ) / 6) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((88 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((154 : ℝ) / 15) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row44_exp_tail_le :
+    Real.exp ((-32 : ℝ) / 3)
+      + Real.exp ((-11 : ℝ) / 1)
+      + 52 * Real.exp ((-440 : ℝ) / 39) ≤ (2 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((32 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((11 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + 52 * (∑ i ∈ Finset.range 12, ((440 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((32 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((11 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((440 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row44_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((44 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((63 : ℕ) : ℝ) - 11) * Real.exp ((44 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0507 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row44_exp_head_le, row44_exp_middle_le, row44_exp_tail_le]
+
 private lemma row44_a2_le : Inputs.default.a₂ (44 : ℝ) ≤ (1.0508 : ℝ) := by
   have h := a2_mid_le 44 (by norm_num) 63 floor_44 (by norm_num)
   refine h.trans ?_
@@ -112,10 +175,7 @@ private lemma row44_a2_le : Inputs.default.a₂ (44 : ℝ) ≤ (1.0508 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((44 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((63 : ℕ) : ℝ) - 11) * Real.exp ((44 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0507 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((63 : ℕ) : ℝ) - 11) * Real.exp ((44 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0507 := row44_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((44 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((63 : ℕ) : ℝ) - 11) * Real.exp ((44 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((44 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -124,6 +184,69 @@ private lemma row44_a2_le : Inputs.default.a₂ (44 : ℝ) ≤ (1.0508 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row45_exp_head_le :
+    1
+      + Real.exp ((-15 : ℝ) / 4)
+      + Real.exp ((-6 : ℝ) / 1)
+      + Real.exp ((-15 : ℝ) / 2) ≤ (1027 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((15 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((6 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((15 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((15 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((6 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((15 : ℝ) / 2) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row45_exp_middle_le :
+    Real.exp ((-60 : ℝ) / 7)
+      + Real.exp ((-75 : ℝ) / 8)
+      + Real.exp ((-10 : ℝ) / 1)
+      + Real.exp ((-21 : ℝ) / 2) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((60 : ℝ) / 7) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((75 : ℝ) / 8) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((10 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((21 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((60 : ℝ) / 7) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((75 : ℝ) / 8) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((10 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((21 : ℝ) / 2) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row45_exp_tail_le :
+    Real.exp ((-120 : ℝ) / 11)
+      + Real.exp ((-45 : ℝ) / 4)
+      + 53 * Real.exp ((-150 : ℝ) / 13) ≤ (2 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((120 : ℝ) / 11) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((45 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 53 * (∑ i ∈ Finset.range 12, ((150 : ℝ) / 13) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((120 : ℝ) / 11) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((45 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((150 : ℝ) / 13) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row45_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((45 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((64 : ℕ) : ℝ) - 11) * Real.exp ((45 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0479 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row45_exp_head_le, row45_exp_middle_le, row45_exp_tail_le]
 
 private lemma row45_a2_le : Inputs.default.a₂ (45 : ℝ) ≤ (1.0480 : ℝ) := by
   have h := a2_mid_le 45 (by norm_num) 64 floor_45 (by norm_num)
@@ -135,10 +258,7 @@ private lemma row45_a2_le : Inputs.default.a₂ (45 : ℝ) ≤ (1.0480 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((45 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((64 : ℕ) : ℝ) - 11) * Real.exp ((45 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0479 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((64 : ℕ) : ℝ) - 11) * Real.exp ((45 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0479 := row45_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((45 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((64 : ℕ) : ℝ) - 11) * Real.exp ((45 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((45 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -147,6 +267,69 @@ private lemma row45_a2_le : Inputs.default.a₂ (45 : ℝ) ≤ (1.0480 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row46_exp_head_le :
+    1
+      + Real.exp ((-23 : ℝ) / 6)
+      + Real.exp ((-92 : ℝ) / 15)
+      + Real.exp ((-23 : ℝ) / 3) ≤ (1025 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((23 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((92 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((23 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((23 : ℝ) / 6) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((92 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((23 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row46_exp_middle_le :
+    Real.exp ((-184 : ℝ) / 21)
+      + Real.exp ((-115 : ℝ) / 12)
+      + Real.exp ((-92 : ℝ) / 9)
+      + Real.exp ((-161 : ℝ) / 15) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((184 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((115 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((92 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((161 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((184 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((115 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((92 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((161 : ℝ) / 15) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row46_exp_tail_le :
+    Real.exp ((-368 : ℝ) / 33)
+      + Real.exp ((-23 : ℝ) / 2)
+      + 55 * Real.exp ((-460 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((368 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((23 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹
+        + 55 * (∑ i ∈ Finset.range 12, ((460 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((368 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((23 : ℝ) / 2) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((460 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row46_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((46 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((66 : ℕ) : ℝ) - 11) * Real.exp ((46 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0454 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row46_exp_head_le, row46_exp_middle_le, row46_exp_tail_le]
 
 private lemma row46_a2_le : Inputs.default.a₂ (46 : ℝ) ≤ (1.0455 : ℝ) := by
   have h := a2_mid_le 46 (by norm_num) 66 floor_46 (by norm_num)
@@ -158,10 +341,7 @@ private lemma row46_a2_le : Inputs.default.a₂ (46 : ℝ) ≤ (1.0455 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((46 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((66 : ℕ) : ℝ) - 11) * Real.exp ((46 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0454 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((66 : ℕ) : ℝ) - 11) * Real.exp ((46 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0454 := row46_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((46 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((66 : ℕ) : ℝ) - 11) * Real.exp ((46 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((46 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -170,6 +350,69 @@ private lemma row46_a2_le : Inputs.default.a₂ (46 : ℝ) ≤ (1.0455 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row47_exp_head_le :
+    1
+      + Real.exp ((-47 : ℝ) / 12)
+      + Real.exp ((-94 : ℝ) / 15)
+      + Real.exp ((-47 : ℝ) / 6) ≤ (1023 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((47 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((94 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((47 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((47 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((94 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((47 : ℝ) / 6) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row47_exp_middle_le :
+    Real.exp ((-188 : ℝ) / 21)
+      + Real.exp ((-235 : ℝ) / 24)
+      + Real.exp ((-94 : ℝ) / 9)
+      + Real.exp ((-329 : ℝ) / 30) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((188 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((235 : ℝ) / 24) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((94 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((329 : ℝ) / 30) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((188 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((235 : ℝ) / 24) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((94 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((329 : ℝ) / 30) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row47_exp_tail_le :
+    Real.exp ((-376 : ℝ) / 33)
+      + Real.exp ((-47 : ℝ) / 4)
+      + 56 * Real.exp ((-470 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((376 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((47 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 56 * (∑ i ∈ Finset.range 12, ((470 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((376 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((47 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((470 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row47_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((47 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((67 : ℕ) : ℝ) - 11) * Real.exp ((47 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0432 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row47_exp_head_le, row47_exp_middle_le, row47_exp_tail_le]
 
 private lemma row47_a2_le : Inputs.default.a₂ (47 : ℝ) ≤ (1.0433 : ℝ) := by
   have h := a2_mid_le 47 (by norm_num) 67 floor_47 (by norm_num)
@@ -181,10 +424,7 @@ private lemma row47_a2_le : Inputs.default.a₂ (47 : ℝ) ≤ (1.0433 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((47 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((67 : ℕ) : ℝ) - 11) * Real.exp ((47 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0432 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((67 : ℕ) : ℝ) - 11) * Real.exp ((47 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0432 := row47_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((47 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((67 : ℕ) : ℝ) - 11) * Real.exp ((47 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((47 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -193,6 +433,69 @@ private lemma row47_a2_le : Inputs.default.a₂ (47 : ℝ) ≤ (1.0433 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row48_exp_head_le :
+    1
+      + Real.exp ((-4 : ℝ) / 1)
+      + Real.exp ((-32 : ℝ) / 5)
+      + Real.exp ((-8 : ℝ) / 1) ≤ (1021 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((4 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((32 : ℝ) / 5) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((8 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((4 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((32 : ℝ) / 5) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((8 : ℝ) / 1) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row48_exp_middle_le :
+    Real.exp ((-64 : ℝ) / 7)
+      + Real.exp ((-10 : ℝ) / 1)
+      + Real.exp ((-32 : ℝ) / 3)
+      + Real.exp ((-56 : ℝ) / 5) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((64 : ℝ) / 7) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((10 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((32 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((56 : ℝ) / 5) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((64 : ℝ) / 7) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((10 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((32 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((56 : ℝ) / 5) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row48_exp_tail_le :
+    Real.exp ((-128 : ℝ) / 11)
+      + Real.exp ((-12 : ℝ) / 1)
+      + 58 * Real.exp ((-160 : ℝ) / 13) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((128 : ℝ) / 11) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((12 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + 58 * (∑ i ∈ Finset.range 12, ((160 : ℝ) / 13) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((128 : ℝ) / 11) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((12 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((160 : ℝ) / 13) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row48_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((48 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((69 : ℕ) : ℝ) - 11) * Real.exp ((48 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0411 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row48_exp_head_le, row48_exp_middle_le, row48_exp_tail_le]
 
 private lemma row48_a2_le : Inputs.default.a₂ (48 : ℝ) ≤ (1.0412 : ℝ) := by
   have h := a2_mid_le 48 (by norm_num) 69 floor_48 (by norm_num)
@@ -204,10 +507,7 @@ private lemma row48_a2_le : Inputs.default.a₂ (48 : ℝ) ≤ (1.0412 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((48 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((69 : ℕ) : ℝ) - 11) * Real.exp ((48 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0411 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((69 : ℕ) : ℝ) - 11) * Real.exp ((48 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0411 := row48_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((48 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((69 : ℕ) : ℝ) - 11) * Real.exp ((48 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((48 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -216,6 +516,69 @@ private lemma row48_a2_le : Inputs.default.a₂ (48 : ℝ) ≤ (1.0412 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row49_exp_head_le :
+    1
+      + Real.exp ((-49 : ℝ) / 12)
+      + Real.exp ((-98 : ℝ) / 15)
+      + Real.exp ((-49 : ℝ) / 6) ≤ (1019 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((49 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((98 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((49 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((49 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((98 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((49 : ℝ) / 6) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row49_exp_middle_le :
+    Real.exp ((-28 : ℝ) / 3)
+      + Real.exp ((-245 : ℝ) / 24)
+      + Real.exp ((-98 : ℝ) / 9)
+      + Real.exp ((-343 : ℝ) / 30) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((28 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((245 : ℝ) / 24) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((98 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((343 : ℝ) / 30) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((28 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((245 : ℝ) / 24) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((98 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((343 : ℝ) / 30) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row49_exp_tail_le :
+    Real.exp ((-392 : ℝ) / 33)
+      + Real.exp ((-49 : ℝ) / 4)
+      + 59 * Real.exp ((-490 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((392 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((49 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 59 * (∑ i ∈ Finset.range 12, ((490 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((392 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((49 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((490 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row49_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((49 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((70 : ℕ) : ℝ) - 11) * Real.exp ((49 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0393 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row49_exp_head_le, row49_exp_middle_le, row49_exp_tail_le]
 
 private lemma row49_a2_le : Inputs.default.a₂ (49 : ℝ) ≤ (1.0394 : ℝ) := by
   have h := a2_mid_le 49 (by norm_num) 70 floor_49 (by norm_num)
@@ -227,10 +590,7 @@ private lemma row49_a2_le : Inputs.default.a₂ (49 : ℝ) ≤ (1.0394 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((49 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((70 : ℕ) : ℝ) - 11) * Real.exp ((49 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0393 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((70 : ℕ) : ℝ) - 11) * Real.exp ((49 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0393 := row49_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((49 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((70 : ℕ) : ℝ) - 11) * Real.exp ((49 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((49 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -239,6 +599,69 @@ private lemma row49_a2_le : Inputs.default.a₂ (49 : ℝ) ≤ (1.0394 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row50_exp_head_le :
+    1
+      + Real.exp ((-25 : ℝ) / 6)
+      + Real.exp ((-20 : ℝ) / 3)
+      + Real.exp ((-25 : ℝ) / 3) ≤ (1018 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((25 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((20 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((25 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((25 : ℝ) / 6) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((20 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((25 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row50_exp_middle_le :
+    Real.exp ((-200 : ℝ) / 21)
+      + Real.exp ((-125 : ℝ) / 12)
+      + Real.exp ((-100 : ℝ) / 9)
+      + Real.exp ((-35 : ℝ) / 3) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((200 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((125 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((100 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((35 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((200 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((125 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((100 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((35 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row50_exp_tail_le :
+    Real.exp ((-400 : ℝ) / 33)
+      + Real.exp ((-25 : ℝ) / 2)
+      + 61 * Real.exp ((-500 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((400 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((25 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹
+        + 61 * (∑ i ∈ Finset.range 12, ((500 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((400 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((25 : ℝ) / 2) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((500 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row50_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((50 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((72 : ℕ) : ℝ) - 11) * Real.exp ((50 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0376 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row50_exp_head_le, row50_exp_middle_le, row50_exp_tail_le]
 
 private lemma row50_a2_le : Inputs.default.a₂ (50 : ℝ) ≤ (1.0377 : ℝ) := by
   have h := a2_mid_le 50 (by norm_num) 72 floor_50 (by norm_num)
@@ -250,10 +673,7 @@ private lemma row50_a2_le : Inputs.default.a₂ (50 : ℝ) ≤ (1.0377 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((50 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((72 : ℕ) : ℝ) - 11) * Real.exp ((50 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0376 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((72 : ℕ) : ℝ) - 11) * Real.exp ((50 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0376 := row50_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((50 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((72 : ℕ) : ℝ) - 11) * Real.exp ((50 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((50 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -262,6 +682,69 @@ private lemma row50_a2_le : Inputs.default.a₂ (50 : ℝ) ≤ (1.0377 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row51_exp_head_le :
+    1
+      + Real.exp ((-17 : ℝ) / 4)
+      + Real.exp ((-34 : ℝ) / 5)
+      + Real.exp ((-17 : ℝ) / 2) ≤ (1016 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((17 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((34 : ℝ) / 5) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((17 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((17 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((34 : ℝ) / 5) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((17 : ℝ) / 2) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row51_exp_middle_le :
+    Real.exp ((-68 : ℝ) / 7)
+      + Real.exp ((-85 : ℝ) / 8)
+      + Real.exp ((-34 : ℝ) / 3)
+      + Real.exp ((-119 : ℝ) / 10) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((68 : ℝ) / 7) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((85 : ℝ) / 8) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((34 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((119 : ℝ) / 10) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((68 : ℝ) / 7) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((85 : ℝ) / 8) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((34 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((119 : ℝ) / 10) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row51_exp_tail_le :
+    Real.exp ((-136 : ℝ) / 11)
+      + Real.exp ((-51 : ℝ) / 4)
+      + 62 * Real.exp ((-170 : ℝ) / 13) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((136 : ℝ) / 11) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((51 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 62 * (∑ i ∈ Finset.range 12, ((170 : ℝ) / 13) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((136 : ℝ) / 11) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((51 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((170 : ℝ) / 13) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row51_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((51 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((73 : ℕ) : ℝ) - 11) * Real.exp ((51 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0361 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row51_exp_head_le, row51_exp_middle_le, row51_exp_tail_le]
 
 private lemma row51_a2_le : Inputs.default.a₂ (51 : ℝ) ≤ (1.0362 : ℝ) := by
   have h := a2_mid_le 51 (by norm_num) 73 floor_51 (by norm_num)
@@ -273,10 +756,7 @@ private lemma row51_a2_le : Inputs.default.a₂ (51 : ℝ) ≤ (1.0362 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((51 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((73 : ℕ) : ℝ) - 11) * Real.exp ((51 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0361 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((73 : ℕ) : ℝ) - 11) * Real.exp ((51 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0361 := row51_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((51 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((73 : ℕ) : ℝ) - 11) * Real.exp ((51 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((51 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -285,6 +765,69 @@ private lemma row51_a2_le : Inputs.default.a₂ (51 : ℝ) ≤ (1.0362 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row52_exp_head_le :
+    1
+      + Real.exp ((-13 : ℝ) / 3)
+      + Real.exp ((-104 : ℝ) / 15)
+      + Real.exp ((-26 : ℝ) / 3) ≤ (1015 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((13 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((104 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((26 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((13 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((104 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((26 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row52_exp_middle_le :
+    Real.exp ((-208 : ℝ) / 21)
+      + Real.exp ((-65 : ℝ) / 6)
+      + Real.exp ((-104 : ℝ) / 9)
+      + Real.exp ((-182 : ℝ) / 15) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((208 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((65 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((104 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((182 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((208 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((65 : ℝ) / 6) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((104 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((182 : ℝ) / 15) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row52_exp_tail_le :
+    Real.exp ((-416 : ℝ) / 33)
+      + Real.exp ((-13 : ℝ) / 1)
+      + 64 * Real.exp ((-40 : ℝ) / 3) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((416 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((13 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + 64 * (∑ i ∈ Finset.range 12, ((40 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((416 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((13 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((40 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row52_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((52 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((75 : ℕ) : ℝ) - 11) * Real.exp ((52 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0347 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row52_exp_head_le, row52_exp_middle_le, row52_exp_tail_le]
 
 private lemma row52_a2_le : Inputs.default.a₂ (52 : ℝ) ≤ (1.0348 : ℝ) := by
   have h := a2_mid_le 52 (by norm_num) 75 floor_52 (by norm_num)
@@ -296,10 +839,7 @@ private lemma row52_a2_le : Inputs.default.a₂ (52 : ℝ) ≤ (1.0348 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((52 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((75 : ℕ) : ℝ) - 11) * Real.exp ((52 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0347 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((75 : ℕ) : ℝ) - 11) * Real.exp ((52 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0347 := row52_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((52 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((75 : ℕ) : ℝ) - 11) * Real.exp ((52 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((52 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -308,6 +848,69 @@ private lemma row52_a2_le : Inputs.default.a₂ (52 : ℝ) ≤ (1.0348 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row53_exp_head_le :
+    1
+      + Real.exp ((-53 : ℝ) / 12)
+      + Real.exp ((-106 : ℝ) / 15)
+      + Real.exp ((-53 : ℝ) / 6) ≤ (1014 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((53 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((106 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((53 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((53 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((106 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((53 : ℝ) / 6) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row53_exp_middle_le :
+    Real.exp ((-212 : ℝ) / 21)
+      + Real.exp ((-265 : ℝ) / 24)
+      + Real.exp ((-106 : ℝ) / 9)
+      + Real.exp ((-371 : ℝ) / 30) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((212 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((265 : ℝ) / 24) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((106 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((371 : ℝ) / 30) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((212 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((265 : ℝ) / 24) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((106 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((371 : ℝ) / 30) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row53_exp_tail_le :
+    Real.exp ((-424 : ℝ) / 33)
+      + Real.exp ((-53 : ℝ) / 4)
+      + 65 * Real.exp ((-530 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((424 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((53 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 65 * (∑ i ∈ Finset.range 12, ((530 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((424 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((53 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((530 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row53_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((53 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((76 : ℕ) : ℝ) - 11) * Real.exp ((53 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0334 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row53_exp_head_le, row53_exp_middle_le, row53_exp_tail_le]
 
 private lemma row53_a2_le : Inputs.default.a₂ (53 : ℝ) ≤ (1.0335 : ℝ) := by
   have h := a2_mid_le 53 (by norm_num) 76 floor_53 (by norm_num)
@@ -319,10 +922,7 @@ private lemma row53_a2_le : Inputs.default.a₂ (53 : ℝ) ≤ (1.0335 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((53 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((76 : ℕ) : ℝ) - 11) * Real.exp ((53 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0334 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((76 : ℕ) : ℝ) - 11) * Real.exp ((53 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0334 := row53_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((53 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((76 : ℕ) : ℝ) - 11) * Real.exp ((53 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((53 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -331,6 +931,69 @@ private lemma row53_a2_le : Inputs.default.a₂ (53 : ℝ) ≤ (1.0335 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row54_exp_head_le :
+    1
+      + Real.exp ((-9 : ℝ) / 2)
+      + Real.exp ((-36 : ℝ) / 5)
+      + Real.exp ((-9 : ℝ) / 1) ≤ (1013 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((9 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((36 : ℝ) / 5) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((9 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((9 : ℝ) / 2) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((36 : ℝ) / 5) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((9 : ℝ) / 1) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row54_exp_middle_le :
+    Real.exp ((-72 : ℝ) / 7)
+      + Real.exp ((-45 : ℝ) / 4)
+      + Real.exp ((-12 : ℝ) / 1)
+      + Real.exp ((-63 : ℝ) / 5) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((72 : ℝ) / 7) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((45 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((12 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((63 : ℝ) / 5) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((72 : ℝ) / 7) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((45 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((12 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((63 : ℝ) / 5) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row54_exp_tail_le :
+    Real.exp ((-144 : ℝ) / 11)
+      + Real.exp ((-27 : ℝ) / 2)
+      + 66 * Real.exp ((-180 : ℝ) / 13) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((144 : ℝ) / 11) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((27 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹
+        + 66 * (∑ i ∈ Finset.range 12, ((180 : ℝ) / 13) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((144 : ℝ) / 11) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((27 : ℝ) / 2) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((180 : ℝ) / 13) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row54_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((54 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((77 : ℕ) : ℝ) - 11) * Real.exp ((54 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0323 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row54_exp_head_le, row54_exp_middle_le, row54_exp_tail_le]
 
 private lemma row54_a2_le : Inputs.default.a₂ (54 : ℝ) ≤ (1.0324 : ℝ) := by
   have h := a2_mid_le 54 (by norm_num) 77 floor_54 (by norm_num)
@@ -342,10 +1005,7 @@ private lemma row54_a2_le : Inputs.default.a₂ (54 : ℝ) ≤ (1.0324 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((54 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((77 : ℕ) : ℝ) - 11) * Real.exp ((54 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0323 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((77 : ℕ) : ℝ) - 11) * Real.exp ((54 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0323 := row54_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((54 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((77 : ℕ) : ℝ) - 11) * Real.exp ((54 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((54 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -354,6 +1014,69 @@ private lemma row54_a2_le : Inputs.default.a₂ (54 : ℝ) ≤ (1.0324 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row55_exp_head_le :
+    1
+      + Real.exp ((-55 : ℝ) / 12)
+      + Real.exp ((-22 : ℝ) / 3)
+      + Real.exp ((-55 : ℝ) / 6) ≤ (1012 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((55 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((22 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((55 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((55 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((22 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((55 : ℝ) / 6) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row55_exp_middle_le :
+    Real.exp ((-220 : ℝ) / 21)
+      + Real.exp ((-275 : ℝ) / 24)
+      + Real.exp ((-110 : ℝ) / 9)
+      + Real.exp ((-77 : ℝ) / 6) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((220 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((275 : ℝ) / 24) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((110 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((77 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((220 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((275 : ℝ) / 24) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((110 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((77 : ℝ) / 6) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row55_exp_tail_le :
+    Real.exp ((-40 : ℝ) / 3)
+      + Real.exp ((-55 : ℝ) / 4)
+      + 68 * Real.exp ((-550 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((40 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((55 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 68 * (∑ i ∈ Finset.range 12, ((550 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((40 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((55 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((550 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row55_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((55 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((79 : ℕ) : ℝ) - 11) * Real.exp ((55 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0313 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row55_exp_head_le, row55_exp_middle_le, row55_exp_tail_le]
 
 private lemma row55_a2_le : Inputs.default.a₂ (55 : ℝ) ≤ (1.0314 : ℝ) := by
   have h := a2_mid_le 55 (by norm_num) 79 floor_55 (by norm_num)
@@ -365,10 +1088,7 @@ private lemma row55_a2_le : Inputs.default.a₂ (55 : ℝ) ≤ (1.0314 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((55 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((79 : ℕ) : ℝ) - 11) * Real.exp ((55 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0313 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((79 : ℕ) : ℝ) - 11) * Real.exp ((55 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0313 := row55_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((55 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((79 : ℕ) : ℝ) - 11) * Real.exp ((55 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((55 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -377,6 +1097,69 @@ private lemma row55_a2_le : Inputs.default.a₂ (55 : ℝ) ≤ (1.0314 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row56_exp_head_le :
+    1
+      + Real.exp ((-14 : ℝ) / 3)
+      + Real.exp ((-112 : ℝ) / 15)
+      + Real.exp ((-28 : ℝ) / 3) ≤ (1011 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((14 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((112 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((28 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((14 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((112 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((28 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row56_exp_middle_le :
+    Real.exp ((-32 : ℝ) / 3)
+      + Real.exp ((-35 : ℝ) / 3)
+      + Real.exp ((-112 : ℝ) / 9)
+      + Real.exp ((-196 : ℝ) / 15) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((32 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((35 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((112 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((196 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((32 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((35 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((112 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((196 : ℝ) / 15) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row56_exp_tail_le :
+    Real.exp ((-448 : ℝ) / 33)
+      + Real.exp ((-14 : ℝ) / 1)
+      + 69 * Real.exp ((-560 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((448 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((14 : ℝ) / 1) ^ i / (i.factorial : ℝ))⁻¹
+        + 69 * (∑ i ∈ Finset.range 12, ((560 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((448 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((14 : ℝ) / 1) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((560 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row56_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((56 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((80 : ℕ) : ℝ) - 11) * Real.exp ((56 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0303 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row56_exp_head_le, row56_exp_middle_le, row56_exp_tail_le]
 
 private lemma row56_a2_le : Inputs.default.a₂ (56 : ℝ) ≤ (1.0304 : ℝ) := by
   have h := a2_mid_le 56 (by norm_num) 80 floor_56 (by norm_num)
@@ -388,10 +1171,7 @@ private lemma row56_a2_le : Inputs.default.a₂ (56 : ℝ) ≤ (1.0304 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((56 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((80 : ℕ) : ℝ) - 11) * Real.exp ((56 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0303 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((80 : ℕ) : ℝ) - 11) * Real.exp ((56 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0303 := row56_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((56 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((80 : ℕ) : ℝ) - 11) * Real.exp ((56 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((56 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -400,6 +1180,69 @@ private lemma row56_a2_le : Inputs.default.a₂ (56 : ℝ) ≤ (1.0304 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row57_exp_head_le :
+    1
+      + Real.exp ((-19 : ℝ) / 4)
+      + Real.exp ((-38 : ℝ) / 5)
+      + Real.exp ((-19 : ℝ) / 2) ≤ (1010 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((19 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((38 : ℝ) / 5) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((19 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((19 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((38 : ℝ) / 5) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((19 : ℝ) / 2) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row57_exp_middle_le :
+    Real.exp ((-76 : ℝ) / 7)
+      + Real.exp ((-95 : ℝ) / 8)
+      + Real.exp ((-38 : ℝ) / 3)
+      + Real.exp ((-133 : ℝ) / 10) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((76 : ℝ) / 7) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((95 : ℝ) / 8) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((38 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((133 : ℝ) / 10) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((76 : ℝ) / 7) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((95 : ℝ) / 8) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((38 : ℝ) / 3) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((133 : ℝ) / 10) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row57_exp_tail_le :
+    Real.exp ((-152 : ℝ) / 11)
+      + Real.exp ((-57 : ℝ) / 4)
+      + 71 * Real.exp ((-190 : ℝ) / 13) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((152 : ℝ) / 11) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((57 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 71 * (∑ i ∈ Finset.range 12, ((190 : ℝ) / 13) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((152 : ℝ) / 11) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((57 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((190 : ℝ) / 13) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row57_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((57 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((82 : ℕ) : ℝ) - 11) * Real.exp ((57 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0294 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row57_exp_head_le, row57_exp_middle_le, row57_exp_tail_le]
 
 private lemma row57_a2_le : Inputs.default.a₂ (57 : ℝ) ≤ (1.0295 : ℝ) := by
   have h := a2_mid_le 57 (by norm_num) 82 floor_57 (by norm_num)
@@ -411,10 +1254,7 @@ private lemma row57_a2_le : Inputs.default.a₂ (57 : ℝ) ≤ (1.0295 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((57 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((82 : ℕ) : ℝ) - 11) * Real.exp ((57 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0294 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((82 : ℕ) : ℝ) - 11) * Real.exp ((57 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0294 := row57_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((57 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((82 : ℕ) : ℝ) - 11) * Real.exp ((57 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((57 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -423,6 +1263,69 @@ private lemma row57_a2_le : Inputs.default.a₂ (57 : ℝ) ≤ (1.0295 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row58_exp_head_le :
+    1
+      + Real.exp ((-29 : ℝ) / 6)
+      + Real.exp ((-116 : ℝ) / 15)
+      + Real.exp ((-29 : ℝ) / 3) ≤ (1009 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((29 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((116 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((29 : ℝ) / 3) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((29 : ℝ) / 6) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((116 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((29 : ℝ) / 3) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row58_exp_middle_le :
+    Real.exp ((-232 : ℝ) / 21)
+      + Real.exp ((-145 : ℝ) / 12)
+      + Real.exp ((-116 : ℝ) / 9)
+      + Real.exp ((-203 : ℝ) / 15) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((232 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((145 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((116 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((203 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((232 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((145 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((116 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((203 : ℝ) / 15) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row58_exp_tail_le :
+    Real.exp ((-464 : ℝ) / 33)
+      + Real.exp ((-29 : ℝ) / 2)
+      + 72 * Real.exp ((-580 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((464 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((29 : ℝ) / 2) ^ i / (i.factorial : ℝ))⁻¹
+        + 72 * (∑ i ∈ Finset.range 12, ((580 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((464 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((29 : ℝ) / 2) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((580 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row58_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((58 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((83 : ℕ) : ℝ) - 11) * Real.exp ((58 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0286 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row58_exp_head_le, row58_exp_middle_le, row58_exp_tail_le]
 
 private lemma row58_a2_le : Inputs.default.a₂ (58 : ℝ) ≤ (1.0287 : ℝ) := by
   have h := a2_mid_le 58 (by norm_num) 83 floor_58 (by norm_num)
@@ -434,10 +1337,7 @@ private lemma row58_a2_le : Inputs.default.a₂ (58 : ℝ) ≤ (1.0287 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((58 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((83 : ℕ) : ℝ) - 11) * Real.exp ((58 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0286 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((83 : ℕ) : ℝ) - 11) * Real.exp ((58 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0286 := row58_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((58 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((83 : ℕ) : ℝ) - 11) * Real.exp ((58 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((58 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=
@@ -446,6 +1346,69 @@ private lemma row58_a2_le : Inputs.default.a₂ (58 : ℝ) ≤ (1.0287 : ℝ) :=
       apply mul_nonneg (by push_cast; norm_num) (Real.exp_pos _).le
     linarith
   nlinarith [hsum, hα, hα0, hpos]
+
+private lemma row59_exp_head_le :
+    1
+      + Real.exp ((-59 : ℝ) / 12)
+      + Real.exp ((-118 : ℝ) / 15)
+      + Real.exp ((-59 : ℝ) / 6) ≤ (1008 : ℝ) / 1000 := by
+  calc
+    _ ≤ 1
+        + (∑ i ∈ Finset.range 12, ((59 : ℝ) / 12) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((118 : ℝ) / 15) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((59 : ℝ) / 6) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((59 : ℝ) / 12) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((118 : ℝ) / 15) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((59 : ℝ) / 6) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row59_exp_middle_le :
+    Real.exp ((-236 : ℝ) / 21)
+      + Real.exp ((-295 : ℝ) / 24)
+      + Real.exp ((-118 : ℝ) / 9)
+      + Real.exp ((-413 : ℝ) / 30) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((236 : ℝ) / 21) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((295 : ℝ) / 24) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((118 : ℝ) / 9) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((413 : ℝ) / 30) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((236 : ℝ) / 21) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((295 : ℝ) / 24) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((118 : ℝ) / 9) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((413 : ℝ) / 30) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row59_exp_tail_le :
+    Real.exp ((-472 : ℝ) / 33)
+      + Real.exp ((-59 : ℝ) / 4)
+      + 74 * Real.exp ((-590 : ℝ) / 39) ≤ (1 : ℝ) / 1000 := by
+  calc
+    _ ≤ (∑ i ∈ Finset.range 12, ((472 : ℝ) / 33) ^ i / (i.factorial : ℝ))⁻¹
+        + (∑ i ∈ Finset.range 12, ((59 : ℝ) / 4) ^ i / (i.factorial : ℝ))⁻¹
+        + 74 * (∑ i ∈ Finset.range 12, ((590 : ℝ) / 39) ^ i / (i.factorial : ℝ))⁻¹ := by
+      gcongr
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((472 : ℝ) / 33) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((59 : ℝ) / 4) (by norm_num)
+      · simpa only [neg_div] using exp_neg_le_inv_taylor
+          ((590 : ℝ) / 39) (by norm_num)
+    _ ≤ _ := by norm_num [Finset.sum_range_succ, Nat.factorial]
+
+private lemma row59_exp_sum_le : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((59 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
+    (((85 : ℕ) : ℝ) - 11) * Real.exp ((59 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0279 := by
+  rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from rfl]
+  norm_num [Finset.sum_insert, Finset.mem_insert]
+  linarith only [row59_exp_head_le, row59_exp_middle_le, row59_exp_tail_le]
 
 private lemma row59_a2_le : Inputs.default.a₂ (59 : ℝ) ≤ (1.0280 : ℝ) := by
   have h := a2_mid_le 59 (by norm_num) 85 floor_59 (by norm_num)
@@ -457,10 +1420,7 @@ private lemma row59_a2_le : Inputs.default.a₂ (59 : ℝ) ≤ (1.0280 : ℝ) :=
     change (0 : ℝ) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
     norm_num [BKLNW_app.table_8_margin]
   have hsum : (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((59 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
-      (((85 : ℕ) : ℝ) - 11) * Real.exp ((59 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0279 := by
-    rw [show Finset.Icc (3:ℕ) 12 = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12} from by decide]
-    norm_num [Finset.sum_insert, Finset.mem_insert]
-    interval_decide
+      (((85 : ℕ) : ℝ) - 11) * Real.exp ((59 : ℝ) * (1 / 13 - 1 / 3)) ≤ 1.0279 := row59_exp_sum_le
   have hpos : (0 : ℝ) ≤ (∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((59 : ℝ) * (1 / (k : ℝ) - 1 / 3))) +
       (((85 : ℕ) : ℝ) - 11) * Real.exp ((59 : ℝ) * (1 / 13 - 1 / 3)) := by
     have h1 : (0:ℝ) ≤ ∑ k ∈ Finset.Icc (3:ℕ) 12, Real.exp ((59 : ℝ) * (1 / (k : ℝ) - 1 / 3)) :=

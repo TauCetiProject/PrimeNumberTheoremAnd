@@ -7,7 +7,7 @@ namespace BKLNW
 
 /-- The finite Taylor sum below bounds the positive exponential from below. Its reciprocal
 provides rational upper bounds for the negative exponentials used in the row certificates. -/
-private lemma exp_neg_le_inv_taylor (x : ℝ) (hx : 0 ≤ x) :
+lemma exp_neg_le_inv_taylor (x : ℝ) (hx : 0 ≤ x) :
     Real.exp (-x) ≤ (∑ i ∈ Finset.range 12, x ^ i / (i.factorial : ℝ))⁻¹ := by
   have hsum : 1 ≤ ∑ i ∈ Finset.range 12, x ^ i / (i.factorial : ℝ) := by
     calc
