@@ -6,12 +6,11 @@ public import Mathlib.NumberTheory.Harmonic.Bounds
 public import Mathlib.NumberTheory.ArithmeticFunction.Liouville
 public import Mathlib.Algebra.Ring.GeomSum
 public import Mathlib.Analysis.Normed.Group.Tannery
-public import Mathlib.NumberTheory.Chebyshev
+public import Mathlib.NumberTheory.LSeries.WeakPNT
 public import PrimeNumberTheoremAnd.Defs
+public import TauCeti.Analysis.Asymptotics.Lemmas
 public import TauCeti.Analysis.SpecialFunctions.LogIntegral
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
-public import Mathlib.NumberTheory.LSeries.PrimesInAP
-public import TauCeti.NumberTheory.LSeries.WienerIkehara.SharpCutoff
 public import TauCeti.NumberTheory.PrimeCounting
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
 
@@ -68,86 +67,17 @@ lemma finsum_range_eq_sum_range' {R : Type*} [AddCommMonoid R] {f : ArithmeticFu
     fun (hc : n = 0) ↦ (h : f n ≠ 0) <| (congrArg f hc).trans ArithmeticFunction.map_zero
 
 
-/-- The native residue-class coefficients satisfy Wiener--Ikehara at real cutoffs. -/
-private theorem tendsto_inv_mul_mangoldt_residueClass {q : ℕ} [NeZero q]
-    (a : ZMod q) (ha : IsUnit a) :
-    Tendsto (fun x : ℝ ↦ x⁻¹ * ∑ n ∈ Icc 1 ⌊x⌋₊,
-      vonMangoldt.residueClass a n) atTop (nhds (q.totient : ℝ)⁻¹) := by
-  apply TauCeti.LSeries.wienerIkehara
-    (a := vonMangoldt.residueClass a)
-    (F := LSeries (fun n ↦ (vonMangoldt.residueClass a n : ℂ)))
-    (G := vonMangoldt.LFunctionResidueClassAux a)
-  · exact vonMangoldt.residueClass_nonneg a
-  · intro z hz
-    exact (LSeriesSummable_of_abscissaOfAbsConv_lt_re
-      ((vonMangoldt.abscissaOfAbsConv_residueClass_le_one a).trans_lt
-        (by exact_mod_cast hz))).LSeriesHasSum
-  · exact vonMangoldt.continuousOn_LFunctionResidueClassAux a
-  · intro z hz
-    simpa using vonMangoldt.eqOn_LFunctionResidueClassAux ha hz
+blueprint_comment /--
+\label{WeakPNT}
+The Chebyshev function satisfies $\psi(x) \sim x$.
+This is Mathlib's `Chebyshev.isEquivalent_psi_id`.
+-/
 
-@[blueprint "WeakPNT"
-  (title := "Weak prime number theorem")
-  (statement := /-- The Chebyshev function satisfies $\psi(x) \sim x$. -/)]
-theorem psi_isEquivalent_self : ψ ~[atTop] (fun x ↦ x) := by
-  have h := tendsto_inv_mul_mangoldt_residueClass (q := 1) 1 isUnit_one
-  have hsum (x : ℝ) : ∑ n ∈ Icc 1 ⌊x⌋₊,
-      vonMangoldt.residueClass (1 : ZMod 1) n = ψ x := by
-    rw [Chebyshev.psi_eq_sum_Icc]
-    simp only [vonMangoldt.residueClass, Set.indicator_apply,
-      show ∀ n : ℕ, (n : ZMod 1) = 1 from fun _ ↦ Subsingleton.elim _ _,
-      Set.mem_ofPred_eq, ↓reduceIte]
-    exact sum_subset (Icc_subset_Icc_left (by omega : 0 ≤ 1)) fun n hn hn' ↦ by
-      have : n = 0 := by simp only [mem_Icc] at hn hn'; omega
-      simp [this]
-  simp only [hsum, totient_one, cast_one, inv_one] at h
-  refine (isEquivalent_iff_tendsto_one ?_).mpr ?_
-  · filter_upwards [eventually_gt_atTop 0] with x hx
-    exact hx.ne'
-  · change Tendsto (fun x : ℝ ↦ ψ x / x) atTop (nhds 1)
-    simpa only [div_eq_mul_inv, mul_comm] using h
-
-/-- `√x · log x = o(x)` as `x → ∞`. -/
-lemma isLittleO_sqrt_mul_log : (fun x : ℝ ↦ x.sqrt * x.log) =o[atTop] _root_.id := by
-  have : (fun x : ℝ ↦ x.sqrt * x.log) =o[atTop] fun x ↦ x := by
-    refine (isLittleO_mul_iff_isLittleO_div ?_).mpr ?_
-    · filter_upwards [eventually_gt_atTop 0] with x hx; exact (sqrt_ne_zero hx.le).mpr hx.ne'
-    · convert! isLittleO_log_rpow_atTop (by norm_num : (0 : ℝ) < 1 / 2) using 2 with x
-      rw [div_sqrt, sqrt_eq_rpow]
-  exact this
-
-/-- `(⌊x⌋₊ + 1) / x → 1` as `x → ∞`. -/
-lemma tendsto_floor_add_one_div_self : Tendsto (fun x : ℝ ↦ (⌊x⌋₊ + 1 : ℝ) / x) atTop (nhds 1) := by
-  have h := Asymptotics.isEquivalent_nat_floor (R := ℝ)
-  have h' : IsEquivalent atTop (fun x : ℝ ↦ (⌊x⌋₊ : ℝ) + 1) _root_.id :=
-    h.add_isLittleO (isLittleO_const_id_atTop 1)
-  rwa [isEquivalent_iff_tendsto_one
-    (by filter_upwards [eventually_gt_atTop 0] with x hx a; simp only [_root_.id] at a; linarith)] at h'
-
-/-- Filtered sum over `Iic n` equals filtered sum over `Icc 1 n` for primes. -/
-lemma filter_prime_Iic_eq_Icc (n : ℕ) : filter Prime (Iic n) = filter Prime (Icc 1 n) := by
-  ext p; simp only [mem_filter, mem_Iic, mem_Icc, and_congr_left_iff]
-  exact fun hp ↦ ⟨fun h ↦ ⟨hp.one_lt.le, h⟩, fun ⟨_, h⟩ ↦ h⟩
-
-@[blueprint "chebyshev-asymptotic"
-  (title := "chebyshev-asymptotic")
-  (statement := /--
-  One has
-  $$ \sum_{p \leq x} \log p = x + o(x).$$
-  -/)
-  (proof := /--
-  From the prime number theorem we already have
-  $$ \sum_{n \leq x} \Lambda(n) = x + o(x)$$
-  so it suffices to show that
-  $$ \sum_{j \geq 2} \sum_{p^j \leq x} \log p = o(x).$$
-  Only the terms with $j \leq \log x / \log 2$ contribute, and each $j$ contributes at most
-  $\sqrt{x} \log x$ to the sum, so the left-hand side is $O( \sqrt{x} \log^2 x ) = o(x)$ as
-  required.
-  -/)]
-theorem chebyshev_asymptotic : θ ~[atTop] id := by
-  simpa only [sub_sub_self] using!
-    psi_isEquivalent_self.sub_isLittleO Chebyshev.isLittleO_psi_sub_theta_id
-
+blueprint_comment /--
+\label{chebyshev-asymptotic}
+One has $\sum_{p \leq x} \log p = x + o(x)$.
+This is Mathlib's `Chebyshev.isEquivalent_theta_id`.
+-/
 
 theorem chebyshev_asymptotic_finsum :
     (fun x ↦ ∑ᶠ (p : ℕ) (_ : p ≤ x) (_ : Nat.Prime p), log p) ~[atTop] fun x ↦ x := by
@@ -172,7 +102,7 @@ theorem chebyshev_asymptotic_finsum :
     have heq :
         (fun x : ℝ ↦ ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ)) =ᶠ[atTop] θ :=
       Filter.Eventually.of_forall h
-    exact chebyshev_asymptotic.congr_left heq.symm
+    exact Chebyshev.isEquivalent_theta_id.congr_left heq.symm
   simp only [IsEquivalent,
     show (fun n : ℕ ↦ ∑ᶠ (p : ℕ) (_ : p ≤ n) (_ : p.Prime), log (p : ℝ)) =
       (fun x : ℝ ↦ ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ)) ∘ Nat.cast
@@ -184,7 +114,7 @@ theorem chebyshev_asymptotic' :
       (∀ ε > (0 : ℝ), (f =o[atTop] fun t ↦ ε * t)) ∧
       (∀ (x : ℝ), 2 ≤ x → IntegrableOn f (Set.Icc 2 x)) ∧
       ∀ (x : ℝ), θ x = x + f x := by
-  have H := chebyshev_asymptotic
+  have H := Chebyshev.isEquivalent_theta_id
   rw [IsEquivalent, isLittleO_iff] at H
   let f := (fun x ↦ θ x - x)
   have integrable (x : ℝ) (hx : 2 ≤ x) : IntegrableOn f (Set.Icc 2 x) := by
@@ -246,14 +176,14 @@ theorem chebyshev_asymptotic'' :
   We have
     $$ \prod_{p \leq x} p = \exp( x + o(x) )$$
   -/)
-  (proof := /-- Exponentiate Theorem \ref{chebyshev_asymptotic}. -/)
+  (proof := /-- Exponentiate Theorem \ref{chebyshev-asymptotic}. -/)
   (latexEnv := "corollary")]
 theorem primorial_bounds :
     ∃ E : ℝ → ℝ, E =o[atTop] (fun x ↦ x) ∧
       ∀ x : ℝ, ∏ p ∈ (Iic ⌊x⌋₊).filter Nat.Prime, p = exp (x + E x) := by
   use (fun x ↦ ∑ p ∈ (filter Nat.Prime (Iic ⌊x⌋₊)), log p - x)
   constructor
-  · exact Asymptotics.IsEquivalent.isLittleO chebyshev_asymptotic
+  · exact Asymptotics.IsEquivalent.isLittleO Chebyshev.isEquivalent_theta_id
   intro x
   simp only [cast_prod, add_sub_cancel, exp_sum]
   apply Finset.prod_congr rfl
@@ -340,13 +270,7 @@ lemma integral_log_inv_ne_zero (x : ℝ) (hx : 2 < x) :
 theorem pi_asymp'' :
     (fun x => ((Nat.primeCounting ⌊x⌋₊ : ℝ) / ∫ t in Set.Icc 2 x, 1 / log t) - (1 : ℝ)) =o[atTop]
       fun _ => (1 : ℝ) := by
-  have htheta : (fun x : ℝ ↦ θ x / log x) ~[atTop] (fun x : ℝ ↦ x / log x) :=
-    chebyshev_asymptotic.div IsEquivalent.refl
-  have hpi : (fun x : ℝ ↦ (Nat.primeCounting ⌊x⌋₊ : ℝ)) ~[atTop]
-      (fun x : ℝ ↦ x / log x) := by
-    refine (htheta.add_isLittleO Chebyshev.integral_theta_div_log_sq_isLittleO).congr_left ?_
-    filter_upwards [eventually_ge_atTop (2 : ℝ)] with x hx
-    exact (Chebyshev.primeCounting_eq_theta_div_log_add_integral hx).symm
+  have hpi := Nat.isEquivalent_primeCounting
   have hli : (fun x : ℝ ↦ ∫ t in Set.Icc 2 x, 1 / log t) ~[atTop]
       (fun x : ℝ ↦ x / log x) := by
     refine TauCeti.Real.logIntegral_isEquivalent_div_log.congr_left ?_
@@ -371,7 +295,7 @@ theorem pi_asymp'' :
   $$ \pi(x) = \frac{1}{\log x} \sum_{p \leq x} \log p
   + \int_2^x (\sum_{p \leq t} \log p) \frac{dt}{t \log^2 t}$$
   as can be proven by interchanging the sum and integral and using the fundamental theorem of
-  calculus.  For any $\eps$, we know from Theorem \ref{chebyshev_asymptotic} that there is $x_\eps$
+  calculus.  For any $\eps$, we know from Theorem \ref{chebyshev-asymptotic} that there is $x_\eps$
   such that $\sum_{p \leq t} \log p = t + O(\eps t)$ for $t \geq x_\eps$, hence for $x \geq x_\eps$
   $$ \pi(x) = \frac{1}{\log x} (x + O(\eps x))
   + \int_{x_\eps}^x (t + O(\eps t)) \frac{dt}{t \log^2 t} + O_\eps(1)$$
@@ -436,19 +360,14 @@ lemma integral_div_log_asymptotic : ∃ c : ℝ → ℝ, c =o[atTop] (fun _ ↦ 
   (latexEnv := "corollary")]
 theorem pi_alt : ∃ c : ℝ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) ∧
     ∀ x : ℝ, Nat.primeCounting ⌊x⌋₊ = (1 + c x) * x / log x := by
-  obtain ⟨f, hf, h⟩ := pi_asymp
-  obtain ⟨f', hf', h'⟩ := integral_div_log_asymptotic
-  use (fun x => (log x / x) * ⌊x⌋₊.primeCounting - 1)
-  constructor
-  · apply IsLittleO.congr' (f₁ := (fun x ↦ f x + f x * f' x + f' x)) _ _ (by rfl)
-    · apply IsLittleO.add _ hf'
-      apply IsLittleO.add hf
-      convert! hf.mul hf'
-      ring
-    · filter_upwards [eventually_ge_atTop 2, h, h'] with x hx h h'
-      rw [h, intervalIntegral.integral_of_le hx, ← integral_Icc_eq_integral_Ioc, h']
-      have : log x ≠ 0 := by simp; grind
-      field
+  refine ⟨fun x ↦ (log x / x) * ⌊x⌋₊.primeCounting - 1, ?_, ?_⟩
+  · have hratio := (isEquivalent_iff_tendsto_one (by
+      filter_upwards [eventually_gt_atTop (1 : ℝ)] with x hx
+      exact (div_pos (zero_lt_one.trans hx) (log_pos hx)).ne')).mp
+        Nat.isEquivalent_primeCounting
+    refine (isLittleO_one_iff ℝ).mpr ?_
+    convert hratio.sub_const (1 : ℝ) using 1 <;>
+      simp only [sub_self, Pi.div_apply, div_div_eq_mul_div, mul_div_assoc, mul_comm]
   · intro x
     obtain rfl|hx := eq_or_ne x 0
     · simp
@@ -460,28 +379,13 @@ theorem pi_alt : ∃ c : ℝ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) ∧
     have : log x ≠ 0 := by simp_all
     field
 
-theorem pi_alt' :
-    (fun (x : ℝ) ↦ (primeCounting ⌊x⌋₊ : ℝ)) ~[atTop] (fun x ↦ x / log x) := by
-  obtain ⟨f, ⟨hf1, hf2⟩⟩ := pi_alt
-  simp_rw [hf2, IsEquivalent]
-  have : ((fun x ↦ (1 + f x) * x / log x) - fun x ↦ x / log x) =
-      (fun x ↦ f x * x / log x) := by
-    ext
-    simp
-    ring
-  rw [this]
-  convert hf1.mul_isBigO (f₂ := (fun x ↦ x / log x)) (g₂ := (fun x ↦ x /log x))
-      (isBigO_refl ..) using 2
-  all_goals ring
-
-
 lemma pi_nth_prime_asymp :
     (fun n ↦ (Nat.nth Nat.Prime n) / (log (Nat.nth Nat.Prime n))) ~[atTop] (fun (n : ℕ) ↦ (n : ℝ)) := by
   trans (fun (n : ℕ) ↦ ( n + 1 : ℝ))
   · have : Tendsto (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) atTop atTop := by
       apply tendsto_natCast_atTop_iff.mpr
         ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
-    convert! pi_alt'.comp_tendsto this |>.symm
+    convert! Nat.isEquivalent_primeCounting.comp_tendsto this |>.symm
     simp only [Function.comp_apply, floor_natCast]
     rw [Nat.primeCounting_nth_prime]
     norm_cast
@@ -562,21 +466,10 @@ theorem pn_asymptotic : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) �
   (latexEnv := "corollary")]
 theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) ∧
     ∀ n : ℕ, Nat.nth Nat.Prime (n + 1) - Nat.nth Nat.Prime n = (c n) * Nat.nth Nat.Prime n := by
-  have hcast : (fun n : ℕ ↦ (n : ℝ) + 1) ~[atTop] (fun n : ℕ ↦ (n : ℝ)) := by
-    simpa only [Pi.add_apply, Function.comp_apply] using!
-      (IsEquivalent.refl : (fun n : ℕ ↦ (n : ℝ)) ~[atTop] (fun n : ℕ ↦ (n : ℝ))).add_isLittleO
-        ((isLittleO_const_id_atTop (1 : ℝ)).comp_tendsto tendsto_natCast_atTop_atTop)
-  have hlog := hcast.log tendsto_natCast_atTop_atTop
-  have hsucc : (fun n : ℕ ↦ (Nat.nth Nat.Prime (n + 1) : ℝ)) ~[atTop]
-      (fun n : ℕ ↦ (n : ℝ) * log n) := by
-    refine (nth_prime_asymp.comp_tendsto (tendsto_add_atTop_nat 1)).trans ?_
-    convert hcast.mul hlog using 1
-    ext n
-    simp only [Function.comp_apply, Pi.mul_apply, Nat.cast_add, Nat.cast_one]
   have hne (n : ℕ) : (Nat.nth Nat.Prime n : ℝ) ≠ 0 :=
     Nat.cast_ne_zero.mpr (Nat.prime_nth_prime n).ne_zero
   have hratio := (isEquivalent_iff_tendsto_one (Eventually.of_forall hne)).mp
-    (hsucc.trans nth_prime_asymp.symm)
+    Nat.isEquivalent_nth_prime_succ
   refine ⟨fun n ↦ ((Nat.nth Nat.Prime (n + 1) : ℝ) - Nat.nth Nat.Prime n) /
     Nat.nth Nat.Prime n, (isLittleO_one_iff ℝ).mpr ?_, ?_⟩
   · have hzero := hratio.sub_const (1 : ℝ)
@@ -586,30 +479,6 @@ theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) 
     simp only [Pi.div_apply, sub_div, div_self (hne n)]
   · intro n
     exact (div_mul_cancel₀ _ (hne n)).symm
-
-lemma prime_in_gap' (a b : ℕ) (h : a.primeCounting < b.primeCounting)
-    : ∃ (p : ℕ), p.Prime ∧ (a + 1) ≤ p ∧ p < (b + 1) := by
-  obtain ⟨p, hp, pp⟩ := exists_of_count_lt_count h
-  exact ⟨p, pp, hp.left, hp.right⟩
-
-lemma prime_in_gap (a b : ℝ) (ha : 0 < a)
-    (h : ⌊a⌋₊.primeCounting < ⌊b⌋₊.primeCounting)
-    : ∃(p : ℕ), p.Prime ∧ a < p ∧ p ≤ b := by
-
-  have hab : ⌊a⌋₊ < ⌊b⌋₊ := Monotone.reflect_lt Nat.monotone_primeCounting h
-  obtain ⟨w, h, ha, hb⟩ := prime_in_gap' ⌊a⌋₊ ⌊b⌋₊ h
-  refine ⟨w, h, lt_of_floor_lt ha, ?_⟩
-  have : a < b := by
-    by_contra h
-    cases lt_or_eq_of_le <| le_of_not_gt h with
-    | inl hh => linarith [floor_le_floor <| le_of_lt hh]
-    | inr hh =>
-      rw [hh] at hab
-      rwa [←lt_self_iff_false ⌊a⌋₊]
-  by_contra h
-  have : ⌊b⌋₊ < w := floor_lt (by linarith) |>.mpr (lt_of_not_ge h)
-  have : ⌊b⌋₊ + 1 ≤ w := by linarith
-  linarith
 
 lemma bound_f_second_term (f : ℝ → ℝ) (hf : Tendsto f atTop (nhds 0)) (δ : ℝ) (hδ : δ > 0) :
     ∀ᶠ x : ℝ in atTop, (1 + f x) < (1 + δ) := by
@@ -663,7 +532,7 @@ lemma tendsto_by_squeeze (ε : ℝ) (hε : ε > 0) :
     convert ((IsEquivalent.refl : (fun x : ℝ ↦ c * x) ~[atTop] (fun x : ℝ ↦ c * x)).div hlog) using 1
     ext x
     simp only [Pi.div_apply, mul_div_assoc]
-  have hpi := (pi_alt'.comp_tendsto (tendsto_id.const_mul_atTop hc)).trans hscale
+  have hpi := (Nat.isEquivalent_primeCounting.comp_tendsto (tendsto_id.const_mul_atTop hc)).trans hscale
   have hden : ∀ᶠ x : ℝ in atTop, x / log x ≠ 0 := by
     filter_upwards [eventually_gt_atTop (1 : ℝ)] with x hx
     exact (div_pos (by linarith) (log_pos hx)).ne'
@@ -671,7 +540,7 @@ lemma tendsto_by_squeeze (ε : ℝ) (hε : ε > 0) :
       (fun x : ℝ ↦ x / log x) := by
     exact hpi.isLittleO.trans_isBigO (isBigO_const_mul_self c _ _)
   have hscaled := (isLittleO_sub_mul_iff_tendsto_div hden).mp herror
-  have hbase := (isEquivalent_iff_tendsto_one hden).mp pi_alt'
+  have hbase := (isEquivalent_iff_tendsto_one hden).mp Nat.isEquivalent_primeCounting
   have hratio : Tendsto (fun x : ℝ ↦ ((Nat.primeCounting ⌊c * x⌋₊ : ℝ) -
       (Nat.primeCounting ⌊x⌋₊ : ℝ)) / (x / log x)) atTop (nhds ε) := by
     simpa only [Pi.div_apply, sub_div, show c - 1 = ε by dsimp [c]; ring] using hscaled.sub hbase
@@ -689,25 +558,9 @@ lemma tendsto_by_squeeze (ε : ℝ) (hε : ε > 0) :
   (latexEnv := "corollary")]
 theorem prime_between {ε : ℝ} (hε : 0 < ε) :
     ∀ᶠ x : ℝ in atTop, ∃ p : ℕ, Nat.Prime p ∧ x < p ∧ p < (1 + ε) * x := by
-  have squeeze := tendsto_by_squeeze (ε/2) (by linarith)
-  rw [Filter.tendsto_iff_forall_eventually_mem] at squeeze
-  specialize squeeze (Set.Ici 1) (by exact Ici_mem_atTop 1)
-  simp only [Set.mem_Ici, eventually_atTop] at squeeze
-  obtain ⟨a, ha⟩ := squeeze
-  rw [eventually_atTop]
-  use (max a 1)
-  intro b hb
-  rw [sup_le_iff] at hb
-  specialize ha b hb.1
-
-  have val_lt : (⌊b⌋₊.primeCounting : ℝ) < ⌊(1 + ε/2) * b⌋₊.primeCounting := by linarith
-  norm_cast at val_lt
-
-  have jump := prime_in_gap b ((1 + ε/2) * b) (by linarith) val_lt
-  obtain ⟨p, hp, b_lt_p, p_le⟩ := jump
-  have p_lt: p < (1 + ε) * b := by
-    linarith
-  use p
+  filter_upwards [Nat.eventually_exists_prime_mem_Ioc (show 0 < ε / 2 by linarith),
+    eventually_gt_atTop (0 : ℝ)] with x ⟨p, hp, hxp, hpx⟩ hx
+  exact ⟨p, hp, hxp, hpx.trans_lt (by nlinarith)⟩
 
 
 @[blueprint
@@ -856,7 +709,7 @@ noncomputable def R (x : ℝ) : ℝ := Chebyshev.psi x - x
 lemma R_isLittleO : R =o[atTop] id := by
   have h_pnt : (fun x => Chebyshev.psi x - x) =o[atTop] (fun x => x) := by
     have h_psi : (fun x => Chebyshev.psi x) ~[atTop] (fun x => x) := by
-      exact psi_isEquivalent_self
+      exact Chebyshev.isEquivalent_psi_id
     exact h_psi
   convert! h_pnt using 1
 
@@ -1480,65 +1333,12 @@ blueprint_comment /--
 \section{Consequences of the PNT in arithmetic progressions}
 -/
 
-@[blueprint
-  "chebyshev-asymptotic-pnt"
-  (title := "Prime number theorem in AP")
-  (statement := /--
-  If $a\ (q)$ is a primitive residue class, then one has
-  $$ \sum_{p \leq x: p = a\ (q)} \log p = \frac{x}{\phi(q)} + o(x).$$
-  -/)
-  (proof := /--
-  This is a routine modification of the proof of Theorem \ref{chebyshev-asymptotic}.
-  -/)
-  (proofUses := ["chebyshev-asymptotic"])
-  (latexEnv := "theorem")]
-theorem chebyshev_asymptotic_pnt
-    {q : ℕ} {a : ℕ} (hq : q ≥ 1) (ha : a.Coprime q) (ha' : a < q) :
-    (fun x ↦ ∑ p ∈ filter Nat.Prime (Iic ⌊x⌋₊), if p % q = a then log p else 0) ~[atTop]
-      fun x ↦ x / q.totient := by
-  let ψ_aq : ℝ → ℝ := fun x ↦ ∑ n ∈ Icc 1 ⌊x⌋₊, if n % q = a then Λ n else 0
-  have htot_pos : (0 : ℝ) < q.totient := cast_pos.mpr (totient_pos.mpr hq)
-  have hψ_equiv : ψ_aq ~[atTop] fun x ↦ x / q.totient := by
-    let : NeZero q := NeZero.of_pos hq
-    have hW := tendsto_inv_mul_mangoldt_residueClass (a : ZMod q)
-      ((ZMod.isUnit_iff_coprime a q).mpr ha)
-    have hcoeff (n : ℕ) : vonMangoldt.residueClass (a : ZMod q) n =
-        if n % q = a then Λ n else 0 := by
-      simp [vonMangoldt.residueClass, Set.indicator_apply,
-        ZMod.natCast_eq_natCast_iff', Nat.mod_eq_of_lt ha']
-    simp only [hcoeff] at hW
-    refine (isEquivalent_iff_tendsto_one ?_).mpr ?_
-    · filter_upwards [eventually_gt_atTop 0] with x hx
-      exact div_ne_zero hx.ne' htot_pos.ne'
-    have heq : (ψ_aq / fun x ↦ x / (q.totient : ℝ)) =
-        fun x ↦ (x⁻¹ * ψ_aq x) * q.totient := by
-      ext x
-      change ψ_aq x / (x / (q.totient : ℝ)) = (x⁻¹ * ψ_aq x) * q.totient
-      rw [div_div_eq_mul_div]
-      ring
-    rw [heq]
-    simpa using hW.mul_const (q.totient : ℝ)
-  have herror : (ψ_aq - (fun x : ℝ ↦ ∑ p ∈ filter Nat.Prime (Iic ⌊x⌋₊),
-      if p % q = a then log p else 0)) =o[atTop] (fun x : ℝ ↦ x / q.totient) := by
-    have H := Chebyshev.isLittleO_sum_vonMangoldt_with_sum_prime_log_with
-      (fun n : ℕ ↦ n % q = a)
-    have H' : (ψ_aq - (fun x : ℝ ↦ ∑ p ∈ filter Nat.Prime (Iic ⌊x⌋₊),
-        if p % q = a then log p else 0)) =o[atTop] id := by
-      convert H using 1
-      ext x
-      have hI : Ioc 0 ⌊x⌋₊ = Icc 1 ⌊x⌋₊ := by
-        ext n
-        simp only [Finset.mem_Ioc, Finset.mem_Icc]
-        omega
-      simp only [Pi.sub_apply, ψ_aq, hI, Finset.sum_filter, filter_prime_Iic_eq_Icc]
-      congr 1
-      apply Finset.sum_congr rfl
-      intro p hp
-      split_ifs <;> simp_all
-    exact H'.trans_isTheta (by
-      simpa only [div_eq_mul_inv, mul_comm] using!
-        (isTheta_refl (fun x : ℝ ↦ x) atTop).const_mul_right (inv_ne_zero htot_pos.ne'))
-  simpa only [sub_sub_self] using hψ_equiv.sub_isLittleO herror
+blueprint_comment /--
+\label{chebyshev-asymptotic-pnt}
+If $a\ (q)$ is a primitive residue class, then
+$\sum_{p \leq x: p = a\ (q)} \log p = x/\phi(q) + o(x)$.
+This is Mathlib's `Chebyshev.tendsto_sum_log_prime_modEq_div_atTop`.
+-/
 
 blueprint_comment /--
 \label{dirichlet_thm}
