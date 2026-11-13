@@ -1026,23 +1026,63 @@ private lemma exₐ_pos : 0 < exₐ := by
   rw [exₐ_eq]
   positivity
 
+private lemma continuousOn_log_constant_weight (x c : ℝ) :
+    ContinuousOn (fun t ↦ log t ^ 5 * c / log t ^ 7) (Icc 2 x) := by
+  have hlog : ContinuousOn log (Icc 2 x) :=
+    continuousOn_log.mono (fun t ht ↦ ne_of_gt (by linarith [ht.1]))
+  exact ((hlog.pow 5).mul continuousOn_const).div (hlog.pow 7)
+    (fun t ht ↦ pow_ne_zero _ (log_pos (by linarith [ht.1])).ne')
+
+private lemma continuousOn_log_sqrt_weight (x : ℝ) :
+    ContinuousOn (fun t ↦ log t ^ 5 * (log t ^ 2 / (8 * π * sqrt t)) / log t ^ 7)
+      (Icc 2 x) := by
+  have hlog : ContinuousOn log (Icc 2 x) :=
+    continuousOn_log.mono (fun t ht ↦ ne_of_gt (by linarith [ht.1]))
+  exact ((hlog.pow 5).mul ((hlog.pow 2).div
+    (continuousOn_const.mul continuous_sqrt.continuousOn)
+    (fun t ht ↦ mul_ne_zero (by positivity)
+      (sqrt_pos.mpr (by linarith [ht.1] : 0 < t)).ne'))).div (hlog.pow 7)
+        (fun t ht ↦ pow_ne_zero _ (log_pos (by linarith [ht.1])).ne')
+
+private lemma continuousOn_log_weight (x c d p q : ℝ) (hp : 0 ≤ p) :
+    ContinuousOn (fun t ↦ log t ^ 5 * (c * (log t / d) ^ p * exp (q * sqrt (log t / d))) /
+      log t ^ 7) (Icc 2 x) := by
+  have hlog : ContinuousOn log (Icc 2 x) :=
+    continuousOn_log.mono (fun t ht ↦ ne_of_gt (by linarith [ht.1]))
+  exact ((hlog.pow 5).mul
+    (((hlog.div_const d).rpow_const (fun _ _ ↦ Or.inr hp)).const_mul c |>.mul
+      (((hlog.div_const d).sqrt).const_mul q).rexp)).div (hlog.pow 7)
+        (fun t ht ↦ pow_ne_zero _ (log_pos (by linarith [ht.1])).ne')
+
+private lemma a_div_log7_eq_piecewise :
+    (fun t : ℝ ↦ a t / log t ^ 7) =
+    ((Ico (2 : ℝ) 599).piecewise (fun t ↦ (log t) ^ 5 * (1 - log 2 / 3) / log t ^ 7) (((Ico (599 : ℝ) (exp 58)).piecewise (fun t ↦ (log t) ^ 5 * (log t ^ 2 / (8 * π * sqrt t)) / log t ^ 7) (((Ico (exp (58 : ℝ)) (exp 1169)).piecewise (fun t ↦ (log t) ^ 5 *
+    (sqrt (8 / (17 * π)) * (log t / 6.455) ^ (1 / 4 : ℝ) * exp (-sqrt (log t / 6.455))) / log t ^ 7) (((Ico (exp (1169 : ℝ)) (exp 2000)).piecewise (fun t ↦ (log t) ^ 5 *
+    (462.0 * (log t / 5.573412) ^ (1.52 : ℝ) * exp (-1.89 * sqrt (log t / 5.573412))) / log t ^ 7) (((Ico (exp (2000 : ℝ)) (exp 3000)).piecewise (fun t ↦ (log t) ^ 5 *
+    (411.5 * (log t / 5.573412) ^ (1.52 : ℝ) * exp (-1.89 * sqrt (log t / 5.573412))) / log t ^ 7) (fun t ↦ (log t) ^ 5 *
+    (379.7 * (log t / 5.573412) ^ (1.52 : ℝ) * exp (-1.89 * sqrt (log t / 5.573412))) / log t ^ 7)))))))))) := by
+  classical
+  funext t
+  simp only [a, Set.piecewise, mul_ite, ite_div]
+
+private lemma integrableOn_piecewise_of_integrableOn (I s : Set ℝ) [DecidablePred (· ∈ s)]
+    (hs : MeasurableSet s)
+    {u v : ℝ → ℝ} (hu : IntegrableOn u I volume) (hv : IntegrableOn v I volume) :
+    IntegrableOn (s.piecewise u v) I volume := by
+  classical
+  exact Integrable.piecewise hs.nullMeasurableSet
+    (show Integrable u (volume.restrict I) from hu).integrableOn
+    (show Integrable v (volume.restrict I) from hv).integrableOn
+
 private lemma integrable_a_over_log7_piecewise (x : ℝ) (_hx2 : 2 ≤ x) :
     IntegrableOn (fun t ↦ a t / log t ^ 7) (Set.Icc 2 x) volume := by
+  classical
   let I : Set ℝ := Set.Icc 2 x
   let A1 : Set ℝ := Set.Ico 2 599
   let A2 : Set ℝ := Set.Ico 599 (exp 58)
   let A3 : Set ℝ := Set.Ico (exp 58) (exp 1169)
   let A4 : Set ℝ := Set.Ico (exp 1169) (exp 2000)
   let A5 : Set ℝ := Set.Ico (exp 2000) (exp 3000)
-
-  let S1 : Set ℝ := I ∩ A1
-  let S2 : Set ℝ := I ∩ A1ᶜ ∩ A2
-  let S3 : Set ℝ := I ∩ A1ᶜ ∩ A2ᶜ ∩ A3
-  let S4 : Set ℝ := I ∩ A1ᶜ ∩ A2ᶜ ∩ A3ᶜ ∩ A4
-  let S5 : Set ℝ := I ∩ A1ᶜ ∩ A2ᶜ ∩ A3ᶜ ∩ A4ᶜ ∩ A5
-  let S6 : Set ℝ := I ∩ A1ᶜ ∩ A2ᶜ ∩ A3ᶜ ∩ A4ᶜ ∩ A5ᶜ
-
-  let f : ℝ → ℝ := fun t ↦ a t / log t ^ 7
 
   let g1 : ℝ → ℝ := fun t ↦ (log t) ^ 5 * (1 - log 2 / 3) / log t ^ 7
   let g2 : ℝ → ℝ := fun t ↦ (log t) ^ 5 * (log t ^ 2 / (8 * π * sqrt t)) / log t ^ 7
@@ -1055,399 +1095,71 @@ private lemma integrable_a_over_log7_piecewise (x : ℝ) (_hx2 : 2 ≤ x) :
   let g6 : ℝ → ℝ := fun t ↦ (log t) ^ 5 *
     (379.7 * (log t / 5.573412) ^ (1.52 : ℝ) * exp (-1.89 * sqrt (log t / 5.573412))) / log t ^ 7
 
-  have hI_log_cont : ContinuousOn (fun t ↦ log t ^ 7) I := by
-    dsimp [I]
-    exact (continuousOn_log.mono (by intro t ht; exact ne_of_gt (by linarith [ht.1]))).pow 7
-  have hI_log_ne : ∀ t ∈ I, log t ^ 7 ≠ 0 := by
-    intro t ht
-    exact pow_ne_zero _ (ne_of_gt (log_pos (by linarith [ht.1])))
+  have hg1_int_I : IntegrableOn g1 I volume :=
+    (continuousOn_log_constant_weight x (1-log 2/3)).integrableOn_Icc
+  have hg2_int_I : IntegrableOn g2 I volume :=
+    (continuousOn_log_sqrt_weight x).integrableOn_Icc
+  have hg3_int_I : IntegrableOn g3 I volume := by
+    simpa only [g3, neg_one_mul] using
+      (continuousOn_log_weight x (sqrt (8/(17*π))) 6.455 (1/4) (-1) (by norm_num)).integrableOn_Icc
+  have hg4_int_I : IntegrableOn g4 I volume :=
+    (continuousOn_log_weight x 462.0 5.573412 1.52 (-1.89) (by norm_num)).integrableOn_Icc
+  have hg5_int_I : IntegrableOn g5 I volume :=
+    (continuousOn_log_weight x 411.5 5.573412 1.52 (-1.89) (by norm_num)).integrableOn_Icc
+  have hg6_int_I : IntegrableOn g6 I volume :=
+    (continuousOn_log_weight x 379.7 5.573412 1.52 (-1.89) (by norm_num)).integrableOn_Icc
 
-  have hg1_cont : ContinuousOn g1 I := by
-    dsimp [g1]
-    refine (ContinuousOn.mul ((continuousOn_log.mono (by intro t ht; exact ne_of_gt (by linarith [ht.1]))).pow 5) continuousOn_const).div hI_log_cont ?_
-    intro t ht
-    exact hI_log_ne t ht
+  have hi : IntegrableOn
+      (A1.piecewise g1 (A2.piecewise g2 (A3.piecewise g3
+        (A4.piecewise g4 (A5.piecewise g5 g6))))) I volume :=
+    integrableOn_piecewise_of_integrableOn I _ measurableSet_Ico hg1_int_I
+      (integrableOn_piecewise_of_integrableOn I _ measurableSet_Ico hg2_int_I
+        (integrableOn_piecewise_of_integrableOn I _ measurableSet_Ico hg3_int_I
+          (integrableOn_piecewise_of_integrableOn I _ measurableSet_Ico hg4_int_I
+            (integrableOn_piecewise_of_integrableOn I _ measurableSet_Ico hg5_int_I hg6_int_I))))
+  have heq : EqOn (fun t ↦ a t / log t ^ 7)
+      (A1.piecewise g1 (A2.piecewise g2 (A3.piecewise g3
+        (A4.piecewise g4 (A5.piecewise g5 g6))))) I := by
+    exact fun t _ ↦ congrFun a_div_log7_eq_piecewise t
+  exact (integrableOn_congr_fun heq measurableSet_Icc).2 hi
 
-  have hg2_cont : ContinuousOn g2 I := by
-    refine continuousOn_of_forall_continuousAt fun t ht => ?_
-    fun_prop (disch := first | exact hI_log_ne t ht | exact ne_of_gt (show (0:ℝ) < t by linarith [ht.1]) | exact mul_ne_zero (by positivity) (sqrt_pos.mpr (show (0:ℝ) < t by linarith [ht.1])).ne' | (right; positivity) | (left; positivity) | positivity)
-
-  have hg3_cont : ContinuousOn g3 I := by
-    refine continuousOn_of_forall_continuousAt fun t ht => ?_
-    fun_prop (disch := first | exact hI_log_ne t ht | exact ne_of_gt (show (0:ℝ) < t by linarith [ht.1]) | exact mul_ne_zero (by positivity) (sqrt_pos.mpr (show (0:ℝ) < t by linarith [ht.1])).ne' | (right; positivity) | (left; positivity) | positivity)
-
-  have hcont46 : ∀ c : ℝ, ContinuousOn (fun t ↦ (log t) ^ 5 *
-      (c * (log t / 5.573412) ^ (1.52 : ℝ) * exp (-1.89 * sqrt (log t / 5.573412))) / log t ^ 7) I := by
-    intro c
-    refine continuousOn_of_forall_continuousAt fun t ht ↦ ?_
-    fun_prop (disch := first
-      | exact hI_log_ne t ht | exact ne_of_gt (show (0:ℝ) < t by linarith [ht.1])
-      | exact mul_ne_zero (by positivity) (sqrt_pos.mpr (show (0:ℝ) < t by linarith [ht.1])).ne'
-      | (right; positivity) | (left; positivity) | positivity)
-
-  have hg4_cont : ContinuousOn g4 I := by
-    simpa [g4] using hcont46 462.0
-  have hg5_cont : ContinuousOn g5 I := by
-    simpa [g5] using hcont46 411.5
-  have hg6_cont : ContinuousOn g6 I := by
-    simpa [g6] using hcont46 379.7
-
-  have hg1_int_I : IntegrableOn g1 I volume := ContinuousOn.integrableOn_Icc hg1_cont
-  have hg2_int_I : IntegrableOn g2 I volume := ContinuousOn.integrableOn_Icc hg2_cont
-  have hg3_int_I : IntegrableOn g3 I volume := ContinuousOn.integrableOn_Icc hg3_cont
-  have hg4_int_I : IntegrableOn g4 I volume := ContinuousOn.integrableOn_Icc hg4_cont
-  have hg5_int_I : IntegrableOn g5 I volume := ContinuousOn.integrableOn_Icc hg5_cont
-  have hg6_int_I : IntegrableOn g6 I volume := ContinuousOn.integrableOn_Icc hg6_cont
-
-  have hS1_meas : MeasurableSet S1 := by
-    dsimp [S1, I, A1]; exact measurableSet_Icc.inter measurableSet_Ico
-  have hS2_meas : MeasurableSet S2 := by
-    dsimp [S2, I, A1, A2]; exact (measurableSet_Icc.inter measurableSet_Ico.compl).inter measurableSet_Ico
-  have hS3_meas : MeasurableSet S3 := by
-    dsimp [S3, I, A1, A2, A3]
-    exact ((measurableSet_Icc.inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico
-  have hS4_meas : MeasurableSet S4 := by
-    dsimp [S4, I, A1, A2, A3, A4]
-    exact (((measurableSet_Icc.inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico
-  have hS5_meas : MeasurableSet S5 := by
-    dsimp [S5, I, A1, A2, A3, A4, A5]
-    exact ((((measurableSet_Icc.inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico
-  have hS6_meas : MeasurableSet S6 := by
-    dsimp [S6, I, A1, A2, A3, A4, A5]
-    exact ((((measurableSet_Icc.inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico.compl).inter measurableSet_Ico.compl
-
-  have hg1_int_S1 : IntegrableOn g1 S1 volume := hg1_int_I.mono_set (by intro t ht; exact ht.1)
-  have hg2_int_S2 : IntegrableOn g2 S2 volume := hg2_int_I.mono_set (by intro t ht; exact ht.1.1)
-  have hg3_int_S3 : IntegrableOn g3 S3 volume := hg3_int_I.mono_set (by intro t ht; exact ht.1.1.1)
-  have hg4_int_S4 : IntegrableOn g4 S4 volume := hg4_int_I.mono_set (by intro t ht; exact ht.1.1.1.1)
-  have hg5_int_S5 : IntegrableOn g5 S5 volume := hg5_int_I.mono_set (by intro t ht; exact ht.1.1.1.1.1)
-  have hg6_int_S6 : IntegrableOn g6 S6 volume := hg6_int_I.mono_set (by intro t ht; exact ht.1.1.1.1.1)
-
-  have hEq1 : EqOn f g1 S1 := by
-    intro t ht
-    have h1 : t ∈ Set.Ico 2 599 := by simpa [A1] using ht.2
-    dsimp only [f, g1]; unfold a; simp [h1]
-
-  have hEq2 : EqOn f g2 S2 := by
-    intro t ht
-    have h1 : t ∉ Set.Ico 2 599 := by simpa [A1] using ht.1.2
-    have h2 : t ∈ Set.Ico 599 (exp 58) := by simpa [A2] using ht.2
-    dsimp only [f, g2]; unfold a; simp [h1, h2]
-
-  have hEq3 : EqOn f g3 S3 := by
-    intro t ht
-    have h1 : t ∉ Set.Ico 2 599 := by simpa [A1] using ht.1.1.2
-    have h2 : t ∉ Set.Ico 599 (exp 58) := by simpa [A2] using ht.1.2
-    have h3 : t ∈ Set.Ico (exp 58) (exp 1169) := by simpa [A3] using ht.2
-    dsimp only [f, g3]; unfold a; simp [h1, h2, h3]
-
-  have hEq4 : EqOn f g4 S4 := by
-    intro t ht
-    have h1 : t ∉ Set.Ico 2 599 := by simpa [A1] using ht.1.1.1.2
-    have h2 : t ∉ Set.Ico 599 (exp 58) := by simpa [A2] using ht.1.1.2
-    have h3 : t ∉ Set.Ico (exp 58) (exp 1169) := by simpa [A3] using ht.1.2
-    have h4 : t ∈ Set.Ico (exp 1169) (exp 2000) := by simpa [A4] using ht.2
-    dsimp only [f, g4]; unfold a; simp [h1, h2, h3, h4]
-
-  have hEq5 : EqOn f g5 S5 := by
-    intro t ht
-    have h1 : t ∉ Set.Ico 2 599 := by simpa [A1] using ht.1.1.1.1.2
-    have h2 : t ∉ Set.Ico 599 (exp 58) := by simpa [A2] using ht.1.1.1.2
-    have h3 : t ∉ Set.Ico (exp 58) (exp 1169) := by simpa [A3] using ht.1.1.2
-    have h4 : t ∉ Set.Ico (exp 1169) (exp 2000) := by simpa [A4] using ht.1.2
-    have h5 : t ∈ Set.Ico (exp 2000) (exp 3000) := by simpa [A5] using ht.2
-    dsimp only [f, g5]; unfold a; simp [h1, h2, h3, h4, h5]
-
-  have hEq6 : EqOn f g6 S6 := by
-    intro t ht
-    have h1 : t ∉ Set.Ico 2 599 := by simpa [A1] using ht.1.1.1.1.2
-    have h2 : t ∉ Set.Ico 599 (exp 58) := by simpa [A2] using ht.1.1.1.2
-    have h3 : t ∉ Set.Ico (exp 58) (exp 1169) := by simpa [A3] using ht.1.1.2
-    have h4 : t ∉ Set.Ico (exp 1169) (exp 2000) := by simpa [A4] using ht.1.2
-    have h5 : t ∉ Set.Ico (exp 2000) (exp 3000) := by simpa [A5] using ht.2
-    dsimp only [f, g6]; unfold a; simp [h1, h2, h3, h4, h5]
-
-  have hf_int_S1 : IntegrableOn f S1 volume := (integrableOn_congr_fun hEq1 hS1_meas).2 hg1_int_S1
-  have hf_int_S2 : IntegrableOn f S2 volume := (integrableOn_congr_fun hEq2 hS2_meas).2 hg2_int_S2
-  have hf_int_S3 : IntegrableOn f S3 volume := (integrableOn_congr_fun hEq3 hS3_meas).2 hg3_int_S3
-  have hf_int_S4 : IntegrableOn f S4 volume := (integrableOn_congr_fun hEq4 hS4_meas).2 hg4_int_S4
-  have hf_int_S5 : IntegrableOn f S5 volume := (integrableOn_congr_fun hEq5 hS5_meas).2 hg5_int_S5
-  have hf_int_S6 : IntegrableOn f S6 volume := (integrableOn_congr_fun hEq6 hS6_meas).2 hg6_int_S6
-
-  let U : Set ℝ := S1 ∪ (S2 ∪ (S3 ∪ (S4 ∪ (S5 ∪ S6))))
-
-  have hU_int : IntegrableOn f U volume := by
-    dsimp [U]
-    exact hf_int_S1.union (hf_int_S2.union (hf_int_S3.union (hf_int_S4.union (hf_int_S5.union hf_int_S6))))
-
-  have hU_eq_I : U = I := by
-    ext t
-    dsimp only [U, S1, S2, S3, S4, S5, S6]
-    simp only [Set.mem_union, Set.mem_inter_iff, Set.mem_compl_iff]
-    tauto
-
-  simpa [f, I, hU_eq_I] using hU_int
-
-lemma log_6_IBP_t (x : ℝ) (hx : 2 ≤ x) :
-    ∫ t in Set.Icc 2 x, 1 / log t ^ 6 =
-      x / log x ^ 6 - 2 / log 2 ^ 6 +
-        6 * ∫ t in Set.Icc 2 x, 1 / log t ^ 7 := by
-  suffices h_ibp : ∀ a b : ℝ, 2 ≤ a → a ≤ b →
-      ∫ t in a..b, (1 / (log t) ^ 6) = (b / (log b) ^ 6) - (a / (log a) ^ 6) +
-        6 * ∫ t in a..b, (1 / (log t) ^ 7) by
-    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
-      intervalIntegral.integral_of_le hx] using h_ibp 2 x (by norm_num) hx
-  intro a b ha hab
-  have h_deriv : ∀ t ∈ Set.Icc a b,
-      deriv (fun t ↦ t / (log t) ^ 6) t =
-        1 / (log t) ^ 6 - 6 * (1 / (log t) ^ 7) := by
-    intro t ht
-    norm_num [differentiableAt_log, ne_of_gt (show 0 < log t from log_pos <| by linarith [ht.1]),
-      ne_of_gt (show 0 < t from by linarith [ht.1])]
-    ring_nf
-    grind
-  have h_ftc : ∫ t in a..b, deriv (fun t ↦ t / (log t) ^ 6) t =
-      (b / (log b) ^ 6) - (a / (log a) ^ 6) := by
-    rw [intervalIntegral.integral_deriv_eq_sub']
-    · rfl
-    · exact fun x hx ↦ DifferentiableAt.div differentiableAt_id
-        (DifferentiableAt.pow (differentiableAt_log
-          (by cases Set.mem_uIcc.mp hx <;> linarith)) _)
-        (pow_ne_zero _ <| ne_of_gt <| log_pos <|
-          by cases Set.mem_uIcc.mp hx <;> linarith)
-    · rw [Set.uIcc_of_le hab]
-      have hlog_cont := continuousOn_log.mono fun y (hy : y ∈ Set.Icc a b) ↦
-        ne_of_gt <| by linarith [hy.1]
-      have hpow_ne : ∀ (n : ℕ), ∀ y ∈ Set.Icc a b, log y ^ n ≠ 0 :=
-        fun n y hy ↦ pow_ne_zero n <| ne_of_gt <| log_pos <| by linarith [hy.1]
-      exact ContinuousOn.congr (ContinuousOn.sub
-        (continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))
-        (continuousOn_const.mul <| continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))) h_deriv
-  rw [← h_ftc, intervalIntegral.integral_congr fun t ht =>
-    h_deriv t <| by simpa [hab] using ht]
-  rw [intervalIntegral.integral_sub]
-  · norm_num
-  · exact ContinuousOn.intervalIntegrable (continuousOn_of_forall_continuousAt fun x hx ↦
-      ContinuousAt.div continuousAt_const
-        (ContinuousAt.pow (continuousAt_log
-          (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-        (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))
-  · exact ContinuousOn.intervalIntegrable ((continuousOn_const.mul
-      (continuousOn_of_forall_continuousAt fun x hx ↦
-        ContinuousAt.div continuousAt_const
-          (ContinuousAt.pow (continuousAt_log
-            (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-          (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))))
-
-lemma log_5_IBP_t (x : ℝ) (hx : 2 ≤ x) :
-    ∫ t in Set.Icc 2 x, 1 / log t ^ 5 =
-      x / log x ^ 5 - 2 / log 2 ^ 5 +
-        5 * ∫ t in Set.Icc 2 x, 1 / log t ^ 6 := by
-  suffices h_ibp : ∀ a b : ℝ, 2 ≤ a → a ≤ b →
-      ∫ t in a..b, (1 / (log t) ^ 5) = (b / (log b) ^ 5) - (a / (log a) ^ 5) +
-        5 * ∫ t in a..b, (1 / (log t) ^ 6) by
-    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
-      intervalIntegral.integral_of_le hx] using h_ibp 2 x (by norm_num) hx
-  intro a b ha hab
-  have h_deriv : ∀ t ∈ Set.Icc a b,
-      deriv (fun t ↦ t / (log t) ^ 5) t =
-        1 / (log t) ^ 5 - 5 * (1 / (log t) ^ 6) := by
-    intro t ht
-    norm_num [differentiableAt_log, ne_of_gt (show 0 < log t from log_pos <| by linarith [ht.1]),
-      ne_of_gt (show 0 < t from by linarith [ht.1])]
-    ring_nf
-    grind
-  have h_ftc : ∫ t in a..b, deriv (fun t ↦ t / (log t) ^ 5) t =
-      (b / (log b) ^ 5) - (a / (log a) ^ 5) := by
-    rw [intervalIntegral.integral_deriv_eq_sub']
-    · rfl
-    · exact fun x hx ↦ DifferentiableAt.div differentiableAt_id
-        (DifferentiableAt.pow (differentiableAt_log
-          (by cases Set.mem_uIcc.mp hx <;> linarith)) _)
-        (pow_ne_zero _ <| ne_of_gt <| log_pos <|
-          by cases Set.mem_uIcc.mp hx <;> linarith)
-    · rw [Set.uIcc_of_le hab]
-      have hlog_cont := continuousOn_log.mono fun y (hy : y ∈ Set.Icc a b) ↦
-        ne_of_gt <| by linarith [hy.1]
-      have hpow_ne : ∀ (n : ℕ), ∀ y ∈ Set.Icc a b, log y ^ n ≠ 0 :=
-        fun n y hy ↦ pow_ne_zero n <| ne_of_gt <| log_pos <| by linarith [hy.1]
-      exact ContinuousOn.congr (ContinuousOn.sub
-        (continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))
-        (continuousOn_const.mul <| continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))) h_deriv
-  rw [← h_ftc, intervalIntegral.integral_congr fun t ht =>
-    h_deriv t <| by simpa [hab] using ht]
-  rw [intervalIntegral.integral_sub]
-  · norm_num
-  · exact ContinuousOn.intervalIntegrable (continuousOn_of_forall_continuousAt fun x hx ↦
-      ContinuousAt.div continuousAt_const
-        (ContinuousAt.pow (continuousAt_log
-          (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-        (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))
-  · exact ContinuousOn.intervalIntegrable ((continuousOn_const.mul
-      (continuousOn_of_forall_continuousAt fun x hx ↦
-        ContinuousAt.div continuousAt_const
-          (ContinuousAt.pow (continuousAt_log
-            (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-          (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))))
-
-lemma log_4_IBP_t (x : ℝ) (hx : 2 ≤ x) :
-    ∫ t in Set.Icc 2 x, 1 / log t ^ 4 =
-      x / log x ^ 4 - 2 / log 2 ^ 4 +
-        4 * ∫ t in Set.Icc 2 x, 1 / log t ^ 5 := by
-  suffices h_ibp : ∀ a b : ℝ, 2 ≤ a → a ≤ b →
-      ∫ t in a..b, (1 / (log t) ^ 4) = (b / (log b) ^ 4) - (a / (log a) ^ 4) +
-        4 * ∫ t in a..b, (1 / (log t) ^ 5) by
-    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
-      intervalIntegral.integral_of_le hx] using h_ibp 2 x (by norm_num) hx
-  intro a b ha hab
-  have h_deriv : ∀ t ∈ Set.Icc a b,
-      deriv (fun t ↦ t / (log t) ^ 4) t =
-        1 / (log t) ^ 4 - 4 * (1 / (log t) ^ 5) := by
-    intro t ht
-    norm_num [differentiableAt_log, ne_of_gt (show 0 < log t from log_pos <| by linarith [ht.1]),
-      ne_of_gt (show 0 < t from by linarith [ht.1])]
-    ring_nf
-    grind
-  have h_ftc : ∫ t in a..b, deriv (fun t ↦ t / (log t) ^ 4) t =
-      (b / (log b) ^ 4) - (a / (log a) ^ 4) := by
-    rw [intervalIntegral.integral_deriv_eq_sub']
-    · rfl
-    · exact fun x hx ↦ DifferentiableAt.div differentiableAt_id
-        (DifferentiableAt.pow (differentiableAt_log
-          (by cases Set.mem_uIcc.mp hx <;> linarith)) _)
-        (pow_ne_zero _ <| ne_of_gt <| log_pos <|
-          by cases Set.mem_uIcc.mp hx <;> linarith)
-    · rw [Set.uIcc_of_le hab]
-      have hlog_cont := continuousOn_log.mono fun y (hy : y ∈ Set.Icc a b) ↦
-        ne_of_gt <| by linarith [hy.1]
-      have hpow_ne : ∀ (n : ℕ), ∀ y ∈ Set.Icc a b, log y ^ n ≠ 0 :=
-        fun n y hy ↦ pow_ne_zero n <| ne_of_gt <| log_pos <| by linarith [hy.1]
-      exact ContinuousOn.congr (ContinuousOn.sub
-        (continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))
-        (continuousOn_const.mul <| continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))) h_deriv
-  rw [← h_ftc, intervalIntegral.integral_congr fun t ht =>
-    h_deriv t <| by simpa [hab] using ht]
-  rw [intervalIntegral.integral_sub]
-  · norm_num
-  · exact ContinuousOn.intervalIntegrable (continuousOn_of_forall_continuousAt fun x hx ↦
-      ContinuousAt.div continuousAt_const
-        (ContinuousAt.pow (continuousAt_log
-          (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-        (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))
-  · exact ContinuousOn.intervalIntegrable ((continuousOn_const.mul
-      (continuousOn_of_forall_continuousAt fun x hx ↦
-        ContinuousAt.div continuousAt_const
-          (ContinuousAt.pow (continuousAt_log
-            (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-          (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))))
-
-lemma log_3_IBP_t (x : ℝ) (hx : 2 ≤ x) :
-    ∫ t in Set.Icc 2 x, 1 / log t ^ 3 =
-      x / log x ^ 3 - 2 / log 2 ^ 3 +
-        3 * ∫ t in Set.Icc 2 x, 1 / log t ^ 4 := by
-  suffices h_ibp : ∀ a b : ℝ, 2 ≤ a → a ≤ b →
-      ∫ t in a..b, (1 / (log t) ^ 3) = (b / (log b) ^ 3) - (a / (log a) ^ 3) +
-        3 * ∫ t in a..b, (1 / (log t) ^ 4) by
-    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
-      intervalIntegral.integral_of_le hx] using h_ibp 2 x (by norm_num) hx
-  intro a b ha hab
-  have h_deriv : ∀ t ∈ Set.Icc a b,
-      deriv (fun t ↦ t / (log t) ^ 3) t =
-        1 / (log t) ^ 3 - 3 * (1 / (log t) ^ 4) := by
-    intro t ht
-    norm_num [differentiableAt_log, ne_of_gt (show 0 < log t from log_pos <| by linarith [ht.1]),
-      ne_of_gt (show 0 < t from by linarith [ht.1])]
-    ring_nf
-    grind
-  have h_ftc : ∫ t in a..b, deriv (fun t ↦ t / (log t) ^ 3) t =
-      (b / (log b) ^ 3) - (a / (log a) ^ 3) := by
-    rw [intervalIntegral.integral_deriv_eq_sub']
-    · rfl
-    · exact fun x hx ↦ DifferentiableAt.div differentiableAt_id
-        (DifferentiableAt.pow (differentiableAt_log
-          (by cases Set.mem_uIcc.mp hx <;> linarith)) _)
-        (pow_ne_zero _ <| ne_of_gt <| log_pos <|
-          by cases Set.mem_uIcc.mp hx <;> linarith)
-    · rw [Set.uIcc_of_le hab]
-      have hlog_cont := continuousOn_log.mono fun y (hy : y ∈ Set.Icc a b) ↦
-        ne_of_gt <| by linarith [hy.1]
-      have hpow_ne : ∀ (n : ℕ), ∀ y ∈ Set.Icc a b, log y ^ n ≠ 0 :=
-        fun n y hy ↦ pow_ne_zero n <| ne_of_gt <| log_pos <| by linarith [hy.1]
-      exact ContinuousOn.congr (ContinuousOn.sub
-        (continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))
-        (continuousOn_const.mul <| continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))) h_deriv
-  rw [← h_ftc, intervalIntegral.integral_congr fun t ht =>
-    h_deriv t <| by simpa [hab] using ht]
-  rw [intervalIntegral.integral_sub]
-  · norm_num
-  · exact ContinuousOn.intervalIntegrable (continuousOn_of_forall_continuousAt fun x hx ↦
-      ContinuousAt.div continuousAt_const
-        (ContinuousAt.pow (continuousAt_log
-          (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-        (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))
-  · exact ContinuousOn.intervalIntegrable ((continuousOn_const.mul
-      (continuousOn_of_forall_continuousAt fun x hx ↦
-        ContinuousAt.div continuousAt_const
-          (ContinuousAt.pow (continuousAt_log
-            (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-          (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))))
-
-lemma log_2_IBP_t (x : ℝ) (hx : 2 ≤ x) :
-    ∫ t in Set.Icc 2 x, 1 / log t ^ 2 =
-      x / log x ^ 2 - 2 / log 2 ^ 2 +
-        2 * ∫ t in Set.Icc 2 x, 1 / log t ^ 3 := by
-  suffices h_ibp : ∀ a b : ℝ, 2 ≤ a → a ≤ b →
-      ∫ t in a..b, (1 / (log t) ^ 2) = (b / (log b) ^ 2) - (a / (log a) ^ 2) +
-        2 * ∫ t in a..b, (1 / (log t) ^ 3) by
-    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
-      intervalIntegral.integral_of_le hx] using h_ibp 2 x (by norm_num) hx
-  intro a b ha hab
-  have h_deriv : ∀ t ∈ Set.Icc a b,
-      deriv (fun t ↦ t / (log t) ^ 2) t =
-        1 / (log t) ^ 2 - 2 * (1 / (log t) ^ 3) := by
-    intro t ht
-    norm_num [differentiableAt_log, ne_of_gt (show 0 < log t from log_pos <| by linarith [ht.1]),
-      ne_of_gt (show 0 < t from by linarith [ht.1])]
-    ring_nf
-    grind
-  have h_ftc : ∫ t in a..b, deriv (fun t ↦ t / (log t) ^ 2) t =
-      (b / (log b) ^ 2) - (a / (log a) ^ 2) := by
-    rw [intervalIntegral.integral_deriv_eq_sub']
-    · rfl
-    · exact fun x hx ↦ DifferentiableAt.div differentiableAt_id
-        (DifferentiableAt.pow (differentiableAt_log
-          (by cases Set.mem_uIcc.mp hx <;> linarith)) _)
-        (pow_ne_zero _ <| ne_of_gt <| log_pos <|
-          by cases Set.mem_uIcc.mp hx <;> linarith)
-    · rw [Set.uIcc_of_le hab]
-      have hlog_cont := continuousOn_log.mono fun y (hy : y ∈ Set.Icc a b) ↦
-        ne_of_gt <| by linarith [hy.1]
-      have hpow_ne : ∀ (n : ℕ), ∀ y ∈ Set.Icc a b, log y ^ n ≠ 0 :=
-        fun n y hy ↦ pow_ne_zero n <| ne_of_gt <| log_pos <| by linarith [hy.1]
-      exact ContinuousOn.congr (ContinuousOn.sub
-        (continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))
-        (continuousOn_const.mul <| continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))) h_deriv
-  rw [← h_ftc, intervalIntegral.integral_congr fun t ht =>
-    h_deriv t <| by simpa [hab] using ht]
-  rw [intervalIntegral.integral_sub]
-  · norm_num
-  · exact ContinuousOn.intervalIntegrable (continuousOn_of_forall_continuousAt fun x hx ↦
-      ContinuousAt.div continuousAt_const
-        (ContinuousAt.pow (continuousAt_log
-          (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-        (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))
-  · exact ContinuousOn.intervalIntegrable ((continuousOn_const.mul
-      (continuousOn_of_forall_continuousAt fun x hx ↦
-        ContinuousAt.div continuousAt_const
-          (ContinuousAt.pow (continuousAt_log
-            (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)
-          (ne_of_gt (pow_pos (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])) _)))))
-
+private lemma hasDerivAt_div_log_pow (n : ℕ) {t : ℝ} (ht : 1 < t) :
+    HasDerivAt (fun s : ℝ ↦ s / log s ^ n)
+      (1 / log t ^ n - (n : ℝ) * (1 / log t ^ (n+1))) t := by
+  have ht0 : t ≠ 0 := (lt_trans zero_lt_one ht).ne'
+  have hl : log t ≠ 0 := (log_pos ht).ne'
+  cases n with
+  | zero => simpa only [pow_zero, div_one, Nat.cast_zero, zero_mul, sub_zero] using hasDerivAt_id' t
+  | succ n =>
+      have hd := (hasDerivAt_id' t).div ((hasDerivAt_log ht0).pow (n+1)) (pow_ne_zero _ hl)
+      apply hd.congr_deriv
+      simp only [Pi.pow_apply, Nat.add_one_sub_one, one_mul]
+      field_simp [pow_succ, hl, ht0]
+      ring
+lemma integral_inv_log_pow_ibp (n : ℕ) {a b : ℝ} (ha : 1 < a) (hb : 1 < b) :
+    ∫ t in a..b, 1 / log t ^ n = b / log b ^ n - a / log a ^ n +
+      (n : ℝ) * ∫ t in a..b, 1 / log t ^ (n+1) := by
+  have hi : IntervalIntegrable (fun t : ℝ ↦ 1 / log t ^ n) volume a b := by
+    simpa only [one_div] using TauCeti.Real.intervalIntegrable_inv_log_pow n ha hb
+  have hi1 : IntervalIntegrable (fun t : ℝ ↦ 1 / log t ^ (n+1)) volume a b := by
+    simpa only [one_div] using TauCeti.Real.intervalIntegrable_inv_log_pow (n+1) ha hb
+  have hFTC := integral_eq_sub_of_hasDerivAt
+    (fun t ht ↦ hasDerivAt_div_log_pow n (by
+      rcases Set.mem_uIcc.mp ht with ht | ht
+      · exact ha.trans_le ht.1
+      · exact hb.trans_le ht.1)) (hi.sub (hi1.const_mul n))
+  rw [intervalIntegral.integral_sub hi (hi1.const_mul n), intervalIntegral.integral_const_mul] at hFTC
+  linarith only [hFTC]
 lemma log_2_expansion_t (x : ℝ) (hx : 2 ≤ x) :
     ∫ t in Set.Icc 2 x, 1 / log t ^ 2 =
       x / log x ^ 2 + 2 * x / log x ^ 3 + 6 * x / log x ^ 4 + 24 * x / log x ^ 5 + 120 * x / log x ^ 6
       - 2 * (∑ k ∈ Finset.Icc 1 5, k.factorial / log 2 ^ (k + 1)) + 720 * ∫ t in Set.Icc 2 x, 1 / log t ^ 7 := by
-  rw [log_2_IBP_t x hx, log_3_IBP_t x hx, log_4_IBP_t x hx, log_5_IBP_t x hx, log_6_IBP_t x hx]
+  have h (n : ℕ) : ∫ t in Set.Icc 2 x, 1 / log t ^ n =
+      x / log x ^ n - 2 / log 2 ^ n + (n : ℝ) * ∫ t in Set.Icc 2 x, 1 / log t ^ (n+1) := by
+    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
+      intervalIntegral.integral_of_le hx] using
+      integral_inv_log_pow_ibp n one_lt_two (show 1 < x by linarith)
+  rw [h 2, h 3, h 4, h 5, h 6]
   have hsum :
       (∑ k ∈ Finset.Icc 1 5, (k.factorial : ℝ) / log 2 ^ (k + 1)) =
         (log 2)⁻¹ ^ 2 + (log 2)⁻¹ ^ 3 * 2 + (log 2)⁻¹ ^ 4 * 6 + (log 2)⁻¹ ^ 5 * 24 + (log 2)⁻¹ ^ 6 * 120 := by
@@ -1621,9 +1333,10 @@ private lemma pi_upper_specific_h720Ia
     (720 : ℝ) * (∫ t in Set.Icc 2 x, 1 / log t ^ 7) + (∫ t in Set.Icc 2 x, a t / log t ^ 7)
       = ∫ t in Set.Icc 2 x, (720 + a t) / log t ^ 7 := by
   have hJ_int : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 7) (Set.Icc 2 x) volume :=
-    ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-      (continuousOn_log.mono <| by intro t ht; exact ne_of_gt (lt_of_lt_of_le (by norm_num) ht.1)) _) fun t ht ↦
-      pow_ne_zero _ <| ne_of_gt <| log_pos <| by linarith [ht.1])
+    by
+      simpa only [one_div] using
+        ((TauCeti.Real.continuousOn_inv_log_pow 7).mono
+          (fun t (ht : t ∈ Set.Icc 2 x) ↦ one_lt_two.trans_le ht.1)).integrableOn_Icc
   have h720_int_mul : IntegrableOn (fun t : ℝ ↦ (720 : ℝ) * (1 / log t ^ 7)) (Set.Icc 2 x) volume :=
     hJ_int.const_mul 720
   rw [← MeasureTheory.integral_const_mul, ← MeasureTheory.integral_add h720_int_mul ha_int]
@@ -1637,9 +1350,10 @@ private lemma pi_lower_specific_h720Ia
     (720 : ℝ) * (∫ t in Set.Icc 2 x, 1 / log t ^ 7) - (∫ t in Set.Icc 2 x, a t / log t ^ 7)
       = ∫ t in Set.Icc 2 x, (720 - a t) / log t ^ 7 := by
   have hJ_int : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 7) (Set.Icc 2 x) volume :=
-    ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-      (continuousOn_log.mono <| by intro t ht; exact ne_of_gt (lt_of_lt_of_le (by norm_num) ht.1)) _) fun t ht ↦
-      pow_ne_zero _ <| ne_of_gt <| log_pos <| by linarith [ht.1])
+    by
+      simpa only [one_div] using
+        ((TauCeti.Real.continuousOn_inv_log_pow 7).mono
+          (fun t (ht : t ∈ Set.Icc 2 x) ↦ one_lt_two.trans_le ht.1)).integrableOn_Icc
   have h720_int_mul : IntegrableOn (fun t : ℝ ↦ (720 : ℝ) * (1 / log t ^ 7)) (Set.Icc 2 x) volume :=
     hJ_int.const_mul 720
   rw [← MeasureTheory.integral_const_mul, ← MeasureTheory.integral_sub h720_int_mul ha_int]
@@ -1791,9 +1505,10 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
     a_mono (Set.mem_Ici.mpr hxa_exa) (Set.mem_Ici.mpr hxax) hexax
 
   have hJ_int : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 7) (Set.Icc 2 x) volume :=
-    ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-      (continuousOn_log.mono <| by intro t ht; exact ne_of_gt (lt_of_lt_of_le (by norm_num) ht.1)) _) fun t ht ↦
-      pow_ne_zero _ <| ne_of_gt <| log_pos <| by linarith [ht.1])
+    by
+      simpa only [one_div] using
+        ((TauCeti.Real.continuousOn_inv_log_pow 7).mono
+          (fun t (ht : t ∈ Set.Icc 2 x) ↦ one_lt_two.trans_le ht.1)).integrableOn_Icc
 
   have h720_int : IntegrableOn (fun t : ℝ ↦ (720 : ℝ) / log t ^ 7) (Set.Icc 2 x) volume := by
     refine (integrableOn_congr_fun ?_ measurableSet_Icc).2 (hJ_int.const_mul 720)
@@ -1824,17 +1539,18 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
         (720 + a xₐ) * ∫ t in Set.Icc xₐ x, 1 / log t ^ 7 := by
     have htail_int : IntegrableOn (fun t : ℝ ↦ (720 + a t) / log t ^ 7) (Set.Icc xₐ x) volume :=
       hG_int.mono_set (by intro t ht; exact ⟨by linarith [h2xa, ht.1], ht.2⟩)
-    have hconst_int : IntegrableOn (fun t : ℝ ↦ (720 + a xₐ) / log t ^ 7) (Set.Icc xₐ x) volume :=
-      (ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-        (continuousOn_log.mono <| by intro t ht; exact ne_of_gt (lt_of_lt_of_le (by linarith [h2xa]) ht.1)) _)
-        fun t ht ↦ pow_ne_zero _ <| ne_of_gt <| log_pos <| by linarith [h2xa, ht.1]))
+    have hconst_int : IntegrableOn (fun t : ℝ ↦ (720 + a xₐ) / log t ^ 7) (Set.Icc xₐ x) volume := by
+      simpa only [div_eq_mul_inv] using!
+        (((TauCeti.Real.continuousOn_inv_log_pow 7).mono
+          (fun t (ht : t ∈ Set.Icc xₐ x) ↦ one_lt_xₐ.trans_le ht.1)).integrableOn_Icc.const_mul
+            (720 + a xₐ))
     have hpt : ∀ t ∈ Set.Icc xₐ x, (720 + a t) / log t ^ 7 ≤ (720 + a xₐ) / log t ^ 7 := by
       intro t ht
       have hat : a t ≤ a xₐ :=
         a_mono (Set.mem_Ici.mpr le_rfl) (Set.mem_Ici.mpr ht.1) ht.1
       have hden_nonneg : 0 ≤ log t ^ 7 :=
         pow_nonneg (log_nonneg (by linarith [h2xa, ht.1])) 7
-      have hnum : 720 + a t ≤ 720 + a xₐ := by linarith
+      have hnum : 720 + a t ≤ 720 + a xₐ := add_le_add (le_refl (720 : ℝ)) hat
       exact div_le_div_of_nonneg_right hnum hden_nonneg
     have := MeasureTheory.setIntegral_mono_on htail_int hconst_int measurableSet_Icc hpt
     have hconst_factor :
@@ -1867,7 +1583,7 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
       ∫ t in Set.Icc xₐ x, (720 + a t) / log t ^ 7 <
         (720 + a xₐ) * (x / log x ^ 7 + 7 * (sqrt x / log 2 ^ 8 + 2 ^ 8 * x / log x ^ 8)) := by
     have hm := mul_lt_mul_of_pos_left (lt_of_le_of_lt hJtail_le hJfull_lt) h720axa_pos
-    grind
+    exact htail_le.trans_lt hm
 
   have hI0_eq :
       ∫ t in Set.Icc 2 xₐ, (720 + a t) / log t ^ 7 = C₁ * xₐ / log xₐ ^ 6 := by
@@ -1911,7 +1627,7 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
       exact hmul
     have hsum12 : x / log x ^ 7 + 7 * 2 ^ 8 * x / log x ^ 8 ≤
         x / log x ^ 6 * (1 / log xₐ + 7 * 2 ^ 8 / log xₐ ^ 2) := by
-      nlinarith
+      nlinarith only [hterm1, hterm2']
     calc
       x / log x ^ 7 + 7 * (sqrt x / log 2 ^ 8 + 2 ^ 8 * x / log x ^ 8)
           ≤ x / log x ^ 7 + 7 * (x / log x ^ 6 * (log xₐ ^ 6 / (sqrt xₐ * log 2 ^ 8)) + 2 ^ 8 * x / log x ^ 8) := by
@@ -1949,7 +1665,7 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
         (720 + a xₐ) * (x / log x ^ 7 + 7 * (sqrt x / log 2 ^ 8 + 2 ^ 8 * x / log x ^ 8))
           ≤ (720 + a xₐ) * (x / log x ^ 6 * B) :=
       mul_le_mul_of_nonneg_left hB h720axa_nonneg
-    grind
+    exact htail_lt.trans_le htmp
 
   have hG_lt :
       ∫ t in Set.Icc 2 x, (720 + a t) / log t ^ 7 <
@@ -1969,8 +1685,7 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
         + (120 + a exₐ) * x / log x ^ 6
         + (C₁ * x / log x ^ 6
         + (720 + a xₐ) * (x / log x ^ 6 * B)) := by
-    refine lt_of_le_of_lt hmain_le ?_
-    gcongr
+    exact hmain_le.trans_lt (add_lt_add_of_le_of_lt le_rfl hG_lt)
 
   have hMa_eq :
       (120 + a exₐ) * x / log x ^ 6
@@ -1979,7 +1694,7 @@ theorem pi_upper_specific : ∀ x > exₐ, pi x < x * ∑ k ∈ Finset.range 5, 
     unfold Mₐ
     ring
 
-  linarith [hMa_eq]
+  exact hfinal_lt.trans_eq (by rw [add_assoc, hMa_eq])
 
 private theorem a_eq_admissible_ge_3000 {z : ℝ} (hz : z ≥ exp 3000) :
     a z = admissible_bound (379.7 * 5.573412 ^ 5) 6.52 1.89 5.573412 z := by
@@ -2085,24 +1800,16 @@ private theorem C₁_nonneg : 0 ≤ C₁ := by
 
 private theorem C₂_abs_le_C₁ : |C₂| ≤ C₁ := by
   unfold C₁ C₂
-  have h2xa : 2 ≤ xₐ := by
-    unfold xₐ
-    have h2e : (2 : ℝ) < exp 1 := by
-      nlinarith [exp_one_gt_d9]
-    have h1 : exp 1 ≤ exp 3914 :=
-      exp_le_exp.mpr (by norm_num : (1 : ℝ) ≤ 3914)
-    grind
+  have h2xa : 2 ≤ xₐ := two_le_xₐ
   have hcoef_nonneg : 0 ≤ log xₐ ^ 6 / xₐ :=
     div_nonneg (pow_nonneg (by rw [log_xₐ_val]; norm_num) 6) (by positivity)
   have ha_int : IntegrableOn (fun t ↦ a t / log t ^ 7) (Set.Icc 2 xₐ) volume :=
     integrable_a_over_log7_piecewise xₐ h2xa
   have hconst_int : IntegrableOn (fun t ↦ (720 : ℝ) / log t ^ 7) (Set.Icc 2 xₐ) volume := by
-    refine ContinuousOn.integrableOn_Icc (continuousOn_const.div ?_ ?_)
-    · exact (continuousOn_log.mono (by
-        intro t ht
-        exact ne_of_gt (by linarith [ht.1]))).pow 7
-    · intro t ht
-      exact pow_ne_zero _ (ne_of_gt (log_pos (by linarith [ht.1])))
+    simpa only [div_eq_mul_inv] using!
+      (((TauCeti.Real.continuousOn_inv_log_pow 7).mono
+        (fun t (ht : t ∈ Set.Icc 2 xₐ) ↦ one_lt_two.trans_le ht.1)).integrableOn_Icc.const_mul
+          (720 : ℝ))
   have hminus_int : IntegrableOn (fun t ↦ (720 - a t) / log t ^ 7) (Set.Icc 2 xₐ) volume := by
     have hEq :
         (fun t ↦ (720 - a t) / log t ^ 7)
@@ -2305,11 +2012,12 @@ theorem pi_lower_specific : ∀ x > xₐ, pi x > x * ∑ k ∈ Finset.range 5, (
     have h720JIA : 720 * J - IA = ∫ t in Set.Icc 2 x, (720 - a t) / log t ^ 7 := by
       simpa [J, IA] using h720Ia
     have hdist : (120 - a xₐ) * x / log x ^ 6 = 120 * x / log x ^ 6 - a xₐ * x / log x ^ 6 := by ring
-    linarith [hpi0', haxterm, hsumx, h720JIA.le, h720JIA.ge, hdist]
+    linarith only [hpi0', haxterm, hsumx, h720JIA.le, h720JIA.ge, hdist]
   have hJ_int : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 7) (Set.Icc 2 x) volume :=
-    ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-      (continuousOn_log.mono <| by intro t ht; exact ne_of_gt (lt_of_lt_of_le (by norm_num) ht.1)) _) fun t ht ↦
-      pow_ne_zero _ <| ne_of_gt <| log_pos <| by linarith [ht.1])
+    by
+      simpa only [one_div] using
+        ((TauCeti.Real.continuousOn_inv_log_pow 7).mono
+          (fun t (ht : t ∈ Set.Icc 2 x) ↦ one_lt_two.trans_le ht.1)).integrableOn_Icc
   have h720_int : IntegrableOn (fun t : ℝ ↦ (720 : ℝ) / log t ^ 7) (Set.Icc 2 x) volume := by
     have : (fun t : ℝ ↦ (720 : ℝ) / log t ^ 7) = (fun t ↦ 720 * (1 / log t ^ 7)) := by funext t; ring
     rw [this]; exact hJ_int.const_mul 720
@@ -2335,7 +2043,7 @@ theorem pi_lower_specific : ∀ x > xₐ, pi x > x * ∑ k ∈ Finset.range 5, (
     have h2 : -(C₁ * x / log x ^ 6) ≤ -(C₁ * xₐ / log xₐ ^ 6) := by
       simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using
         neg_le_neg (mul_le_mul_of_nonneg_left hratio6 C₁_nonneg)
-    linarith
+    exact h2.trans h1
   have hS_le : 2 * S ≤ C₃ * x / log x ^ 6 := by
     have hS_eq : 2 * S = C₃ * xₐ / log xₐ ^ 6 := by
       unfold C₃ S; field_simp [hxapos.ne', log_xₐ_pos.ne']
@@ -2367,7 +2075,7 @@ theorem pi_lower_specific : ∀ x > xₐ, pi x > x * ∑ k ∈ Finset.range 5, (
     have : x / log x ^ 6 * (1 / log xₐ) + 7 * (x / log x ^ 6 *
         (log xₐ ^ 6 / (sqrt xₐ * log 2 ^ 8)) + x / log x ^ 6 * (2 ^ 8 / log xₐ ^ 2))
         = x / log x ^ 6 * B := by unfold B; ring
-    linarith
+    exact h.trans_eq this
   have hJtail_lt : ∫ t in Set.Icc xₐ x, 1 / log t ^ 7 < x / log x ^ 6 * B :=
     lt_of_le_of_lt hJtail_le (lt_of_lt_of_le (log_7_int_bound x hx2) hB)
   have hsub : Set.Icc xₐ x ⊆ Set.Icc 2 x :=
@@ -2387,7 +2095,7 @@ theorem pi_lower_specific : ∀ x > xₐ, pi x > x * ∑ k ∈ Finset.range 5, (
         (-a xₐ) * ∫ t in Set.Icc xₐ x, 1 / log t ^ 7 := by
       rw [← MeasureTheory.integral_const_mul]
       exact MeasureTheory.setIntegral_congr_fun measurableSet_Icc (fun t _ ↦ (hcong t).symm)
-    linarith [hmono, hcf.le, hcf.ge]
+    simpa only [hcf] using hmono
   have hG_gt :
       -(C₁ * x / log x ^ 6) + (-a xₐ) * (x / log x ^ 6 * B) <
         ∫ t in Set.Icc 2 x, (720 - a t) / log t ^ 7 := by
@@ -2400,7 +2108,11 @@ theorem pi_lower_specific : ∀ x > xₐ, pi x > x * ∑ k ∈ Finset.range 5, (
           + (-(C₁ * x / log x ^ 6) + (-a xₐ) * (x / log x ^ 6 * B))
         = x * ∑ k ∈ Finset.range 5, (k.factorial / log x ^ (k + 1)) + mₐ xₐ * x / log x ^ 6 := by
     unfold mₐ; ring
-  linarith [hmain_ge, hS_le, hG_gt, hm_eq.le, hm_eq.ge]
+  apply lt_of_lt_of_le ?_ hmain_ge
+  rw [← hm_eq]
+  exact lt_of_le_of_lt
+    (add_le_add (sub_le_sub_left hS_le _) le_rfl)
+    (add_lt_add_of_le_of_lt le_rfl hG_gt)
 
 
 @[blueprint
