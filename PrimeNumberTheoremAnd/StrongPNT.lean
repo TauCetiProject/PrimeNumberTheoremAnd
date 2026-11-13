@@ -8,7 +8,7 @@ public import Mathlib.Analysis.Complex.HasPrimitives
 public import Mathlib.Data.Rat.Cast.OfScientific
 public import Mathlib.Algebra.Order.Star.Real
 public import Mathlib.RingTheory.SimpleRing.Principal
-public import Mathlib.Analysis.Complex.BorelCaratheodory
+public import TauCeti.Analysis.Complex.BorelCaratheodory
 public import PrimeNumberTheoremAnd.MediumPNT
 
 
@@ -29,198 +29,6 @@ local notation "ζ'" => deriv ζ
 local notation "ψ" => ChebyshevPsi
 
 --open scoped ArithmeticFunction
-
-
-
-@[blueprint "AnalyticOn.norm_le_of_norm_le_on_sphere"
-  (title := "AnalyticOn.norm-le-of-norm-le-on-sphere")
-  (statement := /--
-    An application of the Maximum modulus principle.
-  -/)
-  (proof := /--
-    This is standard in the literature.
-  -/)
-  (latexEnv := "lemma")]
-lemma AnalyticOn.norm_le_of_norm_le_on_sphere {C r R : ℝ} {f : ℂ → ℂ} {w : ℂ}
-    (hyp_r : r ≤ R)
-    (analytic : AnalyticOn ℂ f (Metric.closedBall 0 R))
-    (cond : ∀ z ∈ Metric.sphere 0 r, ‖f z‖ ≤ C)
-    (wInS : w ∈ Metric.closedBall 0 r) :
-    ‖f w‖ ≤ C := by
-  apply Complex.norm_le_of_forall_mem_frontier_norm_le
-    (U := Metric.closedBall 0 r) Metric.isBounded_closedBall
-  · apply DifferentiableOn.diffContOnCl
-    rw [Metric.closure_closedBall]
-    exact AnalyticOn.differentiableOn
-      (AnalyticOn.mono analytic
-        (Metric.closedBall_subset_closedBall hyp_r))
-  · rw [frontier_closedBall']
-    exact cond
-  · rw [Metric.closure_closedBall]
-    exact wInS
-
-
-
-@[blueprint "borelCaratheodory'"
-  (title := "borelCaratheodory'")
-  (statement := /--
-    An application of
-    \begin{verbatim}
-      Complex.borelCaratheodory_zero.
-    \end{verbatim}
-  -/)
-  (proof := /--
-    This is standard in the literature.
-  -/)
-  (latexEnv := "theorem")]
-theorem borelCaratheodory' {M r R : ℝ} {f : ℂ → ℂ} {z : ℂ}
-    (Mpos : 0 < M) (Rpos : 0 < R) (hyp_r : r < R)
-    (analytic : AnalyticOn ℂ f (Metric.ball 0 R))
-    (zeroAtZero : f 0 = 0)
-    (realPartBounded : ∀ z ∈ Metric.ball 0 R, (f z).re ≤ M)
-    (hyp_z : z ∈ Metric.closedBall 0 r) :
-    ‖f z‖ ≤ (2 * M * r) / (R - r) := by
-  have h_borelCaratheodory : ∀ ε > 0, ‖f z‖ ≤ (2 * (M + ε) * ‖z‖) / (R - ‖z‖) := by
-    intro ε εpos;
-    apply Complex.borelCaratheodory_zero;
-    exacts [by linarith, analytic.differentiableOn,
-      fun z hz => by rw [Set.mem_ofPred_eq]; linarith [realPartBounded z hz],
-      Rpos, by exact Metric.mem_ball.mpr (lt_of_le_of_lt (Metric.mem_closedBall.mp hyp_z) hyp_r),
-      zeroAtZero]
-  have h_limit : ‖f z‖ ≤ (2 * M * ‖z‖) / (R - ‖z‖) := by
-    have h_limit : Filter.Tendsto (fun ε => (2 * (M + ε) * ‖z‖) / (R - ‖z‖))
-        (nhdsWithin 0 (Set.Ioi 0)) (nhds ((2 * M * ‖z‖) / (R - ‖z‖))) := by
-      refine tendsto_nhdsWithin_of_tendsto_nhds (Continuous.tendsto' ?_ _ _ (by ring_nf))
-      exact Continuous.div_const
-        ((continuous_const.mul (continuous_const.add continuous_id)).mul continuous_const) _
-    refine le_of_tendsto_of_tendsto tendsto_const_nhds h_limit ?_
-    exact Filter.eventually_of_mem self_mem_nhdsWithin fun ε hε => h_borelCaratheodory ε hε
-  rw [mem_closedBall_iff_norm, sub_zero] at hyp_z
-  refine le_trans h_limit ?_;
-  gcongr
-  exact mul_nonneg (mul_nonneg (zero_le_two) (le_of_lt Mpos)) (le_trans (norm_nonneg z) hyp_z)
-
-
-
-blueprint_comment /--
-    This upstreamed from https://github.com/math-inc/strongpnt/tree/main
--/
-
-
-
-@[blueprint "cauchy_formula_deriv"
-  (title := "cauchy-formula-deriv")
-  (statement := /--
-    Let $f$ be analytic on $|z|\leq R$. For any $z$ with $|z|\leq r$ and any $r'$
-    with $0 < r < r' < R$ we have
-    $$f'(z)=\frac{1}{2\pi i}\oint_{|w|=r'}\frac{f(w)}{(w-z)^2}\,dw=\frac{1}{2\pi}
-    \int_0^{2\pi}\frac{r'e^{it}\,f(r'e^{it})}{(r'e^{it}-z)^2}\,dt.$$
-  -/)
-  (proof := /--
-    This is just Cauchy's integral formula for derivatives.
-  -/)
-  (latexEnv := "lemma")]
-lemma cauchy_formula_deriv {r r' R : ℝ} {f : ℂ → ℂ} {z : ℂ}
-    (r_lt_r' : r < r') (r'_lt_R : r' < R)
-    (hf_on_ball : DifferentiableOn ℂ f (Metric.ball 0 R))
-    (hz : z ∈ Metric.closedBall 0 r) :
-    deriv f z = (1 / (2 * Real.pi * I)) • ∮ w in C(0, r'), (w - z)⁻¹ ^ 2 • f w := by
-  have hz_in_ball : z ∈ Metric.ball 0 r' :=
-    Metric.mem_ball.mpr <| (Metric.mem_closedBall.mp hz).trans_lt r_lt_r'
-  simp [← Complex.two_pi_I_inv_smul_circleIntegral_sub_sq_inv_smul_of_differentiable
-      Metric.isOpen_ball (Metric.closedBall_subset_ball r'_lt_R) hf_on_ball hz_in_ball]
-
-
-
-@[blueprint "DerivativeBound"
-  (title := "DerivativeBound")
-  (statement := /--
-    Let $R,\,M>0$ and $0 < r < r' < R$. Let $f$ be analytic on $|z|\leq R$ such that
-    $f(0)=0$ and suppose $\Re f(z)\leq M$ for all $|z|\leq R$. Then we have that
-    $$|f'(z)|\leq\frac{2M(r')^2}{(R-r')(r'-r)^2}$$
-    for all $|z|\leq r$.
-  -/)
-  (proof := /--
-    By Lemma \ref{cauchy_formula_deriv} we know that
-    $$f'(z)=\frac{1}{2\pi i}\oint_{|w|=r'}\frac{f(w)}{(w-z)^2}\,dw
-      =\frac{1}{2\pi }\int_0^{2\pi}\frac{r'e^{it}\,f(r'e^{it})}{(r'e^{it}-z)^2}\,dt.$$
-    Thus,
-    \begin{equation}\label{pickupPoint1}
-        |f'(z)|=\left|\frac{1}{2\pi}\int_0^{2\pi}
-          \frac{r'e^{it}\,f(r'e^{it})}{(r'e^{it}-z)^2}\,dt\right|
-          \leq\frac{1}{2\pi}\int_0^{2\pi}
-          \left|\frac{r'e^{it}\,f(r'e^{it})}{(r'e^{it}-z)^2}\right|\,dt.
-    \end{equation}
-    Now applying Theorem \ref{borelCaratheodory'}, and noting that
-    $r'-r\leq|r'e^{it}-z|$, we have that
-    $$\left|\frac{r'e^{it}\,f(r'e^{it})}{(r'e^{it}-z)^2}\right|
-      \leq\frac{2M(r')^2}{(R-r')(r'-r)^2}.$$
-    Substituting this into Equation (\ref{pickupPoint1}) and evaluating the integral
-    completes the proof.
-  -/)
-  (latexEnv := "lemma")]
-lemma DerivativeBound {M r r' R : ℝ} {f : ℂ → ℂ} {z : ℂ}
-    (Mpos : 0 < M) (pos_r : 0 < r) (r_lt_r' : r < r') (r'_lt_R : r' < R)
-    (analytic_f : AnalyticOn ℂ f (Metric.ball 0 R))
-    (f_zero_at_zero : f 0 = 0)
-    (re_f_le_M : ∀ z ∈ Metric.ball 0 R, (f z).re ≤ M)
-    (z_in_r : z ∈ Metric.closedBall 0 r) :
-    ‖(deriv f) z‖ ≤ 2 * M * (r') ^ 2 / ((R - r') * (r' - r) ^ 2) := by
-  rw [cauchy_formula_deriv r_lt_r' r'_lt_R analytic_f.differentiableOn  z_in_r, one_div]
-  grw [circleIntegral.norm_two_pi_i_inv_smul_integral_le_of_norm_le_const (by linarith)
-    (C := 2 * M * r' / ((R - r') * (r' - r) ^ 2))]
-  · exact le_of_eq (by ring)
-  · intro z' hz'
-    rw [smul_eq_mul, norm_mul]
-    grw[borelCaratheodory' Mpos (by grind) r'_lt_R analytic_f f_zero_at_zero  re_f_le_M
-      (Metric.sphere_subset_closedBall hz')]
-    suffices ‖(z' - z)⁻¹ ^ 2‖ ≤ 1 / (r' - r) ^ 2 by
-      grw [this]
-      · exact le_of_eq (by field)
-      · refine mul_nonneg (mul_nonneg ?_ ?_) (inv_nonneg.mpr ?_) <;> linarith
-    have hdist : r' - r ≤ ‖z' - z‖ := by
-      simp only [mem_sphere_iff_norm, sub_zero, Metric.mem_closedBall,
-        dist_zero_right] at hz' z_in_r
-      rw [← hz']
-      exact le_trans (by linarith) (norm_sub_norm_le z' z)
-    rw [norm_pow, norm_inv, one_div, inv_pow]
-    gcongr
-
-
-
-@[blueprint "BorelCaratheodoryDeriv"
-  (title := "BorelCaratheodoryDeriv")
-  (statement := /--
-    Let $R,\,M>0$. Let $f$ be analytic on $|z|\leq R$ such that $f(0)=0$ and suppose
-    $\Re f(z)\leq M$ for all $|z|\leq R$. Then for any $0 < r < R$,
-    $$|f'(z)|\leq\frac{16MR^2}{(R-r)^3}$$
-    for all $|z|\leq r$.
-  -/)
-  (proof := /--
-    Using Lemma \ref{DerivativeBound} with $r'=(R+r)/2$, and noting that $r < R$,
-    we have that
-    $$|f'(z)|\leq\frac{4M(R+r)^2}{(R-r)^3}\leq\frac{16MR^2}{(R-r)^3}.$$
-  -/)
-  (latexEnv := "theorem")]
-theorem BorelCaratheodoryDeriv {M r R : ℝ} {f : ℂ → ℂ} {z : ℂ}
-    (Mpos : 0 < M) (rpos : 0 < r) (hyp_r : r < R)
-    (analytic_f : AnalyticOn ℂ f (Metric.ball 0 R))
-    (zeroAtZero : f 0 = 0)
-    (realPartBounded : ∀ z ∈ Metric.ball 0 R, (f z).re ≤ M)
-    (hyp_z : z ∈ Metric.closedBall 0 r) :
-    ‖deriv f z‖ ≤ 16 * M * R ^ 2 / (R - r) ^ 3 := by
-  have hr' : 2 * M * ((R + r) / 2) ^ 2 / ((R - (R + r) / 2) * ((R + r) / 2 - r) ^ 2) =
-      4 * M * (R + r) ^ 2 / (R - r) ^ 3 := by
-    rw [div_eq_div_iff (mul_ne_zero (by linarith) (pow_ne_zero _ (by linarith)))
-      (pow_ne_zero _ (by linarith))]
-    ring
-  calc ‖deriv f z‖
-    _ ≤ 4 * M * (R + r) ^ 2 / (R - r) ^ 3 := hr' ▸
-      DerivativeBound Mpos rpos (by linarith) (by linarith)
-        analytic_f zeroAtZero realPartBounded hyp_z
-    _ ≤ 16 * M * R ^ 2 / (R - r) ^ 3 := by
-      have : 16 * M * R ^ 2 = 4 * M * (2 * R) ^ 2 := by ring_nf
-      rw [this]; bound
 
 
 
@@ -720,36 +528,42 @@ lemma DiskBound {B r R : ℝ} {f : ℂ → ℂ} {z : ℂ}
     ‖BlaschkeB r R f z‖ ≤ B := by
   have r_lt_one : r < 1 := lt_trans r_lt_R R_lt_one
   have R_pos : 0 < R := lt_trans r_pos r_lt_R
-  refine AnalyticOn.norm_le_of_norm_le_on_sphere (le_refl R) (AnalyticOnNhd.analyticOn
-    (BlaschkeAnalytic r_pos r_lt_R R_lt_one finiteZeros hfAnalytic hf_neq_zero_at_zero)) ?_ hz
-  intro w hw
-  rw[mem_sphere_iff_norm, sub_zero] at hw
-  have hw_not_in : ¬(w ∈ SetOfZeros r f) := by
-    apply notMem_ofPred_iff.mpr
-    intro le_r
-    linarith
-  have Bf_eq_f_at_w : ‖BlaschkeB r R f w‖ = ‖f w‖ := by
-    unfold BlaschkeB Cf
-    simp only [finiteSetOfZeros_mono r_lt_one finiteZeros, hw_not_in, ↓reduceDIte, Complex.norm_mul,
-      Complex.norm_div, norm_prod, norm_pow]
-    rw[div_eq_mul_inv, mul_assoc, mul_right_eq_self₀]
-    by_cases fw_normZero : ‖f w‖ = 0
-    · exact Or.inr fw_normZero
-    · apply Or.inl
-      rw[← Finset.prod_inv_distrib, ← Finset.prod_mul_distrib]
-      apply Finset.prod_eq_one
-      intro w' hw'_in
-      have hfact : (R : ℂ) - w * starRingEnd ℂ w' / R = (conj w - conj w') * w / R := by
-        rw[sub_mul, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq, hw, ofReal_pow]
+  apply Complex.norm_le_of_forall_mem_frontier_norm_le
+    (U := Metric.closedBall 0 R) Metric.isBounded_closedBall
+  · apply DifferentiableOn.diffContOnCl
+    rw [Metric.closure_closedBall]
+    exact (BlaschkeAnalytic r_pos r_lt_R R_lt_one finiteZeros hfAnalytic
+      hf_neq_zero_at_zero).differentiableOn
+  · intro w hw
+    have hw := Metric.frontier_closedBall_subset_sphere hw
+    rw[mem_sphere_iff_norm, sub_zero] at hw
+    have hw_not_in : ¬(w ∈ SetOfZeros r f) := by
+      apply notMem_ofPred_iff.mpr
+      intro le_r
+      linarith
+    have Bf_eq_f_at_w : ‖BlaschkeB r R f w‖ = ‖f w‖ := by
+      unfold BlaschkeB Cf
+      simp only [finiteSetOfZeros_mono r_lt_one finiteZeros, hw_not_in, ↓reduceDIte, Complex.norm_mul,
+        Complex.norm_div, norm_prod, norm_pow]
+      rw[div_eq_mul_inv, mul_assoc, mul_right_eq_self₀]
+      by_cases fw_normZero : ‖f w‖ = 0
+      · exact Or.inr fw_normZero
+      · apply Or.inl
+        rw[← Finset.prod_inv_distrib, ← Finset.prod_mul_distrib]
+        apply Finset.prod_eq_one
+        intro w' hw'_in
+        have hfact : (R : ℂ) - w * starRingEnd ℂ w' / R = (conj w - conj w') * w / R := by
+          rw[sub_mul, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq, hw, ofReal_pow]
+          field_simp
+        rw [hfact, norm_div, norm_mul, ← map_sub, norm_conj, Complex.norm_real, hw,
+          Real.norm_of_nonneg (le_of_lt R_pos)]
         field_simp
-      rw [hfact, norm_div, norm_mul, ← map_sub, norm_conj, Complex.norm_real, hw,
-        Real.norm_of_nonneg (le_of_lt R_pos)]
-      field_simp
-      rw[← div_pow, div_self, one_pow]
-      rw[Set.Finite.mem_toFinset] at hw'_in
-      exact norm_ne_zero_iff.mpr (sub_ne_zero.mpr (fun h => hw_not_in (h ▸ hw'_in)))
-  rw[Bf_eq_f_at_w]
-  exact fz_bound w (le_of_eq hw)
+        rw[← div_pow, div_self, one_pow]
+        rw[Set.Finite.mem_toFinset] at hw'_in
+        exact norm_ne_zero_iff.mpr (sub_ne_zero.mpr (fun h => hw_not_in (h ▸ hw'_in)))
+    rw[Bf_eq_f_at_w]
+    exact fz_bound w (le_of_eq hw)
+  · simpa only [Metric.closure_closedBall] using hz
 
 
 
@@ -943,7 +757,7 @@ noncomputable def JBlaschke {r' r R : ℝ} {f : ℂ → ℂ}
     for all $|z|\leq r$. Note that in the above
     $$0=\log|f(0)|\leq\log|B_f(0)|$$
     because of Lemma \ref{norm_fOfZero_le_norm_BlaschkeOfZero}. So by
-    Theorem \ref{BorelCaratheodoryDeriv}, it follows that
+    Tau Ceti's derivative bound from a real-part bound, it follows that
     $$|L_f'(z)|\leq\frac{16\log(B)\,r^2}{(r-r')^3}$$
     for all $|z|\leq r'$.
   -/)
@@ -970,21 +784,42 @@ theorem JBlaschkeDerivBound {B r' r R : ℝ} {f : ℂ → ℂ} {z : ℂ}
     unfold JBlaschke
     rw [← JB_def]
   rw[← JB_def']
-  refine BorelCaratheodoryDeriv (Real.log_pos one_lt_B) r'_pos r'_lt_r (JB_Analytic.analyticOn)
-    JB_0_eq_0 ?_ hz
-  intro w hw
-  rw[← JB_re w hw]
-  have hwr : w ∈ Metric.closedBall (0 : ℂ) r := by exact Metric.ball_subset_closedBall hw
-  have hlog : 0 ≤ Real.log ‖BlaschkeB r R f 0‖ := by
-    rw [← Real.log_one]
-    apply Real.log_le_log zero_lt_one
-    rw [← norm_one (α := ℂ), ← hf0_eq_one]
-    exact norm_fOfZero_le_norm_BlaschkeOfZero r_pos r_lt_R R_lt_one finiteZeros
-      (hf0_eq_one ▸ one_ne_zero)
-  suffices h : Real.log ‖BlaschkeB r R f w‖ ≤ Real.log B by linarith
-  exact Real.log_le_log (norm_pos_iff.mpr (blaschkeNonzero w hwr))
-    (DiskBound r_pos r_lt_R R_lt_one finiteZeros hfAnalytic (hf0_eq_one ▸ one_ne_zero) fz_bound
-      (Metric.closedBall_subset_closedBall r_lt_R.le hwr))
+  have hJB_re : ∀ w ∈ Metric.ball 0 r, (JB w).re ≤ Real.log B := by
+    intro w hw
+    rw[← JB_re w hw]
+    have hwr : w ∈ Metric.closedBall (0 : ℂ) r := by exact Metric.ball_subset_closedBall hw
+    have hlog : 0 ≤ Real.log ‖BlaschkeB r R f 0‖ := by
+      rw [← Real.log_one]
+      apply Real.log_le_log zero_lt_one
+      rw [← norm_one (α := ℂ), ← hf0_eq_one]
+      exact norm_fOfZero_le_norm_BlaschkeOfZero r_pos r_lt_R R_lt_one finiteZeros
+        (hf0_eq_one ▸ one_ne_zero)
+    suffices h : Real.log ‖BlaschkeB r R f w‖ ≤ Real.log B by linarith
+    exact Real.log_le_log (norm_pos_iff.mpr (blaschkeNonzero w hwr))
+      (DiskBound r_pos r_lt_R R_lt_one finiteZeros hfAnalytic (hf0_eq_one ▸ one_ne_zero) fz_bound
+        (Metric.closedBall_subset_closedBall r_lt_R.le hwr))
+  have hz_norm : ‖z‖ ≤ r' := by simpa only [Metric.mem_closedBall, dist_zero_right] using hz
+  have hden : 0 < r - r' := sub_pos.mpr r'_lt_r
+  have hlog : 0 < Real.log B := Real.log_pos one_lt_B
+  have hnative := Complex.norm_deriv_le_of_forall_mem_ball_re_le
+    JB_Analytic.differentiableOn JB_0_eq_0 hJB_re
+    (z := z) (by simpa only [sub_zero] using hz_norm.trans_lt r'_lt_r)
+  simp only [sub_zero] at hnative
+  have hfrac : (r + ‖z‖) / (r - ‖z‖) ^ 2 ≤ (2 * r) / (r - r') ^ 2 := by
+    apply div_le_div₀ (by positivity) (by linarith) (sq_pos_of_pos hden)
+    exact pow_le_pow_left₀ hden.le (by linarith) 2
+  calc ‖deriv JB z‖
+    _ ≤ 4 * (r + ‖z‖) / (r - ‖z‖) ^ 2 * Real.log B := hnative
+    _ = (4 * Real.log B) * ((r + ‖z‖) / (r - ‖z‖) ^ 2) := by ring
+    _ ≤ (4 * Real.log B) * ((2 * r) / (r - r') ^ 2) :=
+      mul_le_mul_of_nonneg_left hfrac (by positivity)
+    _ = 8 * Real.log B * r * (r - r') / (r - r') ^ 3 := by field_simp; ring
+    _ ≤ 16 * Real.log B * r ^ 2 / (r - r') ^ 3 := by
+      apply div_le_div_of_nonneg_right _ (by positivity)
+      calc 8 * Real.log B * r * (r - r')
+        _ ≤ 8 * Real.log B * r * (2 * r) :=
+          mul_le_mul_of_nonneg_left (by linarith) (by positivity)
+        _ = 16 * Real.log B * r ^ 2 := by ring
 
 
 
