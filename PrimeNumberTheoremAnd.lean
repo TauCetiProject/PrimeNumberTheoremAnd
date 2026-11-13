@@ -4,7 +4,6 @@ import PrimeNumberTheoremAnd.BrunTitchmarsh
 import PrimeNumberTheoremAnd.Consequences
 import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.EulerMaclaurin
-import PrimeNumberTheoremAnd.EulerMascheroniBounds
 import PrimeNumberTheoremAnd.Fourier
 import PrimeNumberTheoremAnd.GeneralMeromorphic
 import PrimeNumberTheoremAnd.HadamardFactorization
@@ -77,6 +76,5 @@ import PrimeNumberTheoremAnd.SincKernelErrorBounds
 import PrimeNumberTheoremAnd.SmoothExistence
 import PrimeNumberTheoremAnd.Sobolev
 import PrimeNumberTheoremAnd.StrongPNT
-import PrimeNumberTheoremAnd.FourierDecay
 import PrimeNumberTheoremAnd.ZetaBounds
 import PrimeNumberTheoremAnd.ZetaConj
