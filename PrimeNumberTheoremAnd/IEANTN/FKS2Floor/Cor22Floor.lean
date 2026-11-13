@@ -53,30 +53,13 @@ theorem delta_two : δ 2 = 1 := by
   rw [show (1 - 0) / ((2:ℝ) / Real.log 2) - (Real.log 2 - 2) / 2 = 1 by field_simp; ring]
   norm_num
 
-/-- Integrability of the eq_30 integrand on [2,x] (mirrors lemma_12). -/
-theorem etheta_integrand_intble {x : ℝ} (hx : 2 ≤ x) :
-    IntervalIntegrable (fun t => Eθ t / log t ^ 2) volume 2 x := by
-  have log_t_ne_zero : ∀ t ∈ Set.uIcc (2:ℝ) x, log t ≠ 0 := fun t ht ↦ by
-    rw [Set.uIcc_of_le hx, Set.mem_Icc] at ht
-    exact ne_of_gt (log_pos (by linarith [ht.1]))
-  have t_ne_zero : ∀ t ∈ Set.uIcc (2:ℝ) x, t ≠ 0 := fun t ht ↦ by
-    rw [Set.uIcc_of_le hx, Set.mem_Icc] at ht; exact ne_of_gt (by linarith [ht.1])
-  refine IntervalIntegrable.mul_continuousOn ?_ (by fun_prop (disch := grind))
-  unfold Eθ
-  refine IntervalIntegrable.mul_continuousOn ?_ (by fun_prop (disch := grind))
-  refine IntervalIntegrable.abs <| IntervalIntegrable.sub ?_ intervalIntegral.intervalIntegrable_id
-  apply (intervalIntegrable_iff_integrableOn_Icc_of_le hx).mpr
-  conv => arg 1; ext y; rw [← one_mul (θ y), theta_eq_sum_Icc, Finset.sum_filter]
-  apply integrableOn_mul_sum_Icc _ (by linarith)
-  apply ContinuousOn.integrableOn_Icc; fun_prop
-
 /-- ∫₂ˣ Eθ/log²t ≤ (4/5)/(log 2)²·(x−2) on the floor (crude: Eθ ≤ 4/5, log t ≥ log 2). -/
 theorem integral_etheta_bound {x : ℝ} (hx2 : 2 ≤ x) (hxe : x ≤ exp 10) :
     ∫ t in (2:ℝ)..x, Eθ t / log t ^ 2 ≤ (4/5) / (log 2) ^ 2 * (x - 2) := by
   have hlog2 : (0:ℝ) < log 2 := log_pos (by norm_num)
   calc ∫ t in (2:ℝ)..x, Eθ t / log t ^ 2
       ≤ ∫ _t in (2:ℝ)..x, (4/5) / (log 2) ^ 2 := by
-        apply intervalIntegral.integral_mono_on hx2 (etheta_integrand_intble hx2)
+        apply intervalIntegral.integral_mono_on hx2 (FKS2.intervalIntegrable_Eθ_div_log_sq le_rfl hx2)
           intervalIntegrable_const
         intro t ⟨ht2, htx⟩
         have hEθt : Eθ t ≤ 4/5 := etheta_le_floor t ⟨ht2, le_trans htx hxe⟩
