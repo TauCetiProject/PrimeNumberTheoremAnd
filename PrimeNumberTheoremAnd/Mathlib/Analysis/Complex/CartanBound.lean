@@ -51,41 +51,8 @@ private lemma neg_log_le_sqrt_two_div {x : ℝ} (hx : 0 < x) (hxle : x ≤ 1) :
   have ht : 0 ≤ -Real.log x := by
     have : Real.log x ≤ 0 := Real.log_nonpos hx0 hxle
     linarith
-  have hsq_div_two_le_exp : ∀ {t : ℝ}, 0 ≤ t → t ^ 2 / 2 ≤ Real.exp t := by
-    intro t ht
-    let g : ℝ → ℝ := fun u => Real.exp u - u ^ 2 / 2
-    have hg_cont : ContinuousOn g (Set.Ici (0 : ℝ)) := by
-      have : Continuous g := by fun_prop
-      simpa using this.continuousOn
-    have hg_diff : DifferentiableOn ℝ g (interior (Set.Ici (0 : ℝ))) := by
-      intro u hu
-      have : DifferentiableAt ℝ g u := by fun_prop
-      exact this.differentiableWithinAt
-    have hg'_nonneg : ∀ u ∈ interior (Set.Ici (0 : ℝ)), 0 ≤ deriv g u := by
-      intro u hu
-      have hu0 : 0 < u := by simpa [interior_Ici] using hu
-      have hderiv : deriv g u = Real.exp u - u := by
-        have hExp : HasDerivAt Real.exp (Real.exp u) u := Real.hasDerivAt_exp u
-        have hpow2 : HasDerivAt (fun z : ℝ => z ^ 2) (2 * u) u := by
-          simpa using! ((hasDerivAt_id u).pow 2)
-        have hpow2_div : HasDerivAt (fun z : ℝ => z ^ 2 / 2) u u := by
-          simpa using (hpow2.div_const (2 : ℝ))
-        have hG : HasDerivAt g (Real.exp u - u) u := by
-          simpa [g] using! hExp.sub hpow2_div
-        exact hG.deriv
-      have hu_le : u ≤ Real.exp u := by
-        have h1 : u + 1 ≤ Real.exp u := Real.add_one_le_exp u
-        exact (le_trans (le_add_of_nonneg_right (by norm_num)) h1)
-      have : 0 ≤ Real.exp u - u := sub_nonneg.2 hu_le
-      simpa [hderiv] using this
-    have hg_mono : MonotoneOn g (Set.Ici (0 : ℝ)) :=
-      monotoneOn_of_deriv_nonneg (D := Set.Ici (0 : ℝ)) (hD := convex_Ici 0)
-        hg_cont hg_diff hg'_nonneg
-    have hg0 : g 0 = 1 := by simp [g]
-    have hle : g 0 ≤ g t := hg_mono (by simp) (by simpa [Set.mem_Ici] using ht) ht
-    have : (1 : ℝ) ≤ Real.exp t - t ^ 2 / 2 := by simpa [g, hg0] using hle
-    linarith
-  have hmain : (-Real.log x) ^ 2 / 2 ≤ Real.exp (-Real.log x) := hsq_div_two_le_exp ht
+  have hmain : (-Real.log x) ^ 2 / 2 ≤ Real.exp (-Real.log x) := by
+    simpa using Real.pow_div_factorial_le_exp (-Real.log x) ht 2
   have hexp : Real.exp (-Real.log x) = x⁻¹ := by simp [Real.exp_neg, Real.exp_log hx]
   have hsq2 : (-Real.log x) ^ 2 ≤ 2 * Real.exp (-Real.log x) := by nlinarith [hmain]
   have hsq' : (-Real.log x) ^ 2 ≤ 2 / x := by simpa [hexp, div_eq_mul_inv, mul_assoc] using hsq2
@@ -702,68 +669,26 @@ lemma exists_radius_Ioc_sum_mul_phi_div_le_Cφ_mul_sum_avoid
     (bad : Finset ℝ) {R : ℝ} (hR : 0 < R) :
     ∃ r ∈ Set.Ioc R (2 * R), r ∉ bad ∧
       (∑ i ∈ s, w i * φ (r / a i)) ≤ Cφ * (∑ i ∈ s, w i) := by
-  by_contra hbad
-  have hforall :
-      ∀ r ∈ Set.Ioc R (2 * R), r ∉ bad →
-        Cφ * (∑ i ∈ s, w i) < (∑ i ∈ s, w i * φ (r / a i)) := by
-    intro r hr hrbad
-    have : ¬(∑ i ∈ s, w i * φ (r / a i)) ≤ Cφ * (∑ i ∈ s, w i) := by
-      intro hle
-      exact hbad ⟨r, hr, hrbad, hle⟩
-    exact lt_of_not_ge this
-  let g : ℝ → ℝ := ∑ i ∈ s, fun r : ℝ => w i * φ (r / a i)
-  have hg_int : IntervalIntegrable g volume R (2 * R) := by
-    simpa [g] using intervalIntegrable_sum_mul_phi_div s w a ha hR.le
-  have hconst_int :
-      IntervalIntegrable (fun _r : ℝ => Cφ * (∑ i ∈ s, w i)) volume R (2 * R) :=
-    intervalIntegrable_const
-  have hlt_meas :
-      (volume.restrict (Set.Ioc R (2 * R)))
-        {r | Cφ * (∑ i ∈ s, w i) < g r} ≠ 0 := by
-    have hall : Set.Ioc R (2 * R) \ (bad : Set ℝ) ⊆ {r | Cφ * (∑ i ∈ s, w i) < g r} := by
-      intro r hr
-      have hrIoc : r ∈ Set.Ioc R (2 * R) := hr.1
-      have hrbad : r ∉ bad := by simpa using hr.2
-      simpa [g] using hforall r hrIoc hrbad
-    have hle :
-        (volume.restrict (Set.Ioc R (2 * R))) (Set.Ioc R (2 * R) \ (bad : Set ℝ))
-          ≤ (volume.restrict (Set.Ioc R (2 * R))) {r | Cφ * (∑ i ∈ s, w i) < g r} :=
-      MeasureTheory.measure_mono hall
-    have hpos' :
-        (volume.restrict (Set.Ioc R (2 * R))) (Set.Ioc R (2 * R) \ (bad : Set ℝ)) ≠ 0 := by
-      exact restrict_volume_Ioc_two_mul_diff_finset_ne_zero bad hR
-    intro hzero
-    have : (volume.restrict (Set.Ioc R (2 * R))) (Set.Ioc R (2 * R) \ (bad : Set ℝ)) = 0 :=
-      le_antisymm (le_trans hle (le_of_eq hzero)) (by positivity)
-    exact hpos' this
-  have hlt_int :
-      (∫ r in R..(2 * R), (Cφ * (∑ i ∈ s, w i)) ∂volume)
-        < ∫ r in R..(2 * R), g r ∂volume := by
-    have hab : R ≤ 2 * R := by nlinarith [hR.le]
-    refine intervalIntegral.integral_lt_integral_of_ae_le_of_measure_setOfPred_lt_ne_zero (μ := volume)
-      (a := R) (b := 2 * R) (f := fun _ => (Cφ * (∑ i ∈ s, w i))) (g := g)
-      hab hconst_int hg_int ?_ hlt_meas
-    have hmem : ∀ᵐ r ∂ (volume.restrict (Set.Ioc R (2 * R))), r ∈ Set.Ioc R (2 * R) :=
-      MeasureTheory.ae_restrict_mem (by simp)
-    have hnotBad :
-        ∀ᵐ r ∂ (volume.restrict (Set.Ioc R (2 * R))), r ∉ (bad : Set ℝ) := by
-      simpa using
-        (bad.finite_toSet.countable.ae_notMem (μ := (volume.restrict (Set.Ioc R (2 * R)))))
-    filter_upwards [hmem, hnotBad] with r hrIoc hrNotBad
-    have hrNotBad' : r ∉ bad := by simpa using hrNotBad
-    exact le_of_lt (by simpa [g] using hforall r hrIoc hrNotBad')
-  have hconst_eval :
-      (∫ r in R..(2 * R), (Cφ * (∑ i ∈ s, w i)) ∂volume) = Cφ * (∑ i ∈ s, w i) * R := by
-    simp [intervalIntegral.integral_const, sub_eq_add_neg, mul_comm]
-    ring
-  have hg_le :
-      (∫ r in R..(2 * R), g r ∂volume) ≤ Cφ * (∑ i ∈ s, w i) * R := by
-    simpa [g] using integral_sum_mul_phi_div_le_Cφ_mul_sum s w a hw ha hR.le
-  have : ¬(Cφ * (∑ i ∈ s, w i) * R < Cφ * (∑ i ∈ s, w i) * R) := lt_irrefl _
-  have hcontra : Cφ * (∑ i ∈ s, w i) * R < Cφ * (∑ i ∈ s, w i) * R := by
-    have := hlt_int
-    simpa [hconst_eval] using (this.trans_le hg_le)
-  exact this hcontra
+  let g : ℝ → ℝ := ∑ i ∈ s, fun r : ℝ ↦ w i * φ (r / a i)
+  let S : Set ℝ := Set.Ioc R (2 * R) \ (bad : Set ℝ)
+  have hnull : volume (bad : Set ℝ) = 0 := bad.measure_zero volume
+  have hS : S =ᵐ[volume] Set.Ioc R (2 * R) := sdiff_null_ae_eq_self hnull
+  have hg : IntegrableOn g (Set.Ioc R (2 * R)) :=
+    (intervalIntegrable_sum_mul_phi_div s w a ha hR.le).1
+  obtain ⟨r, hr, hle⟩ := exists_le_setAverage
+    (volume_Ioc_two_mul_diff_finset_ne_zero bad hR)
+    (ne_top_of_le_ne_top (by simp : volume (Set.Ioc R (2 * R)) ≠ ∞)
+      (measure_mono Set.sdiff_subset))
+    (hg.mono_set Set.sdiff_subset)
+  have havg : (⨍ x in S, g x) ≤ Cφ * ∑ i ∈ s, w i := by
+    rw [setAverage_congr hS, setAverage_eq, measureReal_def, Real.volume_Ioc,
+      ENNReal.toReal_ofReal (by linarith : 0 ≤ 2 * R - R),
+      show 2 * R - R = R by ring, smul_eq_mul, mul_comm, ← div_eq_mul_inv,
+      ← intervalIntegral.integral_of_le (by linarith : R ≤ 2 * R)]
+    apply (div_le_iff₀ hR).2
+    exact integral_sum_mul_phi_div_le_Cφ_mul_sum s w a hw ha hR.le
+  refine ⟨r, hr.1, hr.2, ?_⟩
+  simpa only [g, Finset.sum_apply] using! hle.trans havg
 
 lemma exists_radius_Ioc_sum_mul_phi_div_le_Cφ_mul_sum
     {ι : Type} (s : Finset ι) (w : ι → ℝ) (a : ι → ℝ)

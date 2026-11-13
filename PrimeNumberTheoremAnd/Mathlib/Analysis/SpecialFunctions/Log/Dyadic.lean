@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import TauCeti.Analysis.SpecialFunctions.Log.Base
 public import Mathlib.Topology.Algebra.InfiniteSum.Order
 
 /-!
@@ -24,28 +24,6 @@ open Filter
 
 namespace Real
 
-/-- The dyadic lower endpoint associated to `⌊log₂ x⌋` is at most `x`, for `1 ≤ x`. -/
-lemma two_pow_floor_logb_le {x : ℝ} (hx : 1 ≤ x) :
-    (2 : ℝ) ^ (⌊Real.logb 2 x⌋₊ : ℝ) ≤ x := by
-  have hx0 : 0 < x := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) hx
-  have hlog_nonneg : 0 ≤ Real.logb 2 x :=
-    Real.logb_nonneg (b := (2 : ℝ)) (by norm_num : (1 : ℝ) < 2) hx
-  have hfloor_le : (⌊Real.logb 2 x⌋₊ : ℝ) ≤ Real.logb 2 x := by
-    simpa using (Nat.floor_le hlog_nonneg)
-  exact (Real.le_logb_iff_rpow_le (b := (2 : ℝ))
-    (x := (⌊Real.logb 2 x⌋₊ : ℝ)) (y := x)
-    (by norm_num : (1 : ℝ) < 2) hx0).1 hfloor_le
-
-/-- `x` lies below the next dyadic endpoint after `⌊log₂ x⌋`, for `1 ≤ x`. -/
-lemma lt_two_pow_floor_logb_add_one {x : ℝ} (hx : 1 ≤ x) :
-    x < (2 : ℝ) ^ ((⌊Real.logb 2 x⌋₊ : ℝ) + 1) := by
-  have hx0 : 0 < x := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) hx
-  have hlt : Real.logb 2 x < (⌊Real.logb 2 x⌋₊ : ℝ) + 1 := by
-    simpa using (Nat.lt_floor_add_one (Real.logb 2 x))
-  exact (Real.logb_lt_iff_lt_rpow (b := (2 : ℝ)) (x := x)
-    (y := (⌊Real.logb 2 x⌋₊ : ℝ) + 1)
-    (by norm_num : (1 : ℝ) < 2) hx0).1 hlt
-
 /-- If `k = ⌊log₂ (x / r₀)⌋`, then `r₀ * 2^k` is a lower dyadic bound for `x`. -/
 lemma dyadicShell_lower_bound {r0 x : ℝ} {k : ℕ} (hr0 : 0 < r0) (hx : r0 ≤ x)
     (hk : ⌊Real.logb 2 (x / r0)⌋₊ = k) :
@@ -55,8 +33,8 @@ lemma dyadicShell_lower_bound {r0 x : ℝ} {k : ℕ} (hr0 : 0 < r0) (hx : r0 ≤
     have : r0 / r0 ≤ x / r0 := div_le_div_of_nonneg_right hx hr0.le
     simpa [hr0ne] using this
   have hle : (2 : ℝ) ^ (k : ℝ) ≤ x / r0 := by
-    have := Real.two_pow_floor_logb_le (x := x / r0) hx1
-    simpa [hk] using this
+    have := Real.pow_natFloor_logb_le_self (b := (2 : ℝ)) (by norm_num) hx1
+    simpa only [← Real.rpow_natCast, hk, Nat.cast_add, Nat.cast_one] using this
   have := mul_le_mul_of_nonneg_left hle hr0.le
   have hxEq : r0 * (x / r0) = x := by
     field_simp [hr0ne]
@@ -71,8 +49,9 @@ lemma dyadicShell_upper_bound {r0 x : ℝ} {k : ℕ} (hr0 : 0 < r0) (hx : r0 ≤
     have : r0 / r0 ≤ x / r0 := div_le_div_of_nonneg_right hx hr0.le
     simpa [hr0ne] using this
   have hlt : x / r0 < (2 : ℝ) ^ ((k : ℝ) + 1) := by
-    have := Real.lt_two_pow_floor_logb_add_one (x := x / r0) hx1
-    simpa [hk] using this
+    have := Real.lt_pow_natFloor_logb_add_one (b := (2 : ℝ)) (by norm_num)
+      (zero_lt_one.trans_le hx1)
+    simpa only [← Real.rpow_natCast, hk, Nat.cast_add, Nat.cast_one] using this
   have := mul_lt_mul_of_pos_left hlt hr0
   have hxEq : r0 * (x / r0) = x := by
     field_simp [hr0ne]
