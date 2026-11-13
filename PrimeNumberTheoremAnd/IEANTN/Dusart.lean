@@ -419,6 +419,25 @@ theorem proposition_5_4a : HasPrimeInInterval.log_thm 4e18 3 := by
     linarith [mul_lt_mul_of_pos_left hlt hh_pos]
   simpa [h] using Eθ.hasPrimeInInterval x h hx_pos hh_pos (lt_of_le_of_lt hmain hcoeff)
 
+-- Keep the interval certificates separate so the prime-gap proof has a small elaboration budget.
+private lemma exp_1283_div_100_lower : (370261 : ℝ) ≤ exp (1283 / 100) := by
+  interval_decide
+
+private lemma exp_1312_div_100_lower : (492113 : ℝ) ≤ exp (1312 / 100) := by
+  interval_decide
+
+private lemma exp_1452_div_100_lower : (2010733 : ℝ) ≤ exp (1452 / 100) := by
+  interval_decide
+
+private lemma exp_1666_div_100_lower : (17051707 : ℝ) ≤ exp (1666 / 100) := by
+  interval_decide
+
+private lemma exp_43_lower : (4e18 : ℝ) ≤ exp 43 := by
+  interval_decide
+
+private lemma exp_22_lower : (117352333 : ℝ) ≤ exp 22 := by
+  interval_decide
+
 @[blueprint "Dusart_prop_5_4b"
   (title := "Dusart Proposition 5.4, substep 2")
   (statement := /--
@@ -455,22 +474,22 @@ theorem proposition_5_4b (x : ℝ) (hx : x ∈ Set.Ioo 360653 4e18) : HasPrimeIn
   by_cases! h1 : x ≤ 370261
   · have hmem : ((370261 : ℕ), (112 : ℕ)) ∈ eSHP.table_8 := by decide
     refine ⟨112, gap_record _ _ hmem (by push_cast; linarith), ?_⟩
-    have hexp : (370261 : ℝ) ≤ exp (1283/100) := by interval_decide
+    have hexp : (370261 : ℝ) ≤ exp (1283/100) := exp_1283_div_100_lower
     exact num_bound 112 (1283/100) (log_bound _ (by linarith)) (by norm_num) (by push_cast; nlinarith)
   · by_cases! h2 : x ≤ 492113
     · have hmem : ((492113 : ℕ), (114 : ℕ)) ∈ eSHP.table_8 := by decide
       refine ⟨114, gap_record _ _ hmem (by push_cast; linarith), ?_⟩
-      have hexp : (492113 : ℝ) ≤ exp (1312/100) := by interval_decide
+      have hexp : (492113 : ℝ) ≤ exp (1312/100) := exp_1312_div_100_lower
       exact num_bound 114 (1312/100) (log_bound _ (by linarith)) (by norm_num) (by push_cast; nlinarith)
     · by_cases! h3 : x ≤ 2010733
       · have hmem : ((2010733 : ℕ), (148 : ℕ)) ∈ eSHP.table_8 := by decide
         refine ⟨148, gap_record _ _ hmem (by push_cast; linarith), ?_⟩
-        have hexp : (2010733 : ℝ) ≤ exp (1452/100) := by interval_decide
+        have hexp : (2010733 : ℝ) ≤ exp (1452/100) := exp_1452_div_100_lower
         exact num_bound 148 (1452/100) (log_bound _ (by linarith)) (by norm_num) (by push_cast; nlinarith)
       · by_cases! h4 : x ≤ 17051707
         · have hmem : ((17051707 : ℕ), (180 : ℕ)) ∈ eSHP.table_8 := by decide
           refine ⟨180, gap_record _ _ hmem (by push_cast; linarith), ?_⟩
-          have hexp : (17051707 : ℝ) ≤ exp (1666/100) := by interval_decide
+          have hexp : (17051707 : ℝ) ≤ exp (1666/100) := exp_1666_div_100_lower
           exact num_bound 180 (1666/100) (log_bound _ (by linarith)) (by norm_num) (by push_cast; nlinarith)
         · refine ⟨1476, ?_, ?_⟩
           · by_cases! h5 : x ≤ 1425172824437699411
@@ -524,12 +543,12 @@ theorem proposition_5_4b (x : ℝ) (hx : x ∈ Set.Ioo 360653 4e18) : HasPrimeIn
                 push_cast; linarith
           · by_cases! h6 : x ≤ exp 22
             · exact num_bound 1476 22 (log_bound 22 h6) (by norm_num) (by push_cast; nlinarith)
-            · have hexp43 : (4e18 : ℝ) ≤ exp 43 := by interval_decide
+            · have hexp43 : (4e18 : ℝ) ≤ exp 43 := exp_43_lower
               have hx_le_exp43 : x ≤ exp 43 := le_of_lt (lt_of_lt_of_le hx_hi hexp43)
               exact num_bound 1476 43 (log_bound 43 hx_le_exp43) (by norm_num)
                 (by
                   push_cast
-                  have hexp22_lb : (117352333 : ℝ) ≤ exp 22 := by interval_decide
+                  have hexp22_lb : (117352333 : ℝ) ≤ exp 22 := exp_22_lower
                   nlinarith)
 
 @[blueprint "Dusart_prop_5_4c"

@@ -196,13 +196,15 @@ theorem cor_2_1 : ∀ x > 0, θ x ≤ (1 + (1.93378e-8*BKLNW_app.table_8_margin)
     suffices Pre_inputs.default.ε (log 1e19) ≤ 1.93378e-8 * BKLNW_app.table_8_margin by
       grw [(thm_1a h_exp20 h_exp20 hx.le hx.le).2, this, mul_comm]
     unfold Pre_inputs.default
-    suffices 43 < log 1e19 ∧ log 1e19 < 44 by
-      change BKLNW_app.table_8_ε (log 1e19) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
-      grw [BKLNW_app.table_8_ε.le_simp (log 1e19) (by grind)]
-      grind [BKLNW_app.table_8_ε']
-    have h1e19 : (1e19 : ℝ) = (10 : ℝ) ^ 19 := by norm_num
-    rw [h1e19, Real.log_pow]; push_cast
-    constructor <;> nlinarith [LogTables.log_10_gt, LogTables.log_10_lt]
+    change BKLNW_app.table_8_ε (log 1e19) ≤ 1.93378e-8 * BKLNW_app.table_8_margin
+    have hb40 : (40 : ℝ) ≤ log 1e19 := by
+      have h1e19 : (1e19 : ℝ) = (10 : ℝ) ^ 19 := by norm_num
+      rw [h1e19, Real.log_pow]
+      push_cast
+      nlinarith [LogTables.log_10_gt]
+    exact (BKLNW_app.table_8_ε_le_of_row BKLNW_app.table_8_mem_40 hb40).trans
+      (by norm_num [BKLNW_app.table_8_margin])
+
 
 structure Inputs extends Pre_inputs where
   α : ℝ
@@ -881,6 +883,25 @@ theorem lem_6 {c₁ c₂ c₃ c₄ k b x : ℝ} (hc₁ : 0 < c₁) (hc₂ : 0 < 
       rw [ le_div_iff₀ ( Real.rpow_pos_of_pos ( show 0 < Real.log x from lt_of_lt_of_le ( by linarith [ show 0 < 4 * ( c₂ + k ) ^ 2 / c₃ ^ 2 by positivity ] ) h_log_x_ge_b ) _ ) ] ; nlinarith [ Real.rpow_pos_of_pos ( show 0 < Real.log x from lt_of_lt_of_le ( by linarith [ show 0 < 4 * ( c₂ + k ) ^ 2 / c₃ ^ 2 by positivity ] ) h_log_x_ge_b ) k ] ;
 
 
+private noncomputable def cor14G (B C R α x : ℝ) : ℝ :=
+  exp (C * (log x / R) ^ (1 / 2 : ℝ)) / (x ^ α * (log x / R) ^ B)
+
+private theorem cor14G_deriv (B C R α x : ℝ) (hR_gt_zero : 0 < R) (hx : 1 < x) :
+    deriv (cor14G B C R α) x = cor14G B C R α x / x *
+      (C / (2 * sqrt (R * log x)) - α - B / log x) := by
+  let L : ℝ → ℝ := fun x ↦ log x / R
+  let g (α : ℝ) : ℝ → ℝ := fun x ↦ exp (C * (L x) ^ (1 / 2 : ℝ)) /
+    (x ^ α * (L x) ^ B)
+  change deriv (g α) x = g α x / x * (C / (2 * sqrt (R * log x)) - α - B / log x)
+  convert! HasDerivAt.deriv ( HasDerivAt.div ( HasDerivAt.exp ( HasDerivAt.const_mul ( C : ℝ ) ( HasDerivAt.rpow_const ( HasDerivAt.div_const ( Real.hasDerivAt_log ( by positivity ) ) R ) ?_ ) ) ) ( HasDerivAt.mul ( HasDerivAt.rpow_const ( hasDerivAt_id' x ) ?_ ) ( HasDerivAt.rpow_const ( HasDerivAt.div_const ( Real.hasDerivAt_log ( by positivity ) ) R ) ?_ ) ) ?_ ) using 1 <;> norm_num <;> ring_nf <;> norm_num [ Real.rpow_natCast, show x ≠ 0 by positivity, show x ^ α ≠ 0 by positivity, show ( Real.log x ) ≠ 0 by exact ne_of_gt ( Real.log_pos hx ), show R ≠ 0 by positivity ];
+  · unfold g; norm_num [ Real.rpow_add ( show 0 < Real.log x * R⁻¹ from mul_pos ( Real.log_pos hx ) ( inv_pos.mpr hR_gt_zero ) ), Real.rpow_neg ( show 0 ≤ Real.log x * R⁻¹ from mul_nonneg ( Real.log_nonneg hx.le ) ( inv_nonneg.mpr hR_gt_zero.le ) ) ] ; ring_nf;
+    unfold L; norm_num [ Real.rpow_add ( show 0 < x by positivity ), Real.rpow_neg_one, Real.rpow_neg ( show 0 ≤ Real.log x * R⁻¹ by exact mul_nonneg ( Real.log_nonneg hx.le ) ( inv_nonneg.mpr hR_gt_zero.le ) ) ] ; ring_nf;
+    rw [ ← Real.sqrt_eq_rpow ] ; norm_num [ Real.sqrt_mul ( show 0 ≤ Real.log x by exact Real.log_nonneg hx.le ), Real.sqrt_mul ( show 0 ≤ R by positivity ), hR_gt_zero.ne', ne_of_gt ( Real.rpow_pos_of_pos ( show 0 < Real.log x * R⁻¹ by exact mul_pos ( Real.log_pos hx ) ( inv_pos.mpr hR_gt_zero ) ) _ ), ne_of_gt ( Real.rpow_pos_of_pos ( show 0 < x by positivity ) _ ) ] ; ring_nf;
+    grind;
+  · constructor <;> linarith;
+  · exact Or.inl ⟨ by linarith, by linarith ⟩;
+  · exact ne_of_gt ( Real.rpow_pos_of_pos ( mul_pos ( Real.log_pos hx ) ( inv_pos.mpr hR_gt_zero ) ) _ )
+
 @[blueprint
   "bklnw-cor-14-1"
   (title := "BKLNW Corollary 14.1")
@@ -944,16 +965,9 @@ theorem cor_14_1 {A B C R x₀ : ℝ} (hB : B > 0) (hC : C ∈ Set.Ioc 0 (sqrt (
               · exact fun x hx => ne_of_gt ( div_pos ( Real.log_pos hx ) hR_gt_zero );
           · exact fun x hx => mul_ne_zero ( ne_of_gt ( Real.rpow_pos_of_pos ( zero_lt_one.trans hx ) _ ) ) ( ne_of_gt ( Real.rpow_pos_of_pos ( div_pos ( Real.log_pos hx ) hR_gt_zero ) _ ) )
         have deriv_g_eq (α x : ℝ) (hx : 1 < x) :
-          deriv (g α) x = (g α) x / x * (C / (2 * sqrt (R * log x)) - α - B / log x) := by
-          convert! HasDerivAt.deriv ( HasDerivAt.div ( HasDerivAt.exp ( HasDerivAt.const_mul ( C : ℝ ) ( HasDerivAt.rpow_const ( HasDerivAt.div_const ( Real.hasDerivAt_log ( by positivity ) ) R ) ?_ ) ) ) ( HasDerivAt.mul ( HasDerivAt.rpow_const ( hasDerivAt_id' x ) ?_ ) ( HasDerivAt.rpow_const ( HasDerivAt.div_const ( Real.hasDerivAt_log ( by positivity ) ) R ) ?_ ) ) ?_ ) using 1 <;> norm_num <;> ring_nf <;> norm_num [ Real.rpow_natCast, show x ≠ 0 by positivity, show x ^ α ≠ 0 by positivity, show ( Real.log x ) ≠ 0 by exact ne_of_gt ( Real.log_pos hx ), show R ≠ 0 by positivity ];
-          · unfold g; norm_num [ Real.rpow_add ( show 0 < Real.log x * R⁻¹ from mul_pos ( Real.log_pos hx ) ( inv_pos.mpr hR_gt_zero ) ), Real.rpow_neg ( show 0 ≤ Real.log x * R⁻¹ from mul_nonneg ( Real.log_nonneg hx.le ) ( inv_nonneg.mpr hR_gt_zero.le ) ) ] ; ring_nf;
-            unfold L; norm_num [ Real.rpow_add ( show 0 < x by positivity ), Real.rpow_neg_one, Real.rpow_neg ( show 0 ≤ Real.log x * R⁻¹ by exact mul_nonneg ( Real.log_nonneg hx.le ) ( inv_nonneg.mpr hR_gt_zero.le ) ) ] ; ring_nf;
-            rw [ ← Real.sqrt_eq_rpow ] ; norm_num [ Real.sqrt_mul ( show 0 ≤ Real.log x by exact Real.log_nonneg hx.le ), Real.sqrt_mul ( show 0 ≤ R by positivity ), hR_gt_zero.ne', ne_of_gt ( Real.rpow_pos_of_pos ( show 0 < Real.log x * R⁻¹ by exact mul_pos ( Real.log_pos hx ) ( inv_pos.mpr hR_gt_zero ) ) _ ), ne_of_gt ( Real.rpow_pos_of_pos ( show 0 < x by positivity ) _ ) ] ; ring_nf;
-            grind;
-          · constructor <;> linarith;
-          · exact Or.inl ⟨ by linarith, by linarith ⟩;
-          · exact ne_of_gt ( Real.rpow_pos_of_pos ( mul_pos ( Real.log_pos hx ) ( inv_pos.mpr hR_gt_zero ) ) _ )
-        have g_antitoneOn (α : ℝ) (hα : 0 < α) (hx₀ : 0 < x₀) (h_cond : C / (2 * sqrt (R * x₀)) ≤ α) :
+          deriv (g α) x = (g α) x / x * (C / (2 * sqrt (R * log x)) - α - B / log x) :=
+          cor14G_deriv B C R α x hR_gt_zero hx
+        have g_antitoneOn (α : ℝ) (hx₀ : 0 < x₀) (h_cond : C / (2 * sqrt (R * x₀)) ≤ α) :
           AntitoneOn (g α) (Set.Ici (exp x₀)) := by
           have h_deriv_neg : ∀ x : ℝ, Real.exp x₀ ≤ x → deriv (g α) x ≤ 0 := by
             intro x hx
@@ -964,16 +978,14 @@ theorem cor_14_1 {A B C R x₀ : ℝ} (hB : B > 0) (hC : C ∈ Set.Ioc 0 (sqrt (
             · refine sub_nonpos_of_le ?_;
               refine le_trans ( sub_nonpos_of_le ?_ ) ( div_nonneg hB.le ( Real.log_nonneg <| by linarith [ Real.add_one_le_exp x₀ ] ) );
               exact le_trans ( div_le_div_of_nonneg_left ( by exact (Set.mem_Ioc.mp hC).1.le ) ( by positivity ) ( mul_le_mul_of_nonneg_left ( Real.sqrt_le_sqrt <| mul_le_mul_of_nonneg_left ( show Real.log x ≥ x₀ by rw [ ge_iff_le ] ; rw [ Real.le_log_iff_exp_le ] <;> linarith [ Real.exp_pos x₀ ] ) <| by positivity ) <| by positivity ) ) h_cond;
-          apply_rules [ antitoneOn_of_deriv_nonpos ];
-          · exact convex_Ici _;
-          · refine ContinuousOn.div ?_ ?_ ?_ <;> norm_num [ Real.exp_pos _, hR_gt_zero.ne', (Set.mem_Ioc.mp hC).1.ne', hα.ne', hB.ne' ];
-            · exact ContinuousOn.rexp ( ContinuousOn.mul continuousOn_const <| ContinuousOn.rpow ( ContinuousOn.div_const ( Real.continuousOn_log.mono <| by intro x hx; exact ne_of_gt <| lt_of_lt_of_le ( by positivity ) hx ) _ ) continuousOn_const <| by norm_num );
-            · refine ContinuousOn.mul ( continuousOn_id.rpow_const ?_ ) ?_;
-              · exact fun x hx => Or.inl <| ne_of_gt <| lt_of_lt_of_le ( by positivity ) hx;
-              · exact ContinuousOn.rpow ( ContinuousOn.div_const ( Real.continuousOn_log.mono <| by intro x hx; exact ne_of_gt <| lt_of_lt_of_le ( by positivity ) hx ) _ ) continuousOn_const <| by intro x hx; exact Or.inr <| by positivity;
-            · exact fun x hx => ⟨ ne_of_gt ( Real.rpow_pos_of_pos ( by linarith [ Real.exp_pos x₀ ] ) _ ), ne_of_gt ( Real.rpow_pos_of_pos ( div_pos ( Real.log_pos ( by linarith [ Real.add_one_le_exp x₀ ] ) ) hR_gt_zero ) _ ) ⟩;
-          · exact DifferentiableOn.mono (g_diff α) ( by intro x hx; exact Set.mem_Ioi.mpr <| lt_of_lt_of_le ( by norm_num; positivity ) <| interior_subset hx );
-          · exact fun x hx => h_deriv_neg x <| interior_subset hx
+          have hsub : Set.Ici (exp x₀) ⊆ Set.Ioi 1 := by
+            intro x hx
+            have he : 1 < exp x₀ := by simpa only [Real.exp_zero] using Real.exp_lt_exp.mpr hx₀
+            exact he.trans_le hx
+          apply antitoneOn_of_deriv_nonpos (convex_Ici _)
+          · exact ((g_diff α).mono hsub).continuousOn
+          · exact (g_diff α).mono (interior_subset.trans hsub)
+          · exact fun x hx ↦ h_deriv_neg x (interior_subset hx)
         have hF_g: F = fun x => A + a₁ x₀ * g (1/2) x + a₂ x₀ * g (2/3) x := by
           simp [F, g, L, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm]
         rw [hF_g]
@@ -985,7 +997,7 @@ theorem cor_14_1 {A B C R x₀ : ℝ} (hB : B > 0) (hC : C ∈ Set.Ioc 0 (sqrt (
             refine (le_trans (div_le_div_of_nonneg_right hC.2 hden) ?_)
             field_simp [hs0]
             rfl
-          exact fun x hx y hy hxy => add_le_add ( mul_le_mul_of_nonneg_left ((g_antitoneOn (1/2) (by linarith) (by linarith) (by linarith)) hx hy hxy) ha₁_pos) (mul_le_mul_of_nonneg_left ((g_antitoneOn (2/3) (by linarith) (by linarith) (by linarith)) hx hy hxy) ha₂_pos );
+          exact fun x hx y hy hxy => add_le_add ( mul_le_mul_of_nonneg_left ((g_antitoneOn (1/2) (by linarith) (by linarith)) hx hy hxy) ha₁_pos) (mul_le_mul_of_nonneg_left ((g_antitoneOn (2/3) (by linarith) (by linarith)) hx hy hxy) ha₂_pos );
         convert h_linear_combination_antitone.add_const A using 1 ; ring_nf;
       have hle: |θ x - x| / x ≤ (log x / R) ^ B * exp (-C * (log x / R) ^ ((1 / 2) : ℝ)) * F (exp x₀) := by
         calc
@@ -1421,29 +1433,35 @@ lemma table_10_entry_lt_K (b : ℝ) (hb : b ∈ table_10_entries) : b < (K : ℝ
   · linarith [LogTables.log_10_lt]
   · exact hp.elim
 
+private theorem finset_interval_coverage (T : Finset ℝ) (bound : ℝ)
+    (hbound : ∀ b ∈ T, b < bound) (b₀ y : ℝ)
+    (hb₀ : b₀ ∈ T) (hy1 : b₀ ≤ y) (hy2 : y ≤ bound) :
+    ∃ b ∈ T, b₀ ≤ b ∧ b ≤ y ∧ y ≤ sInf {b' ∈ T ∪ {bound} | b < b'} := by
+  let S := T.filter (fun b ↦ b₀ ≤ b ∧ b ≤ y)
+  have h1 : b₀ ∈ S := by simp [S, hb₀, hy1]
+  let b := S.max' ⟨b₀, h1⟩
+  have hb : b ∈ S := Finset.max'_mem S ⟨b₀, h1⟩
+  obtain ⟨h5, h6, h7⟩ : b ∈ T ∧ b₀ ≤ b ∧ b ≤ y := mem_filter.mp hb
+  refine ⟨b, h5, h6, h7, ?_⟩
+  let U := (T ∪ {bound}).filter (b < ·)
+  have h12 : bound ∈ U := mem_filter.mpr
+    ⟨mem_union_right T (mem_singleton_self bound), hbound b h5⟩
+  let m := U.min' ⟨bound, h12⟩
+  have hm : m ∈ U := Finset.min'_mem U ⟨bound, h12⟩
+  obtain ⟨h16, h17⟩ : m ∈ T ∪ {bound} ∧ b < m := mem_filter.mp hm
+  have hinf : sInf {b' ∈ T ∪ {bound} | b < b'} = m := by
+    simpa [U, m] using (show U.Nonempty from ⟨bound, h12⟩).csInf_eq_min'
+  rw [hinf]
+  by_contra h19
+  rcases mem_union.mp h16 with h22 | h22
+  · have h28 : m ∈ S := mem_filter.mpr ⟨h22, h6.trans h17.le, (not_le.mp h19).le⟩
+    exact (not_lt_of_ge (Finset.le_max' S m h28)) h17
+  · exact h19 ((mem_singleton.mp h22) ▸ hy2)
+
 lemma table_10_coverage (b₀ y : ℝ) (hb₀ : b₀ ∈ table_10_entries) (hy1 : b₀ ≤ y) (hy2 : y ≤ (K : ℝ)) :
   ∃ b ∈ table_10_entries, b₀ ≤ b ∧ b ≤ y ∧ y ≤ table_10_next b := by
-  let S := table_10_entries.filter (fun b ↦ b₀ ≤ b ∧ b ≤ y)
-  have h1 : b₀ ∈ S := by
-    simp only [mem_filter, hb₀, le_refl, hy1, and_self, S]
-  let b := S.max' ⟨b₀, h1⟩
-  obtain ⟨h5, h6, h7⟩ : b ∈ table_10_entries ∧ b₀ ≤ b ∧ b ≤ y := by
-    simpa [S] using show b ∈ S from Finset.max'_mem S ⟨b₀, h1⟩
-  refine ⟨b, h5, h6, h7, ?_⟩
-  let S_finset := table_10_bs.filter (b < ·)
-  have h12 : (K : ℝ) ∈ S_finset := by
-    simpa [S_finset, table_10_bs] using table_10_entry_lt_K b h5
-  let m := S_finset.min' ⟨K, h12⟩
-  have h16 : m ∈ table_10_bs ∧ b < m := by
-    simpa [S_finset] using (show m ∈ S_finset from Finset.min'_mem S_finset ⟨K, h12⟩)
-  rw [show table_10_next b = m from table_10_next_eq_min' b ⟨K, h12⟩]
-  by_contra h19
-  obtain (h22 | h22) : m ∈ table_10_entries ∨ m = K :=
-    Or.comm.1 (by simpa [table_10_bs, table_10_entries, K] using h16.1)
-  · have h28 : m ∈ S := by
-      simp only [mem_filter, h22, le_trans h6 h16.2.le, (Std.not_le.mp h19).le, and_self, S]
-    linarith [Finset.le_max' S m h28, h16.2]
-  · linarith [hy2]
+  exact finset_interval_coverage table_10_entries K (fun b hb ↦ table_10_entry_lt_K b hb)
+    b₀ y hb₀ hy1 hy2
 
 @[blueprint
   "bklnw-cor-8-1b"
