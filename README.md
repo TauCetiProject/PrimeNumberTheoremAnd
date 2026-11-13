@@ -1,5 +1,16 @@
 # PrimeNumberTheoremAnd
 
+This is the Tau Ceti migration fork of [PNT+](https://github.com/AlexKontorovich/PrimeNumberTheoremAnd).
+It uses stock Lean **v4.36.0-rc2** and pins Tau Ceti and its matching Mathlib revision in
+[lake-manifest.json](lake-manifest.json). See [ROADMAPS.md](ROADMAPS.md) for approved migration
+targets, pending roadmap proposals, and scope that still needs human-written specifications.
+
+To build the fork, run `lake exe cache get`, then
+`bash .lake/packages/TauCeti/scripts/lake-cache-get.sh .lake/packages/TauCeti`, then `lake build`.
+The library target checks every retained Lean source, including IEANTN and `Unused/` experiments.
+Inherited unfinished proofs remain unfinished; a successful build does not certify them as complete.
+
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-lightblue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Blueprint: Paper](https://img.shields.io/badge/Blueprint-Paper-red.svg?logo=github&logoColor=white)](https://AlexKontorovich.github.io/PrimeNumberTheoremAnd/blueprint.pdf)
 [![Blueprint: Website](https://img.shields.io/badge/Blueprint-Website-blue.svg?logo=github&logoColor=white)](https://AlexKontorovich.github.io/PrimeNumberTheoremAnd/blueprint)
