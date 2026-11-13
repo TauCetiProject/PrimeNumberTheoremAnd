@@ -871,27 +871,6 @@ proof, which is independent of the admitted general Ramanujan formula.
 -- `zeta_pow_three_eq` (IK 1.30) is proved below via Euler products, after the
 -- `two_pow_omega` / `sumOnPrimePows` infrastructure (independent of Ramanujan).
 
-/--
-Zeta cubed alt:
-`ζ(s)^3 =  ∑_n (∑ d^2 m = n, τ (m^2)) n^(-s)`. -/
-@[blueprint
-  "zeta_pow_three_eq_alt"
-  (title := "zeta pow three eq alt")
-  (statement := /-- symmetric square $L$-function for $\zeta^2$:
-  $$\zeta(s)^3 = \sum_{n=1}^{\infty} \left( \sum_{d^2 m = n} \tau(m^2) \right) n^{-s}$$ for $\Re(s) > 1$.
-  \begin{verbatim}
-  Alternative expression for `ζ^3`, in IK between (1.30) and (1.31).
-  \end{verbatim}
-  -/)
-  (proof := /--
-  This is an alternative expression for $\zeta(s)^3$ that can be derived from the previous results. By expressing $\zeta(s)^3$ in terms of the L-series of $\tau(n^2)$ and using the properties of Dirichlet convolutions, we can rewrite the sum in a way that involves summing over divisors $d$ and corresponding $m$ such that $d^2 m = n$. This rearrangement of the series allows us to express $\zeta(s)^3$ in the desired form.
-  -/)]
-lemma zeta_pow_three_eq_alt (s : ℂ) (hs : 1 < s.re) :
-    riemannZeta s ^ 3 =
-    LSeries (fun n ↦
-      ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n, τ (dm.2 ^ 2)) s := by
-  sorry
-
 @[blueprint
   "two_pow_omega_le_sigma_zero"
   (title := "two-pow-omega-le-sigma-zero")
@@ -1262,6 +1241,83 @@ lemma zeta_pow_three_eq (s : ℂ) (hs : 1 < s.re) :
     Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.2.ne_zero)]
   field_simp
   ring
+
+/-- The coefficient at n is the native product-series sum over the fiber d²m=n.
+The zero fiber is infinite, but every Dirichlet term in it is zero. -/
+private lemma zeta_cube_divisor_pair_term (s : ℂ) (n : ℕ) :
+    LSeries.term (fun n ↦ ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n,
+      (tau (dm.2 ^ 2) : ℂ)) s n =
+    ∑' (dm : (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2) ⁻¹' {n}),
+      LSeries.term 1 (2 * s) dm.val.1 *
+        LSeries.term (fun m ↦ (tau (m ^ 2) : ℂ)) s dm.val.2 := by
+  rcases eq_or_ne n 0 with rfl | hn
+  · rw [LSeries.term_zero]
+    have hz : ∀ dm : (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2) ⁻¹' {(0 : ℕ)},
+        LSeries.term 1 (2 * s) dm.val.1 *
+          LSeries.term (fun m ↦ (tau (m ^ 2) : ℂ)) s dm.val.2 = 0 := by
+      rintro ⟨⟨d,m⟩, hdm⟩
+      have H : d ^ 2 * m = 0 := hdm
+      rcases Nat.mul_eq_zero.mp H with hd | hm
+      · have hd0 : d = 0 := eq_zero_of_pow_eq_zero hd
+        simp only [hd0, LSeries.term_zero, zero_mul]
+      · simp only [hm, LSeries.term_zero, mul_zero]
+    simp only [hz, tsum_zero]
+  have hset : (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2) ⁻¹' {n} =
+      (↑((n.divisors ×ˢ n.divisors).filter (fun dm ↦ dm.1 ^ 2 * dm.2 = n)) : Set (ℕ × ℕ)) := by
+    ext ⟨d,m⟩
+    simp only [Set.mem_preimage, Set.mem_singleton_iff, Finset.mem_coe, Finset.mem_filter,
+      Finset.mem_product, Nat.mem_divisors]
+    constructor
+    · intro h
+      exact ⟨⟨⟨⟨d*m, by rw [←h]; ring_nf⟩,hn⟩,⟨⟨d^2, by rw [←h]; ring_nf⟩,hn⟩⟩,h⟩
+    · exact And.right
+  rw [hset, Finset.tsum_subtype' _ (fun dm : ℕ × ℕ ↦
+    LSeries.term 1 (2 * s) dm.1 * LSeries.term (fun m ↦ (tau (m ^ 2) : ℂ)) s dm.2),
+    LSeries.term_of_ne_zero hn, Finset.sum_div]
+  apply Finset.sum_congr rfl
+  rintro ⟨d,m⟩ hdm
+  have H : d ^ 2 * m = n := (Finset.mem_filter.mp hdm).2
+  have hd : d ≠ 0 := by rintro rfl; simp at H; exact hn H.symm
+  have hm : m ≠ 0 := by rintro rfl; simp at H; exact hn H.symm
+  rw [LSeries.term_of_ne_zero hd, LSeries.term_of_ne_zero hm]
+  simp only [Pi.one_apply, one_div]
+  rw [← H, Nat.cast_mul, Complex.natCast_mul_natCast_cpow, Nat.cast_pow,
+    ← Complex.natCast_cpow_natCast_mul d 2 s]
+  simp only [div_eq_mul_inv, mul_inv_rev]
+  ring_nf
+
+/--
+Zeta cubed alt:
+`ζ(s)^3 =  ∑_n (∑ d^2 m = n, τ (m^2)) n^(-s)`. -/
+@[blueprint
+  "zeta_pow_three_eq_alt"
+  (title := "zeta pow three eq alt")
+  (statement := /-- symmetric square $L$-function for $\zeta^2$:
+  $$\zeta(s)^3 = \sum_{n=1}^{\infty} \left( \sum_{d^2 m = n} \tau(m^2) \right) n^{-s}$$ for $\Re(s) > 1$.
+  \begin{verbatim}
+  Alternative expression for `ζ^3`, in IK between (1.30) and (1.31).
+  \end{verbatim}
+  -/)
+  (proof := /--
+  This is an alternative expression for $\zeta(s)^3$ that can be derived from the previous results. By expressing $\zeta(s)^3$ in terms of the L-series of $\tau(n^2)$ and using the properties of Dirichlet convolutions, we can rewrite the sum in a way that involves summing over divisors $d$ and corresponding $m$ such that $d^2 m = n$. This rearrangement of the series allows us to express $\zeta(s)^3$ in the desired form.
+  -/)]
+lemma zeta_pow_three_eq_alt (s : ℂ) (hs : 1 < s.re) :
+    riemannZeta s ^ 3 =
+    LSeries (fun n ↦
+      ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n, τ (dm.2 ^ 2)) s := by
+  have h2 : 1 < (2 * s).re := by
+    simp only [Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat, zero_mul, sub_zero]
+    linarith
+  have hf := LSeriesHasSum_one h2
+  have hg := (LSeriesSummable_tau_sq hs).LSeriesHasSum
+  have hsum := summable_mul_of_summable_norm hf.summable.norm hg.summable.norm
+  have H := (hf.mul hg hsum).tsum_fiberwise (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2)
+  have H' : LSeriesHasSum (fun n ↦
+      ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n,
+        (tau (dm.2 ^ 2) : ℂ)) s
+      (riemannZeta (2 * s) * LSeries (fun n ↦ (tau (n ^ 2) : ℂ)) s) := by
+    simpa only [LSeriesHasSum, ← zeta_cube_divisor_pair_term] using H
+  exact (zeta_pow_three_eq s hs).trans H'.LSeries_eq.symm
 
 @[blueprint
   "LSeriesSummable_moebius_sq"
