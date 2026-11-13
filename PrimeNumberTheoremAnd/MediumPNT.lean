@@ -1002,12 +1002,6 @@ noncomputable def I₅ (SmoothingF : ℝ → ℝ) (ε X σ₂ : ℝ) : ℂ :=
   (1 / (2 * π * I)) *
     (I * (∫ t in (-3)..3, SmoothedChebyshevIntegrand SmoothingF ε X (σ₂ + t * I)))
 
-theorem realDiff_of_complexDiff {f : ℂ → ℂ} (s : ℂ) (hf : DifferentiableAt ℂ f s) :
-    ContinuousAt (fun (x : ℝ) ↦ f (s.re + x * I)) s.im := by
-  apply ContinuousAt.comp _ (by fun_prop)
-  convert hf.continuousAt
-  simp
-
 def LogDerivZetaIsHoloSmall (σ₂ : ℝ) : Prop :=
     DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
     (((uIcc σ₂ 2)  ×ℂ (uIcc (-3) 3)) \ {1})
@@ -1105,9 +1099,11 @@ theorem SmoothedChebyshevPull1_aux_integrable {SmoothingF : ℝ → ℝ} {ε : �
       apply ContinuousAt.div
       · apply ContinuousAt.neg
         have : DifferentiableAt ℂ (fun s ↦ deriv riemannZeta s) s :=
-          differentiableAt_deriv_riemannZeta s_ne_one
-        convert realDiff_of_complexDiff (s := σ₀ + (t : ℂ) * I) this <;> simp
-      · convert realDiff_of_complexDiff (s := σ₀ + (t : ℂ) * I) diffζ <;> simp
+          (analyticOn_riemannZeta _ s_ne_one).deriv.differentiableAt
+        simpa only [Function.comp_def, s] using
+          this.continuousAt.comp (f := fun x : ℝ ↦ (σ₀ : ℂ) + x * I) (by fun_prop)
+      · simpa only [Function.comp_def, s] using
+          diffζ.continuousAt.comp (f := fun x : ℝ ↦ (σ₀ : ℂ) + x * I) (by fun_prop)
       · apply riemannZeta_ne_zero_of_one_lt_re
         simp [σ₀_gt]
     · apply ContinuousAt.comp _ (by fun_prop)
@@ -1310,15 +1306,6 @@ theorem SmoothedChebyshevPull1 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
       simp [f, g]
       ring
 
-lemma interval_membership (r : ℝ) (a b : ℝ) (h1 : r ∈ Set.Icc (min a b) (max a b)) (h2 : a < b) :
-    a ≤ r ∧ r ≤ b := by
-  -- Since a < b, we have min(a,b) = a and max(a,b) = b
-  have min_eq : min a b = a := min_eq_left (le_of_lt h2)
-  have max_eq : max a b = b := max_eq_right (le_of_lt h2)
-  rw [min_eq, max_eq] at h1
-  rw [← @mem_Icc]
-  exact h1
-
 lemma verticalIntegral_split_three_finite {s a b e σ : ℝ} {f : ℂ → ℂ}
     (hf : IntegrableOn (fun t : ℝ ↦ f (σ + t * I)) (Icc s e))
     (hab: s < a ∧ a < b ∧ b < e):
@@ -1334,23 +1321,6 @@ lemma verticalIntegral_split_three_finite {s a b e σ : ℝ} {f : ℂ → ℂ}
   all_goals
     apply IntervalIntegrable.mono_set hf
     apply uIcc_subset_uIcc <;> apply mem_uIcc_of_le <;> linarith
-
-lemma verticalIntegral_split_three_finite' {s a b e σ : ℝ} {f : ℂ → ℂ}
-    (hf : IntegrableOn (fun t : ℝ ↦ f (σ + t * I)) (Icc s e))
-    (hab: s < a ∧ a < b ∧ b < e):
-    (1 : ℂ) / (2 * π * I) * (VIntegral f σ s e) =
-    (1 : ℂ) / (2 * π * I) * (VIntegral f σ s a) +
-    (1 : ℂ) / (2 * π * I) * (VIntegral f σ a b) +
-    (1 : ℂ) / (2 * π * I) * (VIntegral f σ b e) := by
-  have : (1 : ℂ) / (2 * π * I) * (VIntegral f σ s a) +
-      (1 : ℂ) / (2 * π * I) * (VIntegral f σ a b) +
-      (1 : ℂ) / (2 * π * I) * (VIntegral f σ b e) =
-        (1 : ℂ) / (2 * π * I) * ((VIntegral f σ s a) +
-    (VIntegral f σ a b) +
-    (VIntegral f σ b e)) := by ring
-  rw [this]
-  clear this
-  rw [← verticalIntegral_split_three_finite hf hab]
 
 theorem SmoothedChebyshevPull2_aux1 {T σ₁ : ℝ} (σ₁lt : σ₁ < 1)
   (holoOn : DifferentiableOn ℂ (ζ' / ζ) (Icc σ₁ 2 ×ℂ Icc (-T) T \ {1})) :
@@ -1422,7 +1392,7 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
       have hzw_re : z.re < w.re := by
         simpa [z, w] using σ₂_lt_σ₁
       have x_re_bounds : z.re ≤ x.re ∧ x.re ≤ w.re := by
-        exact interval_membership x.re z.re w.re hx_re hzw_re
+        simpa only [min_eq_left hzw_re.le, max_eq_right hzw_re.le, Set.mem_Icc] using hx_re
       have x_re_in_Icc : x.re ∈ Icc σ₂ 2 := by
         have ⟨h_left, h_right⟩ := x_re_bounds
         have h_left' : σ₂ ≤ x.re := by
@@ -1438,7 +1408,7 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
       have hzw_im : z.im < w.im := by
         norm_num [z, w]
       have x_im_bounds : z.im ≤ x.im ∧ x.im ≤ w.im := by
-        exact interval_membership x.im z.im w.im hx_im hzw_im
+        simpa only [min_eq_left hzw_im.le, max_eq_right hzw_im.le, Set.mem_Icc] using hx_im
       have x_im_in_Icc : x.im ∈ Icc (-3) 3 := by
         have ⟨h_left, h_right⟩ := x_im_bounds
         have h_left' : -3 ≤ x.im := by
@@ -1458,7 +1428,7 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
         have hzw_re : z.re < w.re := by
           simpa [z, w] using σ₂_lt_σ₁
         have x_re_bounds : z.re ≤ x.re ∧ x.re ≤ w.re := by
-          exact interval_membership x.re z.re w.re hx_re hzw_re
+          simpa only [min_eq_left hzw_re.le, max_eq_right hzw_re.le, Set.mem_Icc] using hx_re
         have x_re_upper' : x.re ≤ w.re := x_re_bounds.2
         have hw_re : w.re = σ₁ := by simp [w]
         linarith
@@ -1475,7 +1445,9 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
   have splitting : I₃₇ SmoothingF ε T X σ₁ =
     I₃ SmoothingF ε T X σ₁ + I₅ SmoothingF ε X σ₁ + I₇ SmoothingF ε T X σ₁ := by
     unfold I₃₇ I₃ I₅ I₇
-    apply verticalIntegral_split_three_finite'
+    rw [← mul_add, ← mul_add]
+    apply congrArg (fun z : ℂ ↦ (1 : ℂ) / (2 * π * I) * z)
+    apply verticalIntegral_split_three_finite
     · apply ContinuousOn.integrableOn_Icc
       unfold SmoothedChebyshevIntegrand
       apply ContinuousOn.mul
@@ -1485,7 +1457,8 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
           intro t t_mem
           have := Smooth1MellinDifferentiable diff_SmoothingF suppSmoothingF ⟨ε_pos, ε_lt_one⟩
             SmoothingFnonneg mass_one (s := ↑σ₁ + ↑t * I) (by simpa)
-          simpa using realDiff_of_complexDiff _ this
+          simpa only [Function.comp_def] using
+            this.continuousAt.comp (f := fun x : ℝ ↦ (σ₁ : ℂ) + x * I) (by fun_prop)
       · apply continuousOn_of_forall_continuousAt
         intro t t_mem
         apply ContinuousAt.comp
@@ -1621,35 +1594,6 @@ theorem poisson_kernel_integrable (x : ℝ) (hx : x ≠ 0) :
   rw [this]
   apply integrable_inv_one_add_sq.const_mul
 
-theorem ae_volume_of_contains_compl_singleton_zero
-  (s : Set ℝ)
-  (h : (univ : Set ℝ) \ {0} ⊆ s) :
-  s ∈ (MeasureTheory.ae volume) := by
-  -- The key insight is that {0} has measure zero in ℝ
-  have h_zero_null : volume ({0} : Set ℝ) = 0 := by
-    exact volume_singleton
-
-  -- Since s contains univ \ {0} = ℝ \ {0}, its complement is contained in {0}
-  have h_compl_subset : sᶜ ⊆ {0} := by
-    intro x hx
-    -- If x is not in s, then x is not in ℝ \ {0} (since ℝ \ {0} is a subset of s)
-    -- This means x = 0
-    by_contra h_not_zero
-    have : x ∈ univ \ {0} := ⟨trivial, h_not_zero⟩
-    exact hx (h this)
-
-  -- Therefore, volume(sᶜ) ≤ volume({0}) = 0
-  have h_compl_measure : volume sᶜ ≤ volume ({0} : Set ℝ) :=
-    measure_mono h_compl_subset
-
-  -- So volume(sᶜ) = 0
-  have h_compl_zero : volume sᶜ = 0 := by
-    rw [h_zero_null] at h_compl_measure
-    exact le_antisymm h_compl_measure (by positivity)
-
-  -- A set is in ae.sets iff its complement has measure zero
-  rwa [mem_ae_iff]
-
 theorem integral_evaluation (x : ℝ) (T : ℝ) (T_large : 3 < T) :
     ∫ (t : ℝ) in Iic (-T), (‖x + t * I‖ ^ 2)⁻¹ ≤ T⁻¹ := by
   have T00 : ∀ (x t : ℝ), t^2 ≤ ‖x + t * I‖^2 := by
@@ -1672,24 +1616,11 @@ theorem integral_evaluation (x : ℝ) (T : ℝ) (T_large : 3 < T) :
     rw [inv_le_inv₀ U1 U0]
     exact (T00 x t)
 
-  have T1 : (fun (t : ℝ) ↦ (‖x + t * I‖^2)⁻¹) ≤ᶠ[ae (volume.restrict (Iic (-T)))] (fun (t : ℝ) ↦ (t^2)⁻¹) := by
-    unfold Filter.EventuallyLE
-    unfold Filter.Eventually
-    simp_all only [ne_eq, measurableSet_Iic, ae_restrict_eq]
-    refine mem_inf_of_left ?_
-    · refine Filter.mem_sets.mp ?_
-      · have U :  {x_1 : ℝ | x_1 ≠ 0} ⊆ {x_1 : ℝ | (‖x + x_1 * I‖ ^ 2)⁻¹ ≤ (x_1 ^ 2)⁻¹}  := by
-          rw [Set.ofPred_subset_ofPred]
-          intro t hyp_t
-          exact T0 x t hyp_t
-        have U1 : {x_1 : ℝ | x_1 ≠ 0} = (univ \ {0}) := by
-          apply Set.ext
-          intro x
-          simp_all only [ne_eq, ofPred_subset_ofPred, not_false_eq_true, implies_true,
-            mem_ofPred_eq, Set.mem_sdiff, mem_univ, mem_singleton_iff, true_and]
-
-        rw [U1] at U
-        exact ae_volume_of_contains_compl_singleton_zero _ U
+  have T1 : (fun t : ℝ ↦ (‖x + t * I‖ ^ 2)⁻¹) ≤ᶠ[ae (volume.restrict (Iic (-T)))]
+      (fun t : ℝ ↦ (t ^ 2)⁻¹) := by
+    apply ae_restrict_of_forall_mem measurableSet_Iic
+    intro t ht
+    exact T0 x t (by simp only [mem_Iic] at ht; linarith)
 
   have T3 : Integrable (fun (t : ℝ) ↦ (t^2)⁻¹) (volume.restrict (Iic (-T))) := by
     have D3 := integrableOn_Ioi_rpow_of_lt (by norm_num : (-2 : ℝ) < -1)
@@ -2435,25 +2366,17 @@ lemma I8GenBound {SmoothingF : ℝ → ℝ}
   rw[I8I2 hX, norm_neg, norm_conj]
   exact i2Bound
 
-@[blueprint "Real.log_le_const_mul_rpow"
-  (title := "Real.log-le-const-mul-rpow")
-  (statement := /--
-  For all $0<c$ and $0<x$ we have that
+blueprint_comment /--
+\label{Real.log_le_const_mul_rpow}
+For all $0<c$ and $0<x$ we have that
   $$\log x\leq cx^{1/c}.$$
-  -/)
-  (proof := /--
-  By \texttt{Real.log\_le\_sub\_one\_of\_pos} we know that $\log y\leq y-1$. If we set $y=x^{1/c}$ this becomes
+
+By \texttt{Real.log\_le\_sub\_one\_of\_pos} we know that $\log y\leq y-1$. If we set $y=x^{1/c}$ this becomes
   $$\frac{\log x}{c}\leq x^{1/c}-1.$$
   Multiplying through by $c$ we have
   $$\log x\leq cx^{1/c}-c\leq cx^{1/c}$$
   as desired.
-  -/)
-  (latexEnv := "lemma")]
-lemma Real.log_le_const_mul_rpow {c x : ℝ} (hc : 0 < c) (hx : 0 < x) :
-    Real.log x ≤ c * x ^ (1 / c) := by
-  have h := Real.log_le_sub_one_of_pos (Real.rpow_pos_of_pos hx (1 / c)); rw [Real.log_rpow hx] at h
-  have h' := mul_le_mul_of_nonneg_left h hc.le; field_simp at h'
-  nlinarith [Real.rpow_pos_of_pos hx (1 / c)]
+-/
 
 @[blueprint
   (title := "log-pow-over-xsq-integral-bounded")
@@ -2490,7 +2413,10 @@ lemma log_pow_over_xsq_integral_bounded :
     have logxPos : 0 < Real.log x := by
       rw [Real.log_pos_iff xpos.le]
       linarith
-    have logBnd := Real.rpow_le_rpow logxPos.le (Real.log_le_const_mul_rpow cpos xpos) n_pos.le
+    have hlog : Real.log x ≤ c * x ^ (1 / c) := by
+      simpa only [one_div, div_inv_eq_mul, mul_comm] using
+        (Real.log_le_rpow_div xpos.le (inv_pos.mpr cpos))
+    have logBnd := Real.rpow_le_rpow logxPos.le hlog n_pos.le
     rw [Real.mul_rpow cpos.le (Real.rpow_nonneg xpos.le _), ← Real.rpow_mul xpos.le, cDef] at logBnd
     field_simp at logBnd
     have : - ((3 : ℝ) / 2) = (1 / 2) - 2 := by norm_num
@@ -2520,7 +2446,6 @@ def I3BoundGenProp (n : ℝ) (SmoothingF : ℝ → ℝ) (A : ℝ) : Prop := ∃ 
       let σ₁ : ℝ := 1 - A / (Real.log T) ^ n
       ‖I₃ SmoothingF ε T X σ₁‖ ≤ C * X * X ^ (- A / (Real.log T ^ n)) / ε
 
-set_option maxHeartbeats 400000 in
 -- Slow
 
 @[blueprint "I3GenBound"

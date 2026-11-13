@@ -67,19 +67,10 @@ theorem norm_riemannZeta_le (s : ℂ) (hs : s ∈ zetaAbelContinuationDomain) :
 
 namespace StripBounds
 
-private lemma three_sq_add_sq_le_sq_add_abs (t : ℝ) :
-    (3 : ℝ) ^ 2 + t ^ 2 ≤ (3 + |t|) ^ 2 := by
-  nlinarith [abs_nonneg t, sq_abs t, sq_nonneg (3 + |t|)]
-
 private lemma norm_lt_three_add_abs_im (s : ℂ) (hs : (1 / 2 : ℝ) ≤ s.re ∧ s.re < (3 : ℝ)) :
     ‖s‖ < (3 : ℝ) + |s.im| := by
-  have hneg : (-(3 : ℝ)) < s.re := by linarith [hs.1]
-  have hre : s.re ^ 2 < (3 : ℝ) ^ 2 := sq_lt_sq' hneg hs.2
-  have hsum : s.re ^ 2 + s.im ^ 2 < (3 : ℝ) ^ 2 + s.im ^ 2 := (add_lt_add_iff_right _).mpr hre
-  have hsq : Complex.normSq s < (3 + |s.im|) ^ 2 := by
-    have := lt_of_lt_of_le hsum (three_sq_add_sq_le_sq_add_abs s.im)
-    simpa [Complex.normSq_apply, pow_two] using this
-  exact (sq_lt_sq₀ (norm_nonneg s) (by positivity)).1 (by rwa [Complex.sq_norm])
+  have hre : |s.re| < 3 := abs_lt.mpr ⟨by linarith [hs.1], hs.2⟩
+  linarith [Complex.norm_le_abs_re_add_abs_im s]
 
 private lemma one_div_re_le_two (s : ℂ) (hs : (1 / 2 : ℝ) ≤ s.re ∧ s.re < (3 : ℝ)) :
     1 / s.re ≤ (2 : ℝ) := by

@@ -9,7 +9,6 @@ public import Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
 public import Mathlib.NumberTheory.Harmonic.ZetaAsymp
 public import Mathlib.Analysis.Real.Pi.Bounds
-public import Mathlib.Analysis.Real.Pi.Irrational
 
 /-!
 ## Special values of the completed Riemann zeta function
@@ -100,16 +99,8 @@ theorem completedRiemannZeta₀_two :
 /-- The entire completed zeta function `Λ₀` is not identically zero. -/
 theorem completedRiemannZeta₀_nontrivial : ∃ z : ℂ, completedRiemannZeta₀ z ≠ 0 := by
   refine ⟨(2 : ℂ), ?_⟩
-  have hpi_ne3 : (Real.pi : ℂ) ≠ (3 : ℂ) := by
-    intro h'
-    have hpi' : (Real.pi : ℝ) = (3 : ℝ) := by
-      simpa using congrArg Complex.re h'
-    have hirr : Irrational Real.pi := by simp
-    exact (hirr.ne_nat 3) (by simp at hpi')
-  have hnum : ((Real.pi : ℂ) - 3) ≠ 0 := sub_ne_zero.2 hpi_ne3
-  have hden : (6 : ℂ) ≠ 0 := by norm_num
-  have : ((Real.pi : ℂ) - 3) / 6 ≠ 0 := div_ne_zero hnum hden
-  simpa [completedRiemannZeta₀_two] using this
+  rw [completedRiemannZeta₀_two]
+  exact div_ne_zero (sub_ne_zero.mpr (by exact_mod_cast ne_of_gt Real.pi_gt_three)) (by norm_num)
 
 /-- The functional equation identifies the values of the entire completed zeta function `Λ₀`
 at `0` and `1`. -/

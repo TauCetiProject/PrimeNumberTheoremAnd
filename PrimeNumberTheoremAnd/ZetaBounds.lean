@@ -7,8 +7,11 @@ public import Mathlib.MeasureTheory.Function.Floor
 public import Mathlib.MeasureTheory.Order.Group.Lattice
 public import Mathlib.NumberTheory.Harmonic.Bounds
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
+public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
+public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
 public import PrimeNumberTheoremAnd.Auxiliary
 public import PrimeNumberTheoremAnd.EulerMaclaurin
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import PrimeNumberTheoremAnd.Fourier
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
@@ -18,15 +21,6 @@ public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 
 open Complex Topology Filter Interval Set Asymptotics
-
-lemma div_cpow_eq_cpow_neg (a x s : ℂ) : a / x ^ s = a * x ^ (-s) := by
-  rw [div_eq_mul_inv, cpow_neg]
-
-lemma one_div_cpow_eq_cpow_neg (x s : ℂ) : 1 / x ^ s = x ^ (-s) := by
-  convert div_cpow_eq_cpow_neg 1 x s using 1; simp
-
-lemma div_rpow_eq_rpow_neg (a x s : ℝ) (hx : 0 ≤ x) : a / x ^ s = a * x ^ (-s) := by
-  rw [div_eq_mul_inv, Real.rpow_neg hx]
 
 lemma div_rpow_neg_eq_rpow_div {x y s : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
     x ^ (-s) / y ^ (-s) = (y / x) ^ s := by
@@ -164,16 +158,6 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   exact h_q_bound _ ⟨hV₁, z_ne_p⟩
 
 
-
-
-theorem analyticAt_riemannZeta {s : ℂ} (s_ne_one : s ≠ 1) :
-  AnalyticAt ℂ riemannZeta s := by
-  apply Complex.analyticAt_iff_eventually_differentiableAt.mpr
-  filter_upwards [eventually_ne_nhds s_ne_one] with z hz using differentiableAt_riemannZeta hz
-
-theorem differentiableAt_deriv_riemannZeta {s : ℂ} (s_ne_one : s ≠ 1) :
-    DifferentiableAt ℂ ζ' s := by
-  exact (analyticAt_riemannZeta s_ne_one).deriv.differentiableAt
 
 
 @[blueprint
@@ -658,18 +642,15 @@ lemma riemannZeta0_apply (N : ℕ) (s : ℂ) : ζ₀ N s =
     (∑ n ∈ Finset.range (N + 1), 1 / (n : ℂ) ^ s) +
     ((- N ^ (1 - s)) / (1 - s) + (- N ^ (-s)) / 2
       + s * ∫ x in Ioi (N : ℝ), (⌊x⌋ + 1 / 2 - x) * (x : ℂ) ^ (-(s + 1))) := by
-  simp_rw [riemannZeta0, div_cpow_eq_cpow_neg]; ring
+  simp_rw [riemannZeta0, div_eq_mul_inv, ← cpow_neg]; ring
 
 -- move near `Real.differentiableAt_rpow_const_of_ne`
 lemma Real.differentiableAt_cpow_const_of_ne (s : ℂ) {x : ℝ} (xpos : 0 < x) :
     DifferentiableAt ℝ (fun (x : ℝ) ↦ (x : ℂ) ^ s) x := by
-  apply DifferentiableAt.comp_ofReal (e := fun z ↦ z ^ s)
+  apply HasDerivAt.differentiableAt
+  apply HasDerivAt.comp_ofReal (e := fun z : ℂ ↦ z ^ s)
+  apply DifferentiableAt.hasDerivAt
   apply DifferentiableAt.cpow (by simp) (by simp) (by simp [xpos])
-
-lemma Complex.one_div_cpow_eq {s : ℂ} {x : ℝ} (x_ne : x ≠ 0) :
-    1 / (x : ℂ) ^ s = (x : ℂ) ^ (-s) := by
-  refine (eq_one_div_of_mul_eq_one_left ?_).symm
-  rw [← cpow_add _ _ <| mod_cast x_ne, neg_add_cancel, cpow_zero]
 
 @[blueprint
   (title := "sum-eq-int-deriv")
@@ -717,8 +698,7 @@ lemma ZetaSum_aux1₁ {a b : ℕ} {s : ℂ} (s_ne_one : s ≠ 1) (ha : a ∈ Ioo
     (∫ (x : ℝ) in a..b, 1 / (x : ℂ) ^ s) =
     (b ^ (1 - s) - a ^ (1 - s)) / (1 - s) := by
   convert integral_cpow (a := a) (b := b) (r := -s) ?_ using 1
-  · refine intervalIntegral.integral_congr fun x hx ↦ one_div_cpow_eq ?_
-    exact (xpos_of_uIcc ha hx).ne'
+  · simp only [one_div, cpow_neg]
   · norm_cast; ring_nf
   · right; refine ⟨(by grind), ?_⟩
     exact fun hx ↦ (lt_self_iff_false 0).mp <| xpos_of_uIcc ha hx
@@ -805,7 +785,10 @@ lemma ZetaSum_aux1_2 {a b : ℝ} {c : ℝ} (apos : 0 < a) (a_lt_b : a < b)
   apply intervalIntegral.integral_congr
   intro x hx
   have : 0 ≤ x := (ZetaSum_aux1_1 apos a_lt_b hx).le
-  simp [div_rpow_eq_rpow_neg _ _ _ this, sub_eq_add_neg, add_comm]
+  dsimp only
+  rw [one_div, ← Real.rpow_neg this]
+  congr 1
+  ring
 
 lemma ZetaSum_aux1_3 (x : ℝ) : ‖(⌊x⌋ + 1/2 - x)‖ ≤ 1/2 :=
   abs_le.mpr ⟨(by linarith [Int.lt_floor_add_one x]), (by linarith [Int.floor_le x])⟩
@@ -894,15 +877,6 @@ lemma ZetaBnd_aux1a {a b : ℝ} (apos : 0 < a) (a_lt_b : a < b) {s : ℂ} (σpos
   refine ZetaSum_aux1_2 (c := s.re) apos a_lt_b ⟨ne_of_gt σpos, ?_⟩
   exact fun h ↦ (lt_self_iff_false 0).mp <| ZetaSum_aux1_1 apos a_lt_b h
 
-lemma Finset.Ioc_eq_Ico (M N : ℕ) : Finset.Ioc N M = Finset.Ico (N + 1) (M + 1) := by
-  ext a; simp only [Finset.mem_Ioc, Finset.mem_Ico]; constructor <;> intro ⟨h₁, h₂⟩ <;> omega
-
-lemma Finset.Ioc_eq_Icc (M N : ℕ) : Finset.Ioc N M = Finset.Icc (N + 1) M := by
-  ext a; simp only [Finset.mem_Ioc, Finset.mem_Icc]; constructor <;> intro ⟨h₁, h₂⟩ <;> omega
-
-lemma Finset.Icc_eq_Ico (M N : ℕ) : Finset.Icc N M = Finset.Ico N (M + 1) := by
-  ext a; simp only [Finset.mem_Icc, Finset.mem_Ico]; constructor <;> intro ⟨h₁, h₂⟩ <;> omega
-
 lemma finsetSum_tendsto_tsum {N : ℕ} {f : ℕ → ℂ} (hf : Summable f) :
     Tendsto (fun (k : ℕ) ↦ ∑ n ∈ Finset.Ico N k, f n) atTop (𝓝 (∑' (n : ℕ), f (n + N))) := by
   have := Summable.hasSum_iff_tendsto_nat hf (m := ∑' (n : ℕ), f n) |>.mp hf.hasSum
@@ -915,21 +889,6 @@ lemma finsetSum_tendsto_tsum {N : ℕ} {f : ℕ → ℂ} (hf : Summable f) :
   rw [Finset.sum_Ico_eq_sub]
   linarith
 
-lemma Complex.cpow_tendsto {s : ℂ} (s_re_gt : 1 < s.re) :
-    Tendsto (fun (x : ℕ) ↦ (x : ℂ) ^ (1 - s)) atTop (𝓝 0) := by
-  have one_sub_s_re_ne : (1 - s).re ≠ 0 := by simp only [sub_re, one_re]; linarith
-  rw [tendsto_zero_iff_norm_tendsto_zero]
-  simp_rw [Complex.norm_natCast_cpow_of_re_ne_zero _ (one_sub_s_re_ne)]
-  rw [(by simp only [sub_re, one_re, neg_sub] : (1 - s).re = - (s - 1).re)]
-  apply (tendsto_rpow_neg_atTop _).comp tendsto_natCast_atTop_atTop; simp [s_re_gt]
-
-lemma Complex.cpow_inv_tendsto {s : ℂ} (hs : 0 < s.re) :
-    Tendsto (fun (x : ℕ) ↦ ((x : ℂ) ^ s)⁻¹) atTop (𝓝 0) := by
-  rw [tendsto_zero_iff_norm_tendsto_zero]
-  simp_rw [norm_inv, Complex.norm_natCast_cpow_of_re_ne_zero _ <| ne_of_gt hs]
-  apply Filter.Tendsto.inv_tendsto_atTop
-  exact (tendsto_rpow_atTop hs).comp tendsto_natCast_atTop_atTop
-
 lemma ZetaSum_aux2a : ∃ C, ∀ (x : ℝ), ‖⌊x⌋ + 1 / 2 - x‖ ≤ C := by
   use 1 / 2; exact ZetaSum_aux1_3
 
@@ -938,7 +897,7 @@ lemma ZetaSum_aux3 {N : ℕ} {s : ℂ} (s_re_gt : 1 < s.re) :
     (𝓝 (∑' (n : ℕ), 1 / (n + N + 1 : ℂ) ^ s)) := by
   let f := fun (n : ℕ) ↦ 1 / (n : ℂ) ^ s
   have hf := summable_one_div_nat_cpow.mpr s_re_gt
-  simp_rw [Finset.Ioc_eq_Ico]
+  simp_rw [← Finset.Ico_add_one_add_one_eq_Ioc]
   convert finsetSum_tendsto_tsum (f := fun n ↦ f (n + 1)) (N := N) ?_ using 1
   · ext k
     rw [Finset.sum_Ico_add']
@@ -989,9 +948,12 @@ lemma ZetaSum_aux2 {N : ℕ} (N_pos : 0 < N) {s : ℂ} (s_re_gt : 1 < s.re) :
     · exact ZetaSum_aux3 s_re_gt
   · apply (Tendsto.sub ?_ ?_).add (Tendsto.const_mul _ ?_)
     · rw [(by ring : -↑N ^ (1 - s) / (1 - s) = (0 - ↑N ^ (1 - s)) / (1 - s) + 0)]
-      apply cpow_tendsto s_re_gt |>.sub_const _ |>.div_const _ |>.add
+      apply (ZetaPartialSum.tendsto_natCast_cpow_zero_of_neg_re (1 - s)
+        (by simp only [Complex.sub_re, Complex.one_re]; linarith)).sub_const _ |>.div_const _ |>.add
       simp_rw [mul_comm_div, one_mul, one_div, (by congr; ring : 𝓝 (0 : ℂ) = 𝓝 ((0 : ℂ) / 2))]
-      apply Tendsto.div_const <| cpow_inv_tendsto (by positivity)
+      apply Tendsto.div_const
+      simpa only [cpow_neg] using ZetaPartialSum.tendsto_natCast_cpow_zero_of_neg_re
+        (-s) (by simp only [Complex.neg_re]; linarith)
     · simp_rw [mul_comm_div, one_mul, one_div, cpow_neg]; exact tendsto_const_nhds
     · exact MeasureTheory.intervalIntegral_tendsto_integral_Ioi (a := N)
         (b := (fun (n : ℕ) ↦ (n : ℝ)))
@@ -1104,38 +1066,11 @@ lemma isOpen_aux : IsOpen {z : ℂ | z ≠ 1 ∧ 0 < z.re} := by
 open MeasureTheory in
 lemma integrable_log_over_pow {r : ℝ} (rneg : r < 0) {N : ℕ} (Npos : 0 < N) :
     IntegrableOn (fun (x : ℝ) ↦ ‖x ^ (r - 1)‖ * ‖Real.log x‖) <| Ioi N := by
-  apply IntegrableOn.mono_set (hst := Set.Ioi_subset_Ici <| le_refl (N : ℝ))
-  apply LocallyIntegrableOn.integrableOn_of_isBigO_atTop (g := fun x ↦ x ^ (r / 2 - 1))
-  · apply ContinuousOn.abs ?_ |>.mul ?_ |>.locallyIntegrableOn (by simp)
-    · apply ContinuousOn.rpow (by fun_prop) (by fun_prop)
-      intro x hx; left; contrapose! Npos with h; exact_mod_cast h ▸ mem_Ici.mp hx
-    · apply continuous_id.continuousOn.log ?_ |>.abs
-      intro x hx; simp only [id_eq]; contrapose! Npos with h; exact_mod_cast h ▸ mem_Ici.mp hx
-  · have := isLittleO_log_rpow_atTop (r := -r / 2) (by linarith) |>.isBigO
-    rw [Asymptotics.isBigO_iff_eventually, Filter.eventually_atTop] at this
-    obtain ⟨C, hC⟩ := this
-    have hh := hC C (by simp)
-    rw [Asymptotics.isBigO_atTop_iff_eventually_exists]
-    have := Filter.eventually_atTop.mp hh
-    obtain ⟨x₀, hx₀ ⟩ := this
-    filter_upwards [hh, Filter.mem_atTop x₀, Filter.mem_atTop 1]
-    intro x hx x_gt x_pos
-    use C
-    intro y hy
-    simp only [norm_mul, Real.norm_eq_abs, _root_.abs_abs]
-    simp only [Real.norm_eq_abs] at hx
-    have y_pos : 0 < y := by linarith
-    have : y ^ (r / 2 - 1) = y ^ (r - 1) * y ^ (-r / 2) := by
-      rw [← Real.rpow_add y_pos]; ring_nf
-    rw [this, abs_mul]
-    have y_gt : y ≥ x₀ := by linarith
-    have := hx₀ y y_gt
-    simp only [Real.norm_eq_abs] at this
-    rw [← mul_assoc, mul_comm C, mul_assoc]
-    exact mul_le_mul_of_nonneg_left (hbc := this) (a := |y ^ (r - 1)|) (ha := by simp)
-  · have := integrableOn_Ioi_rpow_iff (s := r / 2 - 1) (t := N) (by simp [Npos]) |>.mpr
-      (by linarith [rneg])
-    exact integrableOn_Ioi_iff_integrableAtFilter_atTop_nhdsWithin.mp this |>.1
+  have H := (TauCeti.integrableOn_rpow_mul_log (η := -r) (neg_pos.mpr rneg)).mono_set
+    (Ioi_subset_Ioi (by exact_mod_cast Npos : (1 : ℝ) ≤ N))
+  have he : -1 - -r = r - 1 := by ring
+  change Integrable _ (volume.restrict (Ioi (N : ℝ)))
+  simpa only [he, norm_mul] using H.norm
 
 open MeasureTheory in
 lemma integrableOn_of_Zeta0_fun_log {N : ℕ} (Npos : 0 < N) {s : ℂ} (s_re_gt : 0 < s.re) :
@@ -1301,7 +1236,7 @@ lemma HasDerivAtZeta0 {N : ℕ} (Npos : 0 < N) {s : ℂ} (reS_pos : 0 < s.re) (s
     · exact HasDerivAt_cpow_over_var N (by rw [sub_ne_zero]; exact s_ne_one.symm)
     · convert! hasDerivAt_const s _ |>.sub (hasDerivAt_id _) using 1; simp
   · convert! HasDerivAt_neg_cpow_over2 Npos s using 1; simp only [natCast_log, neg_mul, neg_neg]
-  · simp_rw [div_cpow_eq_cpow_neg, neg_add, ← sub_eq_add_neg]
+  · simp_rw [div_eq_mul_inv, ← cpow_neg, neg_add, ← sub_eq_add_neg]
     convert! hasDerivAt_id s |>.mul <| hasDerivAt_Zeta0Integral Npos reS_pos using 1
 
 @[blueprint
@@ -1428,12 +1363,6 @@ lemma DerivZeta0EqDerivZeta {N : ℕ} (N_pos : 0 < N) {s : ℂ} (reS_pos : 0 < s
   have hζ := differentiableOn_riemannZeta.mono (by aesop)|>.hasDerivAt (s := U) <|
     isOpen_aux.mem_nhds hx
   exact hζ.hasDerivWithinAt.congr (fun y hy ↦ this hy) (this hx)
-
-lemma le_trans₄ {α : Type*} [Preorder α] {a b c d : α} : a ≤ b → b ≤ c → c ≤ d → a ≤ d :=
-  fun hab hbc hcd ↦ le_trans (le_trans hab hbc) hcd
-
-lemma lt_trans₄ {α : Type*} [Preorder α] {a b c d : α} : a < b → b < c → c < d → a < d :=
-  fun hab hbc hcd ↦ lt_trans (lt_trans hab hbc) hcd
 
 lemma norm_add₅_le {E : Type*} [SeminormedAddGroup E] (a : E) (b : E) (c : E) (d : E) (e : E) :
     ‖a + b + c + d + e‖ ≤ ‖a‖ + ‖b‖ + ‖c‖ + ‖d‖ + ‖e‖ := by
@@ -1603,7 +1532,7 @@ lemma UpperBnd_aux6 {σ t : ℝ} (t_ge : 3 < |t|) (hσ : σ ∈ Ioc (1 / 2) 2)
     conv => rw [mul_assoc]; rhs; rw [mul_comm]
     apply (div_le_iff₀ <| Real.rpow_pos_of_pos (by linarith) _).mp
     rw [div_rpow_eq_rpow_div_neg (by positivity) (by positivity), neg_sub]
-    refine le_trans₄ ?_ bnd' ?_
+    refine le_trans (le_trans ?_ bnd') ?_
     · exact Real.rpow_le_rpow_of_exponent_le (one_le_div (by positivity) |>.mpr N_le_t) (by simp)
     · apply (mul_le_mul_iff_right₀ (by norm_num)).mpr; simpa using abs_im_le_norm (1 - (σ + t * I))
   · apply div_le_iff₀ (by norm_num) |>.mpr
@@ -1642,7 +1571,7 @@ lemma ZetaUpperBnd' {A σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2)) (t_gt : 3 < |t|)
     _ ≤ Real.exp A * 2 * Real.log |t| + (3 + 8 * 2) * Real.exp A * 1 := ?_
     _ ≤ Real.exp A * 2 * Real.log |t| + (3 + 8 * 2) * Real.exp A * Real.log |t| := ?_
     _ = _ := by ring
-  · simp only [add_le_add_iff_right, one_div_cpow_eq_cpow_neg]
+  · simp only [add_le_add_iff_right, one_div, ← cpow_neg]
     convert UpperBnd_aux3 (C := 2) hA hσ.1 t_gt le_rfl using 1
   · simp only [add_le_add_iff_left]; exact ZetaBnd_aux1 N (by linarith) ⟨σPos, hσ.2⟩ (by linarith)
   · simp only [norm_div, RCLike.norm_ofNat, s]
@@ -1764,7 +1693,7 @@ lemma DerivUpperBnd_aux1 {A C σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2))
   rw [← Finset.sum_mul, ← Finset.sum_mul, mul_comm _ A.exp, mul_assoc] at this
   rw [mul_assoc]
   apply le_trans this <| (mul_le_mul_iff_right₀ A.exp_pos).mpr ?_
-  rw [pow_two, ← mul_assoc, Finset.range_eq_Ico, ← Finset.Icc_eq_Ico, harmonic_eq_sum_Icc0]
+  rw [pow_two, ← mul_assoc, Finset.range_eq_Ico, Finset.Ico_add_one_right_eq_Icc, harmonic_eq_sum_Icc0]
   apply le_trans (mul_le_mul (h₁ := harmonic_le_one_add_log (n := N)) (le_refl (Real.log |t|))
     (by linarith) (by linarith))
   apply (mul_le_mul_iff_left₀ (by linarith)).mpr
@@ -1846,7 +1775,7 @@ theorem DerivUpperBnd_aux5 {A σ t : ℝ} (t_gt : 3 < |t|) (hσ : σ ∈ Icc (1 
   · have hσ : σ ∈ Ioc 0 2 := ⟨(by linarith), hσ.2⟩
     simp only [s]
     have := ZetaBnd_aux1 N (by omega) hσ (by linarith)
-    simp only [div_cpow_eq_cpow_neg] at this
+    simp only [div_eq_mul_inv, ← cpow_neg] at this
     convert! this using 1; congr; funext x; ring_nf
 
 theorem DerivUpperBnd_aux6 {A σ t : ℝ} (t_gt : 3 < |t|) (hσ : σ ∈ Icc (1 - A / |t|.log) 2) :
@@ -1915,7 +1844,7 @@ lemma DerivUpperBnd_aux7_tendsto {σ : ℝ} (σpos : 0 < σ) :
     apply Tendsto.congr' _ this
     filter_upwards [eventually_ge_atTop 0] with x hx
     rw [mul_comm]
-    apply div_rpow_eq_rpow_neg _ _ _ hx
+    rw [div_eq_mul_inv, Real.rpow_neg hx]
   have h4 := h3.const_mul (1 / σ)
   have h5 := (h2.add h4).neg
   convert h5 using 1
@@ -1926,10 +1855,9 @@ lemma DerivUpperBnd_aux7_tendsto {σ : ℝ} (σpos : 0 < σ) :
 open MeasureTheory in
 lemma DerivUpperBnd_aux7_4 {a σ : ℝ} (σpos : 0 < σ) (ha : 1 ≤ a) :
     IntegrableOn (fun x ↦ x ^ (-σ - 1) * Real.log x) (Ioi a) volume := by
-  apply integrableOn_Ioi_deriv_of_nonneg' (l := 0)
-  · exact DerivUpperBnd_aux7_3' (by linarith) (by linarith)
-  · exact DerivUpperBnd_aux7_nonneg ha
-  · exact DerivUpperBnd_aux7_tendsto σpos
+  have he : -1 - σ = -σ - 1 := by ring
+  simpa only [he] using
+    (TauCeti.integrableOn_rpow_mul_log σpos).mono_set (Ioi_subset_Ioi ha)
 
 open MeasureTheory in
 lemma DerivUpperBnd_aux7_5 {a σ : ℝ} (σpos : 0 < σ) (ha : 1 ≤ a) :
@@ -2173,32 +2101,12 @@ lemma ZetaDerivUpperBnd :
 lemma Tendsto_nhdsWithin_punctured_map_add {f : ℝ → ℝ} (a x : ℝ)
     (f_mono : StrictMono f) (f_iso : Isometry f) :
     Tendsto (fun y ↦ f y + a) (𝓝[>] x) (𝓝[>] (f x + a)) := by
-  refine tendsto_iff_forall_eventually_mem.mpr ?_
-  intro v hv
-  simp only [mem_nhdsWithin] at hv
-  obtain ⟨u, hu, hu2, hu3⟩ := hv
-  let t := {x | f x + a ∈ u}
-  have : t ∩ Ioi x ∈ 𝓝[>] x := by
-    simp only [mem_nhdsWithin]
-    use t
-    simp only [subset_inter_iff, inter_subset_left, inter_subset_right, and_self,
-      and_true, t, mem_ofPred_eq]
-    refine ⟨?_, by simp [hu2]⟩
-    simp only [Metric.isOpen_iff, gt_iff_lt, mem_ofPred_eq] at hu ⊢
-    intro x hx
-    obtain ⟨ε, εpos, hε⟩ := hu (f x + a) hx
-    simp only [Metric.ball, ofPred_subset_ofPred] at hε ⊢
-    exact ⟨ε, εpos, fun _ hy ↦ hε (by simp [isometry_iff_dist_eq.mp f_iso, hy])⟩
-  filter_upwards [this]
-  intro b hb
-  simp only [mem_inter_iff, mem_ofPred_eq, mem_Ioi, t] at hb
-  refine hu3 ?_
-  simp only [mem_inter_iff, mem_Ioi, add_lt_add_iff_right]
-  exact ⟨hb.1, f_mono hb.2⟩
+  refine tendsto_nhdsWithin_iff.2 ⟨
+    (f_iso.continuous.continuousAt.add_const a).tendsto.mono_left inf_le_left, ?_⟩
+  filter_upwards [self_mem_nhdsWithin] with y hy
+  change f x + a < f y + a
+  simpa only [add_comm] using add_lt_add_right (f_mono hy) a
 
-lemma Tendsto_nhdsWithin_punctured_add (a x : ℝ) :
-    Tendsto (fun y ↦ y + a) (𝓝[>] x) (𝓝[>] (x + a)) :=
-  Tendsto_nhdsWithin_punctured_map_add a x strictMono_id isometry_id
 
 lemma riemannZeta_isBigO_near_one_horizontal :
     (fun x : ℝ ↦ ζ (1 + x)) =O[𝓝[>] 0] (fun x ↦ (1 : ℂ) / x) := by
@@ -2230,8 +2138,8 @@ lemma riemannZeta_isBigO_near_one_horizontal :
   (latexEnv := "lemma")]
 lemma ZetaNear1BndFilter :
     (fun σ : ℝ ↦ ζ σ) =O[𝓝[>](1 : ℝ)] (fun σ ↦ (1 : ℂ) / (σ - 1)) := by
-  have := Tendsto_nhdsWithin_punctured_add (a := -1) (x := 1)
-  simp only [add_neg_cancel, ← sub_eq_add_neg] at this
+  have := Tendsto_nhdsWithin_punctured_map_add (-1) 1 strictMono_id isometry_id
+  simp only [id_eq, add_neg_cancel, ← sub_eq_add_neg] at this
   have := riemannZeta_isBigO_near_one_horizontal.comp_tendsto this
   convert this using 1 <;> {ext; simp}
 
@@ -2518,94 +2426,27 @@ lemma lt_abs_mem_cocompact {a : ℝ} (ha : 0 ≤ a) : {t | a < |t|} ∈ cocompac
 lemma ZetaInvBound2 :
     ∃ C > 0, ∀ {σ : ℝ} (_ : σ ∈ Ioc 1 2) (t : ℝ) (_ : 3 < |t|),
     1 / ‖ζ (σ + t * I)‖ ≤ C * (σ - 1) ^ (-(3 : ℝ) / 4) * (Real.log |t|) ^ ((1 : ℝ) / 4) := by
-  obtain ⟨A, ha, C, hC, h⟩ := ZetaUpperBnd
-  obtain ⟨c, hc, h_inv⟩ := ZetaNear1BndExact
-  refine ⟨(2 * C) ^ ((1 : ℝ)/ 4) * c ^ ((3 : ℝ)/ 4), by positivity, ?_⟩
-  intro σ hσ t t_gt
-  obtain ⟨σ_gt, σ_le⟩ := hσ
-  have ht' : 3 < |2 * t| := by simp only [abs_mul, Nat.abs_ofNat]; linarith
-  have hnezero: ((σ - 1) / c) ^ (-3 / 4 : ℝ) ≠ 0 := by
-    have : (σ - 1) / c ≠ 0 := ne_of_gt <| div_pos (by linarith) hc
-    contrapose! this
-    rwa [Real.rpow_eq_zero (div_nonneg (by linarith) hc.le) (by norm_num)] at this
+  obtain ⟨c, hc, hbound⟩ := ZetaLowerBound3
+  refine ⟨c⁻¹, inv_pos.mpr hc, fun {σ} hσ t ht ↦ ?_⟩
+  have hp : 0 < c * (σ - 1) ^ ((3 : ℝ) / 4) / Real.log |t| ^ ((1 : ℝ) / 4) := by
+    apply div_pos (mul_pos hc (Real.rpow_pos_of_pos (sub_pos.mpr hσ.1) _))
+    exact Real.rpow_pos_of_pos (Real.log_pos (by linarith)) _
   calc
-    _ ≤ ‖‖ζ σ‖ ^ (3 / 4 : ℝ) * ‖ζ (↑σ + 2 * ↑t * I)‖ ^ (1 / 4 : ℝ)‖ := ?_
-    _ ≤ ‖((σ - 1) / c) ^ (-3 / 4 : ℝ) * ‖ζ (↑σ + 2 * ↑t * I)‖ ^ (1 / 4 : ℝ)‖ := ?_
-    _ ≤ ‖((σ - 1) / c) ^ (-3 / 4 : ℝ) * C ^ (1 / 4 : ℝ) * (Real.log |2 * t|) ^ (1 / 4 : ℝ)‖ := ?_
-    _ ≤ ‖((σ - 1) / c) ^ (-3 / 4 : ℝ) * C ^ (1 / 4 : ℝ) * (Real.log (|t| ^ 2)) ^ (1 / 4 : ℝ)‖ := ?_
-    _ = ‖((σ - 1)) ^ (-3 / 4 : ℝ) * c ^ (3 / 4 : ℝ) * (C ^ (1 / 4 : ℝ) * (Real.log (|t| ^ 2)) ^ (1 / 4 : ℝ))‖ := ?_
-    _ = ‖((σ - 1)) ^ (-3 / 4 : ℝ) * c ^ (3 / 4 : ℝ) * ((2 * C) ^ (1 / 4 : ℝ) * Real.log |t| ^ (1 / 4 : ℝ))‖ := ?_
-    _ = _ := ?_
-  · simp only [norm_mul]
-    convert ZetaInvBound1 σ_gt using 2
-    <;> exact abs_eq_self.mpr <| Real.rpow_nonneg (norm_nonneg _) _
-  · have bnd1: ‖ζ σ‖ ^ (3 / 4 : ℝ) ≤ ((σ - 1) / c) ^ (-(3 : ℝ) / 4) := by
-      have : ((σ - 1) / c) ^ (-(3 : ℝ) / 4) = (((σ - 1) / c) ^ (-1 : ℝ)) ^ (3 / 4 : ℝ) := by
-        rw [← Real.rpow_mul ?_]
-        · ring_nf
-        · exact div_nonneg (by linarith) hc.le
-      rw [this]
-      apply Real.rpow_le_rpow (by simp [norm_nonneg]) ?_ (by norm_num)
-      convert! h_inv σ ⟨σ_gt, σ_le⟩ using 1; simp [Real.rpow_neg_one, inv_div]
-    simp only [norm_mul]
-    apply (mul_le_mul_iff_left₀ ?_).mpr
-    · convert! bnd1 using 1
-      · exact abs_eq_self.mpr <| Real.rpow_nonneg (norm_nonneg _) _
-      · exact abs_eq_self.mpr <| Real.rpow_nonneg (div_nonneg (by linarith) hc.le) _
-    · apply lt_iff_le_and_ne.mpr ⟨(by simp), ?_⟩
-      have : ζ (↑σ + 2 * ↑t * I) ≠ 0 := by
-        apply riemannZeta_ne_zero_of_one_le_re (by simp [σ_gt.le])
-      symm; exact fun h2 ↦ this (by simpa using h2)
-  · replace h := h σ (2 * t) (by simpa using ht') ⟨?_, σ_le⟩
-    · have : 0 ≤ Real.log |2 * t| := Real.log_nonneg (by linarith)
-      conv => rhs; rw [mul_assoc, ← Real.mul_rpow hC.le this]
-      rw [norm_mul, norm_mul]
-      conv => rhs; rhs; rw [Real.norm_rpow_of_nonneg <| mul_nonneg hC.le this]
-      conv => lhs; rhs; rw [Real.norm_rpow_of_nonneg <| norm_nonneg _]
-      apply (mul_le_mul_iff_right₀ ?_).mpr
-      · apply Real.rpow_le_rpow (norm_nonneg _) ?_ (by norm_num)
-        convert h using 1
-        · simp
-        · rw [Real.norm_eq_abs, abs_eq_self.mpr <| mul_nonneg hC.le this]
-      · simpa only [Real.norm_eq_abs, abs_pos]
-    · linarith [(div_nonneg ha.1.le (Real.log_nonneg (by linarith)) : 0 ≤ A / Real.log |2 * t|)]
-  · simp only [Real.log_abs, norm_mul]
-    apply (mul_le_mul_iff_right₀ ?_).mpr
-    · rw [← Real.log_abs, Real.norm_rpow_of_nonneg <| Real.log_nonneg (by linarith)]
-      have : 1 ≤ |(|t| ^ 2)| := by
-        simp only [_root_.sq_abs, _root_.abs_pow, one_le_sq_iff_one_le_abs]
-        linarith
-      conv => rhs; rw [← Real.log_abs, Real.norm_rpow_of_nonneg <| Real.log_nonneg this]
-      apply Real.rpow_le_rpow (abs_nonneg _) ?_ (by norm_num)
-      · rw [Real.norm_eq_abs, abs_eq_self.mpr <| Real.log_nonneg (by linarith)]
-        rw [abs_eq_self.mpr <| Real.log_nonneg this, abs_mul, Real.log_abs, Nat.abs_ofNat]
-        apply Real.log_le_log (mul_pos (by norm_num) (by linarith)) (by nlinarith)
-    · apply mul_pos (abs_pos.mpr hnezero) (abs_pos.mpr ?_)
-      have : C ≠ 0 := ne_of_gt hC
-      contrapose! this; rwa [Real.rpow_eq_zero (by linarith) (by norm_num)] at this
-  · have : (-3 : ℝ) / 4 = -((3 : ℝ)/ 4) := by norm_num
-    simp only [norm_mul, mul_eq_mul_right_iff, this, ← mul_assoc]; left; left
-    conv => lhs; rw [Real.div_rpow (by linarith) hc.le, Real.rpow_neg hc.le, div_inv_eq_mul, norm_mul]
-  · simp only [Real.log_pow, Nat.cast_ofNat, norm_mul, Real.norm_eq_abs]
-    congr! 1
-    rw [Real.mul_rpow (by norm_num) hC.le, Real.mul_rpow (by norm_num) <|
-        Real.log_nonneg (by linarith), abs_mul, abs_mul, ← mul_assoc, mul_comm _ |2 ^ (1 / 4)|]
-  · simp only [norm_mul, Real.norm_eq_abs]
-    have : (2 * C) ^ ((1 : ℝ)/ 4) * c ^ ((3 : ℝ)/ 4) =
-      |(2 * C) ^ ((1 : ℝ)/ 4) * c ^ ((3 : ℝ)/ 4)| := by
-      rw [abs_eq_self.mpr (by apply mul_nonneg <;> (apply Real.rpow_nonneg; linarith))]
-    rw [this, abs_mul, abs_eq_self.mpr (by apply Real.rpow_nonneg; linarith), abs_eq_self.mpr (by positivity),
-      abs_eq_self.mpr (by positivity), abs_eq_self.mpr (by apply Real.rpow_nonneg (Real.log_nonneg (by linarith)))]
-    ring_nf
+    1 / ‖ζ (σ + t * I)‖ ≤
+        1 / (c * (σ - 1) ^ ((3 : ℝ) / 4) / Real.log |t| ^ ((1 : ℝ) / 4)) :=
+      one_div_le_one_div_of_le hp (hbound hσ t ht)
+    _ = _ := by
+      rw [neg_div, Real.rpow_neg (sub_pos.mpr hσ.1).le]
+      field_simp
+
 
 set_option backward.isDefEq.respectTransparency false in
 lemma deriv_fun_re {t : ℝ} {f : ℂ → ℂ} (diff : ∀ (σ : ℝ), DifferentiableAt ℂ f (↑σ + ↑t * I)) :
     (deriv fun {σ₂ : ℝ} ↦ f (σ₂ + t * I)) = fun (σ : ℝ) ↦ deriv f (σ + t * I) := by
   ext σ
-  have := deriv_comp (h := fun (σ : ℝ) ↦ σ + t * I) (h₂ := f) σ (diff σ) ?_
-  · simp only [deriv_add_const', Complex.deriv_ofReal, mul_one] at this
-    exact this
-  · apply DifferentiableAt.add_const _ <| differentiableAt_ofReal σ
+  simpa only [Function.comp_apply, id_eq, mul_one] using
+    (((diff σ).hasDerivAt.comp (σ : ℂ)
+      ((hasDerivAt_id (σ : ℂ)).add_const (t * I))).comp_ofReal).deriv
 
 set_option backward.isDefEq.respectTransparency false in
 @[blueprint
@@ -2630,7 +2471,7 @@ lemma Zeta_eq_int_derivZeta {σ₁ σ₂ t : ℝ} (t_ne_zero : t ≠ 0) :
   · intro s _
     apply DifferentiableAt.comp
     · exact (diff s).restrictScalars ℝ
-    · exact DifferentiableAt.add_const (c := t * I) <| differentiableAt_ofReal _
+    · exact DifferentiableAt.add_const (c := t * I) <| Complex.differentiable_ofReal.differentiableAt
   · apply ContinuousOn.comp (g := ζ') ?_ ?_ (mapsTo_image _ _)
     · apply HasDerivAt.continuousOn (f' := deriv <| ζ')
       intro x hx
@@ -2641,7 +2482,7 @@ lemma Zeta_eq_int_derivZeta {σ₁ σ₂ t : ℝ} (t_ne_zero : t ≠ 0) :
           I_im, mul_one, sub_self, add_zero, one_re, add_im, mul_im, zero_add, one_im, not_exists,
           not_and]
         exact fun _ _ _ ↦ t_ne_zero
-      exact differentiableAt_deriv_riemannZeta hx
+      exact (analyticOn_riemannZeta _ hx).deriv.differentiableAt
     · exact continuous_ofReal.continuousOn.add continuousOn_const
 
 @[blueprint
@@ -2757,7 +2598,7 @@ lemma ZetaInvBnd :
     simp only [σ']
     suffices A / Real.log |t| ^ (9 : ℝ) < 1 by linarith
     apply div_lt_one (by positivity) |>.mpr
-    exact lt_trans₄ (by linarith) logt_gt_one <| ZetaInvBnd_aux' logt_gt_one
+    exact lt_trans (lt_trans (by linarith) logt_gt_one) (ZetaInvBnd_aux' logt_gt_one)
   set s := σ + t * I
   set s' := σ' + t * I
   by_cases h0 : ‖ζ s‖ ≠ 0
@@ -3063,26 +2904,10 @@ Then we can bound $1/\log t$ by $C / \log (t + 3)$ for some constant $C>0$.
 \end{proof}
 %-/
 
-@[blueprint
-  (title := "ZetaNoZerosOn1Line")
-  (statement := /-- The zeta function does not vanish on the 1-line. -/)
-  (proof := /-- This fact is already proved in Stoll's work. -/)]
-lemma ZetaNoZerosOn1Line (t : ℝ) : ζ (1 + t * I) ≠ 0 := by
-  refine riemannZeta_ne_zero_of_one_le_re ?_
-  simp
-
--- **Begin collaboration with the Alpha Proof team! 5/29/25**
-
-lemma ZetaCont : ContinuousOn ζ (univ \ {1}) := by
-  apply continuousOn_of_forall_continuousAt (fun x hx ↦ ?_)
-  apply DifferentiableAt.continuousAt (𝕜 := ℂ)
-  convert differentiableAt_riemannZeta ?_
-  simp only [Set.mem_sdiff, mem_univ, mem_singleton_iff, true_and] at hx
-  exact hx
-
 blueprint_comment /--
-Then, since $\zeta$ doesn't vanish on the 1-line, there is a $\sigma<1$ (depending on $T$), so that
-the box $[\sigma,1] \times_{ℂ} [-T,T]$ is free of zeros of $\zeta$.
+\label{ZetaNoZerosOn1Line}
+The zeta function does not vanish on the 1-line.
+This fact is already proved in Stoll's work.
 -/
 
 @[blueprint
@@ -3200,13 +3025,12 @@ lemma ZetaNoZerosInBox (T : ℝ) :
     exact hn (this n)
 
   · have zetaIsZero : ζ (1 + Complex.I * t₀) = 0 := by
-      have cont := @ZetaCont
-      use isClosed_singleton.isSeqClosed
-        this
-        (.comp
-          (cont.continuousAt.comp (eventually_ne_nhds (by field_simp; simp [ht₀])).mono
-            fun and=>.intro ⟨⟩)
-          (ToOneT0.trans (inf_le_left)))
+      have hne : (1 : ℂ) + I * t₀ ≠ 1 := by
+        intro H
+        exact ht₀ (by simpa using congrArg Complex.im H)
+      have H := (differentiableAt_riemannZeta hne).continuousAt.tendsto.comp
+        (ToOneT0.mono_right nhdsWithin_le_nhds)
+      exact tendsto_nhds_unique H (tendsto_const_nhds.congr fun n ↦ (this n).symm)
 
     exact riemannZeta_ne_zero_of_one_le_re (s := 1 + I * t₀) (by simp) zetaIsZero
 
@@ -3217,8 +3041,7 @@ lemma LogDerivZetaHoloOn {S : Set ℂ} (s_ne_one : 1 ∉ S)
     (nonzero : ∀ s ∈ S, ζ s ≠ 0) :
     DifferentiableOn ℂ (fun s ↦ ζ' s / ζ s) S := by
   apply DifferentiableOn.div _ _ nonzero <;> intro s hs <;> apply DifferentiableAt.differentiableWithinAt
-  · apply differentiableAt_deriv_riemannZeta
-    exact ne_of_mem_of_not_mem hs s_ne_one
+  · exact (analyticOn_riemannZeta _ (ne_of_mem_of_not_mem hs s_ne_one)).deriv.differentiableAt
   · apply differentiableAt_riemannZeta
     exact ne_of_mem_of_not_mem hs s_ne_one
 
@@ -3362,11 +3185,6 @@ lemma LogDerivZetaHolcLargeTGen {n : ℝ} (ZetaZeroFree : ZetaZeroFreeGenProp n)
 theorem LogDerivZetaHolcLargeT9 : LogDerivZetaHolcLargeTGenProp 9 := by
   apply LogDerivZetaHolcLargeTGen ZetaZeroFree9 Nat.ofNat_pos'
 
-theorem summable_complex_then_summable_real_part (f : ℕ → ℂ)
-    (h : Summable f) : Summable (fun n ↦ (f n).re) := by
-  rcases h with ⟨s, hs⟩
-  exact ⟨s.re,  hasSum_re hs⟩
-
 open ArithmeticFunction (vonMangoldt)
 local notation "Λ" => vonMangoldt
 --TODO generalize to any LSeries with nonnegative coefficients
@@ -3396,8 +3214,7 @@ theorem dlog_riemannZeta_bdd_on_vertical_lines_generalized
 
   have summable_re_von_mangoldt_at_σ₀ :
       Summable (fun i ↦ (LSeries.term (fun n ↦ ↑(Λ n)) σ₀ i).re) := by
-    exact summable_complex_then_summable_real_part (LSeries.term (fun n ↦ ↑(Λ n)) σ₀)
-      summable_von_mangoldt_at_σ₀
+    exact (hasSum_re summable_von_mangoldt_at_σ₀.hasSum).summable
 
   have summable_abs_value : Summable (fun i ↦ ‖LSeries.term (fun n ↦ ↑(Λ n)) s₁ i‖) := by
     rw [summable_norm_iff]
@@ -3421,185 +3238,29 @@ theorem dlog_riemannZeta_bdd_on_vertical_lines_generalized
 
 theorem triv_bound_zeta :  ∃C ≥ 0, ∀(σ₀ t : ℝ), 1 < σ₀ →
     ‖- ζ' (σ₀ + t * I) / ζ (σ₀ + t * I)‖ ≤ (σ₀ - 1)⁻¹ + C := by
-  let ⟨U, ⟨U_in_nhds, zeta_residue_on_U⟩⟩ := riemannZetaLogDerivResidue
-  let ⟨open_in_U, ⟨open_in_U_subs_U, open_in_U_is_open, one_in_open_U⟩⟩ :=
-    mem_nhds_iff.mp U_in_nhds
-  let ⟨ε₀, ⟨ε_pos, metric_ball_around_1_is_in_U'⟩⟩ :=
-    EMetric.isOpen_iff.mp open_in_U_is_open (1 : ℂ) one_in_open_U
-
-  let ε := if ε₀ = ⊤ then ENNReal.ofReal 1 else ε₀
-  have O1 : ε ≠ ⊤ := by
-    unfold ε
-    by_cases h : ε₀ = ⊤ <;> simp [*]
-
-  have metric_ball_around_1_is_in_U :
-    Metric.eball (1 : ℂ) ε ⊆ U := by
-      unfold ε
-      by_cases h : ε₀ = ⊤
-      · simp only [↓reduceIte, ENNReal.ofReal_one, h]
-        have T : Metric.eball (1 : ℂ) 1 ⊆ Metric.eball 1 ε₀ := by
-          simp [*]
-        exact subset_trans (subset_trans T metric_ball_around_1_is_in_U') open_in_U_subs_U
-
-      · simp only [h, ↓reduceIte]
-        exact subset_trans metric_ball_around_1_is_in_U' open_in_U_subs_U
-
-  have O2 : ε ≠ 0 := by
-    unfold ε
-    by_cases h : ε₀ = ⊤
-    · simp [*]
-    · simp only [↓reduceIte, ne_eq, h]
-      exact pos_iff_ne_zero.mp ε_pos
-
-  let metric_ball_around_1 := Metric.eball (1 : ℂ) ε
-  let ε_div_two := ε / 2
-  let boundary := ENNReal.toReal (1 + ε_div_two)
-
-  let ⟨bound, ⟨bound_pos, bound_prop⟩⟩ :=
-      BddAbove.exists_ge zeta_residue_on_U 0
-
-  have boundary_geq_one : 1 < boundary := by
-      unfold boundary
-      have Z : (1 : ENNReal).toReal = 1 := by rfl
-      rw [←Z]
-      have U : ε_div_two ≠ ⊤ := by
-        refine ENNReal.div_ne_top O1 ?_
-        simp
-      simp only [ENNReal.toReal_one, ne_eq, ENNReal.one_ne_top, not_false_eq_true,
-        ENNReal.toReal_add _ U, lt_add_iff_pos_right, gt_iff_lt]
-      refine ENNReal.toReal_pos ?_ ?_
-      · unfold ε_div_two
-        simp [*]
-      · exact U
-
-  let const : ℝ := bound
-  let final_const : ℝ := (boundary - 1)⁻¹ + const
-  have final_const_pos : final_const ≥ 0 := by bound
-  have const_le_final_const : const ≤ final_const := by bound
-
-  /- final const is actually the constant that we will use -/
-
-  refine ⟨final_const, final_const_pos, fun σ₀ t σ₀_gt ↦ ?_⟩
-  have U4 : ENNReal.ofReal 1 ≠ ⊤ := by exact ENNReal.ofReal_ne_top
-  have Z0 : ε_div_two.toReal < ε.toReal := by
-    exact ENNReal.toReal_strict_mono O1 <| ENNReal.half_lt_self O2 O1
-
-  -- Pick a neighborhood, if in neighborhood then we are good
-  -- If outside of the neighborhood then use that ζ' / ζ is monotonic
-  -- and take the bound to be the edge but this will require some more work
-
-  by_cases! h : σ₀ ≤ boundary
-  · have σ₀_in_ball : (↑σ₀ : ℂ) ∈ metric_ball_around_1 := by
-      unfold metric_ball_around_1
-      unfold Metric.eball
-      simp only [mem_ofPred_eq]
-      rw [edist_dist, dist_eq_norm]
-      norm_cast
-      have U : 0 ≤ σ₀ - 1 := by linarith
-      simp only [Real.norm_of_nonneg U, gt_iff_lt]
-      simp only [ENNReal.ofReal_lt_iff_lt_toReal U O1]
-      calc
-        _ ≤ boundary - 1 := by linarith
-        _ = ENNReal.toReal (1 + ε_div_two) - 1 := rfl
-        _ = ENNReal.toReal (1 + ε_div_two) - ENNReal.toReal (ENNReal.ofReal 1) := by simp
-        _ ≤ ENNReal.toReal (1 + ε_div_two - ENNReal.ofReal 1) := ENNReal.le_toReal_sub U4
-        _ = ENNReal.toReal (ε_div_two) := by
-          simp only [ENNReal.ofReal_one, ENNReal.addLECancellable_iff_ne_top, ne_eq,
-            ENNReal.one_ne_top, not_false_eq_true, AddLECancellable.add_tsub_cancel_left]
-        _ < ε.toReal := Z0
-
-    have σ₀_in_U : (↑σ₀ : ℂ) ∈ (U \ {1}) := by
-      refine Set.mem_sdiff_singleton.mpr ?_
-      constructor
-      · exact metric_ball_around_1_is_in_U σ₀_in_ball
-      · by_contra a
-        have U : σ₀ = 1 := by exact ofReal_eq_one.mp a
-        rw [U] at σ₀_gt
-        linarith
-
-    have bdd := Set.forall_mem_image.mp bound_prop (σ₀_in_U)
-    simp only [Function.comp_apply, Pi.sub_apply, Pi.neg_apply, Pi.div_apply] at bdd
-
-    calc
-      _ ≤ ‖ζ' σ₀ / ζ σ₀‖ := by
-        exact dlog_riemannZeta_bdd_on_vertical_lines_generalized σ₀ σ₀ t (σ₀_gt) (by simp)
-      _ = ‖- ζ' σ₀ / ζ σ₀‖ := by simp only [Complex.norm_div, norm_neg]
-      _ = ‖(- ζ' σ₀ / ζ σ₀ - (σ₀ - 1)⁻¹) + (σ₀ - 1)⁻¹‖ := by
-        simp only [Complex.norm_div, norm_neg, ofReal_inv, ofReal_sub, ofReal_one, sub_add_cancel]
-      _ ≤ ‖(- ζ' σ₀ / ζ σ₀ - (σ₀ - 1)⁻¹)‖ + ‖(σ₀ - 1)⁻¹‖ := by
-        have Z := norm_add_le (- ζ' σ₀ / ζ σ₀ - (σ₀ - 1)⁻¹) ((σ₀ - 1)⁻¹)
-        norm_cast at Z
-      _ ≤ const + ‖(σ₀ - 1)⁻¹‖ := by
-        have U := add_le_add_left bdd ‖(σ₀ - 1)⁻¹‖
-        ring_nf at U
-        ring_nf
-        norm_cast at U
-        norm_cast
-      _ ≤ const + (σ₀ - 1)⁻¹ := by
-        simp [norm_inv]
-        have pos : 0 ≤ σ₀ - 1 := by
-          linarith
-        simp [abs_of_nonneg pos]
-      _ = (σ₀ - 1)⁻¹ + const := by
-        rw [add_comm]
-      _ ≤ (σ₀ - 1)⁻¹ + final_const := by
-        simp [const_le_final_const]
-
-  · have boundary_in_ball : (↑boundary : ℂ) ∈ metric_ball_around_1 := by
-      unfold metric_ball_around_1
-      unfold Metric.eball
-      simp only [mem_ofPred_eq]
-      rw [edist_dist, dist_eq_norm]
-      norm_cast
-      have U : 0 ≤ boundary - 1 := by linarith
-      simp only [Real.norm_of_nonneg U, gt_iff_lt]
-      simp only [ENNReal.ofReal_lt_iff_lt_toReal U O1]
-      calc
-        _ = ENNReal.toReal (1 + ε_div_two) - 1 := rfl
-        _ = ENNReal.toReal (1 + ε_div_two) - ENNReal.toReal (ENNReal.ofReal 1) := by simp
-        _ ≤ ENNReal.toReal (1 + ε_div_two - ENNReal.ofReal 1) := ENNReal.le_toReal_sub U4
-        _ = ENNReal.toReal (ε_div_two) := by
-          simp only [ENNReal.ofReal_one, ENNReal.addLECancellable_iff_ne_top, ne_eq,
-            ENNReal.one_ne_top, not_false_eq_true, AddLECancellable.add_tsub_cancel_left]
-        _ < ε.toReal := Z0
-
-    have boundary_in_U : (↑boundary : ℂ) ∈ U \ {1} := by
-      refine Set.mem_sdiff_singleton.mpr ?_
-      constructor
-      · exact metric_ball_around_1_is_in_U boundary_in_ball
-      · by_contra a
-        norm_cast at a
-        norm_cast at boundary_geq_one
-        simp [←a] at boundary_geq_one
-
-    have bdd := Set.forall_mem_image.mp bound_prop (boundary_in_U)
-
-    calc
-      _ ≤ ‖ζ' boundary / ζ boundary‖ := by
-        exact dlog_riemannZeta_bdd_on_vertical_lines_generalized boundary σ₀ t
-          (boundary_geq_one) (by linarith)
-      _ = ‖- ζ' boundary / ζ boundary‖ := by simp only [Complex.norm_div, norm_neg]
-      _ = ‖(- ζ' boundary / ζ boundary - (boundary - 1)⁻¹) + (boundary - 1)⁻¹‖ := by
-        simp only [Complex.norm_div, norm_neg, ofReal_inv, ofReal_sub, ofReal_one, sub_add_cancel]
-      _ ≤ ‖(- ζ' boundary / ζ boundary - (boundary - 1)⁻¹)‖ + ‖(boundary - 1)⁻¹‖ := by
-        have Z := norm_add_le (- ζ' boundary / ζ boundary - (boundary - 1)⁻¹) ((boundary - 1)⁻¹)
-        norm_cast at Z
-      _ ≤ const + ‖(boundary - 1)⁻¹‖ := by
-        have U9 := add_le_add_left bdd ‖(boundary - 1)⁻¹‖
-        ring_nf at U9
-        ring_nf
-        norm_cast at U9
-        norm_cast
-        simpa [*] using! U9
-      _ ≤ const + (boundary - 1)⁻¹ := by
-        simp [norm_inv]
-        have pos : 0 ≤ boundary - 1 := by
-          linarith
-        simp [abs_of_nonneg pos]
-      _ = (boundary - 1)⁻¹ + const := by
-        rw [add_comm]
-      _ = final_const := by rfl
-      _ ≤ _ := by bound
+  obtain ⟨C, hC⟩ := TauCeti.exists_norm_neg_logDeriv_riemannZeta_one_add_sub_inv_le
+  let B := max C ‖ζ' (2 : ℂ) / ζ 2‖
+  refine ⟨B, (norm_nonneg _).trans (le_max_right _ _), fun σ t hσ ↦ ?_⟩
+  have hCB : C ≤ B := le_max_left _ _
+  have h2B : ‖ζ' (2 : ℂ) / ζ 2‖ ≤ B := le_max_right _ _
+  have hver := dlog_riemannZeta_bdd_on_vertical_lines_generalized σ σ t hσ le_rfl
+  apply hver.trans
+  by_cases hσ2 : σ ≤ 2
+  · have hpole : ‖-ζ' (σ : ℂ) / ζ σ - ((σ : ℂ) - 1)⁻¹‖ ≤ C := by
+      have H := hC (σ - 1) (sub_pos.mpr hσ) (by linarith)
+      simpa only [logDeriv_apply, Complex.ofReal_sub, Complex.ofReal_one,
+        add_sub_cancel, neg_div] using H
+    have hnorm : ‖((σ : ℂ) - 1)⁻¹‖ = (σ - 1)⁻¹ := by
+      rw [← Complex.ofReal_one, ← Complex.ofReal_sub, norm_inv, Complex.norm_real,
+        Real.norm_eq_abs, abs_of_pos (sub_pos.mpr hσ)]
+    have H := norm_add_le (-ζ' (σ : ℂ) / ζ σ - ((σ : ℂ) - 1)⁻¹) (((σ : ℂ) - 1)⁻¹)
+    rw [sub_add_cancel, neg_div, norm_neg, hnorm] at H
+    simp only [neg_div] at hpole
+    exact H.trans (by linarith)
+  · have H := dlog_riemannZeta_bdd_on_vertical_lines_generalized 2 σ 0
+      (by norm_num) (le_of_not_ge hσ2)
+    simp only [Complex.ofReal_zero, zero_mul, add_zero, neg_div, norm_neg] at H
+    exact H.trans (le_add_of_nonneg_of_le (inv_nonneg.mpr (sub_pos.mpr hσ).le) h2B)
 
 def LogDerivZetaBndUnifGenProp (n₁ n₂ : ℝ) : Prop := ∃ (A : ℝ) (_ : A ∈ Ioc 0 (1 / 2))
   (C : ℝ) (_ : 0 < C), ∀ (σ : ℝ) (t : ℝ) (_ : 3 < |t|)

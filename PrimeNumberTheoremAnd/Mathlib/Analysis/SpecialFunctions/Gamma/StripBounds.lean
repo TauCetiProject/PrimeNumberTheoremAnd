@@ -7,6 +7,7 @@ module
 
 
 public import TauCeti.Analysis.SpecialFunctions.Gamma.Growth
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Stirling
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.Analysis.SpecialFunctions.Stirling
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
@@ -270,260 +271,81 @@ theorem stirling_bound_re_ge_zero :
     ∃ C : ℝ, 0 < C ∧
       ∀ s : ℂ, 0 ≤ s.re → 1 ≤ ‖s‖ →
         ‖Gamma s‖ ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
-  classical
-  rcases norm_bound_re_ge_one with ⟨C₁, hC₁_pos, hC₁⟩
-  have hlog2_pos : 0 < Real.log 2 := by
-    have : (1 : ℝ) < 2 := by norm_num
-    exact Real.log_pos this
-  have hlog2_ne : Real.log 2 ≠ 0 := ne_of_gt hlog2_pos
-  let K : ℝ := |Real.log C₁| + 1
-  have hK_pos : 0 < K := by
-    have : 0 ≤ |Real.log C₁| := abs_nonneg _
-    linarith [K]
-  have hC₁_exp : C₁ ≤ Real.exp K := by
-    have hlog : Real.log C₁ ≤ |Real.log C₁| + 1 := by
-      have : Real.log C₁ ≤ |Real.log C₁| := le_abs_self _
-      linarith
-    have h := Real.exp_le_exp.mpr hlog
-    simpa [K, Real.exp_log hC₁_pos] using h
-  let Cbase : ℝ := K / Real.log 2 + 2
-  have hCbase_pos : 0 < Cbase := by
-    have hK_div_nonneg : 0 ≤ K / Real.log 2 := div_nonneg hK_pos.le hlog2_pos.le
-    linarith [Cbase, hK_div_nonneg]
-  let C : ℝ := 4 * Cbase
-  refine ⟨C, by nlinarith [hCbase_pos], ?_⟩
-  have h_re_ge_one :
-      ∀ z : ℂ, 1 ≤ z.re →
-        ‖Gamma z‖ ≤ Real.exp (Cbase * ‖z‖ * Real.log (1 + ‖z‖)) := by
-    intro z hz_re
-    have hz_norm : (1 : ℝ) ≤ ‖z‖ := le_trans hz_re (Complex.re_le_norm z)
-    have hx_pos : 0 < (1 + ‖z‖ : ℝ) := by linarith [norm_nonneg z]
-    have hL_nonneg : 0 ≤ Real.log (1 + ‖z‖) := Real.log_nonneg (by linarith [norm_nonneg z])
-    have hlog2_le_log : Real.log 2 ≤ Real.log (1 + ‖z‖) :=
-      Real.Stirling.log_one_add_ge_log_two hz_norm
-    have hlog2_le : Real.log 2 ≤ ‖z‖ * Real.log (1 + ‖z‖) := by
-      have hx_mul : ‖z‖ * Real.log 2 ≤ ‖z‖ * Real.log (1 + ‖z‖) :=
-        mul_le_mul_of_nonneg_left hlog2_le_log (by linarith)
-      have hx_ge : Real.log 2 ≤ ‖z‖ * Real.log 2 := by
-        have := mul_le_mul_of_nonneg_right hz_norm hlog2_pos.le
-        simpa [one_mul] using this
-      exact le_trans hx_ge hx_mul
-    have hcoef_nonneg : 0 ≤ K / Real.log 2 := div_nonneg hK_pos.le hlog2_pos.le
-    have hscaled :
-        (K / Real.log 2) * Real.log 2 ≤ (K / Real.log 2) * (‖z‖ * Real.log (1 + ‖z‖)) :=
-      mul_le_mul_of_nonneg_left hlog2_le hcoef_nonneg
-    have hK_le : K ≤ (K / Real.log 2) * (‖z‖ * Real.log (1 + ‖z‖)) := by
-      have : (K / Real.log 2) * Real.log 2 = K := by field_simp [hlog2_ne]
-      simpa [this] using hscaled
-    have hlin :
-        Real.log (1 + ‖z‖) * (‖z‖ + 1) ≤
-          2 * (‖z‖ * Real.log (1 + ‖z‖)) := by
-      have hz_le : ‖z‖ + 1 ≤ 2 * ‖z‖ := by linarith [hz_norm]
-      have hmul :
-          Real.log (1 + ‖z‖) * (‖z‖ + 1) ≤
-            Real.log (1 + ‖z‖) * (2 * ‖z‖) :=
-        mul_le_mul_of_nonneg_left hz_le hL_nonneg
-      -- rewrite
-      simpa [mul_assoc, mul_left_comm, mul_comm, two_mul] using hmul
-    -- Convert the polynomial bound into an exponential bound.
-    have hpoly : ‖Gamma z‖ ≤ C₁ * (1 + ‖z‖) ^ (‖z‖ + 1) := hC₁ z hz_re
-    have hnonneg_rpow : 0 ≤ (1 + ‖z‖) ^ (‖z‖ + 1) :=
-      Real.rpow_nonneg (by linarith [norm_nonneg z]) _
-    have hmul :
-        C₁ * (1 + ‖z‖) ^ (‖z‖ + 1) ≤
-          Real.exp K * (1 + ‖z‖) ^ (‖z‖ + 1) :=
-      mul_le_mul_of_nonneg_right hC₁_exp hnonneg_rpow
-    have hrpow :
-        (1 + ‖z‖) ^ (‖z‖ + 1) =
-          Real.exp (Real.log (1 + ‖z‖) * (‖z‖ + 1)) := by
-      simp [Real.rpow_def_of_pos hx_pos, mul_comm]
-    have hexp1 :
-        C₁ * (1 + ‖z‖) ^ (‖z‖ + 1) ≤
-          Real.exp (K + Real.log (1 + ‖z‖) * (‖z‖ + 1)) := by
-      calc
-        C₁ * (1 + ‖z‖) ^ (‖z‖ + 1)
-            ≤ Real.exp K * (1 + ‖z‖) ^ (‖z‖ + 1) := hmul
-        _ = Real.exp K * Real.exp (Real.log (1 + ‖z‖) * (‖z‖ + 1)) := by simp [hrpow]
-        _ = Real.exp (K + Real.log (1 + ‖z‖) * (‖z‖ + 1)) := by
-              simp [Real.exp_add]
-    have hexp2 :
-        Real.exp (K + Real.log (1 + ‖z‖) * (‖z‖ + 1))
-          ≤ Real.exp (Cbase * (‖z‖ * Real.log (1 + ‖z‖))) := by
-      apply Real.exp_le_exp.mpr
-      have hsum :
-          K + Real.log (1 + ‖z‖) * (‖z‖ + 1)
-            ≤ (K / Real.log 2 + 2) * (‖z‖ * Real.log (1 + ‖z‖)) := by
-        -- split into the constant term and the rpow term
-        have hK_term : K ≤ (K / Real.log 2) * (‖z‖ * Real.log (1 + ‖z‖)) := by
-          -- `‖z‖ * log(1+‖z‖)` is ≥ log 2, so we can scale
-          -- (we already proved it with `hK_le`, but written with `‖z‖*log` instead of `log*‖z‖`)
-          simpa [mul_assoc] using hK_le
-        have h2_term :
-            Real.log (1 + ‖z‖) * (‖z‖ + 1) ≤ 2 * (‖z‖ * Real.log (1 + ‖z‖)) := hlin
-        -- combine
-        have :
-            K + Real.log (1 + ‖z‖) * (‖z‖ + 1) ≤
-              (K / Real.log 2) * (‖z‖ * Real.log (1 + ‖z‖)) +
-                2 * (‖z‖ * Real.log (1 + ‖z‖)) := by
-          nlinarith [hK_term, h2_term]
-        -- factor
-        simpa [Cbase, add_mul, mul_add, two_mul, mul_assoc, mul_left_comm, mul_comm] using this
-      simpa [Cbase, mul_assoc] using hsum
-    have hexp3 :
-        Real.exp (Cbase * (‖z‖ * Real.log (1 + ‖z‖)))
-          = Real.exp (Cbase * ‖z‖ * Real.log (1 + ‖z‖)) := by ring_nf
-    have : ‖Gamma z‖ ≤ Real.exp (Cbase * ‖z‖ * Real.log (1 + ‖z‖)) :=
-      le_trans hpoly (le_trans hexp1 (le_trans hexp2 (by simp [hexp3] )))
-    simpa [mul_assoc] using this
-  intro s hs_re hs_norm
-  have hs0 : s ≠ 0 := (norm_pos_iff).1 (lt_of_lt_of_le (by norm_num) hs_norm)
-  by_cases hs_ge_one : 1 ≤ s.re
-  · have h1 := h_re_ge_one s hs_ge_one
-    -- upgrade from `Cbase` to `C = 4*Cbase`
-    have hmul_nonneg : 0 ≤ ‖s‖ * Real.log (1 + ‖s‖) := by
-      have : 0 ≤ Real.log (1 + ‖s‖) := Real.log_nonneg (by linarith [norm_nonneg s])
-      exact mul_nonneg (norm_nonneg _) this
-    have hC_le : Cbase * (‖s‖ * Real.log (1 + ‖s‖)) ≤ C * (‖s‖ * Real.log (1 + ‖s‖)) := by
-      have : Cbase ≤ C := by simp [C, le_mul_of_one_le_left, hCbase_pos.le]
-      exact mul_le_mul_of_nonneg_right this hmul_nonneg
-    have h2 : Real.exp (Cbase * ‖s‖ * Real.log (1 + ‖s‖))
-        ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
-      apply Real.exp_le_exp.mpr
-      -- rewrite to use `hC_le`
-      have hleft : Cbase * ‖s‖ * Real.log (1 + ‖s‖) = Cbase * (‖s‖ * Real.log (1 + ‖s‖)) := by ring
-      have hright : C * ‖s‖ * Real.log (1 + ‖s‖) = C * (‖s‖ * Real.log (1 + ‖s‖)) := by ring
-      -- `simp` both sides
-      simpa [hleft, hright] using hC_le
-    exact le_trans h1 h2
-  · have hs_lt_one : s.re < 1 := lt_of_not_ge hs_ge_one
-    -- relate `Γ(s)` to `Γ(s+1)` and bound using the `re≥1` case.
-    have hnorm_eq : ‖Gamma s‖ = ‖Gamma (s + 1)‖ / ‖s‖ := by
-      have h := Complex.Gamma_add_one s hs0
-      have hn : ‖Gamma (s + 1)‖ = ‖s‖ * ‖Gamma s‖ := by
-        calc
-          ‖Gamma (s + 1)‖ = ‖s * Gamma s‖ := by simp [h]
-          _ = ‖s‖ * ‖Gamma s‖ := by simp
-      have hs_norm_ne : ‖s‖ ≠ 0 := (norm_ne_zero_iff).2 hs0
-      calc
-        ‖Gamma s‖ = (‖s‖ * ‖Gamma s‖) / ‖s‖ := by field_simp [hs_norm_ne]
-        _ = ‖Gamma (s + 1)‖ / ‖s‖ := by simp [hn]
-    have hdiv : ‖Gamma s‖ ≤ ‖Gamma (s + 1)‖ := by
-      rw [hnorm_eq]
-      exact div_le_self (norm_nonneg _) hs_norm
-    have hs1 : (1 : ℝ) ≤ (s + 1).re := by
-      -- `re(s+1) = re(s)+1`
-      simp [Complex.add_re]
-      linarith [hs_re]
-    have hG1 : ‖Gamma (s + 1)‖ ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
-      have h0 := h_re_ge_one (s + 1) hs1
-      have hshift := norm_mul_log_shift_add_one_bound hs_norm
-      have hC_nonneg : 0 ≤ Cbase := le_of_lt hCbase_pos
-      have hCshift :
-          Cbase * (‖s + 1‖ * Real.log (1 + ‖s + 1‖)) ≤ C * (‖s‖ * Real.log (1 + ‖s‖)) := by
-        calc
-          Cbase * (‖s + 1‖ * Real.log (1 + ‖s + 1‖))
-              ≤ Cbase * (4 * (‖s‖ * Real.log (1 + ‖s‖))) := by
-                    exact mul_le_mul_of_nonneg_left hshift hC_nonneg
-          _ = C * (‖s‖ * Real.log (1 + ‖s‖)) := by simp [C, mul_assoc, mul_left_comm, mul_comm]
-      have h0' :
-          Cbase * ‖s + 1‖ * Real.log (1 + ‖s + 1‖) =
-            Cbase * (‖s + 1‖ * Real.log (1 + ‖s + 1‖)) := by
-        ring
-      have h1' :
-          C * ‖s‖ * Real.log (1 + ‖s‖) =
-            C * (‖s‖ * Real.log (1 + ‖s‖)) := by
-        ring
-      exact le_trans h0 (by
-        apply Real.exp_le_exp.mpr
-        simpa [h0', h1'] using hCshift)
-    exact le_trans hdiv hG1
+  let K := Real.pi + |Real.log (2 * Real.pi)| / 2 + 2
+  have hK : 0 < K := by dsimp [K]; positivity
+  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
+  refine ⟨1 + K / Real.log 2, by positivity, ?_⟩
+  intro s hs hn
+  by_cases hG : Complex.Gamma s = 0
+  · simp only [hG, norm_zero]
+    exact (Real.exp_pos _).le
+  apply (Real.log_le_iff_le_exp (norm_pos_iff.mpr hG)).mp
+  have hs0 : s ≠ 0 := norm_ne_zero_iff.mp (ne_of_gt (zero_lt_one.trans_le hn))
+  have harg : |s.arg| ≤ Real.pi - Real.pi / 2 := by
+    simpa only [sub_half] using (Complex.abs_arg_le_pi_div_two_iff.mpr hs)
+  have he := TauCeti.abs_log_norm_Gamma_sub_stirling_le
+    (half_pos Real.pi_pos) (by linarith [Real.pi_pos]) harg hs0
+  simp only [Real.cos_pi_div_two, sub_zero, one_pow, one_mul] at he
+  have hlogn : 0 ≤ Real.log ‖s‖ := Real.log_nonneg hn
+  have hlogle : Real.log ‖s‖ ≤ Real.log (1 + ‖s‖) :=
+    Real.log_le_log (zero_lt_one.trans_le hn) (by linarith)
+  have hre : (s.re - 1 / 2) * Real.log ‖s‖ ≤ ‖s‖ * Real.log (1 + ‖s‖) :=
+    (mul_le_mul_of_nonneg_right (by linarith [Complex.re_le_norm s]) hlogn).trans
+      (mul_le_mul_of_nonneg_left hlogle (norm_nonneg _))
+  have him : -(s.im * s.arg) ≤ ‖s‖ * Real.pi := by
+    calc
+      -(s.im * s.arg) ≤ |s.im * s.arg| := neg_le_abs _
+      _ = |s.im| * |s.arg| := abs_mul _ _
+      _ ≤ ‖s‖ * Real.pi := mul_le_mul (Complex.abs_im_le_norm s)
+        (Complex.abs_arg_le_pi s) (abs_nonneg _) (norm_nonneg _)
+  have herr : 2 / ‖s‖ ≤ 2 := div_le_self (by norm_num) hn
+  have hconst : Real.log (2 * Real.pi) / 2 ≤ |Real.log (2 * Real.pi)| / 2 :=
+    div_le_div_of_nonneg_right (le_abs_self _) (by norm_num)
+  have hrough : Real.log ‖Complex.Gamma s‖ ≤
+      ‖s‖ * Real.log (1 + ‖s‖) + K * ‖s‖ := by
+    have hk : |Real.log (2 * Real.pi)| / 2 + 2 ≤
+        (|Real.log (2 * Real.pi)| / 2 + 2) * ‖s‖ :=
+      le_mul_of_one_le_right (by positivity) hn
+    have hupper := (abs_le.mp he).2
+    dsimp [K]
+    nlinarith
+  have hL : Real.log 2 ≤ Real.log (1 + ‖s‖) :=
+    Real.Stirling.log_one_add_ge_log_two hn
+  have hscale : K * ‖s‖ ≤ (K / Real.log 2) * (‖s‖ * Real.log (1 + ‖s‖)) := by
+    have hm := (le_div_iff₀ hlog2).mpr
+      (mul_le_mul_of_nonneg_left hL (mul_nonneg hK.le (norm_nonneg s)))
+    simpa only [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using hm
+  nlinarith
 
 /-- Stirling bound specialized to `Γ(s/2)` for `re s ≥ 0`. -/
 theorem half_bound_re_ge_zero :
     ∃ C : ℝ, 0 < C ∧
       ∀ s : ℂ, 0 ≤ s.re → 1 ≤ ‖s‖ →
         ‖Gamma (s / 2)‖ ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
-  classical
-  rcases stirling_bound_re_ge_zero with ⟨C₀, hC₀_pos, hC₀⟩
-  let A : ℝ := Real.Stirling.half_shift_log_constant
-  have hA_pos := Real.Stirling.half_shift_log_constant_pos
-  let C : ℝ := 1 + C₀ * A
-  refine ⟨C, by nlinarith [hC₀_pos, hA_pos], ?_⟩
-  intro s hs_re hs_norm
-  have hs0 : s ≠ 0 := (norm_pos_iff).1 (lt_of_lt_of_le (by norm_num) hs_norm)
-  have hs2_neq : s / 2 ≠ 0 := div_ne_zero hs0 (by norm_num : (2 : ℂ) ≠ 0)
-  have hs2_lb : (1 / 2 : ℝ) ≤ ‖s / 2‖ := by
-    simpa using (show (1 / 2 : ℝ) ≤ ‖s‖ / 2 by nlinarith)
-  have hdiv := norm_Gamma_le_two_mul_norm_Gamma_add_one hs2_neq hs2_lb
-  have hz_re : 0 ≤ (s / 2 + 1).re := by simp [Complex.add_re]; linarith
-  have hz_norm : (1 : ℝ) ≤ ‖s / 2 + 1‖ := by
-    have : (1 : ℝ) ≤ (s / 2 + 1).re := by simp [Complex.add_re]; linarith
-    exact le_trans this (Complex.re_le_norm (s / 2 + 1))
-  have hΓz :
-      ‖Gamma (s / 2 + 1)‖ ≤
-        Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) :=
-    hC₀ (s / 2 + 1) hz_re hz_norm
-  have hprod_w :
-      ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖) ≤ A * (‖s‖ * Real.log (1 + ‖s‖)) := by
-    simpa [A] using norm_mul_log_shift_half_bound hs_norm
-  have hlog2_le_xlog := Real.Stirling.log_two_le_mul_log_one_add hs_norm
-  -- Put everything together.
-  have hmain :
-      ‖Gamma (s / 2)‖ ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
-    -- from `‖Γ(s/2)‖ ≤ 2‖Γ(s/2+1)‖`
-    have htmp :
-        ‖Gamma (s / 2)‖ ≤
-          2 * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) :=
-      le_trans hdiv (mul_le_mul_of_nonneg_left hΓz (by norm_num))
-    -- rewrite `2 = exp(log 2)`
-    -- convert to a single exponential and compare exponents
-    have htmp' :
-        2 * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖))
-          = Real.exp (Real.log 2 + C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
-      have htwo : Real.exp (Real.log 2) = (2 : ℝ) := by
-        have : (0 : ℝ) < 2 := by norm_num
-        simp [Real.exp_log this]
-      -- `exp(log 2) * exp(A) = exp(log 2 + A)`
-      calc
-        2 * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖))
-            = Real.exp (Real.log 2) *
-                Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
-                simp [htwo, mul_assoc]
-        _ = Real.exp (Real.log 2 + C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
-              simp [Real.exp_add]
-    refine le_trans htmp (by
-      -- compare exponents
-      have hexp_le :
-          Real.log 2 + C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)
-            ≤ C * (‖s‖ * Real.log (1 + ‖s‖)) := by
-        have hC0_nonneg : 0 ≤ C₀ := le_of_lt hC₀_pos
-        have hA_term :
-            C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖) ≤
-              (C₀ * A) * (‖s‖ * Real.log (1 + ‖s‖)) := by
-          -- use `hprod_w`
-          have := mul_le_mul_of_nonneg_left hprod_w hC0_nonneg
-          -- rearrange
-          simpa [mul_assoc, mul_left_comm, mul_comm] using this
-        have hlog2_term : Real.log 2 ≤ 1 * (‖s‖ * Real.log (1 + ‖s‖)) := by
-          simpa using hlog2_le_xlog
-        -- combine and expand `C = 1 + C₀*A`
-        nlinarith [hA_term, hlog2_term, C]
-      -- apply exp monotonicity
-      have h_exp :
-          Real.exp (Real.log 2 + C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖))
-            ≤ Real.exp (C * (‖s‖ * Real.log (1 + ‖s‖))) :=
-        Real.exp_le_exp.mpr hexp_le
-      -- rewrite the left-hand side using `htmp'`
-      have :
-          2 * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖))
-            ≤ Real.exp (C * (‖s‖ * Real.log (1 + ‖s‖))) := by
-        calc
-          2 * Real.exp (C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖))
-              = Real.exp (Real.log 2 + C₀ * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := htmp'
-          _ ≤ Real.exp (C * (‖s‖ * Real.log (1 + ‖s‖))) := h_exp
-      simpa [mul_assoc] using this)
-  -- final rewriting of the exponent
-  simpa [mul_assoc] using hmain
+  obtain ⟨C, hC, hbound⟩ := Complex.Gamma.stirling_bound_re_ge_zero
+  let A := Real.Stirling.half_shift_log_constant
+  have hA : 0 < A := Real.Stirling.half_shift_log_constant_pos
+  refine ⟨1 + C * A, by positivity, ?_⟩
+  intro s hs hn
+  have hs0 : s ≠ 0 := norm_ne_zero_iff.mp (ne_of_gt (zero_lt_one.trans_le hn))
+  have hs2 : (1 / 2 : ℝ) ≤ ‖s / 2‖ := by simpa using (show (1 / 2 : ℝ) ≤ ‖s‖ / 2 by linarith)
+  have hwre : 0 ≤ (s / 2 + 1).re := by simp; linarith
+  have hw1 : (1 : ℝ) ≤ (s / 2 + 1).re := by simp; linarith
+  have hwnorm : 1 ≤ ‖s / 2 + 1‖ := hw1.trans (Complex.re_le_norm _)
+  have hshift := mul_le_mul_of_nonneg_left
+    (Complex.Gamma.norm_mul_log_shift_half_bound hn) hC.le
+  have hlog := Real.Stirling.log_two_le_mul_log_one_add hn
+  calc
+    ‖Complex.Gamma (s / 2)‖ ≤ 2 * ‖Complex.Gamma (s / 2 + 1)‖ :=
+      Complex.Gamma.norm_Gamma_le_two_mul_norm_Gamma_add_one (div_ne_zero hs0 (by norm_num)) hs2
+    _ ≤ 2 * Real.exp (C * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) :=
+      mul_le_mul_of_nonneg_left (hbound _ hwre hwnorm) (by norm_num)
+    _ = Real.exp (Real.log 2 + C * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
+      rw [Real.exp_add, Real.exp_log (by norm_num : (0 : ℝ) < 2)]
+    _ ≤ Real.exp ((1 + C * A) * ‖s‖ * Real.log (1 + ‖s‖)) := by
+      apply Real.exp_le_exp.mpr
+      dsimp [A] at ⊢
+      nlinarith
 
 end Complex.Gamma
 

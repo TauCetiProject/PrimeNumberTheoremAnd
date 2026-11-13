@@ -93,90 +93,16 @@ theorem completedRiemannZeta₀_entireOfOrderAtMost_one :
 /-- The Riemann xi function `ξ` has order at most one. -/
 theorem riemannXi_entireOfOrderAtMost_one :
     Complex.Hadamard.EntireOfOrderAtMost (1 : ℝ) riemannXi := by
-  refine ⟨differentiable_riemannXi, ?_⟩
-  intro ε hε
-  rcases completedRiemannZeta₀_entireOfOrderAtMost_one.exists_bound hε with
-    ⟨C, hCpos, hΛ⟩
-  let b : ℝ := 1 + ε
-  let D : ℝ := 4 / b
-  let C' : ℝ := C + D + 1
-  have hbpos : 0 < b := by dsimp [b]; linarith
-  refine ⟨C', by positivity, ?_⟩
-  intro z
-  let R : ℝ := 1 + ‖z‖
-  have hR1 : 1 ≤ R := by dsimp [R]; linarith [norm_nonneg z]
-  have hRpos : 0 < R := zero_lt_one.trans_le hR1
-  have hRpow1 : 1 ≤ R ^ b :=
-    Real.one_le_rpow hR1 hbpos.le
-  have hpoly : ‖z * (z - 1)‖ ≤ R ^ 2 := by
-    have hz : ‖z‖ ≤ R := by dsimp [R]; linarith [norm_nonneg z]
-    have hz1 : ‖z - 1‖ ≤ R := by
-      simpa [R, add_comm] using norm_sub_le z (1 : ℂ)
-    calc
-      ‖z * (z - 1)‖ ≤ ‖z‖ * ‖z - 1‖ := norm_mul_le z (z - 1)
-      _ ≤ R * R := mul_le_mul hz hz1 (norm_nonneg _) (by positivity)
-      _ = R ^ 2 := by ring
-  have hquad : R ^ 2 ≤ Real.exp (D * R ^ b) := by
-    simpa [D] using Real.sq_le_exp_const_mul_rpow (b := b) (r := R) hbpos hR1
-  have hΛz : ‖completedRiemannZeta₀ z‖ ≤ Real.exp (C * R ^ b) := by
-    simpa [R, b, add_assoc] using hΛ z
-  have hterm :
-      ‖z * (z - 1) * completedRiemannZeta₀ z‖ ≤
-        Real.exp ((C + D) * R ^ b) := by
-    calc
-      ‖z * (z - 1) * completedRiemannZeta₀ z‖
-          ≤ ‖z * (z - 1)‖ * ‖completedRiemannZeta₀ z‖ := norm_mul_le _ _
-      _ ≤ (R ^ 2) * Real.exp (C * R ^ b) :=
-          mul_le_mul hpoly hΛz (norm_nonneg _) (by positivity)
-      _ ≤ Real.exp (D * R ^ b) * Real.exp (C * R ^ b) :=
-          mul_le_mul_of_nonneg_right hquad (by positivity)
-      _ = Real.exp ((C + D) * R ^ b) := by
-          rw [← Real.exp_add]
-          ring_nf
-  have hA_nonneg : 0 ≤ (C + D) * R ^ b := by positivity
-  have hone_le : (1 : ℝ) ≤ Real.exp ((C + D) * R ^ b) :=
-    Real.one_le_exp_iff.mpr hA_nonneg
-  have htwo_exp :
-      2 * Real.exp ((C + D) * R ^ b) ≤
-        Real.exp (((C + D) * R ^ b) + 1) := by
-    calc
-      2 * Real.exp ((C + D) * R ^ b)
-          = Real.exp (Real.log 2) * Real.exp ((C + D) * R ^ b) := by
-              have htwo : Real.exp (Real.log 2) = (2 : ℝ) := by
-                exact Real.exp_log (by norm_num)
-              rw [htwo]
-      _ = Real.exp (Real.log 2 + (C + D) * R ^ b) := by
-          rw [Real.exp_add]
-      _ ≤ Real.exp (((C + D) * R ^ b) + 1) := by
-          refine Real.exp_le_exp.2 ?_
-          have hlog2 : Real.log 2 ≤ (1 : ℝ) := by
-            rw [Real.log_le_iff_le_exp (by norm_num)]
-            have h := Real.add_one_le_exp (1 : ℝ)
-            norm_num at h
-            exact h
-          linarith
-  have hxi :
-      ‖riemannXi z‖ ≤ Real.exp (((C + D) * R ^ b) + 1) := by
-    calc
-      ‖riemannXi z‖
-          = ‖z * (z - 1) * completedRiemannZeta₀ z + 1‖ / 2 := by
-              simp [riemannXi]
-      _ ≤ (‖z * (z - 1) * completedRiemannZeta₀ z‖ + 1) / 2 := by
-          gcongr
-          simpa using norm_add_le (z * (z - 1) * completedRiemannZeta₀ z) (1 : ℂ)
-      _ ≤ ‖z * (z - 1) * completedRiemannZeta₀ z‖ + 1 := by
-          nlinarith [norm_nonneg (z * (z - 1) * completedRiemannZeta₀ z)]
-      _ ≤ Real.exp ((C + D) * R ^ b) + 1 := by
-          gcongr
-      _ ≤ 2 * Real.exp ((C + D) * R ^ b) := by
-          linarith
-      _ ≤ Real.exp (((C + D) * R ^ b) + 1) := htwo_exp
-  exact hxi.trans (Real.exp_le_exp.2 (by
-    calc
-      ((C + D) * R ^ b) + 1 ≤ ((C + D) * R ^ b) + R ^ b := by
-          gcongr
-      _ = C' * R ^ b := by
-          ring))
+  apply Complex.Hadamard.EntireOfOrderAtMost.of_orderLE (by norm_num) differentiable_riemannXi
+  have hp := ((Polynomial.X * (Polynomial.X - Polynomial.C 1) : Polynomial ℂ).orderLE_eval).mono
+    (show (0 : ℝ) ≤ 1 by norm_num)
+  have hΛ := completedRiemannZeta₀_entireOfOrderAtMost_one.orderLE (by norm_num)
+  have hxi := ((hp.mul hΛ).add (TauCeti.orderLE_const 1 1)).const_mul (1 / 2)
+  convert hxi using 1
+  funext z
+  simp only [Polynomial.eval_mul, Polynomial.eval_X, Polynomial.eval_sub, Polynomial.eval_C,
+    riemannXi]
+  ring
 
 /-! ### Logarithmic-derivative identities -/
 

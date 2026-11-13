@@ -334,10 +334,7 @@ lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
       deriv (g s) x = x ^ (s - 1) := by
     have := HasDerivAt.cpow_const (c := s) (hasDerivAt_id (x : ℂ)) (Or.inl hx)
     simp_rw [mul_one, id_eq] at this
-    rw [deriv_div_const, deriv.comp_ofReal (e := fun x ↦ x ^ s)]
-    · rw [this.deriv, mul_div_right_comm, div_self hs, one_mul]
-    · apply hasDerivAt_deriv_iff.mp
-      simp only [this.deriv, this]
+    rw [deriv_div_const, this.comp_ofReal.deriv, mul_div_right_comm, div_self hs, one_mul]
   calc
     _ =  ∫ (x : ℝ) in Ioi 0, ↑(ν x) * deriv (@g s) x := ?_
     _ = -∫ (x : ℝ) in Ioi 0, deriv (fun x ↦ ↑(ν x)) x * @g s x := ?_
@@ -354,7 +351,8 @@ lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
         (diffν.differentiable (by norm_num))).differentiableOn
     · refine DifferentiableOn.div_const ?_ s
       intro a ha
-      refine DifferentiableAt.comp_ofReal (e := fun x ↦ x ^ s) ?_ |>.differentiableWithinAt
+      refine (HasDerivAt.comp_ofReal (e := fun z : ℂ ↦ z ^ s)
+        (DifferentiableAt.hasDerivAt ?_)).differentiableAt.differentiableWithinAt
       apply differentiableAt_fun_id.cpow (differentiableAt_const s) <| by exact Or.inl ha
     · refine (continuous_ofReal.comp (diffν.continuous_deriv (by norm_num))).continuousOn.congr ?_
       intro x _hx
@@ -626,7 +624,7 @@ lemma MellinOfDeltaSpikeAt1_asymp {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν
       (fun (ε : ℝ) ↦ 𝓜 (fun x ↦ (ν x : ℂ)) ε - 1) (Ioi 0) 0 := by
     apply DifferentiableAt.differentiableWithinAt
     simp only [(differentiableAt_const _).fun_sub_iff_left]
-    refine DifferentiableAt.comp_ofReal ?_
+    refine (DifferentiableAt.hasDerivAt ?_).comp_ofReal.differentiableAt
     refine mellin_differentiableAt_of_isBigO_rpow (a := 1) (b := -1) ?_ ?_ (by simp) ?_ (by simp)
     · apply (Continuous.continuousOn ?_).locallyIntegrableOn (by simp)
       have := diffν.continuous; continuity

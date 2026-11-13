@@ -6,6 +6,8 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Growth
+public import TauCeti.Analysis.Complex.GrowthOrder
+public import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
 
 /-!
 # Hadamard factorization for finite-order entire functions
@@ -38,7 +40,7 @@ factorization after choosing an enumeration of the nonzero divisor indices.
 
 noncomputable section
 
-open Set Filter Asymptotics
+open Set Filter Asymptotics Bornology
 open scoped Topology BigOperators
 
 namespace Complex.Hadamard
@@ -90,6 +92,62 @@ theorem exists_bound {ρ ε : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ
     ∃ C > 0, ∀ z : ℂ, ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (ρ + ε)) :=
   h.2 ε hε
 
+/-- At nonnegative orders, the native asymptotic bound gives the global exponential bound. -/
+theorem of_orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
+    (hf : Differentiable ℂ f) (h : TauCeti.OrderLE f ρ) :
+    EntireOfOrderAtMost ρ f := by
+  refine ⟨hf, fun ε hε ↦ ?_⟩
+  let τ := ρ + ε
+  have hτ : 0 ≤ τ := by dsimp [τ]; linarith
+  let g : ℂ → ℝ := fun z ↦ Real.exp (‖z‖ ^ τ)
+  have hgcont : Continuous g := by
+    dsimp [g]
+    fun_prop (disch := positivity)
+  have hquotcont : Continuous (fun z ↦ ‖f z‖ / g z) :=
+    hf.continuous.norm.div hgcont (fun z ↦ Real.exp_ne_zero _)
+  have hO : (fun z ↦ ‖f z‖ / g z) =O[cocompact ℂ] (1 : ℂ → ℝ) := by
+    rw [← Metric.cobounded_eq_cocompact]
+    exact (div_isBoundedUnder_of_isBigO (h.isBigO (by dsimp [τ]; linarith)).norm_left).isBigO_const
+      one_ne_zero
+  obtain ⟨C, hC, hbound⟩ := (hquotcont.isBounded_range_iff_isBigO.mpr hO).exists_pos_norm_le
+  refine ⟨C + 1, by positivity, fun z ↦ ?_⟩
+  have hratio := hbound _ (Set.mem_range_self z)
+  rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)] at hratio
+  have hfz : ‖f z‖ ≤ C * g z := (div_le_iff₀ (Real.exp_pos _)).mp hratio
+  have hp : ‖z‖ ^ τ ≤ (1 + ‖z‖) ^ τ :=
+    Real.rpow_le_rpow (norm_nonneg _) (by linarith) hτ
+  have hB : 1 ≤ (1 + ‖z‖) ^ τ := Real.one_le_rpow (by linarith [norm_nonneg z]) hτ
+  calc
+    ‖f z‖ ≤ C * g z := hfz
+    _ ≤ Real.exp C * Real.exp ((1 + ‖z‖) ^ τ) :=
+      mul_le_mul (Real.le_exp_self C) (Real.exp_le_exp.mpr hp) (by positivity) (by positivity)
+    _ = Real.exp (C + (1 + ‖z‖) ^ τ) := (Real.exp_add _ _).symm
+    _ ≤ Real.exp ((C + 1) * (1 + ‖z‖) ^ τ) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith [mul_le_mul_of_nonneg_left hB hC.le]
+
+/-- The global exponential bound supplies Tau Ceti’s native order predicate at nonnegative order. -/
+theorem orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
+    (h : EntireOfOrderAtMost ρ f) : TauCeti.OrderLE f ρ := by
+  rw [TauCeti.orderLE_def]
+  intro p hp
+  let τ := (ρ + p) / 2
+  have hρτ : ρ < τ := by dsimp [τ]; linarith
+  have hτp : τ < p := by dsimp [τ]; linarith
+  have hτ : 0 ≤ τ := hρ.trans hρτ.le
+  obtain ⟨C, hC, hbound⟩ := h.exists_bound (sub_pos.mpr hρτ)
+  have hbound' (z : ℂ) : ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ τ) := by
+    simpa only [add_sub_cancel] using hbound z
+  refine (IsBigO.of_bound 1 ?_).trans (TauCeti.isBigO_exp_mul_norm_rpow (C * 2 ^ τ) hτp)
+  filter_upwards [tendsto_norm_cobounded_atTop.eventually (eventually_ge_atTop (1 : ℝ))]
+    with z hz
+  have hbase : 1 + ‖z‖ ≤ 2 * ‖z‖ := by linarith
+  have hpow : (1 + ‖z‖) ^ τ ≤ 2 ^ τ * ‖z‖ ^ τ := by
+    simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2) (norm_nonneg z)] using
+      Real.rpow_le_rpow (by positivity) hbase hτ
+  simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
+    (hbound' z).trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
+
 /-- A single exponential bound of order `ρ` implies the `ε`-family bound defining
 `EntireOfOrderAtMost`. -/
 theorem of_norm_le_exp {ρ : ℝ} {f : ℂ → ℂ} (hf : Differentiable ℂ f)
@@ -119,35 +177,9 @@ theorem exists_log_growth {ρ τ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMo
 theorem comp_add_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)
     (hρ : 0 ≤ ρ) (c : ℂ) :
     EntireOfOrderAtMost ρ (fun z : ℂ => f (z + c)) := by
-  refine ⟨h.differentiable.comp (differentiable_id.add (differentiable_const c)), ?_⟩
-  intro ε hε
-  rcases h.exists_bound hε with ⟨C, hC, hCbound⟩
-  let A : ℝ := 1 + ‖c‖
-  let C' : ℝ := C * A ^ (ρ + ε)
-  have hApos : 0 < A := by
-    dsimp [A]
-    positivity
-  have hτnonneg : 0 ≤ ρ + ε := by linarith
-  refine ⟨C', mul_pos hC (Real.rpow_pos_of_pos hApos _), ?_⟩
-  intro z
-  have hbase :
-      1 + ‖z + c‖ ≤ A * (1 + ‖z‖) := by
-    dsimp [A]
-    have hnorm : ‖z + c‖ ≤ ‖z‖ + ‖c‖ := norm_add_le z c
-    nlinarith [norm_nonneg z, norm_nonneg c]
-  have hpow :
-      (1 + ‖z + c‖) ^ (ρ + ε) ≤ (A * (1 + ‖z‖)) ^ (ρ + ε) := by
-    exact Real.rpow_le_rpow (by positivity) hbase hτnonneg
-  calc
-    ‖f (z + c)‖ ≤ Real.exp (C * (1 + ‖z + c‖) ^ (ρ + ε)) := hCbound (z + c)
-    _ ≤ Real.exp (C' * (1 + ‖z‖) ^ (ρ + ε)) := by
-      refine Real.exp_le_exp.2 ?_
-      calc
-        C * (1 + ‖z + c‖) ^ (ρ + ε) ≤ C * (A * (1 + ‖z‖)) ^ (ρ + ε) := by
-          exact mul_le_mul_of_nonneg_left hpow hC.le
-        _ = C' * (1 + ‖z‖) ^ (ρ + ε) := by
-          rw [Real.mul_rpow (le_of_lt hApos) (by positivity : 0 ≤ 1 + ‖z‖)]
-          ring
+  apply of_orderLE (f := fun z : ℂ ↦ f (z + c)) hρ
+  · exact h.differentiable.comp (differentiable_id.add (differentiable_const c))
+  · simpa only [one_mul] using (h.orderLE hρ).comp_mul_add 1 c
 
 /-- Finite order is invariant under subtracting a constant from the input. -/
 theorem comp_sub_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)

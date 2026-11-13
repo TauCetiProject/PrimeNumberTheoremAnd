@@ -29,7 +29,7 @@ factorization conclusion itself.  It is step 1 of the intrinsic Hadamard pipelin
 * `summable_norm_inv_pow_divisorZeroIndex₀_of_growth` : growth implies convergence of the
   canonical product
 Jensen's formula for entire functions is
-`Function.locallyFinsuppWithin.logCounting_divisor_eq_circleAverage_sub_const_of_differentiable`.
+`Function.locallyFinsuppWithin.logCounting_divisor_eq_circleAverage_sub_const`.
 
 Jensen's formula and log-counting growth bounds live in
 `Analysis.Complex.ValueDistribution.LogCounting`.

@@ -1219,17 +1219,6 @@ lemma norm_zeta_strict_mono_ofReal {a b : ℝ} (hb : 1 < b) (hab : b < a) :
 
 
 
-/- API for analyticOrderNatAt -/
-
-lemma analyticOrderNatAt_fun_div_const {c z : ℂ} {f : ℂ → ℂ}
-  (hc : c ≠ 0) (hfAnalytic : AnalyticAt ℂ f z) :
-    analyticOrderNatAt (fun z => f z / c) z = analyticOrderNatAt f z := by
-  simp only [analyticOrderNatAt, div_eq_inv_mul, ← Pi.mul_def]
-  rw [analyticOrderAt_mul analyticAt_const hfAnalytic, analyticOrderAt_eq_zero.mpr, zero_add]
-  exact .inr (inv_ne_zero hc)
-
-
-
 @[blueprint "LogDerivZetaFinalBound"
   (title := "LogDerivZetaFinalBound")
   (statement := /--
@@ -1298,8 +1287,9 @@ theorem LogDerivZetaFinalBound {r' r R' R : ℝ} (r'_pos : 0 < r') (r'_lt_r : r'
       simp only [g_def, f, zero_add]
       intro z hz; rw [Metric.mem_closedBall, _root_.dist_zero_right] at hz
       refine AnalyticAt.div_const
-        (AnalyticAt.comp (AnalyticAt.comp (analyticAt_riemannZeta ?_) analyticAt_id)
+        (AnalyticAt.comp (AnalyticAt.comp (analyticOn_riemannZeta _ ?_) analyticAt_id)
           (AnalyticAt.add (AnalyticAt.add analyticAt_id analyticAt_const) analyticAt_const))
+      change _ ≠ 1
       simp only [Pi.add_apply, id_eq, ne_eq, Complex.ext_iff, add_re, div_ofNat_re, re_ofNat,
         mul_re, I_re, ofReal_re, zero_mul, I_im, ofReal_im, mul_zero, sub_self, add_zero, one_re,
         add_im, div_ofNat_im, im_ofNat, zero_div, mul_im, one_mul, zero_add, one_im, not_and]
@@ -1340,11 +1330,15 @@ theorem LogDerivZetaFinalBound {r' r R' R : ℝ} (r'_pos : 0 < r') (r'_lt_r : r'
         congr 1
         · simp only [g_def', deriv_div_const, div_div_div_cancel_right₀ f0nonzero]
         · refine Finset.sum_congr rfl fun ρ hρ => ?_
-          rw [div_left_inj', Nat.cast_inj, g_def', analyticOrderNatAt_fun_div_const f0nonzero]
-          · simp only [f]
-            refine AnalyticAt.comp (analyticAt_riemannZeta ?_)
+          rw [div_left_inj', Nat.cast_inj, g_def']
+          · suffices hρAnal : AnalyticAt ℂ f ρ by
+              simpa only [div_eq_mul_inv] using
+                (analyticOrderNatAt_fun_mul_const hρAnal (inv_ne_zero f0nonzero)).symm
+            simp only [f]
+            refine AnalyticAt.comp (analyticOn_riemannZeta _ ?_)
               (AnalyticAt.add (AnalyticAt.add analyticAt_id analyticAt_const)
                 (AnalyticAt.mul analyticAt_const analyticAt_const))
+            change _ ≠ 1
             simp only [SetOfZeros, Complex.ext_iff, zero_re, zero_im, Finite.mem_toFinset, add_re,
               mem_ofPred_eq, ne_eq, div_ofNat_re, re_ofNat, mul_re, I_re, ofReal_re, zero_mul,
               I_im, ofReal_im, mul_zero, sub_self, add_zero, one_re, add_im, div_ofNat_im, im_ofNat,
@@ -1392,7 +1386,7 @@ lemma ZetaShiftFiniteZeros {t : ℝ} (ht : |t| ≥ 2)
   have hfAnalytic : AnalyticOnNhd ℂ f (Metric.ball (0 : ℂ) 2) := by
     intro z hz; simp only [Metric.mem_ball, Complex.dist_eq, sub_zero] at hz
     simp only [hf, add_assoc]
-    refine AnalyticAt.fun_comp (analyticAt_riemannZeta fun h => ?_)
+    refine AnalyticAt.fun_comp (analyticOn_riemannZeta _ fun h => ?_)
       (analyticAt_id.fun_add analyticAt_const)
     have him : z.im = -t := by
       have := congr_arg Complex.im h; simp only [add_im, div_ofNat_im, im_ofNat, zero_div, mul_im,
@@ -1830,7 +1824,8 @@ lemma ZeroWindowFinite {t : ℝ} (ht : |t| ≥ 2) : (ZeroWindow t).Finite := by
         exact Or.inl (by linarith)
       · rw [abs_of_nonpos (not_lt.mp tpos)] at ht
         exact Or.inr (by linarith)
-    refine analyticAt_riemannZeta (fun h => ?_)
+    refine analyticOn_riemannZeta _ (fun h => ?_)
+    change _ = 1 at h
     simp only [h, one_im, gt_iff_lt, abs_zero] at him
     linarith
   have hfeq : Set.EqOn ζ 0 (Metric.ball (3 / 2 + I * t) 1) := by
@@ -2371,9 +2366,9 @@ lemma LogDerivZetaUniformLogSquaredBoundStrip : ∃ (F : ℝ) (_ : F = E / 3)
     · simp only [Finite.mem_toFinset, implies_true, add_sub_cancel_right]
     · simp only [ZeroWindow, Finite.mem_toFinset, mem_ofPred_eq, hf, hg, Nat.cast_inj, and_imp]
       intro z hzZero hzBound
-      rw [analyticOrderNatAt_fun_div_const zetaThreeHalfNonzero]
-      · simp only [add_assoc, analyticOrderNatAt_fun_comp_add_right, sub_add_cancel]
-      · apply AnalyticAt.comp (DifferentiableOn.analyticAt (s := {z : ℂ | z ≠ 1})
+      have hAnal : AnalyticAt ℂ (fun w : ℂ ↦ ζ (w + 3 / 2 + I * t))
+          (z - (3 / 2 + I * t)) := by
+        apply AnalyticAt.comp (DifferentiableOn.analyticAt (s := {z : ℂ | z ≠ 1})
           (fun z' hz' => (differentiableAt_riemannZeta hz').differentiableWithinAt)
           ((isOpen_ne).mem_nhds ?_))
           (AnalyticAt.add (AnalyticAt.add analyticAt_id analyticAt_const) analyticAt_const)
@@ -2384,6 +2379,9 @@ lemma LogDerivZetaUniformLogSquaredBoundStrip : ∃ (F : ℝ) (_ : F = E / 3)
           one_im, neg_zero, zero_div, mul_im, I_re, ofReal_im, mul_zero, I_im, ofReal_re, one_mul,
           zero_add, zero_sub, abs_neg] at h
         linarith
+      have horder := analyticOrderNatAt_fun_mul_const hAnal (inv_ne_zero zetaThreeHalfNonzero)
+      simpa only [div_eq_mul_inv, add_assoc, analyticOrderNatAt_fun_comp_add_right,
+        sub_add_cancel] using horder.symm
   set z : ℂ := σ + t * I with hz
   have zIm : t = z.im := by
     simp only [hz, add_im, ofReal_im, mul_im, ofReal_re, I_im, mul_one, I_re, mul_zero, add_zero,

@@ -44,7 +44,8 @@ theorem logCounting_divisor_le_of_log_growth {f : ℂ → ℂ} {ρ C : ℝ} (hf 
       ≤ C * (1 + |R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖| := by
   have hR : R ≠ 0 := ne_of_gt hR0
   have hEq :=
-    logCounting_divisor_eq_circleAverage_sub_const_of_differentiable (f := f) hf hR
+    logCounting_divisor_eq_circleAverage_sub_const
+      (fun z ↦ (hf.analyticAt z).meromorphicAt) hR
   have hf_sphere : MeromorphicOn f (sphere (0 : ℂ) |R|) := by
     intro z hz
     exact (hf.analyticAt z).meromorphicAt
@@ -99,8 +100,8 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
       exact (finiteSupport (toClosedBall R D) (isCompact_closedBall (0 : E) |R|)).mem_toFinset.1
         hz_mem_SR
     have hz_norm_le_R : ‖z‖ ≤ R := by
-      have := norm_le_abs_of_mem_toClosedBall_support hzR
-      simpa [abs_of_pos hR0] using this
+      have := (toClosedBall R D).supportWithinDomain hzR
+      simpa only [mem_closedBall, dist_zero_right, abs_of_pos hR0] using this
     have hz_norm_le_r : ‖z‖ ≤ |r| := by
       have : ‖z‖ ≤ r := le_trans hz_norm_le_R (by dsimp [r]; nlinarith)
       simpa [abs_of_pos hrpos] using this
@@ -130,12 +131,12 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
       have hDz : 0 ≤ Dr z := by
         have hDz' : 0 ≤ D z := hDnonneg z
         have hDrz : Dr z = D z :=
-          toClosedBall_eval_eq_of_norm_le_abs (norm_le_abs_of_mem_toClosedBall_support hz_sup)
+          toClosedBall_eval_within D (Dr.supportWithinDomain hz_sup)
         simpa [hDrz] using hDz'
       have hlog : 0 ≤ log (r * ‖z‖⁻¹) := by
         have hzle : ‖z‖ ≤ r := by
-          have hnorm := norm_le_abs_of_mem_toClosedBall_support hz_sup
-          simpa [abs_of_pos hrpos] using hnorm
+          have hnorm := Dr.supportWithinDomain hz_sup
+          simpa only [mem_closedBall, dist_zero_right, abs_of_pos hrpos] using hnorm
         exact log_nonneg_mul_inv_norm_of_norm_le hzle
       exact mul_nonneg (by exact_mod_cast hDz) hlog
     have hsumSF :
@@ -151,8 +152,8 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
         have hzRsup : z ∈ (toClosedBall R D).support := by
           exact (finiteSupport (toClosedBall R D) (isCompact_closedBall (0 : E) |R|)).mem_toFinset.1
             hz_mem_SR
-        have hnorm := norm_le_abs_of_mem_toClosedBall_support hzRsup
-        simpa [abs_of_pos hR0] using hnorm
+        have hnorm := (toClosedBall R D).supportWithinDomain hzRsup
+        simpa only [mem_closedBall, dist_zero_right, abs_of_pos hR0] using hnorm
       have hlog_le : log 2 ≤ log (r * ‖z‖⁻¹) := by
         simpa [r] using log_two_le_log_two_mul_mul_inv_norm_of_norm_le hz0 hz_norm_le_R
       have hDz_nonneg : 0 ≤ D z := hDnonneg z
@@ -160,9 +161,7 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
         have : ‖z‖ ≤ r := le_trans hz_norm_le_R (by dsimp [r]; nlinarith)
         simpa [mem_closedBall, dist_zero_right, abs_of_pos hrpos] using this
       have hDrz : Dr z = D z := by
-        have hz_norm_le : ‖z‖ ≤ |r| := by
-          simpa [mem_closedBall, dist_zero_right] using hz_in_ballr
-        simpa [Dr] using toClosedBall_eval_eq_of_norm_le_abs (D := D) (r := r) (z := z) hz_norm_le
+        exact toClosedBall_eval_within D hz_in_ballr
       have : (log 2) * (D z : ℝ) ≤ (log (r * ‖z‖⁻¹)) * (D z : ℝ) :=
         mul_le_mul_of_nonneg_right hlog_le (by exact_mod_cast hDz_nonneg)
       simpa [hDrz, mul_assoc, mul_left_comm, mul_comm] using this
