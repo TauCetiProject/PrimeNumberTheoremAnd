@@ -7,7 +7,7 @@ targets, pending roadmap proposals, and scope that still needs human-written spe
 
 To build the fork, run `lake exe cache get`, then
 `bash .lake/packages/TauCeti/scripts/lake-cache-get.sh .lake/packages/TauCeti`, then `lake build`.
-The library target checks every retained Lean source, including IEANTN and `Unused/` experiments.
+The library target checks every retained Lean source, including `Unused/` experiments.
 Inherited unfinished proofs remain unfinished; a successful build does not certify them as complete.
 Fork CI runs the same full source build, restores Tau Ceti artifacts, and checks blueprint metadata.
 
@@ -17,9 +17,10 @@ Fork CI runs the same full source build, restores Tau Ceti artifacts, and checks
 [![Blueprint: Website](https://img.shields.io/badge/Blueprint-Website-blue.svg?logo=github&logoColor=white)](https://AlexKontorovich.github.io/PrimeNumberTheoremAnd/blueprint)
 [![Docs: Website](https://img.shields.io/badge/Docs-Website-blue.svg?logo=readthedocs&logoColor=white)](https://AlexKontorovich.github.io/PrimeNumberTheoremAnd/docs)
 
-The objective of this project is to formalize in Lean the Prime Number Theorem (with classical error term), as well as related results such as the Prime Number Theorem in Arithmetic Progressions.  A stretch goal would be to obtain the Chebotarev density theorem.  We are also hosting the [Integrated Explicit Analytic Number Theory network](https://www.ipam.ucla.edu/news-research/special-projects/integrated-explicit-analytic-number-theory-network/).  A personal log describing the latter project may be [found here](https://github.com/AlexKontorovich/PrimeNumberTheoremAnd/wiki/Terence-Tao's-personal-log).
+The objective of this project is to formalize in Lean the Prime Number Theorem (with classical error term), as well as related results such as the Prime Number Theorem in Arithmetic Progressions.  A stretch goal would be to obtain the Chebotarev density theorem.
 
-> **IEANTN porting notice (2026-08).** The IEANTN Lean material is being ported to its own repository, [teorth/IEANTN](https://github.com/teorth/IEANTN); the code presently under `PrimeNumberTheoremAnd/IEANTN/` here will be trimmed once the port is complete. In-flight tasks already claimed against open issues in this repo may continue here, but any new IEANTN contribution should be made to [teorth/IEANTN](https://github.com/teorth/IEANTN) instead.
+IEANTN (the Integrated Explicit Analytic Number Theory Network) is excluded from this fork
+and its Tau Ceti migration scope. Its separate project is [teorth/IEANTN](https://github.com/teorth/IEANTN).
 
 [Here is the blueprint](https://alexkontorovich.github.io/PrimeNumberTheoremAnd/blueprint/) for the project.
 

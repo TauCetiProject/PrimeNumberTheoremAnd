@@ -1,6 +1,5 @@
 
 import PrimeNumberTheoremAnd.Auxiliary
-import PrimeNumberTheoremAnd.Backlund.ZeroCountCrude
 import PrimeNumberTheoremAnd.BrunTitchmarsh
 import PrimeNumberTheoremAnd.Consequences
 import PrimeNumberTheoremAnd.Defs
@@ -10,8 +9,6 @@ import PrimeNumberTheoremAnd.Fourier
 import PrimeNumberTheoremAnd.GeneralMeromorphic
 import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
-import PrimeNumberTheoremAnd.IEANTN.Erdos392
-import PrimeNumberTheoremAnd.IEANTN.Mertens
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.Mathlib.Algebra.Order.Floor.Ring

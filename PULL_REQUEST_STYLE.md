@@ -14,16 +14,9 @@ to AI-assisted contributors equally — but AI-assisted contributors should read
 the "AI-assisted contributions" section, which addresses failure modes
 specific to that context.
 
-> **⚠️ IEANTN porting notice (2026-08).** The IEANTN Lean material is being
-> ported to its own repository, [teorth/IEANTN](https://github.com/teorth/IEANTN).
-> Tasks already claimed against open issues in this repo may continue here for
-> now; **new IEANTN contributions — new paper subprojects, or new results
-> within existing IEANTN paper files — should be opened against `teorth/IEANTN`
-> instead.** This guide continues to describe the conventions used by both
-> projects; sections referring to `PrimeNumberTheoremAnd/IEANTN/` paths,
-> chapter placement in `blueprint/src/blueprint.tex`, and the
-> `pnt-plus-ieantn` skill apply to legacy work here — the new repo has its
-> own equivalents.
+> **Fork scope.** This inherited upstream style guide includes historical IEANTN
+> guidance. IEANTN has been removed from this migration fork; those sections do not
+> apply here. Its separate project is [teorth/IEANTN](https://github.com/teorth/IEANTN).
 
 ## Guiding principle
 

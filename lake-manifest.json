@@ -27,30 +27,6 @@
       "configFile": "lakefile.lean"
     },
     {
-      "url": "https://github.com/b-mehta/PrimeCert",
-      "type": "git",
-      "subDir": null,
-      "scope": "",
-      "rev": "d84a15cacfdc45ae1e96e56dd58158f871787870",
-      "name": "PrimeCert",
-      "manifestFile": "lake-manifest.json",
-      "inputRev": "v4.36.0-rc2",
-      "inherited": false,
-      "configFile": "lakefile.toml"
-    },
-    {
-      "url": "https://github.com/TauCetiProject/leancert.git",
-      "type": "git",
-      "subDir": null,
-      "scope": "",
-      "rev": "eba44d6ec75ce248b14340547e3fc731bc009f0e",
-      "name": "leancert",
-      "manifestFile": "lake-manifest.json",
-      "inputRev": "eba44d6ec75ce248b14340547e3fc731bc009f0e",
-      "inherited": false,
-      "configFile": "lakefile.toml"
-    },
-    {
       "url": "https://github.com/PatrickMassot/checkdecls.git",
       "type": "git",
       "subDir": null,

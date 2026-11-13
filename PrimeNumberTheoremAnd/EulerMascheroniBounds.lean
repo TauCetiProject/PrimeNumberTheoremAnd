@@ -6,7 +6,6 @@ import Mathlib.Data.Rat.Cast.OfScientific
 import Mathlib.Algebra.Order.Star.Real
 import Mathlib.NumberTheory.Harmonic.EulerMascheroni
 import Mathlib.Topology.Algebra.Module.ModuleTopology
-import PrimeNumberTheoremAnd.IEANTN.LogTables
 
 open Real Finset
 
@@ -499,5 +498,8 @@ lemma hγ_lo : (0.577215 : ℝ) ≤ Real.eulerMascheroniConstant := by
       _ ≤ eulerMascheroniConstant := le_of_lt (γ₃_lower_bound 16 (by norm_num))
   -- γ₃ 16 = H(16) - log 16 - 1/32 + 1/3072 - 1/7864320
   -- We bound log 16 = 4 * log 2 < 4 * 0.6931471808
-  norm_num [γ₃, LogTables.log_16]
+  have hlog16 : Real.log 16 = 4 * Real.log 2 := by
+    rw [show (16 : ℝ) = 2 ^ 4 by norm_num, Real.log_pow]
+    norm_num
+  norm_num [γ₃, hlog16]
   linarith [Real.log_two_lt_d9]
