@@ -500,4 +500,4 @@ lemma hγ_lo : (0.577215 : ℝ) ≤ Real.eulerMascheroniConstant := by
   -- γ₃ 16 = H(16) - log 16 - 1/32 + 1/3072 - 1/7864320
   -- We bound log 16 = 4 * log 2 < 4 * 0.6931471808
   norm_num [γ₃, LogTables.log_16]
-  linarith [LogTables.log_2_lt_d9]
+  linarith [Real.log_two_lt_d9]

@@ -4241,8 +4241,8 @@ theorem mu_asymp_num_le {A : ℝ} (hA : 1 ≤ A) :
   have hexpw : Real.exp ((0.117:ℝ) ^ 2) ≤ (1.0138790 : ℝ) := by
     rw [show ((0.117:ℝ)) ^ 2 = 13689 / 1000000 by norm_num]
     interval_decide
-  have hlog2_lo : (0.6931471803 : ℝ) < Real.log 2 := LogTables.log_2_gt_d9
-  have hlog2_hi : Real.log 2 < (0.6931471808 : ℝ) := LogTables.log_2_lt_d9
+  have hlog2_lo : (0.6931471803 : ℝ) < Real.log 2 := Real.log_two_gt_d9
+  have hlog2_hi : Real.log 2 < (0.6931471808 : ℝ) := Real.log_two_lt_d9
   unfold μ_asymp
   rw [Real.log_exp, Real.sqrt_one]
   -- ===== Term 1 =====

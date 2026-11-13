@@ -95,22 +95,18 @@ lemma log_20 : log 20 = 2 * log 2 + log 5 := by
   rw [show (20 : ℝ) = 4 * 5 from by norm_num,
       Real.log_mul (by norm_num) (by norm_num), log_4]
 
-/-! ## High-precision bounds for `log 2`
+/-! ## A coarse bound for `log 2`
 
-These mirror `Real.log_two_gt_d9` / `Real.log_two_lt_d9` in Mathlib, restated under the
-`LogTables` namespace so callers don't have to remember which library they live in. The
-`d3` version is a coarser convenience bound used by several `Table 10` row arguments. -/
+Mathlib supplies the high-precision bounds. This coarser bound is used by several
+`Table 10` row arguments. -/
 
-lemma log_2_gt_d9 : (0.6931471803 : ℝ) < log 2 := Real.log_two_gt_d9
-lemma log_2_lt_d9 : log 2 < 0.6931471808 := Real.log_two_lt_d9
-lemma log_2_gt_d3 : (0.6931 : ℝ) < log 2 := by linarith [log_2_gt_d9]
+lemma log_2_gt_d3 : (0.6931 : ℝ) < log 2 := by linarith [Real.log_two_gt_d9]
 
 /-! ## Bounds on `exp(-x)` for selected `x`
 
 Useful when an analytic-number-theory argument needs a closed-form numerical upper
 bound on a tail term without paying the cost of an in-place `interval_decide`. -/
 
-lemma exp_neg_one_lt : exp (-1 : ℝ) < 0.3678794412 := Real.exp_neg_one_lt_d9
 lemma exp_neg_one_gt : (0.367879441 : ℝ) < exp (-1 : ℝ) := by interval_decide
 lemma exp_neg_half_lt : exp (-(1/2 : ℝ)) < 0.6065307 := by interval_decide
 lemma exp_neg_two_thirds_lt : exp (-(2/3 : ℝ)) < 0.513418 := by interval_decide
