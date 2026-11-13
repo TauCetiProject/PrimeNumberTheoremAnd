@@ -3089,8 +3089,9 @@ lemma intervalIntegrable_B1_complex {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) :
     change deriv Complex.ofReal t * ↑(B1 t) = ↑(B1 t)
     rw [Complex.deriv_ofReal]
     simp
-  · simp only [_root_.deriv_ofReal, Set.uIcc_of_le hab]
-    fun_prop
+  · change ContinuousOn (fun t : ℝ ↦ deriv Complex.ofReal t) _
+    simp_rw [Complex.deriv_ofReal]
+    exact continuousOn_const
 
 lemma second_ibp_limit_eq_neg_B1_integral_on_unit {u v : ℝ}
     (huv : u ≤ v) (hu_pos : 0 < u) (m : ℕ)
