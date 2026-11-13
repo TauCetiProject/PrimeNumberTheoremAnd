@@ -16,7 +16,7 @@ public import PrimeNumberTheoremAnd.Auxiliary
 public import PrimeNumberTheoremAnd.EulerMaclaurin
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import PrimeNumberTheoremAnd.Fourier
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 
@@ -1535,7 +1535,7 @@ lemma DerivUpperBnd_aux7_tendsto {σ : ℝ} (σpos : 0 < σ) :
   have h1 := tendsto_rpow_neg_atTop σpos
   have h2 := h1.const_mul (1 / σ^2)
   have h3 : Tendsto (fun t : ℝ ↦ t ^ (-σ) * Real.log t) atTop (nhds 0) := by
-    have := Real.tendsto_pow_log_div_pow_atTop σ 1 σpos
+    have := (isLittleO_log_rpow_rpow_atTop (1 : ℝ) σpos).tendsto_div_nhds_zero
     simp only [Real.rpow_one] at this
     apply Tendsto.congr' _ this
     filter_upwards [eventually_ge_atTop 0] with x hx

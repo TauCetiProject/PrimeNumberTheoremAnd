@@ -49,7 +49,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBou
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.GammaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Basic
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
