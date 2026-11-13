@@ -43,19 +43,6 @@ lemma neg_log_one_sub_eq_tsum {z : ℂ} (hz : ‖z‖ < 1) :
   rw [← h.tsum_eq, h.summable.tsum_eq_zero_add]
   simp only [pow_zero, Nat.cast_zero, div_zero, zero_add, Nat.cast_add, Nat.cast_one]
 
-/-- The truncation of `-log (1 - z)`, expressed via `Complex.logTaylor`. -/
-noncomputable
-def partialLogSum (m : ℕ) (z : ℂ) : ℂ :=
-  -logTaylor (m + 1) (-z)
-
-@[simp]
-lemma partialLogSum_zero (z : ℂ) : partialLogSum 0 z = 0 := by
-  simp [partialLogSum, logTaylor_succ, logTaylor_zero]
-
-@[simp]
-lemma partialLogSum_at_zero (m : ℕ) : partialLogSum m 0 = 0 := by
-  simp [partialLogSum, logTaylor_at_zero]
-
 lemma logTaylor_succ_neg (n : ℕ) (z : ℂ) :
     logTaylor (n + 1) (-z) = logTaylor n (-z) - z ^ n / n := by
   rw [logTaylor_succ, Pi.add_apply]
@@ -72,13 +59,6 @@ lemma logTaylor_succ_neg (n : ℕ) (z : ℂ) :
     ring]
   abel
 
-/-- Recurrence for the truncated logarithm series. -/
-lemma partialLogSum_succ (m : ℕ) :
-    partialLogSum (m + 1) = partialLogSum m + (fun z : ℂ ↦ z ^ (m + 1) / (m + 1)) := by
-  funext z
-  simpa [partialLogSum, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
-    congrArg Neg.neg (logTaylor_succ_neg (m + 1) z)
-
 /-- Evaluate `logTaylor` at `-z` as a finite positive-coefficient logarithm sum. -/
 lemma logTaylor_neg_eq_neg_sum (m : ℕ) (z : ℂ) :
     logTaylor (m + 1) (-z) = -∑ k ∈ Finset.range m, z ^ (k + 1) / (k + 1) := by
@@ -92,20 +72,10 @@ lemma logTaylor_neg_eq_neg_sum (m : ℕ) (z : ℂ) :
       rw [hcast]
       ring_nf
 
-/-- `partialLogSum` is the partial sum `∑_{k=1}^m z^k / k`. -/
-lemma partialLogSum_eq_sum (m : ℕ) (z : ℂ) :
-    partialLogSum m z = ∑ k ∈ Finset.range m, z ^ (k + 1) / (k + 1) := by
-  simpa [partialLogSum] using congrArg Neg.neg (logTaylor_neg_eq_neg_sum m z)
-
-lemma hasDerivAt_partialLogSum (m : ℕ) (z : ℂ) :
-    HasDerivAt (partialLogSum m) (∑ j ∈ Finset.range m, z ^ j) z := by
+lemma hasDerivAt_neg_logTaylor_neg (m : ℕ) (z : ℂ) :
+    HasDerivAt (fun z : ℂ ↦ -logTaylor (m + 1) (-z)) (∑ j ∈ Finset.range m, z ^ j) z := by
   have h := (((hasDerivAt_logTaylor m (-z)).comp z (hasDerivAt_neg z)).neg)
-  simpa only [partialLogSum, mul_neg_one, neg_neg, ← mul_pow, neg_one_mul] using! h
-
-lemma differentiable_partialLogSum (m : ℕ) :
-    Differentiable ℂ (fun z : ℂ => partialLogSum m z) := by
-  intro z
-  exact (hasDerivAt_partialLogSum m z).differentiableAt
+  simpa only [mul_neg_one, neg_neg, ← mul_pow, neg_one_mul] using! h
 
 /-- The tail `∑_{k>m} z^k / k`, as `∑' k, z^(m+1+k)/(m+1+k)`. -/
 noncomputable
@@ -136,14 +106,14 @@ lemma summable_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
     _ = ‖z‖ ^ k := one_mul _
 
 /-- Decompose the logarithm series into its first `m` terms and the remaining tail. -/
-lemma neg_log_one_sub_eq_partialLogSum_add_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
-    -log (1 - z) = partialLogSum m z + logTail m z := by
+lemma neg_log_one_sub_eq_neg_logTaylor_neg_add_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
+    -log (1 - z) = (-logTaylor (m + 1) (-z)) + logTail m z := by
   let f : ℕ → ℂ := fun k ↦ z ^ (k + 1) / ((k : ℂ) + 1)
   have h_summable : Summable f := by
     simpa [f, Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
       (summable_logTail hz 0)
   have h_decomp := h_summable.sum_add_tsum_nat_add m
-  rw [neg_log_one_sub_eq_tsum hz, partialLogSum_eq_sum, ← h_decomp]
+  rw [neg_log_one_sub_eq_tsum hz, logTaylor_neg_eq_neg_sum, neg_neg, ← h_decomp]
   congr 1
   dsimp only [logTail]
   refine tsum_congr fun k ↦ ?_
@@ -157,8 +127,7 @@ bounds below. -/
 lemma norm_logTail_le {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
     ‖logTail m z‖ ≤ ‖z‖ ^ (m + 1) / (1 - ‖z‖) := by
   have htail : logTail m z = -(log (1 - z) - logTaylor (m + 1) (-z)) := by
-    have h := neg_log_one_sub_eq_partialLogSum_add_logTail hz m
-    unfold partialLogSum at h
+    have h := neg_log_one_sub_eq_neg_logTaylor_neg_add_logTail hz m
     linear_combination -h
   rw [htail, norm_neg]
   have h := norm_log_sub_logTaylor_le m (z := -z) (by simpa using hz)
@@ -172,11 +141,11 @@ lemma norm_logTail_le_two_mul_norm_pow {z : ℂ} (hz : ‖z‖ < 1) (hzhalf : �
     ‖logTail m z‖ ≤ 2 * ‖z‖ ^ (m + 1) :=
   (norm_logTail_le hz m).trans (Real.pow_div_one_sub_le_two_mul (norm_nonneg z) hzhalf m)
 
-lemma norm_partialLogSum_le_nat_mul_max_one_norm_pow (m : ℕ) (z : ℂ) :
-    ‖partialLogSum m z‖ ≤ (m : ℝ) * max 1 (‖z‖ ^ m) := by
+lemma norm_logTaylor_neg_le_nat_mul_max_one_norm_pow (m : ℕ) (z : ℂ) :
+    ‖logTaylor (m + 1) (-z)‖ ≤ (m : ℝ) * max 1 (‖z‖ ^ m) := by
   have hsum :
-      ‖partialLogSum m z‖ ≤ ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ := by
-    rw [partialLogSum_eq_sum]
+      ‖logTaylor (m + 1) (-z)‖ ≤ ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ := by
+    rw [logTaylor_neg_eq_neg_sum, norm_neg]
     exact norm_sum_le _ _
   have hterm : ∀ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ ≤ max 1 (‖z‖ ^ m) := by
     intro k hk

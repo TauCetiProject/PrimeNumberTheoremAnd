@@ -53,29 +53,6 @@ This yields “eventually in `cofinite`” bounds for divisor-indexed products.
 -/
 
 /-!
-## Entire functions are never locally zero (under a global nontriviality witness)
-
-If `f` is differentiable on `ℂ` and not identically zero, then it is not locally zero anywhere,
-hence `analyticOrderAt f z ≠ ⊤` for all `z`.
--/
-
-lemma analyticOrderAt_ne_top_of_exists_ne_zero {f : ℂ → ℂ} (hf : Differentiable ℂ f)
-    (hnot : ∃ z : ℂ, f z ≠ 0) :
-    ∀ z : ℂ, analyticOrderAt f z ≠ ⊤ := by
-  rcases hnot with ⟨z1, hz1⟩
-  have hf_an : AnalyticOnNhd ℂ f (Set.univ : Set ℂ) := by
-    intro z hz
-    exact (Differentiable.analyticAt (f := f) hf z)
-  have hz1_not_top : analyticOrderAt f z1 ≠ ⊤ := by
-    have : analyticOrderAt f z1 = 0 :=
-      (hf.analyticAt z1).analyticOrderAt_eq_zero.2 hz1
-    simp [this]
-  intro z
-  exact AnalyticOnNhd.analyticOrderAt_ne_top_of_isPreconnected (hf := hf_an)
-    (U := (Set.univ : Set ℂ)) (x := z1) (y := z) (by simpa using isPreconnected_univ)
-    (by simp) (by simp) hz1_not_top
-
-/-!
 ## Avoiding zeros on a circle
 
 If `f` is entire and not identically zero, and if a radius `r > 0` is different from the norms of
@@ -96,7 +73,8 @@ lemma no_zero_on_sphere_of_forall_val_norm_ne
     exact (ne_of_gt hrpos) this.symm
   intro hfu0
   have hnotTop : analyticOrderAt f u ≠ ⊤ :=
-    analyticOrderAt_ne_top_of_exists_ne_zero (f := f) hf hnot u
+    (AnalyticOnNhd.analyticOrderAt_eq_top_iff_eq_zero u (hf).analyticAt).not.mpr
+      (Function.ne_iff.mpr hnot)
   have hord_ne0 : analyticOrderNatAt f u ≠ 0 := by
     intro h0
     have hEN : (analyticOrderNatAt f u : ENat) = 0 := by simp [h0]
@@ -225,8 +203,8 @@ theorem analyticOrderAt_divisorCanonicalProduct_eq_fiber_card
     intro z
     exact (hdiffOn z (by simp)).differentiableAt (by simp)
   have hnotTop : analyticOrderAt F z₀ ≠ ⊤ :=
-    analyticOrderAt_ne_top_of_exists_ne_zero (hf := hdiff)
-      ⟨0, by simp [F, divisorCanonicalProduct_zero]⟩ z₀
+    (AnalyticOnNhd.analyticOrderAt_eq_top_iff_eq_zero z₀ (hdiff).analyticAt).not.mpr
+      (Function.ne_iff.mpr ⟨0, by simp [F, divisorCanonicalProduct_zero]⟩)
   have hcast : (analyticOrderNatAt F z₀ : ℕ∞) = analyticOrderAt F z₀ :=
     Nat.cast_analyticOrderNatAt (f := F) (z₀ := z₀) hnotTop
   have hNatCast :
@@ -307,7 +285,7 @@ theorem eventually_exists_analyticAt_eq_pow_smul_divisorComplementPartialProduct
       (exists_analyticAt_eq_pow_smul_of_partialProduct_contains_fiber (m := m) (f := f) (z₀ := z₀)
         (s := fiber) (by rfl : fiber ⊆ fiber))
   rcases hfib with ⟨u, huA, hu0, huEq⟩
-  refine (eventually_atTop_subset_fiberFinset (f := f) z₀).mono ?_
+  refine (Filter.eventually_ge_atTop (divisorZeroIndex₀_fiberFinset f z₀)).mono ?_
   intro s hs
   refine ⟨u, huA, hu0, ?_⟩
   have hmul : ∀ z : ℂ, divisorPartialProduct m f s z =

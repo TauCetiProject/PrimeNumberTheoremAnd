@@ -10,7 +10,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 public import Mathlib.NumberTheory.AbelSummation
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
-public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 public import Mathlib.Analysis.SpecialFunctions.Pow.Continuity
 public import Mathlib.Analysis.PSeriesComplex
@@ -77,8 +77,9 @@ private lemma abel_summation (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
   have hInt_congr :
       (∫ u in (1 : ℝ)..N, deriv f u * ∑ k ∈ Finset.Icc 0 ⌊u⌋₊, c k)
         = ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (-s * (u : ℂ) ^ (-s - 1)) := by
-    apply intervalIntegral.integral_congr_Ioc_of_le hle
-    intro u hu
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards with u hu
+    rw [uIoc_of_le hle] at hu
     rw [← Finset.Ico_add_one_right_eq_Icc, Finset.sum_Ico_eq_sum_range,
       Complex.deriv_ofReal_cpow_neg s (lt_trans zero_lt_one hu.1)]
     simp only [Nat.sub_zero, zero_add, Finset.sum_range_succ']
@@ -105,8 +106,10 @@ private lemma abel_split (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
   have hInt :
       ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (-s * (u : ℂ) ^ (-s - 1))
         = (-s) * ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (u : ℂ) ^ (-s - 1) := by
-    rw [← intervalIntegral.integral_const_mul, intervalIntegral.integral_congr_Ioc_of_le (mod_cast hN)]
-    intro u _; simp [neg_mul, mul_left_comm]
+    rw [← intervalIntegral.integral_const_mul]
+    apply intervalIntegral.integral_congr_ae
+    filter_upwards with u _
+    simp [neg_mul, mul_left_comm]
   rw [hInt, sub_eq_add_neg, neg_mul, neg_neg]
   simp [Complex.natCast_mul_cpow_neg_eq_cpow_one_sub N s (Nat.ne_of_gt (Nat.succ_le_iff.mp hN))]
 
@@ -120,19 +123,22 @@ private lemma integral_split_fract (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
   calc
     ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (u : ℂ) ^ (-s - 1)
         = ∫ u in (1 : ℝ)..N, ((u : ℂ) - ((Int.fract u : ℝ) : ℂ)) * (u : ℂ) ^ (-s - 1) := by
-          apply intervalIntegral.integral_congr_Ioc_of_le hab
-          intro u hu
+          apply intervalIntegral.integral_congr_ae
+          filter_upwards with u hu
+          rw [uIoc_of_le hab] at hu
           simp [natCast_floor_eq_sub_fract u (le_trans zero_le_one (le_of_lt hu.1)), sub_eq_add_neg]
     _ = (∫ u in (1 : ℝ)..N, (u : ℂ) * (u : ℂ) ^ (-s - 1))
           - ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u := by
           rw [← intervalIntegral.integral_sub hI1 hI2]
-          apply intervalIntegral.integral_congr_Ioc_of_le hab
-          intro u _; simp [sub_mul, zetaAbelFractKernel]
+          apply intervalIntegral.integral_congr_ae
+          filter_upwards with u _
+          simp [sub_mul, zetaAbelFractKernel]
     _ = (∫ u in (1 : ℝ)..N, (u : ℂ) ^ (-s))
           - ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u := by
           congr 1
-          apply intervalIntegral.integral_congr_Ioc_of_le hab
-          intro u hu
+          apply intervalIntegral.integral_congr_ae
+          filter_upwards with u hu
+          rw [uIoc_of_le hab] at hu
           exact Complex.ofReal_cpow_mul_cpow_neg_sub_one (s := s) (hu := lt_trans zero_lt_one hu.1)
 
 private lemma cpow_integral (s : ℂ) (hs : s ≠ 1) (N : ℕ) (hN : 1 ≤ N) :

@@ -451,7 +451,7 @@ theorem eventually_eq_fiber_mul_divisorComplementPartialProduct
       ∀ z : ℂ, divisorPartialProduct m f s z = divisorPartialProduct m f
         (divisorZeroIndex₀_fiberFinset (f := f) z₀) z *
           divisorComplementPartialProduct m f z₀ s z := by
-  refine (eventually_atTop_subset_fiberFinset (f := f) z₀).mono ?_
+  refine (Filter.eventually_ge_atTop (divisorZeroIndex₀_fiberFinset f z₀)).mono ?_
   intro s hs z
   simpa using
     (divisorPartialProduct_eq_fiber_mul_complement_of_subset (m := m) (f := f) (z₀ := z₀)

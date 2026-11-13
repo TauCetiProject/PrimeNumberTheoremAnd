@@ -36,19 +36,10 @@ namespace Gamma
 
 /-- For `x ∈ [1, 2]`, `Γ(x) ≤ 1` since `Γ(1) = Γ(2) = 1` and the function is convex. -/
 theorem le_one_of_mem_Icc {x : ℝ} (hlo : 1 ≤ x) (hhi : x ≤ 2) : Gamma x ≤ 1 := by
-  have h_convex := Real.convexOn_Gamma
-  have h1 : Gamma 1 = 1 := Gamma_one
-  have h2 : Gamma 2 = 1 := Gamma_two
-  let t := 2 - x
-  have ht_nonneg : 0 ≤ t := by linarith
-  have hx_conv : x = t * 1 + (1 - t) * 2 := by field_simp [t]; ring
-  have := h_convex.2 (by norm_num : (0 : ℝ) < 1) (by norm_num : (0 : ℝ) < 2)
-    ht_nonneg (by linarith : 0 ≤ 1 - t) (by ring : t + (1 - t) = 1)
-  rw [smul_eq_mul, smul_eq_mul] at this
-  calc
-    Gamma x = Gamma (t * 1 + (1 - t) * 2) := by rw [hx_conv]
-    _ ≤ t * Gamma 1 + (1 - t) * Gamma 2 := this
-    _ = 1 := by rw [h1, h2]; ring
+  have hsegment : x ∈ segment ℝ (1 : ℝ) 2 := by
+    simpa only [segment_eq_Icc (by norm_num : (1 : ℝ) ≤ 2)] using (show x ∈ Icc 1 2 from ⟨hlo, hhi⟩)
+  simpa only [Real.Gamma_one, Real.Gamma_two, max_self] using
+    Real.convexOn_Gamma.le_on_segment (by norm_num) (by norm_num) hsegment
 
 end Gamma
 end Real

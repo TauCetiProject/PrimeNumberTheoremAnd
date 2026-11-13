@@ -23,7 +23,7 @@ properties and estimates
 
 ## Main definitions
 
-* `Complex.partialLogSum m z`: the truncation of `-log (1 - z)`, defined via `Complex.logTaylor`
+* `Complex.logTaylor (m + 1) (-z)`: the native logarithm Taylor polynomial
 * `Complex.logTail m z`: the tail `∑_{k>m} z^k / k` as a `tsum` starting at `m + 1`
 * `Complex.weierstrassFactor m z`: the elementary factor `E_m(z)`
 
@@ -32,7 +32,7 @@ properties and estimates
 * `Complex.weierstrassFactor_sub_one_pow_bound`: `‖E_m(z) - 1‖ ≤ 4‖z‖^(m+1)` for `‖z‖ ≤ 1 / 2`
 * `Complex.weierstrassFactor_eq_exp_neg_tail`: on `‖z‖ < 1` with `z ≠ 1`,
   `E_m z = exp (-logTail m z)`
-* `Complex.norm_partialLogSum_le_nat_mul_max_one_norm_pow`: a crude bound on the truncated
+* `Complex.norm_logTaylor_neg_le_nat_mul_max_one_norm_pow`: a crude bound on the truncated
   logarithm series
 * `Complex.log_norm_weierstrassFactor_ge_log_norm_one_sub_nat_mul_max_one_norm_pow`: a crude lower
   bound for `log ‖E_m(z)‖` used in minimum-modulus arguments
@@ -51,23 +51,23 @@ namespace Complex
 
 /-- The Weierstrass elementary factor `E_m`. -/
 def weierstrassFactor (m : ℕ) (z : ℂ) : ℂ :=
-  (1 - z) * exp (partialLogSum m z)
+  (1 - z) * exp ((-logTaylor (m + 1) (-z)))
 
 lemma weierstrassFactor_def (m : ℕ) (z : ℂ) :
-    weierstrassFactor m z = (1 - z) * exp (partialLogSum m z) := by
+    weierstrassFactor m z = (1 - z) * exp ((-logTaylor (m + 1) (-z))) := by
   simp [weierstrassFactor]
 
 /-- The genus-one elementary factor is Tau Ceti's canonical elementary factor. -/
 lemma weierstrassFactor_one (z : ℂ) : weierstrassFactor 1 z = weierstrassFactorOne z := by
-  simp [weierstrassFactor_def, partialLogSum_eq_sum, weierstrassFactorOne_def]
+  simp [weierstrassFactor_def, logTaylor_neg_eq_neg_sum, neg_neg, weierstrassFactorOne_def]
 
 @[simp]
 lemma weierstrassFactor_zero (z : ℂ) : weierstrassFactor 0 z = 1 - z := by
-  simp [weierstrassFactor]
+  simp [weierstrassFactor, logTaylor_succ, logTaylor_zero]
 
 @[simp]
 lemma weierstrassFactor_at_zero (m : ℕ) : weierstrassFactor m 0 = 1 := by
-  simp [weierstrassFactor, partialLogSum_at_zero]
+  simp [weierstrassFactor, logTaylor_at_zero]
 
 @[simp]
 lemma weierstrassFactor_at_one (m : ℕ) : weierstrassFactor m 1 = 0 := by
@@ -110,22 +110,22 @@ lemma differentiable_weierstrassFactor (m : ℕ) :
     Differentiable ℂ (fun z : ℂ => weierstrassFactor m z) := by
   simpa [weierstrassFactor] using!
     ((differentiable_const (c := (1 : ℂ))).sub differentiable_id).mul
-      (differentiable_exp.comp (differentiable_partialLogSum m))
+      (differentiable_exp.comp (fun w : ℂ ↦ (hasDerivAt_neg_logTaylor_neg m w).differentiableAt))
 
 lemma hasDerivAt_weierstrassFactor_at_one (m : ℕ) :
-    HasDerivAt (weierstrassFactor m) (-Complex.exp (partialLogSum m 1)) 1 := by
+    HasDerivAt (weierstrassFactor m) (-Complex.exp ((-logTaylor (m + 1) (-1)))) 1 := by
   have hsub : HasDerivAt (fun z : ℂ => 1 - z) (-1) 1 := by
     simpa using! (hasDerivAt_const (1 : ℂ) (c := (1 : ℂ))).sub (hasDerivAt_id 1)
   have hexp :
-      HasDerivAt (fun z : ℂ => Complex.exp (partialLogSum m z))
-        ((∑ j ∈ Finset.range m, (1 : ℂ) ^ j) * Complex.exp (partialLogSum m 1)) 1 := by
+      HasDerivAt (fun z : ℂ => Complex.exp ((-logTaylor (m + 1) (-z))))
+        ((∑ j ∈ Finset.range m, (1 : ℂ) ^ j) * Complex.exp ((-logTaylor (m + 1) (-1)))) 1 := by
     simpa [mul_comm] using!
-      (Complex.hasDerivAt_exp (partialLogSum m 1)).comp 1 (hasDerivAt_partialLogSum m 1)
+      (Complex.hasDerivAt_exp ((-logTaylor (m + 1) (-1)))).comp 1 (hasDerivAt_neg_logTaylor_neg m 1)
   simpa [weierstrassFactor] using! hsub.mul hexp
 
 @[simp]
 lemma deriv_weierstrassFactor_at_one (m : ℕ) :
-    deriv (weierstrassFactor m) 1 = -Complex.exp (partialLogSum m 1) :=
+    deriv (weierstrassFactor m) 1 = -Complex.exp ((-logTaylor (m + 1) (-1))) :=
   (hasDerivAt_weierstrassFactor_at_one m).deriv
 
 lemma deriv_weierstrassFactor_at_one_ne_zero (m : ℕ) :
@@ -134,10 +134,10 @@ lemma deriv_weierstrassFactor_at_one_ne_zero (m : ℕ) :
 
 lemma hasDerivAt_weierstrassFactor_div_at_self (m : ℕ) {a : ℂ} (ha : a ≠ 0) :
     HasDerivAt (fun z : ℂ ↦ weierstrassFactor m (z / a))
-      ((-Complex.exp (partialLogSum m 1)) / a) a := by
+      ((-Complex.exp ((-logTaylor (m + 1) (-1)))) / a) a := by
   have hcomp :
       HasDerivAt ((weierstrassFactor m) ∘ fun z : ℂ ↦ z / a)
-        ((-Complex.exp (partialLogSum m 1)) * (1 / a)) a :=
+        ((-Complex.exp ((-logTaylor (m + 1) (-1)))) * (1 / a)) a :=
     HasDerivAt.comp (x := a) (h := fun z : ℂ ↦ z / a) (h₂ := weierstrassFactor m)
       (by simpa [ha] using hasDerivAt_weierstrassFactor_at_one m)
       ((hasDerivAt_id a).div_const a)
@@ -146,7 +146,7 @@ lemma hasDerivAt_weierstrassFactor_div_at_self (m : ℕ) {a : ℂ} (ha : a ≠ 0
 @[simp]
 lemma deriv_weierstrassFactor_div_at_self (m : ℕ) {a : ℂ} (ha : a ≠ 0) :
     deriv (fun z : ℂ ↦ weierstrassFactor m (z / a)) a =
-      (-Complex.exp (partialLogSum m 1)) / a :=
+      (-Complex.exp ((-logTaylor (m + 1) (-1)))) / a :=
   (hasDerivAt_weierstrassFactor_div_at_self m ha).deriv
 
 lemma deriv_weierstrassFactor_div_at_self_ne_zero (m : ℕ) {a : ℂ} (ha : a ≠ 0) :
@@ -162,33 +162,8 @@ theorem analyticOrderAt_weierstrassFactor_div_self (m : ℕ) {a : ℂ} (ha : a �
       simp [div_eq_mul_inv]
     have hdiff : Differentiable ℂ F := (differentiable_weierstrassFactor m).comp hdiv
     exact Differentiable.analyticAt (f := F) hdiff a
-  let g : ℂ → ℂ := fun z => (-a⁻¹) * Complex.exp (partialLogSum m (z / a))
-  have hg : AnalyticAt ℂ g a := by
-    have hdiv : Differentiable ℂ (fun z : ℂ => z / a) := by
-      simp [div_eq_mul_inv]
-    have hpls : Differentiable ℂ (fun z : ℂ => partialLogSum m (z / a)) :=
-      (differentiable_partialLogSum m).comp hdiv
-    have hexp : Differentiable ℂ (fun z : ℂ => Complex.exp (partialLogSum m (z / a))) :=
-      (Complex.differentiable_exp).comp hpls
-    have hdiffg : Differentiable ℂ g := by
-      simpa [g] using hexp.const_mul (-a⁻¹ : ℂ)
-    exact Differentiable.analyticAt (f := g) hdiffg a
-  have hg0 : g a ≠ 0 := by
-    have hconst : (-a⁻¹ : ℂ) ≠ 0 := by simp [ha]
-    have hexp0 : Complex.exp (partialLogSum m (a / a)) ≠ 0 :=
-      Complex.exp_ne_zero (partialLogSum m (a / a))
-    simpa [g] using mul_ne_zero hconst hexp0
-  refine (hF.analyticOrderAt_eq_natCast (n := 1)).2 ?_
-  refine ⟨g, hg, hg0, ?_⟩
-  refine Filter.Eventually.of_forall ?_
-  intro z
-  have hlin : (1 - z / a) = (z - a) * (-a⁻¹) := by
-    have h1 : (1 : ℂ) = a * a⁻¹ := by simp [ha]
-    simp [div_eq_mul_inv, h1]
-    ring
-  simp only [F, g, pow_one, smul_eq_mul]
-  rw [weierstrassFactor_def]
-  simp [hlin, mul_assoc]
+  exact hF.analyticOrderAt_eq_one_of_zero_deriv_ne_zero
+    (by simp [F, ha]) (deriv_weierstrassFactor_div_at_self_ne_zero m ha)
 
 /-- The natural-valued analytic order of `z ↦ E_m (z / a)` at `a` is `1`. -/
 theorem analyticOrderNatAt_weierstrassFactor_div_self (m : ℕ) {a : ℂ} (ha : a ≠ 0) :
@@ -201,11 +176,11 @@ lemma weierstrassFactor_eq_exp_neg_tail (m : ℕ) {z : ℂ} (hz : ‖z‖ < 1) (
   unfold weierstrassFactor
   have hz_ne_1 : 1 - z ≠ 0 := sub_ne_zero.mpr hz1.symm
   rw [← exp_log hz_ne_1, ← Complex.exp_add]
-  have hsum : log (1 - z) + partialLogSum m z = -logTail m z := by
-    have hdecomp := neg_log_one_sub_eq_partialLogSum_add_logTail hz m
+  have hsum : log (1 - z) + (-logTaylor (m + 1) (-z)) = -logTail m z := by
+    have hdecomp := neg_log_one_sub_eq_neg_logTaylor_neg_add_logTail hz m
     calc
-      log (1 - z) + partialLogSum m z
-          = log (1 - z) + (partialLogSum m z + logTail m z) - logTail m z := by ring
+      log (1 - z) + (-logTaylor (m + 1) (-z))
+          = log (1 - z) + ((-logTaylor (m + 1) (-z)) + logTail m z) - logTail m z := by ring
       _ = log (1 - z) + (-log (1 - z)) - logTail m z := by rw [hdecomp]
       _ = -logTail m z := by ring
   simp [hsum]
@@ -224,7 +199,7 @@ theorem weierstrassFactor_sub_one_pow_bound {m : ℕ} {z : ℂ} (hz : ‖z‖ �
         _ = ‖z‖ := norm_neg z
         _ = ‖z‖ ^ 1 := by simp
         _ ≤ 4 * ‖z‖ ^ 1 := by nlinarith [pow_nonneg (norm_nonneg z) 1]
-    simpa [weierstrassFactor] using hmain
+    simpa only [weierstrassFactor_zero, zero_add] using hmain
   · have hz_lt : ‖z‖ < 1 := lt_of_le_of_lt hz (by norm_num)
     by_cases hz1 : z = 1
     · exfalso; rw [hz1] at hz; norm_num at hz
@@ -264,11 +239,11 @@ Auxiliary inequalities for minimum-modulus / Cartan-type arguments in Hadamard f
 -/
 
 lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_sub (m : ℕ) (z : ℂ) :
-    Real.log ‖1 - z‖ - ‖partialLogSum m z‖ ≤ Real.log ‖weierstrassFactor m z‖ := by
+    Real.log ‖1 - z‖ - ‖logTaylor (m + 1) (-z)‖ ≤ Real.log ‖weierstrassFactor m z‖ := by
   by_cases hz1 : z = (1 : ℂ)
   · subst hz1
     simp [weierstrassFactor]
-  set S : ℂ := partialLogSum m z
+  set S : ℂ := (-logTaylor (m + 1) (-z))
   have hS : weierstrassFactor m z = (1 - z) * Complex.exp S := by
     simp [weierstrassFactor, S]
   have hnorm_pos : 0 < ‖(1 : ℂ) - z‖ :=
@@ -318,9 +293,9 @@ lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_nat_mul_max_one_norm_pow
     Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m) ≤ Real.log ‖weierstrassFactor m z‖ := by
   calc
     Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m)
-        ≤ Real.log ‖1 - z‖ - ‖partialLogSum m z‖ := by
+        ≤ Real.log ‖1 - z‖ - ‖logTaylor (m + 1) (-z)‖ := by
           gcongr
-          exact norm_partialLogSum_le_nat_mul_max_one_norm_pow m z
+          exact norm_logTaylor_neg_le_nat_mul_max_one_norm_pow m z
     _ ≤ Real.log ‖weierstrassFactor m z‖ :=
       log_norm_weierstrassFactor_ge_log_norm_one_sub_sub m z
 

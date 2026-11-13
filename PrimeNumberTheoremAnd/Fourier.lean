@@ -5,6 +5,7 @@ public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 public import Mathlib.Topology.ContinuousMap.Bounded.Basic
 public import Mathlib.Order.Filter.ZeroAndBoundedAtFilter
 public import Mathlib.Analysis.Fourier.FourierTransformDeriv
+public import TauCeti.Analysis.Fourier.Decay
 
 
 @[expose] public section
@@ -67,38 +68,6 @@ lemma norm_fourier_le_integral_deriv_div
     positivity
   exact (le_div_iff₀ hpos).mpr (by simpa [mul_comm, mul_left_comm, mul_assoc] using hmain)
 
-/-- The oscillatory-integral form of the decay bound: for `0 < T`,
-`‖∫ g y · exp(T·i·y)‖ ≤ (∫ ‖deriv g x‖) / T`. -/
-lemma norm_oscillatory_integral_le_integral_deriv_div
-    (g : ℝ → ℂ) (hg : Integrable g) (hdiff : Differentiable ℝ g)
-    (hg' : Integrable (deriv g)) {T : ℝ} (hT : 0 < T) :
-    ‖∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume‖ ≤
-      (∫ x, ‖deriv g x‖ ∂volume) / T := by
-  have hw : -T / (2 * Real.pi) ≠ 0 := by
-    exact div_ne_zero (neg_ne_zero.mpr hT.ne') (mul_ne_zero two_ne_zero Real.pi_ne_zero)
-  have hfourier := norm_fourier_le_integral_deriv_div g hg hdiff hg' hw
-  have heq :
-      (∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume) =
-        𝓕 g (-T / (2 * Real.pi)) := by
-    rw [Real.fourier_real_eq_integral_exp_smul]
-    apply integral_congr_ae
-    filter_upwards with y
-    rw [smul_eq_mul]
-    rw [mul_comm (g y)]
-    congr 1
-    congr 1
-    push_cast
-    field_simp [Real.pi_ne_zero]
-  rw [heq]
-  refine hfourier.trans_eq ?_
-  congr 1
-  have hden : (2 * Real.pi) * |-T / (2 * Real.pi)| = T := by
-    have htwopi_pos : 0 < 2 * Real.pi := by positivity
-    have hneg : -T / (2 * Real.pi) < 0 := div_neg_of_neg_of_pos (neg_neg_of_pos hT) htwopi_pos
-    rw [abs_of_neg hneg]
-    field_simp [Real.pi_ne_zero]
-  rw [hden]
-
 /-- The `|T|` variant of the oscillatory-integral decay bound: for `T ≠ 0`,
 `‖∫ g y · exp(T·i·y)‖ ≤ (∫ ‖deriv g x‖) / |T|`. -/
 lemma norm_oscillatory_integral_le_integral_deriv_div_abs
@@ -112,15 +81,17 @@ lemma norm_oscillatory_integral_le_integral_deriv_div_abs
   have heq :
       (∫ y, g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) ∂volume) =
         𝓕 g (-T / (2 * Real.pi)) := by
-    rw [Real.fourier_real_eq_integral_exp_smul]
-    apply integral_congr_ae
-    filter_upwards with y
-    rw [smul_eq_mul]
-    rw [mul_comm (g y)]
-    congr 1
-    congr 1
-    push_cast
-    field_simp [Real.pi_ne_zero]
+    have hphase (y : ℝ) :
+        exp (-((inner ℝ y (-T) : ℝ) * Complex.I)) • g y =
+          g y * exp ((T : ℂ) * Complex.I * (y : ℂ)) := by
+      rw [smul_eq_mul, mul_comm (g y)]
+      congr 1
+      congr 1
+      simp only [RCLike.inner_apply, conj_trivial, ofReal_mul, ofReal_neg]
+      ring
+    have hfreq : (2 * Real.pi)⁻¹ • (-T) = -T / (2 * Real.pi) := by
+      simp only [smul_eq_mul, div_eq_mul_inv, mul_comm]
+    simpa only [hphase, hfreq] using TauCeti.integral_exp_smul_eq_fourier g (-T)
   rw [heq]
   refine hfourier.trans_eq ?_
   congr 1

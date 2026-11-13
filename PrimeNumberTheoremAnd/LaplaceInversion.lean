@@ -4,6 +4,7 @@ public import Mathlib.Analysis.Fourier.FourierTransformDeriv
 public import Mathlib.Analysis.Fourier.Inversion
 public import Mathlib.Analysis.Fourier.RiemannLebesgueLemma
 public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Topology.MetricSpace.Cauchy
@@ -26,67 +27,12 @@ variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 def laplaceTransformBilateral (f : ℝ → E) (s : ℂ) : E :=
   ∫ x : ℝ, Complex.exp (-s * (x : ℂ)) • f x
 
-/-- Complex-valued bilateral Laplace integral, written in multiplication form. -/
-def laplaceIntegral (f : ℝ → ℂ) (s : ℂ) : ℂ :=
-  ∫ y : ℝ, f y * Complex.exp (-s * (y : ℂ))
-
-/-- Continuity of the bilateral Laplace integral along a vertical line, under
-integrability of the exponentially weighted source on that line. -/
-theorem continuous_laplaceIntegral_verticalLine_of_integrable
-    {f : ℝ → ℂ} {sigma : ℝ} (hf_cont : Continuous f)
-    (hf_int : Integrable (fun y : ℝ => exp (-((sigma : ℂ) * (y : ℂ))) * f y)) :
-    Continuous (fun t : ℝ => laplaceIntegral f ((sigma : ℂ) - (t : ℂ) * I)) := by
-  rw [continuous_iff_continuousAt]
-  intro t0
-  let bound : ℝ → ℝ := fun y => ‖exp (-((sigma : ℂ) * (y : ℂ))) * f y‖
-  let F : ℝ → ℝ → ℂ := fun t y =>
-    f y * exp ((((t : ℂ) * I - (sigma : ℂ)) * (y : ℂ)))
-  have hbound_int : Integrable bound := by
-    simpa [bound, mul_comm] using hf_int.norm
-  have hF_meas : ∀ᶠ t in 𝓝 t0, AEStronglyMeasurable (F t) volume := by
-    refine Eventually.of_forall ?_
-    intro t
-    dsimp [F]
-    exact (hf_cont.mul (continuous_exp.comp (by fun_prop))).aestronglyMeasurable
-  have h_bound : ∀ᶠ t in 𝓝 t0, ∀ᵐ y ∂volume, ‖F t y‖ ≤ bound y := by
-    refine Eventually.of_forall ?_
-    intro t
-    filter_upwards with y
-    dsimp [F, bound]
-    rw [norm_mul, norm_mul, norm_exp, norm_exp]
-    have hsig : (-(↑sigma * ↑y) : ℂ).re = -sigma * y := by
-      norm_num [Complex.mul_re]
-    have ht : (((↑t * I - ↑sigma) * ↑y) : ℂ).re = -sigma * y := by
-      norm_num [Complex.mul_re, Complex.I_re, Complex.I_im]
-    rw [hsig, ht]
-    rw [mul_comm]
-  have h_lim : ∀ᵐ y ∂volume, Tendsto (fun t => F t y) (𝓝 t0) (𝓝 (F t0 y)) := by
-    filter_upwards with y
-    dsimp [F]
-    have hcont : Continuous
-        (fun t : ℝ => f y * exp ((((t : ℂ) * I - (sigma : ℂ)) * (y : ℂ)))) := by
-      fun_prop
-    exact hcont.continuousAt
-  have h_tendsto :=
-    tendsto_integral_filter_of_dominated_convergence
-      (μ := volume) bound hF_meas h_bound hbound_int h_lim
-  unfold ContinuousAt laplaceIntegral
-  simpa [F, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using h_tendsto
-
 /-- The truncated inverse bilateral Laplace integral in the multiplication
 `x^s` form used by Perron and explicit-formula arguments. -/
 def laplaceIntegralCpowTrunc (f : ℝ → ℂ) (sigma x T : ℝ) : ℂ :=
   (1 / (2 * (π : ℂ))) *
-    ∫ t in (-T)..T, laplaceIntegral f ((sigma : ℂ) + (t : ℂ) * I) *
+    ∫ t in (-T)..T, laplaceTransformBilateral f ((sigma : ℂ) + (t : ℂ) * I) *
       (x : ℂ) ^ ((sigma : ℂ) + (t : ℂ) * I)
-
-/-- The multiplication-form complex Laplace integral agrees with the vector-valued definition. -/
-theorem laplaceIntegral_eq_laplaceTransformBilateral (f : ℝ → ℂ) (s : ℂ) :
-    laplaceIntegral f s = laplaceTransformBilateral f s := by
-  unfold laplaceIntegral laplaceTransformBilateral
-  congr with y
-  rw [smul_eq_mul]
-  ring
 
 def fourierInvTrunc (F : ℝ → E) (x T : ℝ) : E :=
   (1 / (2 * π) : ℝ) •
@@ -123,6 +69,25 @@ theorem laplaceTransformBilateral_eq_fourier (f : ℝ → E) (s : ℂ) :
       rw [Real.inner_apply]
       push_cast
       field_simp [h2pi]
+
+/-- Continuity of the bilateral Laplace integral along a vertical line, under
+integrability of the exponentially weighted source on that line. -/
+theorem continuous_laplaceTransformBilateral_verticalLine_of_integrable
+    {f : ℝ → ℂ} {sigma : ℝ}
+    (hf_int : Integrable (fun y : ℝ => exp (-((sigma : ℂ) * (y : ℂ))) * f y)) :
+    Continuous (fun t : ℝ => laplaceTransformBilateral f ((sigma : ℂ) - (t : ℂ) * I)) := by
+  have h := (VectorFourier.fourierIntegral_continuous Real.continuous_fourierChar
+    (innerSL ℝ).continuous₂ hf_int).comp
+      (show Continuous (fun t : ℝ ↦ -t / (2 * Real.pi)) by fun_prop)
+  change Continuous (fun t : ℝ ↦ 𝓕 (fun y : ℝ ↦
+    exp (-((sigma : ℂ) * (y : ℂ))) * f y) (-t / (2 * Real.pi))) at h
+  apply h.congr
+  intro t
+  symm
+  rw [laplaceTransformBilateral_eq_fourier]
+  simp only [sub_re, ofReal_re, mul_re, ofReal_im, I_re, mul_zero, I_im, mul_one,
+    sub_zero, sub_im, mul_im, zero_sub, add_zero, smul_eq_mul, neg_mul]
+
 
 theorem fourierInvTrunc_fourier_eq_integral_integral
     (f : ℝ → E) (x T : ℝ) :
@@ -186,64 +151,20 @@ theorem fourierInvTrunc_fourier_eq_integral_kernel
   congr with y
   rw [← intervalIntegral.integral_of_le hle]
 
-/-- Scaled finite-height exponential integral, away from zero frequency. -/
-theorem integral_exp_mul_I_scaled_of_ne {a T : ℝ} (ha : a ≠ 0) :
-    ∫ t in (-T)..T, Complex.exp (((t * a : ℝ) : ℂ) * I) =
-      (2 * Real.sin (T * a) : ℂ) / (a : ℂ) := by
-  have hc : ((a : ℂ) * I) ≠ 0 := by
-    exact mul_ne_zero (Complex.ofReal_ne_zero.mpr ha) Complex.I_ne_zero
-  calc
-    ∫ t in (-T)..T, Complex.exp (((t * a : ℝ) : ℂ) * I)
-        = ∫ t in (-T)..T, Complex.exp (((a : ℂ) * I) * t) := by
-          apply intervalIntegral.integral_congr
-          intro t _ht
-          push_cast
-          ring_nf
-    _ = (2 * Real.sin (T * a) : ℂ) / (a : ℂ) := by
-          rw [integral_exp_mul_complex (c := ((a : ℂ) * I)) hc]
-          have harg : ((a : ℂ) * I) * (T : ℂ) = ((T * a : ℝ) : ℂ) * I := by
-            push_cast
-            ring_nf
-          have hneg :
-              ((a : ℂ) * I) * ((-T : ℝ) : ℂ) = (((-(T * a) : ℝ) : ℂ) * I) := by
-            push_cast
-            ring_nf
-          rw [harg, hneg]
-          simp only [Complex.exp_mul_I, Complex.cos_neg, Complex.sin_neg, ofReal_neg,
-            Complex.ofReal_sin]
-          field_simp [Complex.ofReal_ne_zero.mpr ha, Complex.I_ne_zero]
-          ring_nf
-
-/-- Scaled finite-height exponential integral, including the zero-frequency case. -/
-theorem integral_exp_mul_I_scaled (a T : ℝ) :
-    ∫ t in (-T)..T, Complex.exp (((t * a : ℝ) : ℂ) * I) =
-      if a = 0 then (2 * T : ℂ) else (2 * Real.sin (T * a) : ℂ) / (a : ℂ) := by
-  by_cases ha : a = 0
-  · subst a
-    rw [ite_eq_left rfl]
-    simp [intervalIntegral.integral_const]
-    ring
-  · rw [ite_eq_right ha]
-    exact integral_exp_mul_I_scaled_of_ne ha
-
 /-- Scaled finite-height exponential integral, written with the normalized
 `sinc` kernel and no removable-singularity case split. -/
 theorem integral_exp_mul_I_scaled_sinc (a T : ℝ) :
     ∫ t in (-T)..T, Complex.exp (((t * a : ℝ) : ℂ) * I) =
       (2 * T * Real.sinc (T * a) : ℂ) := by
-  rw [integral_exp_mul_I_scaled]
-  by_cases hT : T = 0
-  · subst T
-    simp
   by_cases ha : a = 0
   · subst a
-    rw [ite_eq_left rfl]
-    simp [Real.sinc_zero]
-  · rw [ite_eq_right ha]
-    have hTa : T * a ≠ 0 := mul_ne_zero hT ha
-    rw [Real.sinc_of_ne_zero hTa]
+    simp
+    ring
+  · rw [intervalIntegral.integral_comp_mul_right (fun t : ℝ => Complex.exp ((t : ℂ) * I)) ha]
+    rw [neg_mul, integral_exp_mul_I_eq_sinc]
+    simp only [Complex.real_smul]
     push_cast
-    field_simp [ha, hT]
+    field_simp [Complex.ofReal_ne_zero.mpr ha]
 
 theorem fourierInvTrunc_fourier_eq_sinc_kernel
     [CompleteSpace E] {f : ℝ → E} (hf : Integrable f) (x T : ℝ) (hT : 0 ≤ T) :
@@ -1324,22 +1245,13 @@ theorem intervalIntegral_sinc_tail_eq_ibp {a b : ℝ} (ha : 0 < a) (hab : a ≤ 
 /-- The finite inverse-square integral on a positive interval. -/
 theorem intervalIntegral_inv_sq_of_pos {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
     ∫ x in a..b, (x ^ 2)⁻¹ = a⁻¹ - b⁻¹ := by
-  have hpos_uIcc : ∀ x ∈ Set.uIcc a b, 0 < x := by
-    intro x hx
-    rw [Set.uIcc_of_le hab] at hx
-    exact ha.trans_le hx.1
-  have hderiv : ∀ x ∈ Set.uIcc a b,
-      HasDerivAt (fun y : ℝ => -y⁻¹) ((x ^ 2)⁻¹) x := by
-    intro x hx
-    have h : HasDerivAt (fun y : ℝ => -y⁻¹) (-(-(x ^ 2)⁻¹)) x :=
-      (hasDerivAt_inv (hpos_uIcc x hx).ne').neg
-    rwa [neg_neg] at h
-  have hint : IntervalIntegrable (fun x : ℝ => (x ^ 2)⁻¹) volume a b := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hab
-    exact (continuousOn_pow 2).inv₀ fun x hx => by
-      exact pow_ne_zero 2 (hpos_uIcc x (by simpa [Set.uIcc_of_le hab] using hx)).ne'
-  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint]
-  ring
+  have hz : (0 : ℝ) ∉ Set.uIcc a b := by
+    rw [Set.uIcc_of_le hab]
+    exact fun h => (not_le_of_gt ha) h.1
+  have h := integral_zpow (a := a) (b := b) (n := (-2 : ℤ))
+    (Or.inr ⟨by norm_num, hz⟩)
+  norm_num at h
+  simpa only [zpow_neg, zpow_natCast, pow_one, div_neg, div_one, neg_sub] using h
 
 /-- Uniform finite-tail control for the one-sided sinc integral. -/
 theorem norm_intervalIntegral_sinc_tail_le {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
@@ -1728,18 +1640,12 @@ theorem integral_Ioi_exp_neg_mul_sin (a : ℝ) (ha : 0 < a) :
           simp [z, Complex.div_im, Complex.normSq]
           ring
 
-/-- The arctangent tail integral in the denominator shape used by the damped
-sine computation. -/
-theorem integral_Ioi_one_div_one_add_sq_eq_pi_div_two_sub_arctan (a : ℝ) :
-    ∫ u : ℝ in Set.Ioi a, (1 / (u ^ 2 + 1) : ℝ) = π / 2 - Real.arctan a := by
-  simpa [one_div, add_comm] using integral_Ioi_inv_one_add_sq (i := a)
-
 /-- For a positive lower endpoint, the arctangent tail integral is
 `arctan (1/a)`. -/
 theorem integral_Ioi_one_div_one_add_sq_eq_arctan_inv (a : ℝ) (ha : 0 < a) :
     ∫ u : ℝ in Set.Ioi a, (1 / (u ^ 2 + 1) : ℝ) = Real.arctan a⁻¹ := by
-  rw [integral_Ioi_one_div_one_add_sq_eq_pi_div_two_sub_arctan]
-  exact (Real.arctan_inv_of_pos ha).symm
+  simpa only [one_div, add_comm] using
+    integral_Ioi_inv_one_add_sq.trans (Real.arctan_inv_of_pos ha).symm
 
 /-- The exponentially damped sinc function is integrable on the positive
 half-line. -/
@@ -2386,7 +2292,7 @@ theorem laplaceIntegralCpowTrunc_eq_laplaceInvLineTrunc
     laplaceIntegralCpowTrunc f sigma x T =
       laplaceInvLineTrunc sigma (laplaceTransformBilateral f) (Real.log x) T := by
   unfold laplaceIntegralCpowTrunc laplaceInvLineTrunc
-  simp_rw [laplaceIntegral_eq_laplaceTransformBilateral, smul_eq_mul]
+  simp_rw [smul_eq_mul]
   rw [RCLike.real_smul_eq_coe_mul]
   congr 1
   · push_cast
@@ -2533,45 +2439,14 @@ lemma bounded_of_continuous_of_isBigO_exp_atBot_atTop
 
 /-- Continuity of the bilateral Laplace integral along the `σ + tI` vertical line,
 under integrability of the exponentially weighted source. Companion to
-`continuous_laplaceIntegral_verticalLine_of_integrable` (the `σ - tI` form). -/
-theorem continuous_laplaceIntegral_verticalLine_add_of_integrable
-    {φ : ℝ → ℂ} {σ : ℝ} (hφ_cont : Continuous φ)
+`continuous_laplaceTransformBilateral_verticalLine_of_integrable` (the `σ - tI` form). -/
+theorem continuous_laplaceTransformBilateral_verticalLine_add_of_integrable
+    {φ : ℝ → ℂ} {σ : ℝ}
     (hφ_int : Integrable (fun y : ℝ => exp (-((σ : ℂ) * (y : ℂ))) * φ y)) :
     Continuous
-      (fun t : ℝ => ∫ y : ℝ, φ y * exp (-(((σ : ℂ) + (t : ℂ) * I) * (y : ℂ)))) := by
-  rw [continuous_iff_continuousAt]
-  intro t0
-  let bound : ℝ → ℝ := fun y => ‖exp (-((σ : ℂ) * (y : ℂ))) * φ y‖
-  let F : ℝ → ℝ → ℂ := fun t y =>
-    φ y * exp (-(((σ : ℂ) + (t : ℂ) * I) * (y : ℂ)))
-  have hbound_int : Integrable bound := by
-    simpa [bound, mul_comm] using hφ_int.norm
-  have hF_meas : ∀ᶠ t in 𝓝 t0, AEStronglyMeasurable (F t) volume := by
-    refine Eventually.of_forall ?_
-    intro t
-    dsimp [F]
-    exact (hφ_cont.mul (continuous_exp.comp (by fun_prop))).aestronglyMeasurable
-  have h_bound : ∀ᶠ t in 𝓝 t0, ∀ᵐ y ∂volume, ‖F t y‖ ≤ bound y := by
-    refine Eventually.of_forall ?_
-    intro t
-    filter_upwards with y
-    dsimp [F, bound]
-    rw [norm_mul, norm_mul, norm_exp, norm_exp]
-    have hsig : (-(↑σ * ↑y) : ℂ).re = -σ * y := by
-      norm_num [Complex.mul_re]
-    have ht : (-((↑σ + ↑t * I) * ↑y) : ℂ).re = -σ * y := by
-      norm_num [Complex.mul_re, Complex.I_re, Complex.I_im]
-    rw [hsig, ht]
-    rw [mul_comm]
-  have h_lim : ∀ᵐ y ∂volume, Tendsto (fun t => F t y) (𝓝 t0) (𝓝 (F t0 y)) := by
-    filter_upwards with y
-    dsimp [F]
-    have hcont : Continuous
-        (fun t : ℝ => φ y * exp (-(((σ : ℂ) + (t : ℂ) * I) * (y : ℂ)))) := by
-      fun_prop
-    exact hcont.continuousAt
-  have h_tendsto :=
-    tendsto_integral_filter_of_dominated_convergence
-      (μ := volume) bound hF_meas h_bound hbound_int h_lim
-  unfold ContinuousAt
-  simpa [F] using h_tendsto
+      (fun t : ℝ => laplaceTransformBilateral φ ((σ : ℂ) + (t : ℂ) * I)) := by
+  have h := continuous_laplaceTransformBilateral_verticalLine_of_integrable hφ_int
+  convert h.comp continuous_neg using 1
+  ext t
+  congr 1
+  simp

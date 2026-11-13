@@ -63,22 +63,6 @@ theorem ContinuousLinearEquiv.coe_toLinearEquiv_symm {R : Type*} {S : Type*} [Se
     ⇑e.toLinearEquiv.symm = e.symm :=
   rfl
 
-/-- The axis-parallel complex rectangle with opposite corners `z` and `w` is complex product of
-  two intervals, which is also the convex hull of the four corners. Golfed from mathlib4\#9598. -/
-lemma segment_reProdIm_segment_eq_convexHull (z w : ℂ) :
-    [[z.re, w.re]] ×ℂ [[z.im, w.im]] =
-      convexHull ℝ {z, z.re + w.im * I, w.re + z.im * I, w} := by
-  simp_rw [← segment_eq_uIcc, ← convexHull_pair, ← convexHull_reProdIm, reProdIm]
-  exact congrArg _ <| Set.ext <| by simpa [Complex.ext_iff] using by tauto
-
-/-- If the four corners of a rectangle are contained in a convex set `U`, then the whole
-  rectangle is. Golfed from mathlib4\#9598. -/
-lemma rectangle_in_convex {U : Set ℂ} (U_convex : Convex ℝ U) {z w : ℂ} (hz : z ∈ U)
-    (hw : w ∈ U) (hzw : (z.re + w.im * I) ∈ U) (hwz : (w.re + z.im * I) ∈ U) :
-    Rectangle z w ⊆ U := by
-  rw [Rectangle, segment_reProdIm_segment_eq_convexHull]
-  exact convexHull_min (by simp_all [insert_subset_iff]) U_convex
-
 lemma mem_Rect {z w : ℂ} (zRe_lt_wRe : z.re ≤ w.re) (zIm_lt_wIm : z.im ≤ w.im) (p : ℂ) :
     p ∈ Rectangle z w ↔
       z.re ≤ p.re ∧ p.re ≤ w.re ∧ z.im ≤ p.im ∧ p.im ≤ w.im := by

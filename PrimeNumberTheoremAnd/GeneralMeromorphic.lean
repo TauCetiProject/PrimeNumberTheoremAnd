@@ -20,7 +20,7 @@ open scoped Interval
   the boundary of the rectangle.
   -/)]
 class MeromorphicOnRectangle (f : ℂ → ℂ) (poles : Finset ℂ) (z w : ℂ) : Prop where
-  holomorphicOn : HolomorphicOn f ((Rectangle z w) ∩ polesᶜ)
+  holomorphicOn : DifferentiableOn ℂ f ((Rectangle z w) ∩ polesᶜ)
   hasPoleAt : ∀ p ∈ poles, MeromorphicAt f p
   continuousOn : ContinuousOn f (RectangleBorder z w)
 

@@ -192,7 +192,7 @@ theorem exists_ball_eq_divisorCanonicalProduct_div_pow_eq
         (𝓝 ((divisorComplementCanonicalProduct m f z₀ z) * u z)) :=
     (hG0.mul tendsto_const_nhds)
   have hsub : ∀ᶠ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) in (Filter.atTop : Filter _),
-      fiber ⊆ s := eventually_atTop_subset_fiberFinset (f := f) z₀
+      fiber ⊆ s := Filter.eventually_ge_atTop (divisorZeroIndex₀_fiberFinset f z₀)
   have heq_eventually :
       ∀ᶠ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) in (Filter.atTop : Filter _),
         (divisorPartialProduct m f s z) / (z - z₀) ^ fiber.card
@@ -466,7 +466,7 @@ theorem eventually_exists_analyticAt_eq_pow_smul_divisorPartialProduct
       ∃ g : ℂ → ℂ, AnalyticAt ℂ g z₀ ∧ g z₀ ≠ 0 ∧ (fun z : ℂ => divisorPartialProduct m f s z)
         =ᶠ[𝓝 z₀] fun z : ℂ =>
           (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card • g z := by
-  refine (eventually_atTop_subset_fiberFinset (f := f) z₀).mono ?_
+  refine (Filter.eventually_ge_atTop (divisorZeroIndex₀_fiberFinset f z₀)).mono ?_
   intro s hs
   rcases
       exists_analyticAt_eq_pow_smul_of_partialProduct_contains_fiber

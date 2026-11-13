@@ -14,6 +14,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
+public import Mathlib.NumberTheory.LSeries.DirichletContinuation
 public import Mathlib.Analysis.Real.Pi.Bounds
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 
@@ -433,23 +434,6 @@ theorem completedRiemannZeta₀_order_one :
         exact le_trans hbig (Real.exp_le_exp.2 hdom)
       simpa [htransfer] using this
 
-/-- The removable extension of `(s - 1)ζ(s)`.
-
-The value at `1` is set to the residue of `ζ` at its simple pole; away from `1` this is the
-ordinary product `(s - 1)ζ(s)`. -/
-noncomputable def zetaTimesSMinusOne_entire (s : ℂ) : ℂ :=
-  Function.update (fun s : ℂ => (s - 1) * riemannZeta s) 1 1 s
-
-/-- The removable extension of `(s - 1)ζ(s)` has value `1` at the pole. -/
-@[simp]
-theorem zetaTimesSMinusOne_entire_one : zetaTimesSMinusOne_entire (1 : ℂ) = 1 := by
-  simp [zetaTimesSMinusOne_entire]
-
-/-- Away from `1`, the removable extension agrees with `(s - 1)ζ(s)`. -/
-theorem zetaTimesSMinusOne_entire_eq_mul_riemannZeta {s : ℂ} (hs : s ≠ 1) :
-    zetaTimesSMinusOne_entire s = (s - 1) * riemannZeta s := by
-  simp [zetaTimesSMinusOne_entire, Function.update, hs]
-
 /-- In the half-plane of absolute convergence, the completed zeta function does not vanish. -/
 theorem completedRiemannZeta_ne_zero_of_one_lt_re {s : ℂ} (hs : 1 < s.re) :
     completedRiemannZeta s ≠ 0 := by
@@ -465,70 +449,15 @@ theorem completedRiemannZeta_ne_zero_of_one_lt_re {s : ℂ} (hs : 1 < s.re) :
   rw [hΛ_def]
   exact mul_ne_zero hzeta_ne0 hGamma_ne0
 
-/-- The removable extension is uniquely determined by its value at `1` and its values off `1`. -/
-theorem eq_zetaTimesSMinusOne_entire_of_eq_on_compl_singleton {g : ℂ → ℂ}
-    (h_one : g (1 : ℂ) = 1)
-    (h_eq : ∀ ⦃s : ℂ⦄, s ≠ 1 → g s = (s - 1) * riemannZeta s) :
-    g = zetaTimesSMinusOne_entire := by
-  funext s
-  by_cases hs : s = 1
-  · subst hs
-    simpa using h_one
-  · simpa [zetaTimesSMinusOne_entire_eq_mul_riemannZeta hs] using h_eq hs
-
-/-- Away from `1`, the removable extension is holomorphic as `(s - 1)ζ(s)`. -/
-theorem zetaTimesSMinusOne_entire_differentiableOn_compl_singleton :
-    DifferentiableOn ℂ zetaTimesSMinusOne_entire (Set.univ \ ({1} : Set ℂ)) := by
-  intro s hs
-  have hs1 : s ≠ 1 := by
-    simpa [Set.mem_singleton_iff] using hs.2
-  have h1 : DifferentiableAt ℂ (fun s => s - 1) s := differentiableAt_id.sub_const 1
-  have h2 : DifferentiableAt ℂ riemannZeta s := differentiableAt_riemannZeta hs1
-  have hmul : DifferentiableAt ℂ (fun s => (s - 1) * riemannZeta s) s := by
-    simpa [mul_assoc, mul_left_comm, mul_comm] using! (h1.mul h2)
-  refine (hmul.differentiableWithinAt.congr (fun x hx => ?_) ?_)
-  · have hx1 : x ≠ (1 : ℂ) := by
-      simpa [Set.mem_singleton_iff] using hx.2
-    exact zetaTimesSMinusOne_entire_eq_mul_riemannZeta hx1
-  · exact zetaTimesSMinusOne_entire_eq_mul_riemannZeta hs1
-
-/-- The residue theorem for `ζ` gives continuity of the removable extension at `1`. -/
-theorem zetaTimesSMinusOne_entire_continuousAt_one :
-    ContinuousAt zetaTimesSMinusOne_entire (1 : ℂ) := by
-  have h :
-      ContinuousAt
-        (Function.update (fun s : ℂ => (s - 1) * riemannZeta s) (1 : ℂ) (1 : ℂ))
-        (1 : ℂ) :=
-    (continuousAt_update_same (f := fun s : ℂ => (s - 1) * riemannZeta s)
-        (x := (1 : ℂ)) (y := (1 : ℂ))).2
-      (riemannZeta_residue_one : Tendsto (fun s : ℂ => (s - 1) * riemannZeta s)
-        (𝓝[≠] (1 : ℂ)) (𝓝 (1 : ℂ)))
-  change
-    ContinuousAt (Function.update (fun s : ℂ => (s - 1) * riemannZeta s) (1 : ℂ) (1 : ℂ))
-      (1 : ℂ)
-  exact h
-
-/-- The removable extension of `(s - 1)ζ(s)` is entire. -/
-theorem zetaTimesSMinusOne_entire_differentiable :
-    Differentiable ℂ zetaTimesSMinusOne_entire := by
-  have hiff :=
-    (Complex.differentiableOn_compl_singleton_and_continuousAt_iff (f := zetaTimesSMinusOne_entire)
-      (s := (Set.univ : Set ℂ)) (c := (1 : ℂ)) (by simp))
-  have : DifferentiableOn ℂ zetaTimesSMinusOne_entire (Set.univ : Set ℂ) :=
-    hiff.1
-      ⟨zetaTimesSMinusOne_entire_differentiableOn_compl_singleton,
-        zetaTimesSMinusOne_entire_continuousAt_one⟩
-  simpa [DifferentiableOn, differentiableWithinAt_univ, zetaTimesSMinusOne_entire] using! this
-
 /-- A coarse global growth bound for the removable extension of `(s - 1)ζ(s)`.
 
 The proof combines the half-plane zeta bound, the functional equation, and the Gamma strip bound. -/
 theorem zeta_minus_pole_entire_growth :
     ∃ C > 0, ∀ z : ℂ,
-      Real.log (1 + ‖zetaTimesSMinusOne_entire z‖) ≤ C * (1 + ‖z‖) ^ (2 : ℝ) := by
+      Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖) ≤ C * (1 + ‖z‖) ^ (2 : ℝ) := by
   have hcont :
-      ContinuousOn zetaTimesSMinusOne_entire (Metric.closedBall (0 : ℂ) 3) :=
-    zetaTimesSMinusOne_entire_differentiable.continuous.continuousOn
+      ContinuousOn (DirichletCharacter.LFunctionTrivChar₁ 1) (Metric.closedBall (0 : ℂ) 3) :=
+    (DirichletCharacter.differentiable_LFunctionTrivChar₁ 1).continuous.continuousOn
   obtain ⟨M, hM_nonneg, hM⟩ := exists_norm_bound_on_closedBall hcont
   obtain ⟨CΓ, hCΓ_pos, hΓ⟩ := Complex.Gamma.stirling_bound_re_ge_zero
   let C : ℝ := max (Real.log (1 + M) + 10) (max (40 : ℝ) (20 * CΓ + 500))
@@ -543,9 +472,9 @@ theorem zeta_minus_pole_entire_growth :
     have hA1 : (1 : ℝ) ≤ A := by dsimp [A]; linarith [norm_nonneg z]
     have hA2_nonneg : 0 ≤ A ^ (2 : ℝ) := by positivity
     by_cases hz_small : ‖z‖ ≤ 3
-    · have hnorm : ‖zetaTimesSMinusOne_entire z‖ ≤ M := hM z hz_small
+    · have hnorm : ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖ ≤ M := hM z hz_small
       have hlog :
-          Real.log (1 + ‖zetaTimesSMinusOne_entire z‖) ≤ Real.log (1 + M) := by
+          Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖) ≤ Real.log (1 + M) := by
         refine Real.log_le_log (by positivity) ?_
         linarith
       have hC1 : Real.log (1 + M) ≤ C + Real.log 2 := by
@@ -566,7 +495,7 @@ theorem zeta_minus_pole_entire_growth :
         have hlog2 : 0 ≤ Real.log 2 := Real.log_nonneg (by norm_num)
         linarith
       calc
-        Real.log (1 + ‖zetaTimesSMinusOne_entire z‖)
+        Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖)
             ≤ Real.log (1 + M) := hlog
         _ ≤ C + Real.log 2 := hC1
         _ ≤ (C + Real.log 2) * A ^ (2 : ℝ) := by
@@ -576,10 +505,11 @@ theorem zeta_minus_pole_entire_growth :
         intro h
         have : (‖z‖ : ℝ) = 1 := by simp [h]
         linarith [hz_large]
-      have hzeta_def : zetaTimesSMinusOne_entire z = (z - 1) * riemannZeta z := by
-        exact zetaTimesSMinusOne_entire_eq_mul_riemannZeta hz_ne1
+      have hzeta_def : (DirichletCharacter.LFunctionTrivChar₁ 1) z = (z - 1) * riemannZeta z := by
+        simp [DirichletCharacter.LFunctionTrivChar₁, DirichletCharacter.LFunctionTrivChar,
+          Function.update_of_ne hz_ne1]
       have hmain :
-          ‖zetaTimesSMinusOne_entire z‖ ≤ Real.exp (C * A ^ (2 : ℝ)) := by
+          ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖ ≤ Real.exp (C * A ^ (2 : ℝ)) := by
         by_cases hz_re : zetaAbelContinuationReLower < z.re
         · have hs_dom := mem_zetaAbelContinuationDomain_of_re hz_ne1
             (by simpa [zetaAbelContinuationReLower] using hz_re)
@@ -738,13 +668,13 @@ theorem zeta_minus_pole_entire_growth :
         exact le_trans h0 hle
       have hB0 : 0 ≤ C * A ^ (2 : ℝ) := mul_nonneg hC0 hA2_nonneg
       have hlog :
-          Real.log (1 + ‖zetaTimesSMinusOne_entire z‖) ≤
+          Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖) ≤
             C * A ^ (2 : ℝ) + Real.log 2 :=
         Real.log_one_add_le_add_log_two_of_le_exp (norm_nonneg _) hB0 hmain
       have hA2_ge1 : (1 : ℝ) ≤ A ^ (2 : ℝ) :=
         Real.one_le_rpow hA1 (by norm_num)
       calc
-        Real.log (1 + ‖zetaTimesSMinusOne_entire z‖)
+        Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖)
             ≤ C * A ^ (2 : ℝ) + Real.log 2 := hlog
         _ ≤ (C + Real.log 2) * A ^ (2 : ℝ) := by
               have hlog2 : 0 ≤ Real.log 2 := Real.log_nonneg (by norm_num)

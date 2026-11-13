@@ -1020,27 +1020,24 @@ lemma sum_mobius_mul_floor (x : ℝ) (hx : 1 ≤ x) :
   · simpa [moebius_mul_coe_zeta, ArithmeticFunction.one_apply]
 
 
-noncomputable def mu_log : ArithmeticFunction ℝ :=
-    ⟨(fun n ↦ μ n * ArithmeticFunction.log n), (by simp)⟩
-
-lemma mu_log_apply (n : ℕ) : mu_log n = μ n * ArithmeticFunction.log n := by
-  rfl
-
-lemma mu_log_mul_zeta : mu_log * ArithmeticFunction.zeta = -Λ := by
+lemma ArithmeticFunction.moebius_pmul_log_mul_zeta :
+    (μ : ArithmeticFunction ℝ).pmul ArithmeticFunction.log * ArithmeticFunction.zeta = -Λ := by
   ext n
   rw [coe_mul_zeta_apply]
-  simp_rw [mu_log_apply]
+  simp_rw [pmul_apply, intCoe_apply]
   rw [sum_moebius_mul_log_eq]
   rfl
 
-lemma mu_log_eq_mu_mul_neg_lambda : mu_log = μ * -Λ := by
-  rw [← mu_log_mul_zeta, mul_comm, mul_assoc, coe_zeta_mul_coe_moebius, mul_one]
+lemma ArithmeticFunction.moebius_pmul_log_eq_moebius_mul_neg_vonMangoldt :
+    (μ : ArithmeticFunction ℝ).pmul ArithmeticFunction.log = μ * -Λ := by
+  rw [← moebius_pmul_log_mul_zeta, mul_comm, mul_assoc, coe_zeta_mul_coe_moebius, mul_one]
 
 lemma sum_mu_Lambda (x : ℝ) : ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) * log n = - ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x/k) := by
   rw [Iic_eq_Icc, bot_eq_zero, ← add_sum_Ioc_eq_sum_Icc (by simp), ← add_sum_Ioc_eq_sum_Icc (by simp)]
   simp only [ArithmeticFunction.map_zero, Int.cast_zero, CharP.cast_eq_zero, log_zero, mul_zero,
     zero_add, div_zero, zero_mul]
-  simp_rw [← log_apply, ← mu_log_apply, mu_log_eq_mu_mul_neg_lambda]
+  simp_rw [← log_apply, ← intCoe_apply, ← pmul_apply,
+    moebius_pmul_log_eq_moebius_mul_neg_vonMangoldt]
   rw [sum_Ioc_mul_eq_sum_sum, ← sum_neg_distrib]
   refine sum_congr rfl fun n hn ↦ ?_
   simp_rw [ArithmeticFunction.neg_apply, sum_neg_distrib]
@@ -1108,9 +1105,7 @@ lemma sum_log_div_isBigO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, log (x / k)
           erw [← Nat.cast_prod, Finset.prod_Ico_id_eq_factorial]
         · exact fun n hn => div_ne_zero (by positivity) (Nat.cast_ne_zero.mpr <| by linarith [Finset.mem_Icc.mp hn])
       have h_exp_bound : x ^ ⌊x⌋₊ / Nat.factorial ⌊x⌋₊ ≤ Real.exp x := by
-        have h_term : x ^ ⌊x⌋₊ / (⌊x⌋₊! : ℝ) ≤ ∑' k : ℕ, x ^ k / (k ! : ℝ) := by
-          exact Summable.le_tsum (show Summable _ from Real.summable_pow_div_factorial x) ⌊x⌋₊ (fun _ _ => by positivity)
-        simpa [Real.exp_eq_exp_ℝ, NormedSpace.exp_eq_tsum_div] using h_term
+        exact Real.pow_div_factorial_le_exp x (zero_le_one.trans hx) _
       exact h_sum_log.trans (Real.log_le_iff_le_exp (by positivity) |>.2 h_exp_bound)
     intros x hx
     have h_sum_eq : ∑ k ∈ Finset.Iic ⌊x⌋₊, Real.log (x / k) = ∑ k ∈ Finset.Icc 1 ⌊x⌋₊, Real.log (x / k) := by
@@ -1211,9 +1206,6 @@ lemma R_linear_bound (ε : ℝ) (hε : 0 < ε) : ∃ C, 0 ≤ C ∧ ∀ y, 1 ≤
     exact R_locally_bounded A hA.1.le |> fun ⟨CA, hCA⟩ => ⟨CA, fun y hy => hCA y hy⟩
   exact ⟨Max.max CA 0, by positivity, fun y hy => if hy' : y ≤ A then le_trans (hCA y ⟨by linarith, by linarith⟩) (by linarith [le_max_left CA 0, le_max_right CA 0, show 0 ≤ ε * y by nlinarith]) else le_trans (hA.2 y (by linarith)) (by linarith [le_max_left CA 0, le_max_right CA 0, show 0 ≤ ε * y by nlinarith])⟩
 
-lemma sum_abs_R_isLittleO' : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, |R (x / k)|) =o[atTop] (fun x => x * log x) := by
-  apply sum_abs_R_isLittleO
-
 lemma M_isLittleO : M =o[atTop] id := by
   have h_identity : ∀ x ≥ 1, M x * Real.log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Chebyshev.psi (x / k)) := by
     exact fun x a => M_log_identity x a
@@ -1274,9 +1266,6 @@ lemma M_isLittleO : M =o[atTop] id := by
   · filter_upwards [Filter.eventually_gt_atTop 1] with x hx hx' using absurd hx' <| ne_of_gt <| mul_pos (by positivity) <| Real.log_pos hx
   · filter_upwards [Filter.eventually_gt_atTop 1] with x hx hx' using by nlinarith [Real.log_pos hx]
   · filter_upwards [Filter.eventually_gt_atTop 0] with x hx hx' using absurd hx' hx.ne'
-
-lemma M_isLittleO' : M =o[atTop] id := by
-  exact M_isLittleO
 
 
 @[blueprint
@@ -1501,7 +1490,7 @@ lemma sum_mu_div_sq_isLittleO : (fun N : ℕ ↦ ∑ d ∈ Finset.Icc 1 (Nat.sqr
     have h_bound : ∀ ε > 0, ∃ C : ℝ, ∀ x : ℝ, 1 ≤ x → |M x| ≤ ε * x + C := by
       have h_bound : ∀ ε > 0, ∃ C : ℝ, ∀ x : ℝ, 1 ≤ x → |M x| ≤ ε * x + C := by
         intro ε hε
-        have := M_isLittleO'
+        have := M_isLittleO
         rw [ Asymptotics.isLittleO_iff ] at this;
         norm_num +zetaDelta at *;
         obtain ⟨ a, ha ⟩ := this hε;

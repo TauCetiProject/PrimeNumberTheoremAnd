@@ -3,6 +3,7 @@ module
 public import Mathlib.Analysis.Calculus.LogDeriv
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Meromorphic.Divisor
+public import TauCeti.Analysis.Contour.Argument.Principle
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 /-!
@@ -62,59 +63,12 @@ lemma logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt
     (hf : MeromorphicAt f p)
     (hord : meromorphicOrderAt f p = (n : WithTop ℤ)) :
     (logDeriv f - fun s : ℂ => (n : ℂ) / (s - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-  obtain ⟨g, hg_analytic, hg_ne, hfg⟩ := (meromorphicOrderAt_eq_int_iff hf).1 hord
-  let F : ℂ → ℂ := fun s => (s - p) ^ n * g s
-  have hfg_ne : f =ᶠ[𝓝[≠] p] F := by
-    filter_upwards [hfg] with s hs
-    simpa [F, smul_eq_mul] using hs
-  have hderiv_ne : deriv f =ᶠ[𝓝[≠] p] deriv F := hfg_ne.nhdsNE_deriv
-  have hg_nonzero_ne : ∀ᶠ s in 𝓝[≠] p, g s ≠ 0 := by
-    exact (hg_analytic.continuousAt.ne_iff_eventually_ne continuousAt_const).mp hg_ne
-      |>.filter_mono nhdsWithin_le_nhds
-  have hg_analytic_ne : ∀ᶠ s in 𝓝[≠] p, AnalyticAt ℂ g s := by
-    exact hg_analytic.eventually_analyticAt.filter_mono nhdsWithin_le_nhds
-  have hlog_eq :
-      (logDeriv f - fun s : ℂ => (n : ℂ) / (s - p)) =ᶠ[𝓝[≠] p] logDeriv g := by
-    filter_upwards [hfg_ne, hderiv_ne, self_mem_nhdsWithin, hg_nonzero_ne, hg_analytic_ne]
-      with s hfs hderiv hs_ne hgs_ne hgs_analytic
-    have hpow_ne : (s - p) ^ n ≠ 0 := zpow_ne_zero n (sub_ne_zero.mpr hs_ne)
-    have hdiff_pow : DifferentiableAt ℂ (fun z : ℂ => (z - p) ^ n) s := by
-      exact ((by fun_prop : DifferentiableAt ℂ (fun z : ℂ => z - p) s)).zpow
-        (Or.inl (sub_ne_zero.mpr hs_ne))
-    have hlogF :
-        logDeriv F s =
-          logDeriv (fun z : ℂ => (z - p) ^ n) s + logDeriv g s := by
-      exact logDeriv_mul (f := fun z : ℂ => (z - p) ^ n) (g := g) s
-        hpow_ne hgs_ne hdiff_pow hgs_analytic.differentiableAt
-    have hlogpow : logDeriv (fun z : ℂ => (z - p) ^ n) s = (n : ℂ) / (s - p) := by
-      rw [logDeriv_fun_zpow (f := fun z : ℂ => z - p) (x := s) (by fun_prop) n]
-      simp [logDeriv_apply, div_eq_mul_inv]
-    simp only [Pi.sub_apply]
-    calc
-      logDeriv f s - (n : ℂ) / (s - p)
-          = logDeriv F s - (n : ℂ) / (s - p) := by
-            simp [logDeriv_apply, hfs, hderiv]
-      _ = logDeriv g s := by
-            rw [hlogF, hlogpow]
-            ring
-  have hderiv_bounded : deriv g =O[𝓝 p] (1 : ℂ → ℂ) :=
-    hg_analytic.deriv.continuousAt.norm.isBoundedUnder_le.isBigO_one ℂ
-  have hinv_bounded : g⁻¹ =O[𝓝 p] (1 : ℂ → ℂ) :=
-    (hg_analytic.continuousAt.inv₀ hg_ne).norm.isBoundedUnder_le.isBigO_one ℂ
-  have hlog_bounded : logDeriv g =O[𝓝 p] (1 : ℂ → ℂ) := by
-    have hmul_bounded :
-        (deriv g * g⁻¹) =O[𝓝 p] ((1 : ℂ → ℂ) * (1 : ℂ → ℂ)) :=
-      Asymptotics.IsBigO.mul hderiv_bounded hinv_bounded
-    have hmul_bounded' :
-        (fun x => deriv g x * (g x)⁻¹) =O[𝓝 p] (1 : ℂ → ℂ) := by
-      refine hmul_bounded.congr ?_ ?_
-      · intro x
-        rfl
-      · intro x
-        simp
-    change (fun x => deriv g x / g x) =O[𝓝 p] (1 : ℂ → ℂ)
-    simpa only [div_eq_mul_inv] using hmul_bounded'
-  exact hlog_eq.trans_isBigO (hlog_bounded.mono nhdsWithin_le_nhds)
+  obtain ⟨g, hg, hg0, heq⟩ := TauCeti.Contour.logDeriv_eventuallyEq_principalPart hf hord
+  have hbounded : logDeriv g =O[𝓝 p] (1 : ℂ → ℂ) :=
+    (TauCeti.Contour.analyticAt_logDeriv_of_analyticAt hg hg0).continuousAt.norm.isBoundedUnder_le.isBigO_one ℂ
+  refine (hbounded.mono nhdsWithin_le_nhds).congr' ?_ .rfl
+  filter_upwards [heq] with z hz
+  simp only [Pi.sub_apply, hz, div_eq_mul_inv, add_sub_cancel_left]
 
 theorem logDeriv_residue_eq_meromorphicOrderAt
     {f : ℂ → ℂ} {p : ℂ} {n : ℤ}
@@ -193,23 +147,6 @@ private lemma logDeriv_meromorphicOrderAt_eq_neg_one_of_order_ne_zero
   exact meromorphicOrderAt_eq_neg_one_of_sub_principal_isBigO_one hlog
     (by exact_mod_cast hn) hO
 
-theorem logDeriv_hasSimplePolesOn_of_meromorphicOrderAt_ne_top
-    {f : ℂ → ℂ} {R : Set ℂ}
-    (hf : MeromorphicOn f R) (hlog : MeromorphicOn (logDeriv f) R)
-    (hfinite_order : ∀ p ∈ R, meromorphicOrderAt f p ≠ ⊤) :
-    HasSimplePolesOn (logDeriv f) R := by
-  intro p hpR
-  obtain ⟨n, hn⟩ := WithTop.ne_top_iff_exists.mp (hfinite_order p hpR)
-  by_cases hn0 : n = 0
-  · have hord0 : meromorphicOrderAt f p = (0 : WithTop ℤ) := by
-      simpa [hn0] using hn.symm
-    have hnonneg :=
-      logDeriv_meromorphicOrderAt_nonneg_of_order_zero (hf p hpR) (hlog p hpR) hord0
-    exact le_trans (WithTop.coe_le_coe.2 (by norm_num : (-1 : ℤ) ≤ 0)) hnonneg
-  · have hneg_one :=
-      logDeriv_meromorphicOrderAt_eq_neg_one_of_order_ne_zero (hf p hpR) (hlog p hpR)
-        hn.symm hn0
-    rw [hneg_one]
 
 theorem logDeriv_poles_eq_divisor_support
     {f : ℂ → ℂ} {R : Set ℂ}
@@ -288,7 +225,7 @@ theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
   let D := MeromorphicOn.divisor f R
   have hsupport : D.support.Finite := divisor_support_rectangle_finite f z w
   have hlog_simple : HasSimplePolesOn (logDeriv f) R :=
-    logDeriv_hasSimplePolesOn_of_meromorphicOrderAt_ne_top hf hlog hfinite_order
+    fun p hp ↦ TauCeti.Contour.neg_one_le_meromorphicOrderAt_logDeriv (hf p hp)
   have hlog_poles_eq :
       R ∩ {s | meromorphicOrderAt (logDeriv f) s < 0} = D.support := by
     simpa [R, D] using

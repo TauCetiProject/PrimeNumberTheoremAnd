@@ -35,11 +35,6 @@ lemma MeasureTheory.integral_comp_mul_right_I0i_haar
   rw [mul_comm (a : 𝕂), div_mul, mul_div_assoc, div_self ?_, mul_one]
   exact (RCLike.ofReal_ne_zero).mpr <| ne_of_gt ha
 
-lemma MeasureTheory.integral_comp_mul_right_I0i_haar_real
-    (f : ℝ → ℝ) {a : ℝ} (ha : 0 < a) :
-    ∫ (y : ℝ) in Ioi 0, f (y * a) / y = ∫ (y : ℝ) in Ioi 0, f y / y :=
-  MeasureTheory.integral_comp_mul_right_I0i_haar f ha
-
 lemma MeasureTheory.integral_comp_mul_left_I0i_haar
     (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
     ∫ (y : ℝ) in Ioi 0, f (a * y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
@@ -75,12 +70,6 @@ lemma MeasureTheory.integral_comp_div_I0i_haar
   · rw [mul_one_div]
   · rw [one_div_one_div]
 
-theorem Complex.ofReal_rpow {x : ℝ} (h : x > 0) (y : ℝ) :
-    (((x : ℝ) ^ (y : ℝ)) : ℝ) = (x : ℂ) ^ (y : ℂ) := by
-  rw [rpow_def_of_pos h, ofReal_exp, ofReal_mul, Complex.ofReal_log h.le,
-    Complex.cpow_def_of_ne_zero]
-  simp only [ne_eq, ofReal_eq_zero, ne_of_gt h, not_false_eq_true]
-
 @[simp]
 lemma Function.support_abs {α : Type*} (f : α → 𝕂) :
     (fun x ↦ ‖f x‖).support = f.support := by
@@ -90,10 +79,6 @@ lemma Function.support_abs {α : Type*} (f : α → 𝕂) :
 lemma Function.support_ofReal {f : ℝ → ℝ} :
     (fun x ↦ ((f x) : ℂ)).support = f.support := by
   apply Function.support_comp_eq (g := ofReal); simp
-
-lemma Function.support_mul_subset_of_subset {s : Set ℝ} {f g : ℝ → 𝕂}
-    (fSupp : f.support ⊆ s) : (f * g).support ⊆ s := by
-  simp_rw [support_mul', inter_subset, subset_union_of_subset_right fSupp]
 
 lemma Function.support_of_along_fiber_subset_subset {α β M : Type*} [Zero M]
     {f : α × β → M} {s : Set α} {t : Set β}
@@ -182,15 +167,6 @@ lemma Filter.BigO_zero_atTop_of_support_in_Icc {a b : ℝ} (f : ℝ → 𝕂)
   refine norm_le_zero_iff.mpr <| Function.support_subset_iff'.mp fSupp c ?_
   exact fun h ↦ by linarith [mem_Icc.mp h]
 
-lemma deriv.ofReal_comp' {f : ℝ → ℝ} :
-    deriv (fun x : ℝ ↦ (f x : ℂ)) = (fun x ↦ ((deriv f) x : ℂ)) :=
-  funext fun _ ↦ deriv.ofReal_comp
-
-lemma deriv.comp_ofReal' {e : ℂ → ℂ} (hf : Differentiable ℂ e) :
-    deriv (fun x : ℝ ↦ e x) = fun (x : ℝ) ↦ deriv e x :=
-  funext fun _ ↦ deriv.comp_ofReal (hf.differentiableAt)
-
-
 /-- *Need differentiability, and decay at `0` and `∞`* -/
 @[blueprint
   (title := "PartialIntegration")
@@ -228,14 +204,14 @@ lemma PartialIntegration_of_support_in_Icc {a b : ℝ} (f g : ℝ → ℂ) (ha :
     ∫ x in Ioi 0, f x * deriv g x = -∫ x in Ioi 0, deriv f x * g x := by
   have Icc_sub : Icc a b ⊆ Ioi 0 := (Icc_subset_Ioi_iff h).mpr ha
   have fderivSupp := Function.support_deriv_subset_Icc fSupp
-  have fgSupp : (f * g).support ⊆ Icc a b := Function.support_mul_subset_of_subset fSupp
+  have fgSupp : (f * g).support ⊆ Icc a b := (Function.support_mul_subset_left _ _).trans fSupp
   have fDerivgInt : IntegrableOn (f * deriv g) (Ioi 0) := by
     apply (integrableOn_iff_integrable_of_support_subset <|
-           Function.support_mul_subset_of_subset fSupp).mp
+           (Function.support_mul_subset_left _ _).trans fSupp).mp
     exact fDiff.continuousOn.mono Icc_sub |>.mul (gderivCont.mono Icc_sub) |>.integrableOn_Icc
   have gDerivfInt : IntegrableOn (deriv f * g) (Ioi 0) := by
     apply (integrableOn_iff_integrable_of_support_subset <|
-           Function.support_mul_subset_of_subset fderivSupp).mp
+           (Function.support_mul_subset_left _ _).trans fderivSupp).mp
     exact fderivCont.mono Icc_sub |>.mul (gDiff.continuousOn.mono Icc_sub) |>.integrableOn_Icc
   have lim_at_zero : Tendsto (f * g) (𝓝[>]0) (𝓝 0) :=
     TendstoAtZero_of_support_in_Icc (f * g) ha fgSupp
@@ -380,8 +356,9 @@ lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
       intro a ha
       refine DifferentiableAt.comp_ofReal (e := fun x ↦ x ^ s) ?_ |>.differentiableWithinAt
       apply differentiableAt_fun_id.cpow (differentiableAt_const s) <| by exact Or.inl ha
-    · simp only [deriv.ofReal_comp']
-      exact continuous_ofReal.comp (diffν.continuous_deriv (by norm_num)) |>.continuousOn
+    · refine (continuous_ofReal.comp (diffν.continuous_deriv (by norm_num))).continuousOn.congr ?_
+      intro x _hx
+      exact deriv.ofReal_comp
     · apply ContinuousOn.congr (f := fun (x : ℝ) ↦ (x : ℂ) ^ (s - 1)) ?_
         fun x hx ↦ gderiv hs hx
       exact Continuous.continuousOn (by continuity) |>.cpow continuousOn_const (by simp)

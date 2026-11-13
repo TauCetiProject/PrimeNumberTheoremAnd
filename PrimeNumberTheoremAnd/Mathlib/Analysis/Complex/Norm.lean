@@ -1,6 +1,6 @@
 module
 
-public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Basic
 
 /-!
 # Norm estimates for complex analysis
@@ -33,14 +33,8 @@ lemma one_le_norm_one_sub_of_norm_gt_three {z : ℂ} (hz : 3 < ‖z‖) : (1 : �
 /-- If `‖u‖ ≥ 1`, then inverse powers of `u` have norm at most one. -/
 lemma norm_inv_pow_le_one_of_one_le_norm (u : ℂ) (n : ℕ) (hu : (1 : ℝ) ≤ ‖u‖) :
     ‖(u ^ n)⁻¹‖ ≤ 1 := by
-  have hge : (1 : ℝ) ≤ ‖u ^ n‖ := by
-    rw [Complex.norm_pow]
-    exact one_le_pow₀ hu
-  calc ‖(u ^ n)⁻¹‖ = ‖(1 : ℂ) / u ^ n‖ := by rw [inv_eq_one_div]
-    _ = 1 / ‖u ^ n‖ := by
-        have hone : ‖(1 : ℂ)‖ = (1 : ℝ) := by simpa using Complex.norm_natCast 1
-        rw [Complex.norm_div, hone]
-    _ ≤ 1 := by simpa [one_div] using inv_le_one_of_one_le₀ hge
+  rw [norm_inv, norm_pow]
+  exact inv_le_one_of_one_le₀ (one_le_pow₀ hu)
 
 /-- The reflected point `1 - z` is not `1` if `z` is nonzero. -/
 lemma one_sub_ne_one_of_norm_pos {z : ℂ} (hz : 0 < ‖z‖) : 1 - z ≠ 1 := by

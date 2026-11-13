@@ -7,7 +7,7 @@ module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Summability
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.AbsMax
+public import Mathlib.Analysis.Complex.AbsMax
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactorBound
@@ -42,7 +42,7 @@ Hadamard (Theorem 22).
 * `hadamard_factorization_of_growth` : entire `f` with log-growth of order `ρ` is a Weierstrass
   product times `exp(P)`
 * `zero_free_polynomial_growth_is_exp_poly` (in `ExpPoly`) : the Hadamard quotient is `exp(P)`
-* Cartan bounds use `Complex.norm_le_of_mem_ball_of_forall_sphere_norm_le` from `AbsMax`
+* Cartan bounds use Mathlib’s `Complex.norm_le_of_forall_mem_frontier_norm_le`
 
 ## References
 
@@ -361,7 +361,7 @@ theorem hadamardQuotient_norm_le_exp_rpow_of_growth {f H : ℂ → ℂ} {ρ τ :
       Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
         ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ) :=
     summable_norm_inv_rpow_divisorZeroIndex₀_of_growth (f := f) (ρ := ρ) (τ := τ)
-      hρ hτ hentire hnot ⟨Cf, hCfpos, hCf⟩
+      hρ hτ hentire ⟨Cf, hCfpos, hCf⟩
   let Sτ : ℝ := ∑' p : divisorZeroIndex₀ f (Set.univ : Set ℂ), ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ
   have hSτ_nonneg : 0 ≤ Sτ := tsum_nonneg fun _ =>
     Real.rpow_nonneg (inv_nonneg.2 (norm_nonneg _)) _
@@ -414,7 +414,11 @@ theorem hadamardQuotient_norm_le_exp_rpow_of_growth {f H : ℂ → ℂ} {ρ τ :
     exact lt_of_le_of_lt (le_max_left _ _) hr_mem.1
   have hball :
       ‖H z‖ ≤ Real.exp ((Cf + Cprod + 10) * (1 + r) ^ τ) := by
-    exact Complex.norm_le_of_mem_ball_of_forall_sphere_norm_le hH_entire hrpos hz_ball hcircle
+    refine Complex.norm_le_of_forall_mem_frontier_norm_le Metric.isBounded_ball
+      hH_entire.diffContOnCl ?_ (subset_closure hz_ball)
+    intro u hu
+    apply hcircle u
+    simpa only [frontier_ball (x := (0 : ℂ)) (r := r) (ne_of_gt hrpos), Metric.mem_sphere, dist_zero_right] using hu
   have hr_le_3 : 1 + r ≤ 3 * (1 + ‖z‖) := by
     exact Real.one_add_le_three_mul_one_add_of_le_two_mul_max (norm_nonneg z)
       (by simpa [R] using hr_le_2R)
@@ -448,7 +452,7 @@ theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
         ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)) := by
     simpa [m] using
       (summable_norm_inv_pow_divisorZeroIndex₀_of_growth (f := f) (ρ := ρ)
-        hρ hentire hnot hgrowth)
+        hρ hentire hgrowth)
   rcases exists_entire_nonzero_hadamardQuotient (m := m) (f := f) hentire hnot h_sum with
     ⟨H, hH_entire, hH_ne, hfactor⟩
   rcases Real.exists_between_self_and_floor_add_one_same_floor hρ with

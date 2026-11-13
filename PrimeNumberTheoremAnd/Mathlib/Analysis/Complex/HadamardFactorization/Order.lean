@@ -155,10 +155,10 @@ theorem comp_sub_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ 
     EntireOfOrderAtMost ρ (fun z : ℂ => f (z - c)) := by
   simpa [sub_eq_add_neg] using h.comp_add_const hρ (-c)
 
-/-- A nontrivial finite-order entire function has the summability needed for the genus
+/-- A finite-order entire function has the summability needed for the genus
 `⌊ρ⌋` divisor canonical product. -/
 theorem summable_norm_inv_pow_divisorZeroIndex₀ {ρ : ℝ} {f : ℂ → ℂ}
-    (h : EntireOfOrderAtMost ρ f) (hρ : 0 ≤ ρ) (hnot : ∃ z : ℂ, f z ≠ 0) :
+    (h : EntireOfOrderAtMost ρ f) (hρ : 0 ≤ ρ) :
     Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (Nat.floor ρ + 1)) := by
   rcases Real.exists_between_self_and_floor_add_one_same_floor hρ with
@@ -168,7 +168,7 @@ theorem summable_norm_inv_pow_divisorZeroIndex₀ {ρ : ℝ} {f : ℂ → ℂ}
     h.exists_log_growth hτ hτ_nonneg
   have hsummable :=
     summable_norm_inv_pow_divisorZeroIndex₀_of_growth
-      (f := f) (ρ := τ) hτ_nonneg h.differentiable hnot hgrowthτ
+      (f := f) (ρ := τ) hτ_nonneg h.differentiable hgrowthτ
   simpa [hfloorτ] using hsummable
 
 end EntireOfOrderAtMost

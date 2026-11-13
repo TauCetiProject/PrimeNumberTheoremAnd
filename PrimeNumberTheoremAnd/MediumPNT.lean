@@ -42,18 +42,12 @@ theorem psi_eq_sum_range (x : ℝ) :
 
 end Chebyshev
 
-@[blueprint "ChebyshevPsi"
-  (title := "ChebyshevPsi")
-  (statement := /--
-  The (second) Chebyshev Psi function is defined as
-  $$
-  \psi(x) := \sum_{n \le x} \Lambda(n),
-  $$
-  where $\Lambda(n)$ is the von Mangoldt function.
-  -/)
-  (latexEnv := "definition")]
-noncomputable abbrev ChebyshevPsi (x : ℝ) : ℝ :=
-  Chebyshev.psi x
+blueprint_comment /--
+\label{ChebyshevPsi}
+The (second) Chebyshev Psi function is defined as
+$$\psi(x) := \sum_{n \le x} \Lambda(n),$$
+where $\Lambda(n)$ is the von Mangoldt function. This is Mathlib's `Chebyshev.psi`.
+-/
 
 blueprint_comment /--
 It has already been established that zeta doesn't vanish on the 1 line, and has a pole at $s=1$
@@ -1015,7 +1009,7 @@ theorem realDiff_of_complexDiff {f : ℂ → ℂ} (s : ℂ) (hf : Differentiable
   simp
 
 def LogDerivZetaIsHoloSmall (σ₂ : ℝ) : Prop :=
-    HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
+    DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
     (((uIcc σ₂ 2)  ×ℂ (uIcc (-3) 3)) \ {1})
 
 theorem dlog_riemannZeta_bdd_on_vertical_lines_explicit {σ₀ : ℝ} (σ₀_gt : 1 < σ₀) :
@@ -1126,7 +1120,7 @@ theorem SmoothedChebyshevPull1_aux_integrable {SmoothingF : ℝ → ℝ} {ε : �
   (statement := /-- Let $g : \C \to \C$ be a holomorphic function on a rectangle, then $g$ is bounded above on the rectangle. -/)
   (proof := /-- Use the compactness of the rectangle and the fact that holomorphic functions are continuous. -/)
   (latexEnv := "lemma")]
-lemma BddAboveOnRect {g : ℂ → ℂ} {z w : ℂ} (holoOn : HolomorphicOn g (z.Rectangle w)) :
+lemma BddAboveOnRect {g : ℂ → ℂ} {z w : ℂ} (holoOn : DifferentiableOn ℂ g (z.Rectangle w)) :
     BddAbove (norm ∘ g '' (z.Rectangle w)) := by
   have compact_rect : IsCompact (z.Rectangle w) := by
     apply IsCompact.reProdIm <;> apply isCompact_uIcc
@@ -1150,7 +1144,7 @@ theorem SmoothedChebyshevPull1 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
     (X : ℝ) (X_gt : 3 < X)
     {T : ℝ} (T_pos : 0 < T) {σ₁ : ℝ}
     (σ₁_pos : 0 < σ₁) (σ₁_lt_one : σ₁ < 1)
-    (holoOn : HolomorphicOn (ζ' / ζ) ((Icc σ₁ 2) ×ℂ (Icc (-T) T) \ {1}))
+    (holoOn : DifferentiableOn ℂ (ζ' / ζ) ((Icc σ₁ 2) ×ℂ (Icc (-T) T) \ {1}))
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (SmoothingFnonneg : ∀ x > 0, 0 ≤ SmoothingF x)
     (mass_one : ∫ x in Ioi 0, SmoothingF x / x = 1)
@@ -1288,7 +1282,7 @@ theorem SmoothedChebyshevPull1 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
       let g : ℂ → ℂ := fun z ↦ 𝓜 (fun x ↦ ↑(Smooth1 SmoothingF ε x)) z * ↑X ^ z
       unfold fTempC fTempRR SmoothedChebyshevIntegrand
       simp only [re_add_im]
-      have g_holc : HolomorphicOn g U := by
+      have g_holc : DifferentiableOn ℂ g U := by
         intro u uInU
         apply DifferentiableAt.differentiableWithinAt
         simp only [g]
@@ -1359,7 +1353,7 @@ lemma verticalIntegral_split_three_finite' {s a b e σ : ℝ} {f : ℂ → ℂ}
   rw [← verticalIntegral_split_three_finite hf hab]
 
 theorem SmoothedChebyshevPull2_aux1 {T σ₁ : ℝ} (σ₁lt : σ₁ < 1)
-  (holoOn : HolomorphicOn (ζ' / ζ) (Icc σ₁ 2 ×ℂ Icc (-T) T \ {1})) :
+  (holoOn : DifferentiableOn ℂ (ζ' / ζ) (Icc σ₁ 2 ×ℂ Icc (-T) T \ {1})) :
   ContinuousOn (fun (t : ℝ) ↦ -ζ' (σ₁ + t * I) / ζ (σ₁ + t * I)) (Icc (-T) T) := by
   rw [show (fun (t : ℝ) ↦ -ζ' (↑σ₁ + ↑t * I) / ζ (↑σ₁ + ↑t * I)) =
       -(ζ' / ζ) ∘ (fun (t : ℝ) ↦ ↑σ₁ + ↑t * I) by ext; simp; ring_nf]
@@ -1398,8 +1392,8 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
     {T : ℝ} (T_pos : 3 < T) {σ₁ σ₂ : ℝ}
     (σ₂_pos : 0 < σ₂) (σ₁_lt_one : σ₁ < 1)
     (σ₂_lt_σ₁ : σ₂ < σ₁)
-    (holoOn : HolomorphicOn (ζ' / ζ) ((Icc σ₁ 2) ×ℂ (Icc (-T) T) \ {1}))
-    (holoOn2 : HolomorphicOn (SmoothedChebyshevIntegrand SmoothingF ε X)
+    (holoOn : DifferentiableOn ℂ (ζ' / ζ) ((Icc σ₁ 2) ×ℂ (Icc (-T) T) \ {1}))
+    (holoOn2 : DifferentiableOn ℂ (SmoothedChebyshevIntegrand SmoothingF ε X)
       (Icc σ₂ 2 ×ℂ Icc (-3) 3 \ {1}))
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (SmoothingFnonneg : ∀ x > 0, 0 ≤ SmoothingF x)
@@ -1477,7 +1471,7 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
           exact x_re_upper
         linarith
       exact h_x_ne_one
-  have zero_over_box := HolomorphicOn.vanishesOnRectangle holoOn2 sub
+  have zero_over_box := DifferentiableOn.vanishesOnRectangle holoOn2 sub
   have splitting : I₃₇ SmoothingF ε T X σ₁ =
     I₃ SmoothingF ε T X σ₁ + I₅ SmoothingF ε X σ₁ + I₇ SmoothingF ε T X σ₁ := by
     unfold I₃₇ I₃ I₅ I₇
@@ -3324,7 +3318,7 @@ lemma I5Bound {SmoothingF : ℝ → ℝ}
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
     {σ₂ : ℝ} (h_logDeriv_holo : LogDerivZetaIsHoloSmall σ₂) (hσ₂ : σ₂ ∈ Ioo 0 1) :
     I5BoundGenProp SmoothingF σ₂ := by
-  unfold LogDerivZetaIsHoloSmall HolomorphicOn at h_logDeriv_holo
+  unfold LogDerivZetaIsHoloSmall at h_logDeriv_holo
   let zeta'_zeta_on_line := fun (t : ℝ) ↦ ζ' (σ₂ + t * I) / ζ (σ₂ + t * I)
 
   have subst : {σ₂} ×ℂ uIcc (-3) 3 ⊆ (uIcc σ₂ 2 ×ℂ uIcc (-3) 3) \ {1} := by
@@ -3467,7 +3461,7 @@ lemma I5Bound {SmoothingF : ℝ → ℝ}
 
 def LogDerivZetaBoundedAndHoloGenProp (n₁ n₂ : ℝ) : Prop := ∃ A C : ℝ, 0 < C ∧ A ∈ Ioc 0 (1 / 2) ∧ LogDerivZetaHasBound n₁ n₂ A C
     ∧ ∀ (T : ℝ) (_ : 3 ≤ T),
-    HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
+    DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
     (( (Icc ((1 : ℝ) - A / Real.log T ^ n₁) 2)  ×ℂ (Icc (-T) T) ) \ {1})
 
 lemma LogDerivZetaBoundedAndHoloGen {n₁ n₂ : ℝ}
@@ -3981,7 +3975,7 @@ lemma GenStrengthPNT {n₁ n₂ : ℝ}
 
   rw [uIcc_of_le (by linarith), uIcc_of_le (by linarith)] at holo2
 
-  have holo2a : HolomorphicOn (SmoothedChebyshevIntegrand ν ε X)
+  have holo2a : DifferentiableOn ℂ (SmoothedChebyshevIntegrand ν ε X)
       (Icc σ₂ 2 ×ℂ Icc (-3) 3 \ {1}) := by
     apply DifferentiableOn.mul
     · apply DifferentiableOn.mul
@@ -4129,7 +4123,7 @@ lemma GenStrengthPNT {n₁ n₂ : ℝ}
       · rw [← mul_assoc]
       · positivity
 
-/-- *** Prime Number Theorem (Medium Strength) *** The `ChebyshevPsi` function is asymptotic to `x`. -/
+/-- *** Prime Number Theorem (Medium Strength) *** The `Chebyshev.psi` function is asymptotic to `x`. -/
 @[blueprint
   (title := "MediumPNT")
   (statement := /--

@@ -6,6 +6,7 @@ public import Mathlib.Analysis.Complex.Convex
 public import Mathlib.Analysis.Complex.RemovableSingularity
 public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.Analysis.Meromorphic.NormalForm
+public import TauCeti.Analysis.Contour.Residue.SimplePole
 public import PrimeNumberTheoremAnd.Rectangle
 
 
@@ -134,11 +135,6 @@ lemma DiffVertRect_eq_UpperLowerUs {σ σ' T : ℝ}
   ring_nf
   abel
 
-/-- A function is `HolomorphicOn` a set if it is complex
-  differentiable on that set. -/
-abbrev HolomorphicOn (f : ℂ → E) (s : Set ℂ) : Prop :=
-    DifferentiableOn ℂ f s
-
 @[blueprint
   (title := "existsDifferentiableOn-of-bddAbove")
   (statement := /--
@@ -154,25 +150,25 @@ abbrev HolomorphicOn (f : ℂ → E) (s : Set ℂ) : Prop :=
   -/)]
 theorem existsDifferentiableOn_of_bddAbove [CompleteSpace E]
     {s : Set ℂ} {c : ℂ} (hc : s ∈ nhds c)
-    (hd : HolomorphicOn f (s \ {c}))
+    (hd : DifferentiableOn ℂ f (s \ {c}))
     (hb : BddAbove (norm ∘ f '' (s \ {c}))) :
     ∃ (g : ℂ → E),
-      HolomorphicOn g s ∧ Set.EqOn f g (s \ {c}) :=
+      DifferentiableOn ℂ g s ∧ Set.EqOn f g (s \ {c}) :=
   ⟨Function.update f c (limUnder (𝓝[{c}ᶜ] c) f),
     differentiableOn_update_limUnder_of_bddAbove hc hd hb,
     fun z hz ↦ if h : z = c then (hz.2 h).elim
       else by simp [h]⟩
 
 @[blueprint
-  (title := "HolomorphicOn.vanishesOnRectangle")
+  (title := "DifferentiableOn.vanishesOnRectangle")
   (statement := /--
   If $f$ is holomorphic on a rectangle $z$ and $w$, then the
   integral of $f$ over the rectangle with corners $z$ and $w$
   is $0$.
   -/)
   (proof := /-- This is in a Mathlib PR. -/)]
-theorem HolomorphicOn.vanishesOnRectangle [CompleteSpace E]
-    {U : Set ℂ} (f_holo : HolomorphicOn f U)
+theorem DifferentiableOn.vanishesOnRectangle [CompleteSpace E]
+    {U : Set ℂ} (f_holo : DifferentiableOn ℂ f U)
     (hU : Rectangle z w ⊆ U) :
     RectangleIntegral f z w = 0 :=
   integral_boundary_rect_eq_zero_of_differentiableOn f z w
@@ -242,12 +238,12 @@ theorem ContinuousOn.rectangleBorderNoPIntegrable
   refine ContinuousOn.rectangleBorder_integrable (hf.mono (Set.subset_sdiff.mpr ?_))
   exact ⟨rectangleBorder_subset_rectangle z w, disjoint_singleton_right.mpr pNotOnBorder⟩
 
-theorem HolomorphicOn.rectangleBorderIntegrable'
-    (hf : HolomorphicOn f (Rectangle z w \ {p})) (hp : Rectangle z w ∈ nhds p) :
+theorem DifferentiableOn.rectangleBorderIntegrable'
+    (hf : DifferentiableOn ℂ f (Rectangle z w \ {p})) (hp : Rectangle z w ∈ nhds p) :
     RectangleBorderIntegrable f z w :=
   hf.continuousOn.rectangleBorderNoPIntegrable (not_mem_rectangleBorder_of_rectangle_mem_nhds hp)
 
-theorem HolomorphicOn.rectangleBorderIntegrable (hf : HolomorphicOn f (Rectangle z w)) :
+theorem DifferentiableOn.rectangleBorderIntegrable (hf : DifferentiableOn ℂ f (Rectangle z w)) :
     RectangleBorderIntegrable f z w := hf.continuousOn.rectangleBorderIntegrable
 
 /-- Given `x₀ a x₁ : ℝ`, and `y₀ y₁ : ℝ` and a function
@@ -341,7 +337,7 @@ lemma RectanglePullToNhdOfPole' [CompleteSpace E] {z₀ z₁ z₂ z₃ p : ℂ}
     (h_orientation : z₀.re ≤ z₃.re ∧ z₀.im ≤ z₃.im ∧
       z₁.re ≤ z₂.re ∧ z₁.im ≤ z₂.im)
     (hp : Rectangle z₁ z₂ ∈ 𝓝 p) (hz : Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃)
-    (fHolo : HolomorphicOn f (Rectangle z₀ z₃ \ {p})) :
+    (fHolo : DifferentiableOn ℂ f (Rectangle z₀ z₃ \ {p})) :
     RectangleIntegral f z₀ z₃ = RectangleIntegral f z₁ z₂ := by
   obtain ⟨hz₀_re, hz₀_im, hz₁_re, hz₁_im⟩ := h_orientation
   have := rect_subset_iff.mp hz
@@ -427,7 +423,7 @@ small square centered at `p`. -/
   (latexEnv := "lemma")]
 lemma RectanglePullToNhdOfPole [CompleteSpace E] {z w p : ℂ}
     (zRe_lt_wRe : z.re ≤ w.re) (zIm_lt_wIm : z.im ≤ w.im)
-    (hp : Rectangle z w ∈ 𝓝 p) (fHolo : HolomorphicOn f (Rectangle z w \ {p})) :
+    (hp : Rectangle z w ∈ 𝓝 p) (fHolo : DifferentiableOn ℂ f (Rectangle z w \ {p})) :
     ∀ᶠ (c : ℝ) in 𝓝[>]0,
       RectangleIntegral f z w = RectangleIntegral f (-c - I * c + p) (c + I * c + p) := by
   filter_upwards [Ioo_mem_nhdsGT zero_lt_one, SmallSquareInRectangle hp]
@@ -438,7 +434,7 @@ lemma RectanglePullToNhdOfPole [CompleteSpace E] {z w p : ℂ}
 
 lemma RectanglePullToNhdOfPole'' [CompleteSpace E] {z w p : ℂ}
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
-    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : HolomorphicOn f (Rectangle z w \ {p})) :
+    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : DifferentiableOn ℂ f (Rectangle z w \ {p})) :
     ∀ᶠ (c : ℝ) in 𝓝[>]0,
       RectangleIntegral' f z w = RectangleIntegral' f (-c - I * c + p) (c + I * c + p) := by
   filter_upwards [RectanglePullToNhdOfPole zRe_le_wRe zIm_le_wIm pInRectInterior fHolo] with c h
@@ -623,7 +619,7 @@ lemma ResidueTheoremAtOrigin :
   (proof := /--
   Replace $f$ with $g + A/(s-p)$ in the integral.
   The integral of $g$ vanishes by
-  Lemma \ref{HolomorphicOn.vanishesOnRectangle}.
+  Lemma \ref{DifferentiableOn.vanishesOnRectangle}.
   To evaluate the integral of $1/(s-p)$, pull everything to a
   square about the origin using
   Lemma \ref{RectanglePullToNhdOfPole}, and rescale by $c$;
@@ -633,7 +629,7 @@ lemma ResidueTheoremAtOrigin :
   (latexEnv := "lemma")]
 lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ}
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
-    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (gHolo : HolomorphicOn g (Rectangle z w))
+    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (gHolo : DifferentiableOn ℂ g (Rectangle z w))
     (principalPart : Set.EqOn (f - fun s ↦ A / (s - p)) g (Rectangle z w \ {p})) :
     RectangleIntegral' f z w = A := by
   have principalPart' : Set.EqOn f (g + (fun s ↦ A / (s - p))) (Rectangle z w \ {p}) :=
@@ -646,7 +642,7 @@ lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ
   rw [RectangleIntegral'_congr this]
   have t1 : RectangleBorderIntegrable g z w :=
     gHolo.rectangleBorderIntegrable
-  have t2 : HolomorphicOn (fun s ↦ A / (s - p)) (Rectangle z w \ {p}) := by
+  have t2 : DifferentiableOn ℂ (fun s ↦ A / (s - p)) (Rectangle z w \ {p}) := by
     apply DifferentiableOn.mono (t := {p}ᶜ)
     · apply DifferentiableOn.div
       · exact differentiableOn_const _
@@ -657,7 +653,7 @@ lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ
     · rintro s ⟨_, hs⟩
       exact hs
   have t3 : RectangleBorderIntegrable (fun s ↦ A / (s - p)) z w :=
-    HolomorphicOn.rectangleBorderIntegrable' t2 pInRectInterior
+    DifferentiableOn.rectangleBorderIntegrable' t2 pInRectInterior
   rw [RectangleIntegral', RectangleBorderIntegrable.add t1 t3, smul_add]
   rw [gHolo.vanishesOnRectangle (by rfl), smul_zero, zero_add]
   exact ResidueTheoremInRectangle zRe_le_wRe zIm_le_wIm pInRectInterior
@@ -715,11 +711,11 @@ theorem BddAbove_on_rectangle_of_bdd_near {z w p : ℂ} {f : ℂ → ℂ}
 
 theorem ResidueTheoremOnRectangleWithSimplePole' {f : ℂ → ℂ} {z w p A : ℂ}
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
-    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : HolomorphicOn f (Rectangle z w \ {p}))
+    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : DifferentiableOn ℂ f (Rectangle z w \ {p}))
     (near_p : (f - (fun s ↦ A / (s - p))) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
     RectangleIntegral' f z w = A := by
   set g := f - (fun s ↦ A / (s - p))
-  have gHolo : HolomorphicOn g (Rectangle z w \ {p}) := by
+  have gHolo : DifferentiableOn ℂ g (Rectangle z w \ {p}) := by
     apply DifferentiableOn.sub fHolo
     intro s hs
     have : s - p ≠ 0 := sub_ne_zero.mpr hs.2
@@ -847,29 +843,15 @@ private lemma residue_toMeromorphicNFOn_eq_residue
     {f : ℂ → ℂ} {U : Set ℂ} {p : ℂ}
     (hpU : p ∈ U)
     (hf_mero : MeromorphicOn f U)
-    (hf_simple : HasSimplePolesOn f U)
-    (hpneg : meromorphicOrderAt f p < 0) :
+    (hf_simple : HasSimplePolesOn f U) :
     residue (toMeromorphicNFOn f U) p = residue f p := by
-  have hmero : MeromorphicAt f p := hf_mero p hpU
-  have h_exists : ∃ c, Filter.Tendsto (fun z : ℂ ↦ (z - p) * f z) (nhdsWithin p ({p}ᶜ)) (nhds c) := by
-    have hmul_mero : MeromorphicAt (fun z : ℂ ↦ (z - p) * f z) p :=
-      (by fun_prop : MeromorphicAt (fun z : ℂ ↦ z - p) p).mul hmero
-    have hmul_nonneg : 0 ≤ meromorphicOrderAt (fun z : ℂ ↦ (z - p) * f z) p := by
-      change 0 ≤ meromorphicOrderAt ((fun z ↦ z - p) * f) p
-      rw [meromorphicOrderAt_mul (by fun_prop : MeromorphicAt (fun z : ℂ ↦ z - p) p) hmero,
-        meromorphicOrderAt_id_sub_const,
-        meromorphicOrderAt_eq_neg_one_of_simplePole hpU hf_simple hpneg]
-      norm_num
-    exact tendsto_nhds_of_meromorphicOrderAt_nonneg hmul_mero hmul_nonneg
-  have h_tendsto : Filter.Tendsto (fun z : ℂ ↦ (z - p) * f z) (nhdsWithin p ({p}ᶜ)) (nhds (residue f p)) := by
-    simpa [residue] using tendsto_nhds_limUnder h_exists
+  have ht := TauCeti.Contour.tendsto_sub_mul_nhds_residue (hf_mero p hpU) (hf_simple p hpU)
   have h_eq :
       (fun z ↦ (z - p) * toMeromorphicNFOn f U z) =ᶠ[nhdsWithin p ({p}ᶜ)]
         (fun z ↦ (z - p) * f z) := by
     filter_upwards [hf_mero.toMeromorphicNFOn_eq_self_on_nhdsNE hpU] with z hz
-    simp [hz]
-  exact residue_eq_of_tendsto
-    (h_tendsto.congr' h_eq.symm)
+    simp only [hz]
+  exact (residue_eq_of_tendsto (ht.congr' h_eq.symm)).trans (residue_eq_of_tendsto ht).symm
 
 -- Non-constancy of horizontal paths `x ↦ x + h * I`.
 private lemma horizontalPath_not_eventuallyConst (h : ℝ) (x : ℝ) :
@@ -999,7 +981,7 @@ private lemma holoPart_holomorphicOn {f : ℂ → ℂ} {z w : ℂ}
     (f_mero : MeromorphicOn f (Rectangle z w))
     (f_simple_poles : HasSimplePolesOn f (Rectangle z w))
     (f_poles_finite : (Rectangle z w ∩ {z | meromorphicOrderAt f z < 0}).Finite) :
-    HolomorphicOn (toMeromorphicNFOn (toMeromorphicNFOn f (Rectangle z w) -
+    DifferentiableOn ℂ (toMeromorphicNFOn (toMeromorphicNFOn f (Rectangle z w) -
       fun s ↦ ∑ p ∈ f_poles_finite.toFinset, residue (toMeromorphicNFOn f (Rectangle z w)) p / (s - p)) (Rectangle z w)) (Rectangle z w) := by
   classical
   let R := Rectangle z w
@@ -1207,7 +1189,7 @@ lemma RectangleIntegral'_eq_sumResiduesIn {f : ℂ → ℂ} {z w : ℂ}
     rw [sumResiduesIn, sumResiduesIn]
     apply tsum_congr
     intro p
-    exact (residue_toMeromorphicNFOn_eq_residue p.2.1 f_mero f_simple_poles p.2.2).symm
+    exact (residue_toMeromorphicNFOn_eq_residue p.2.1 f_mero f_simple_poles).symm
   have h_principalPart_integral : RectangleIntegral' principalPart z w = sumResiduesIn fNF poles := by
     have h_sum : RectangleIntegral' principalPart z w = ∑ p ∈ polesFin, residue fNF p := by
       apply rectangleIntegral'_sum_div_sub zRe_le_wRe zIm_le_wIm

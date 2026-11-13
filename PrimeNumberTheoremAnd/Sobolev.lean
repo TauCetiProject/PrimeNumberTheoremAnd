@@ -32,12 +32,6 @@ section lemmas
 
 noncomputable def funscale {E : Type*} (g : ℝ → E) (R x : ℝ) : E := g (R⁻¹ • x)
 
-lemma contDiff_ofReal : ContDiff ℝ ∞ ofReal := by
-  have key x : HasDerivAt ofReal 1 x := hasDerivAt_id x |>.ofReal_comp
-  have key' : deriv ofReal = fun _ => 1 := by ext x ; exact (key x).deriv
-  refine contDiff_infty_iff_deriv.mpr ⟨fun x => (key x).differentiableAt, ?_⟩
-  simpa [key'] using contDiff_const
-
 omit [NormedSpace ℝ E] in
 lemma tendsto_funscale {f : ℝ → E} (hf : ContinuousAt f 0) (x : ℝ) :
     Tendsto (fun R => funscale f R x) atTop (𝓝 (f 0)) :=
@@ -52,7 +46,7 @@ variable {f : CS n E} {R x v : ℝ}
 instance : CoeFun (CS n E) (fun _ => ℝ → E) where coe := CS.toFun
 
 instance : Coe (CS n ℝ) (CS n ℂ) where coe f := ⟨fun x => f x,
-  contDiff_ofReal.of_le (mod_cast le_top) |>.comp f.h1, f.h2.comp_left (g := ofReal) rfl⟩
+  (Complex.ofRealCLM.contDiff : ContDiff ℝ n ofReal) |>.comp f.h1, f.h2.comp_left (g := ofReal) rfl⟩
 
 def neg (f : CS n E) : CS n E where
   toFun := -f
@@ -146,19 +140,6 @@ lemma continuous (f : W1 n E) : Continuous f := f.smooth.continuous
 lemma differentiable (f : W1 (n + 1) E) : Differentiable ℝ f :=
   f.smooth.differentiable (by simp)
 
-lemma iteratedDeriv_sub {f g : ℝ → E} (hf : ContDiff ℝ n f) (hg : ContDiff ℝ n g) :
-    iteratedDeriv n (f - g) = iteratedDeriv n f - iteratedDeriv n g := by
-  induction n generalizing f g with
-  | zero => rfl
-  | succ n ih =>
-    have hf' : ContDiff ℝ n (deriv f) := hf.iterate_deriv' n 1
-    have hg' : ContDiff ℝ n (deriv g) := hg.iterate_deriv' n 1
-    have hfg : deriv (f - g) = deriv f - deriv g := by
-      ext x ; apply deriv_sub
-      · exact (hf.differentiable (by simp)).differentiableAt
-      · exact (hg.differentiable (by simp)).differentiableAt
-    simp_rw [iteratedDeriv_succ', ← ih hf' hg', hfg]
-
 noncomputable def deriv (f : W1 (n + 1) E) : W1 n E where
   toFun := _root_.deriv f
   smooth := contDiff_succ_iff_deriv.mp f.smooth |>.2.2
@@ -174,7 +155,10 @@ def sub (f g : W1 n E) : W1 n E where
   integrable k hk := by
     have hf : ContDiff ℝ k f := f.smooth.of_le (by simp [hk])
     have hg : ContDiff ℝ k g := g.smooth.of_le (by simp [hk])
-    simpa [iteratedDeriv_sub hf hg] using (f.integrable hk).sub (g.integrable hk)
+    have hd : iteratedDeriv k ((f : ℝ → E) - (g : ℝ → E)) =
+        iteratedDeriv k f - iteratedDeriv k g :=
+      funext fun x ↦ _root_.iteratedDeriv_sub hf.contDiffAt hg.contDiffAt
+    simpa only [hd] using (f.integrable hk).sub (g.integrable hk)
 
 instance : Sub (W1 n E) where sub := sub
 

@@ -488,15 +488,6 @@ lemma exists_index_between {n m : ℕ} (k : Fin (n + 1) → Fin (m + 1))
     exact absurd ( h_le ( Fin.last n ) ) ( by simpa [ hkn ] using Fin.castSucc_lt_last j )
 
 /-
-For any `j` in the codomain of a monotone map `k` (preserving endpoints), there exists `i` such that `k i <= j < k (i+1)`.
--/
-lemma exists_index_between_v2 {n m : ℕ} (k : Fin (n + 1) → Fin (m + 1))
-  (hk : Monotone k) (hk0 : k 0 = 0) (hkn : k (Fin.last n) = Fin.last m)
-  (j : Fin m) :
-  ∃ i : Fin n, k i.castSucc ≤ j.castSucc ∧ j.castSucc < k i.succ := by
-    exact exists_index_between k hk hk0 hkn j
-
-/-
 For any `y` in `[a, b]`, there exists a subinterval of `P` containing `y`, provided `P.n > 0`.
 -/
 lemma mem_subinterval {a b : ℝ} (P : IPartition a b)
@@ -680,15 +671,6 @@ lemma sumAbsDiff_mono_of_refinement
       congr 3
     exact h_sum_le_double_sum.trans (h_double_sum_to_single_sum.le.trans
       (h_single_sum_le_range.trans_eq hsum))
-
-/-
-`sumAbsDiff` is monotonic with respect to partition refinement.
--/
-lemma sumAbsDiff_le_sumAbsDiff_of_refinement
-  {a b : ℝ} {g : ℝ → ℝ} {P R : IPart.IPartition a b}
-  (hPR : IPart.IsRefinement R P) :
-  sumAbsDiff g P ≤ sumAbsDiff g R := by
-    convert sumAbsDiff_mono_of_refinement hPR using 1
 
 /-
 If `x` is a monotone sequence of points contained in partition `P`, then the sum of absolute differences of `g` along `x` is bounded by `sumAbsDiff g P`.
@@ -1376,7 +1358,7 @@ lemma sumAbsDiff_le_integral_add_eps {a b : ℝ} (hab : a < b)
        exact IPart.exists_refinement_mesh_le hab P hη_pos;
      -- Use `sumAbsDiff_mono_of_refinement` to show `sumAbsDiff g P ≤ sumAbsDiff g Q`.
      have h_sum_abs_diff_mono : SumDiff.sumAbsDiff g P ≤ SumDiff.sumAbsDiff g Q := by
-       exact SumDiff.sumAbsDiff_le_sumAbsDiff_of_refinement hQ_ref;
+       exact SumDiff.sumAbsDiff_mono_of_refinement hQ_ref;
      -- Construct a tagged partition `T` from `Q` using `mvtTaggedPartition`.
      obtain ⟨T, hT⟩ : ∃ T : TaggedPartition a b, T.toIPartition = Q ∧ SumDiff.sumAbsDiff g Q = RSSum (fun x => |g' x|) (fun x => x) T := by
        have := sumAbsDiff_eq_RSSum_abs_deriv Q hg;

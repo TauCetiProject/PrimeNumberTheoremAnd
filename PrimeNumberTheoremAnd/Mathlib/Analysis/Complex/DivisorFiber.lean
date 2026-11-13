@@ -80,15 +80,6 @@ lemma mem_divisorZeroIndex₀_fiberFinset (f : ℂ → ℂ) (z₀ : ℂ)
     p ∈ divisorZeroIndex₀_fiberFinset (f := f) z₀ ↔ divisorZeroIndex₀_val p = z₀ := by
   simp [divisorZeroIndex₀_fiberFinset]
 
-theorem eventually_atTop_subset_fiberFinset
-    (f : ℂ → ℂ) (z₀ : ℂ) :
-    ∀ᶠ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) in (Filter.atTop : Filter _),
-      divisorZeroIndex₀_fiberFinset (f := f) z₀ ⊆ s := by
-  refine (Filter.eventually_atTop.2 ?_)
-  refine ⟨divisorZeroIndex₀_fiberFinset (f := f) z₀, ?_⟩
-  intro s hs
-  exact hs
-
 lemma divisorZeroIndex₀_fiberFinset_card_eq_toNat_divisor (f : ℂ → ℂ) {z₀ : ℂ} (hz₀ : z₀ ≠ 0) :
     (divisorZeroIndex₀_fiberFinset (f := f) z₀).card =
       Int.toNat (MeromorphicOn.divisor f (Set.univ : Set ℂ) z₀) := by

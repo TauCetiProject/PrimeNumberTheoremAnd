@@ -81,7 +81,7 @@ lemma norm_inv_weierstrassFactor_le_exp_near
       Real.log ‖weierstrassFactor m (u / a)‖
         ≥ -CartanBound.φ (r / ‖a‖) - (m : ℝ) * max 1 (‖u / a‖ ^ m) := by
     have hpls :=
-      norm_partialLogSum_le_nat_mul_max_one_norm_pow m (u / a)
+      norm_logTaylor_neg_le_nat_mul_max_one_norm_pow m (u / a)
     linarith [hbase, hlog_one, hpls]
   have hmax :
       max 1 (‖u / a‖ ^ m) ≤ 1 + (r / ‖a‖) ^ τ :=

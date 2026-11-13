@@ -6,7 +6,9 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Convex
+public import Mathlib.Analysis.Complex.Convex
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import TauCeti.Topology.Homotopy.PuncturedStarConvex
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
@@ -70,9 +72,18 @@ theorem isOpen_zetaAbelContinuationDomain : IsOpen zetaAbelContinuationDomain :=
   exact isOpen_compl_singleton.inter (isOpen_lt continuous_const Complex.continuous_re)
 
 theorem isPreconnected_zetaAbelContinuationDomain : IsPreconnected zetaAbelContinuationDomain := by
-  convert (Complex.isPathConnected_halfSpace_re_gt_diff_singleton
-      (a := zetaAbelContinuationReLower) (p := (1 : ℂ)) one_lt_zetaAbelContinuationReLower).isConnected.isPreconnected using 1
-  ext z; simp [zetaAbelContinuationDomain, and_comm]
+  have hp : zetaAbelContinuationReLower < (1 : ℂ).re :=
+    one_lt_zetaAbelContinuationReLower
+  obtain ⟨r, hr, hsub⟩ := Metric.isOpen_iff.mp
+    (isOpen_lt continuous_const Complex.continuous_re) (1 : ℂ) hp
+  have hpath : IsPathConnected
+      ({z : ℂ | zetaAbelContinuationReLower < z.re} \ {(1 : ℂ)}) :=
+    isPathConnected_iff_pathConnectedSpace.mpr
+      (((convex_halfSpace_re_gt zetaAbelContinuationReLower).starConvex hp).pathConnectedSpace_diff_singleton (by simp [Complex.rank_real_complex]) (half_pos hr)
+        ((Metric.sphere_subset_ball (half_lt_self hr)).trans hsub))
+  convert hpath.isConnected.isPreconnected using 1
+  ext z
+  simp [zetaAbelContinuationDomain, and_comm]
 
 theorem two_mem_zetaAbelContinuationDomain : (2 : ℂ) ∈ zetaAbelContinuationDomain := by
   refine ⟨by norm_num, ?_⟩

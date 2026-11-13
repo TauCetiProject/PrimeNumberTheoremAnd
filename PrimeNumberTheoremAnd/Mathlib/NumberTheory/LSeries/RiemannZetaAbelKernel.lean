@@ -10,7 +10,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
-public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.NumberTheory.LSeries.Nonvanishing

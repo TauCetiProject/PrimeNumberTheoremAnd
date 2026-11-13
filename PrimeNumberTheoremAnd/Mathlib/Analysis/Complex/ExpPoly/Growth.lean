@@ -6,6 +6,7 @@ Authors: Matteo Cipollina
 
 module
 
+public import Mathlib.Analysis.Complex.Polynomial.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ExpPoly
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 
@@ -45,26 +46,6 @@ If `exp (P.eval)` satisfied a growth bound with exponent `ρ < natDegree P`, the
 ray we get `log (1 + ‖exp (P z)‖) ≳ ‖z‖ ^ natDegree P`, contradicting the assumed exponent `ρ`.
 This is the “degree is an integer” upgrade used to get `≤ ⌊ρ⌋` rather than a ceiling-type bound.
 -/
-
-private lemma exists_pow_eq_complex {n : ℕ} (hn : 0 < n) (w : ℂ) : ∃ z : ℂ, z ^ n = w := by
-  classical
-  by_cases hw : w = 0
-  · subst hw
-    refine ⟨0, ?_⟩
-    have hn0 : n ≠ 0 := Nat.ne_of_gt hn
-    simp [hn0]
-  · refine ⟨Complex.exp (Complex.log w / n), ?_⟩
-    have hn0 : (n : ℂ) ≠ 0 := by
-      exact_mod_cast (Nat.ne_of_gt hn)
-    calc
-      (Complex.exp (Complex.log w / n)) ^ n
-          = Complex.exp ((n : ℂ) * (Complex.log w / n)) := by
-              simpa using (Complex.exp_nat_mul (Complex.log w / n) n).symm
-      _ = Complex.exp (Complex.log w) := by
-            have : (n : ℂ) * (Complex.log w / n) = Complex.log w := by
-              field_simp [hn0]
-            simp [this]
-      _ = w := by simpa using (Complex.exp_log hw)
 
 private lemma mul_conj_div_norm (a : ℂ) (ha : a ≠ 0) :
     a * ((starRingEnd ℂ) a / (‖a‖ : ℂ)) = (‖a‖ : ℂ) := by
@@ -116,7 +97,7 @@ private lemma exists_z_norm_eq_re_eval_ge
       _ = ‖a‖ / ‖a‖ := by simp
       _ = (1 : ℝ) := by
         field_simp [hnorm_a_pos.ne']
-  rcases exists_pow_eq_complex (n := n) hn0 (w := wtarget) with ⟨w, hw⟩
+  rcases IsAlgClosed.exists_pow_nat_eq wtarget hn0 with ⟨w, hw⟩
   have hw_norm : ‖w‖ = (1 : ℝ) := by
     have hpow : (‖w‖ : ℝ) ^ n = 1 := by
       have := congrArg (fun z : ℂ => ‖z‖) hw

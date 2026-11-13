@@ -59,7 +59,7 @@ holomorphic functions.
   -/)]
 theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (hU : U ∈ 𝓝 p)
-    (hf : HolomorphicOn f (U \ {p}))
+    (hf : DifferentiableOn ℂ f (U \ {p}))
     {A : ℂ}
     (h_limit : Tendsto (fun s ↦ (s - p) * f s) (𝓝[≠] p) (𝓝 A)) :
     ∃ V ∈ 𝓝 p,
@@ -91,10 +91,10 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   have hW_mem : (W : Set ℂ) ∈ 𝓝 p := inter_mem (IsOpen.mem_nhds hV₀_prop.1 hV₀_prop.2) hU
   have h_subset_V₀ : (W \ {p}) ⊆ (V₀ \ {p}) := by
     intro z hz; exact ⟨hz.1.1, hz.2⟩
-  have h_prod_holo : HolomorphicOn (fun z ↦ (z - p) * f z) (W \ {p}) := by
-    have h_id : HolomorphicOn (fun z : ℂ ↦ z - p) (W \ {p}) :=
+  have h_prod_holo : DifferentiableOn ℂ (fun z ↦ (z - p) * f z) (W \ {p}) := by
+    have h_id : DifferentiableOn ℂ (fun z : ℂ ↦ z - p) (W \ {p}) :=
       Differentiable.differentiableOn (Differentiable.sub_const differentiable_fun_id p)
-    have hfW : HolomorphicOn f (W \ {p}) := by
+    have hfW : DifferentiableOn ℂ f (W \ {p}) := by
       apply hf.mono
       exact Set.sdiff_subset_sdiff_left inter_subset_right
     simpa using! h_id.mul hfW
@@ -190,7 +190,7 @@ theorem differentiableAt_deriv_riemannZeta {s : ℂ} (s_ne_one : s ≠ 1) :
   -/)]
 theorem riemannZetaResidue :
     ∃ U ∈ 𝓝 1, BddAbove (norm ∘ (ζ - (fun s ↦ (s - 1)⁻¹)) '' (U \ {1})) := by
-  have zeta_holc : HolomorphicOn ζ (univ \ {1}) := by
+  have zeta_holc : DifferentiableOn ℂ ζ (univ \ {1}) := by
     intro y hy
     exact DifferentiableAt.differentiableWithinAt <| differentiableAt_riemannZeta hy.2
   convert ResidueOfTendsTo univ_mem zeta_holc riemannZeta_residue_one using 6
@@ -209,7 +209,7 @@ theorem deriv_eqOn_of_eqOn_punctured (f g : ℂ → ℂ) (U : Set ℂ) (p : ℂ)
 /- New two theorems to be proven -/
 
 theorem analytic_deriv_bounded_near_point
-    (f : ℂ → ℂ) {U : Set ℂ} {p : ℂ} (hU : IsOpen U) (hp : p ∈ U) (hf : HolomorphicOn f U) :
+    (f : ℂ → ℂ) {U : Set ℂ} {p : ℂ} (hU : IsOpen U) (hp : p ∈ U) (hf : DifferentiableOn ℂ f U) :
     (deriv f) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
   have U_in_filter : U ∈ 𝓝 p := by
     exact IsOpen.mem_nhds hU hp
@@ -317,13 +317,13 @@ theorem nonZeroOfBddAbove {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
 theorem logDerivResidue' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (U_is_open : IsOpen U)
     (non_zero : ∀ x ∈ U \ {p}, f x ≠ 0)
-    (holc : HolomorphicOn f (U \ {p}))
+    (holc : DifferentiableOn ℂ f (U \ {p}))
     (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
     (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
     (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
 
 
-  have simpleHolo : HolomorphicOn (fun s ↦ A / (s - p)) (U \ {p}) := by
+  have simpleHolo : DifferentiableOn ℂ (fun s ↦ A / (s - p)) (U \ {p}) := by
     apply DifferentiableOn.mono (t := {p}ᶜ)
     · apply DifferentiableOn.div
       · exact differentiableOn_const _
@@ -331,7 +331,7 @@ theorem logDerivResidue' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
       · exact fun x hx => by rw [sub_ne_zero]; exact hx
     · rintro s ⟨_, hs⟩ ; exact hs
 
-  have f_minus_pole_is_holomorphic : HolomorphicOn (f - (fun s ↦ A * (s - p)⁻¹)) (U \ {p}) := by
+  have f_minus_pole_is_holomorphic : DifferentiableOn ℂ (f - (fun s ↦ A * (s - p)⁻¹)) (U \ {p}) := by
     exact (DifferentiableOn.sub_iff_right holc).mpr simpleHolo
 
   let ⟨g, ⟨g_is_holomorphic, g_is_f_minus_pole⟩⟩ := existsDifferentiableOn_of_bddAbove
@@ -342,10 +342,10 @@ theorem logDerivResidue' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   let h := (fun _ ↦ A) + g * (fun (s : ℂ) ↦ (s - p))
 
 
-  have linear_is_holomorphic : HolomorphicOn (fun (s : ℂ ) ↦ (s - p)) U := by
+  have linear_is_holomorphic : DifferentiableOn ℂ (fun (s : ℂ ) ↦ (s - p)) U := by
     exact DifferentiableOn.sub_const differentiableOn_id p
 
-  have h_is_holomorphic : HolomorphicOn h U := by
+  have h_is_holomorphic : DifferentiableOn ℂ h U := by
     have T := DifferentiableOn.mul g_is_holomorphic linear_is_holomorphic
     exact DifferentiableOn.const_add A T
 
@@ -439,7 +439,7 @@ theorem logDerivResidue' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   -/)]
 theorem logDerivResidue {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (non_zero : ∀ x ∈ U \ {p}, f x ≠ 0)
-    (holc : HolomorphicOn f (U \ {p}))
+    (holc : DifferentiableOn ℂ f (U \ {p}))
     (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
     (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
     (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) :=
@@ -489,7 +489,7 @@ lemma BddAbove_to_IsBigO {f : ℂ → ℂ} {p : ℂ}
 
 theorem logDerivResidue'' {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (non_zero : ∀ x ∈ U \ {p}, f x ≠ 0)
-    (holc : HolomorphicOn f (U \ {p}))
+    (holc : DifferentiableOn ℂ f (U \ {p}))
     (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
     (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
     ∃ V ∈ 𝓝 p, BddAbove (norm ∘ (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) '' (V \ {p})) := by
@@ -526,7 +526,7 @@ holomorphic near $p$, then the residue of $f \cdot g$ is $A \cdot g(p)$.
   that  $g$ is holomorphic.
   -/)]
 theorem ResidueMult {f g : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (g_holc : HolomorphicOn g U) (U_in_nhds : U ∈ 𝓝 p) {A : ℂ}
+    (g_holc : DifferentiableOn ℂ g U) (U_in_nhds : U ∈ 𝓝 p) {A : ℂ}
     (f_near_p : (f - (fun s ↦ A * (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
     (f * g - (fun s ↦ A * g p * (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
   -- Add and subtract a term
@@ -601,7 +601,7 @@ theorem riemannZetaLogDerivResidue :
     intro s hs
     have s_in_V_diff : s ∈ V \ {1} := ⟨hs.1.1, hs.2⟩
     exact hV s s_in_V_diff
-  have ζ_holc: HolomorphicOn ζ (W \ {1}) := by
+  have ζ_holc: DifferentiableOn ℂ ζ (W \ {1}) := by
     intro y hy
     simp only [Set.mem_sdiff, mem_singleton_iff] at hy
     refine DifferentiableAt.differentiableWithinAt ?_
@@ -1314,15 +1314,8 @@ lemma HasDerivAtZeta0 {N : ℕ} (Npos : 0 < N) {s : ℂ} (reS_pos : 0 < s.re) (s
   that's absolutely convergent on $\{s\in \C\mid \Re(s)>0 ∧ s \ne 1\}$ by Lemma \ref{ZetaBnd_aux1b}.
   -/)]
 lemma HolomorphicOn_riemannZeta0 {N : ℕ} (N_pos : 0 < N) :
-    HolomorphicOn (ζ₀ N) {s : ℂ | s ≠ 1 ∧ 0 < s.re} :=
+    DifferentiableOn ℂ (ζ₀ N) {s : ℂ | s ≠ 1 ∧ 0 < s.re} :=
   fun _ ⟨hs₁, hs₂⟩ ↦ (HasDerivAtZeta0 N_pos hs₂ hs₁).differentiableAt.differentiableWithinAt
-
--- MOVE TO MATHLIB near `differentiableAt_riemannZeta`
-lemma HolomorphicOn_riemannZeta :
-    HolomorphicOn ζ {s : ℂ | s ≠ 1} := by
-  intro z hz
-  simp only [mem_ofPred_eq] at hz
-  exact (differentiableAt_riemannZeta hz).differentiableWithinAt
 
 @[blueprint
   (title := "isPathConnected-aux")
@@ -1402,9 +1395,7 @@ lemma Zeta0EqZeta {N : ℕ} (N_pos : 0 < N) {s : ℂ} (reS_pos : 0 < s.re) (s_ne
   let g := ζ₀ N
   let U := {z : ℂ | z ≠ 1 ∧ 0 < z.re}
   have f_an : AnalyticOnNhd ℂ f U := by
-    apply (HolomorphicOn_riemannZeta.analyticOnNhd isOpen_ne).mono
-    simp only [ne_eq, ofPred_subset_ofPred, and_imp, U]
-    exact fun a ha _ ↦ ha
+    exact analyticOn_riemannZeta.mono (fun _ hz ↦ hz.1)
   have g_an : AnalyticOnNhd ℂ g U := (HolomorphicOn_riemannZeta0 N_pos).analyticOnNhd isOpen_aux
   have preconU : IsPreconnected U := by
     apply IsConnected.isPreconnected
@@ -1434,7 +1425,7 @@ lemma DerivZeta0EqDerivZeta {N : ℕ} (N_pos : 0 < N) {s : ℂ} (reS_pos : 0 < s
     simp only [mem_ofPred_eq, U] at hx; exact Zeta0EqZeta (N := N) N_pos hx.2 hx.1
   refine deriv_eqOn isOpen_aux ?_ (by simp [s_ne_one, reS_pos])
   intro x hx
-  have hζ := HolomorphicOn_riemannZeta.mono (by aesop)|>.hasDerivAt (s := U) <|
+  have hζ := differentiableOn_riemannZeta.mono (by aesop)|>.hasDerivAt (s := U) <|
     isOpen_aux.mem_nhds hx
   exact hζ.hasDerivWithinAt.congr (fun y hy ↦ this hy) (this hx)
 
@@ -3224,7 +3215,7 @@ lemma ZetaNoZerosInBox (T : ℝ) :
 
 lemma LogDerivZetaHoloOn {S : Set ℂ} (s_ne_one : 1 ∉ S)
     (nonzero : ∀ s ∈ S, ζ s ≠ 0) :
-    HolomorphicOn (fun s ↦ ζ' s / ζ s) S := by
+    DifferentiableOn ℂ (fun s ↦ ζ' s / ζ s) S := by
   apply DifferentiableOn.div _ _ nonzero <;> intro s hs <;> apply DifferentiableAt.differentiableWithinAt
   · apply differentiableAt_deriv_riemannZeta
     exact ne_of_mem_of_not_mem hs s_ne_one
@@ -3250,7 +3241,7 @@ a rectangle $[\sigma_2,2] \times_{ℂ} [-3,3] \setminus \{1\}$.
   -/)
   (latexEnv := "lemma")]
 theorem LogDerivZetaHolcSmallT :
-    ∃ (σ₂ : ℝ) (_ : σ₂ < 1), HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
+    ∃ (σ₂ : ℝ) (_ : σ₂ < 1), DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
       (( [[ σ₂, 2 ]] ×ℂ [[ -3, 3 ]]) \ {1}) := by
   obtain ⟨σ₂, hσ₂_lt_one, hζ_ne_zero⟩ := ZetaNoZerosInBox 3
   refine ⟨σ₂, hσ₂_lt_one, ?_⟩
@@ -3288,7 +3279,7 @@ theorem LogDerivZetaHolcSmallT :
     · apply s_in_U_re_ges2 _ hs
 
 lemma LogDerivZetaHolcSmallT' : ∃ (σ₂ : ℝ)
-  (_ : σ₂ ∈ Ioo 0 1), HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
+  (_ : σ₂ ∈ Ioo 0 1), DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
     (( [[ σ₂, 2 ]] ×ℂ [[ -3, 3 ]]) \ {1}) := by
   obtain ⟨σ₂', σ₂'_lt_one, holo2'⟩ := LogDerivZetaHolcSmallT
   let σ₂ : ℝ := max σ₂' (1 / 2)
@@ -3309,7 +3300,7 @@ lemma LogDerivZetaHolcSmallT' : ∃ (σ₂ : ℝ)
 
 def LogDerivZetaHolcLargeTGenProp (n : ℝ) : Prop := ∃ (A : ℝ) (_ : A ∈ Ioc 0 (1 / 2)),
     ∀ (T : ℝ) (_ : 3 ≤ T),
-    HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
+    DifferentiableOn ℂ (fun (s : ℂ) ↦ ζ' s / (ζ s))
       (( (Icc ((1 : ℝ) - A / Real.log T ^ n) 2)  ×ℂ (Icc (-T) T) ) \ {1})
 
 lemma LogDerivZetaHolcLargeTGen {n : ℝ} (ZetaZeroFree : ZetaZeroFreeGenProp n) (n_pos : 0 < n) :

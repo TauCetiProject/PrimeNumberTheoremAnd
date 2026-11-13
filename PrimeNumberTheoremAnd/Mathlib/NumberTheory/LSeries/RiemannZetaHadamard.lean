@@ -190,7 +190,7 @@ theorem summable_riemannXi_divisorZeroIndex₀_norm_inv_sq :
   simpa using
     (Complex.Hadamard.EntireOfOrderAtMost.summable_norm_inv_pow_divisorZeroIndex₀
       (ρ := (1 : ℝ)) (f := riemannXi) riemannXi_entireOfOrderAtMost_one
-      (by norm_num) riemannXi_nontrivial)
+      (by norm_num))
 
 private theorem riemannXi_product_eq :
     Complex.Hadamard.divisorCanonicalProduct 1 riemannXi Set.univ =
@@ -448,7 +448,7 @@ private theorem completedRiemannZeta₀_product_eq :
     simpa using
       (Complex.Hadamard.EntireOfOrderAtMost.summable_norm_inv_pow_divisorZeroIndex₀
         (ρ := (1 : ℝ)) (f := completedRiemannZeta₀) completedRiemannZeta₀_entireOfOrderAtMost_one
-        (by norm_num) completedRiemannZeta₀_nontrivial)
+        (by norm_num))
   ext z
   exact Complex.Hadamard.divisorCanonicalProduct_one_eq_native hs z
 

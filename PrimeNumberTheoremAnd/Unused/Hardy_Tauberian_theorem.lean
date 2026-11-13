@@ -21,9 +21,17 @@ Key lemmas include:
 - `tendsto_of_approx_aux`: A general lemma for proving convergence via approximation.
 -/
 
-import Mathlib
+import Mathlib.Analysis.SpecificLimits.Normed
+import Mathlib.Algebra.Order.Floor.Semiring
+import Mathlib.Algebra.BigOperators.Intervals
+import Mathlib.Order.Filter.ZeroAndBoundedAtFilter
+import Mathlib.Tactic.Convert
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.NormNum
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Ring
 
-set_option linter.mathlibStandardSet false
 
 open scoped BigOperators
 open scoped Real
@@ -31,13 +39,7 @@ open scoped Nat
 open scoped Classical
 open scoped Pointwise
 
-set_option maxHeartbeats 0
-set_option maxRecDepth 4000
-set_option synthInstance.maxHeartbeats 20000
-set_option synthInstance.maxSize 128
 
-set_option relaxedAutoImplicit false
-set_option autoImplicit false
 
 noncomputable section
 
@@ -237,25 +239,6 @@ lemma hardy_k_ratio_bounded (ε : ℝ) (hε : 0 < ε) :
 Hardy's Tauberian Theorem: If the arithmetic means of partial sums of a series converge to S, and the terms are O(1/n), then the series converges to S.
 -/
 theorem hardy_tauberian (u : ℕ → ℝ) (A : ℝ) (S : ℝ)
-    (h_conv : Filter.Tendsto (hardy_sigma u) Filter.atTop (nhds S))
-    (h_bound : ∀ n ≥ 1, |u n| ≤ A / n) :
-    Filter.Tendsto (hardy_s u) Filter.atTop (nhds S) := by
-      convert tendsto_of_approx_aux _ _;
-      exact |A| + 1;
-      · positivity;
-      · intro ε hε
-        use fun n => hardy_sigma_delayed u n (hardy_k ε n);
-        constructor;
-        · convert hardy_sigma_delayed_tendsto u S ( fun n => hardy_k ε n ) h_conv _ _ using 1;
-          · convert hardy_k_ratio_bounded ε hε using 1;
-          · exact fun n => Nat.pos_of_ne_zero ( by unfold hardy_k; aesop );
-        · have := hardy_diff_bound u A ε hε h_bound;
-          filter_upwards [ this ] with n hn using by rw [ abs_sub_comm ] ; exact le_trans hn ( mul_le_mul_of_nonneg_left ( by cases abs_cases A <;> linarith ) hε.le ) ;
-
-/-
-Hardy's Tauberian Theorem: If the arithmetic means of partial sums of a series converge to S, and the terms are O(1/n), then the series converges to S.
--/
-theorem hardy_tauberian_theorem (u : ℕ → ℝ) (A : ℝ) (S : ℝ)
     (h_conv : Filter.Tendsto (hardy_sigma u) Filter.atTop (nhds S))
     (h_bound : ∀ n ≥ 1, |u n| ≤ A / n) :
     Filter.Tendsto (hardy_s u) Filter.atTop (nhds S) := by

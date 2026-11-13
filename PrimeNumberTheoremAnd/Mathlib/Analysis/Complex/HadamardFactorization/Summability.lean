@@ -12,6 +12,7 @@ public import Mathlib.Analysis.Meromorphic.TrailingCoefficient
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Log.Summable
+public import TauCeti.Analysis.PSeries
 
 /-!
 # Divisor summability from logarithmic growth
@@ -114,7 +115,8 @@ lemma exists_r0_le_norm_divisorZeroIndex₀_val {f : ℂ → ℂ}
     have hneTop : meromorphicOrderAt f z ≠ ⊤ := by
       have hzAnal : AnalyticAt ℂ f z := hf.analyticAt z
       have hzA : analyticOrderAt f z ≠ ⊤ :=
-        analyticOrderAt_ne_top_of_exists_ne_zero (f := f) (hf := hf) hnot (z := z)
+        (AnalyticOnNhd.analyticOrderAt_eq_top_iff_eq_zero z (hf).analyticAt).not.mpr
+          (Function.ne_iff.mpr hnot)
       intro htop
       have hm : meromorphicOrderAt f z = (analyticOrderAt f z).map (↑) :=
         hzAnal.meromorphicOrderAt_eq (𝕜 := ℂ)
@@ -156,7 +158,8 @@ lemma exists_r0_le_norm_divisorZeroIndex₀_val {f : ℂ → ℂ}
       have hmero0 : MeromorphicAt f (0 : ℂ) := (hf.analyticAt 0).meromorphicAt
       have hneTop0 : meromorphicOrderAt f (0 : ℂ) ≠ ⊤ := by
         have hA0 : analyticOrderAt f (0 : ℂ) ≠ ⊤ :=
-          analyticOrderAt_ne_top_of_exists_ne_zero (f := f) (hf := hf) hnot (z := 0)
+          (AnalyticOnNhd.analyticOrderAt_eq_top_iff_eq_zero 0 (hf).analyticAt).not.mpr
+            (Function.ne_iff.mpr hnot)
         intro htop
         have hm : meromorphicOrderAt f (0 : ℂ) = (analyticOrderAt f (0 : ℂ)).map (↑) :=
           (hf.analyticAt 0).meromorphicOrderAt_eq (𝕜 := ℂ)
@@ -476,91 +479,50 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
       (by simpa [rk] using htsum')
 
 theorem summable_norm_inv_rpow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {ρ τ : ℝ}
-    (hρ : 0 ≤ ρ) (hτ : ρ < τ) (hf : Differentiable ℂ f) (hnot : ∃ z : ℂ, f z ≠ 0)
+    (hρ : 0 ≤ ρ) (hτ : ρ < τ) (hf : Differentiable ℂ f)
     (hgrowth : ∃ C > 0, ∀ z : ℂ, Real.log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) :
     Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ) := by
-  rcases hgrowth with ⟨Cgrow, hCgrow_pos, hCgrow⟩
-  have hτpos : 0 < τ := lt_of_le_of_lt hρ hτ
-  rcases exists_r0_le_norm_divisorZeroIndex₀_val (f := f) hf hnot with ⟨r0, hr0pos, hr0⟩
-  have hr0ne : (r0 : ℝ) ≠ 0 := ne_of_gt hr0pos
-  let kfun : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℕ :=
-    fun p => ⌊Real.logb 2 (‖divisorZeroIndex₀_val p‖ / r0)⌋₊
-  let S : ℕ → Set (divisorZeroIndex₀ f (Set.univ : Set ℂ)) :=
-    fun k => {p | kfun p = k}
-  have hS : ∀ p : divisorZeroIndex₀ f (Set.univ : Set ℂ), ∃! k : ℕ, p ∈ S k := by
-    intro p
-    refine ⟨kfun p, ?_, ?_⟩
-    · simp [S]
-    · intro k hk
-      simpa [S] using hk.symm
-  have hnonneg : 0 ≤ fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ := by
-    intro p
-    exact Real.rpow_nonneg (inv_nonneg.2 (norm_nonneg _)) _
-  have hSk_summable : ∀ k : ℕ, Summable fun p : S k => ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ := by
-    intro k
-    have : Finite (S k) := by
-      simpa [S, kfun] using (finite_divisorZeroIndex₀_dyadicShell
-        (f := f) hr0pos hr0 k).to_subtype
-    exact Summable.of_finite
-  have hshell_summable :
-      Summable fun k : ℕ => ∑' p : S k, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ := by
-    let q : ℝ := (2 : ℝ) ^ (ρ - τ)
-    let qσ : ℝ := (2 : ℝ) ^ (-τ)
-    have hq_nonneg : 0 ≤ q := le_of_lt (Real.rpow_pos_of_pos (by norm_num : (0 : ℝ) < 2) _)
-    have hq_lt_one : q < 1 :=
-      Real.rpow_lt_one_of_one_lt_of_neg (x := (2 : ℝ)) (by norm_num : (1 : ℝ) < 2)
-        (sub_neg.2 hτ)
-    have hqσ_nonneg : 0 ≤ qσ := le_of_lt (Real.rpow_pos_of_pos (by norm_num : (0 : ℝ) < 2) _)
-    have hqσ_lt_one : qσ < 1 :=
-      Real.rpow_lt_one_of_one_lt_of_neg (x := (2 : ℝ)) (by norm_num : (1 : ℝ) < 2)
-        (by simpa using (neg_neg_of_pos hτpos))
-    have hgeom_q : Summable (fun k : ℕ => q ^ k) :=
-      summable_geometric_of_lt_one hq_nonneg hq_lt_one
-    have hgeom_qσ : Summable (fun k : ℕ => qσ ^ k) :=
-      summable_geometric_of_lt_one hqσ_nonneg hqσ_lt_one
-    let Ctrail : ℝ := |Real.log ‖meromorphicTrailingCoeffAt f 0‖|
-    let A : ℝ := ((Cgrow / Real.log 2) * (1 + 4 * r0) ^ ρ) * (r0⁻¹) ^ τ
-    let B : ℝ := ((Ctrail / Real.log 2) + 1) * (r0⁻¹) ^ τ
-    rcases Real.exists_nat_le_two_pow (1 / r0) with ⟨k0, hk0⟩
-    let A0 : ℝ := A * q ^ k0
-    let B0 : ℝ := B * qσ ^ k0
-    have hmajor : Summable (fun k : ℕ => A0 * q ^ k + B0 * qσ ^ k) :=
-      (hgeom_q.mul_left A0).add (hgeom_qσ.mul_left B0)
-    have hshell_summable_shift :
-        Summable fun k : ℕ => ∑' p : S (k + k0), ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ := by
-      refine hmajor.of_nonneg_of_le
-        (fun k => by
-          have : ∀ p : S (k + k0), 0 ≤ ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ := by
-            intro p; exact Real.rpow_nonneg (inv_nonneg.2 (norm_nonneg _)) _
-          exact tsum_nonneg this)
-        (fun k => by
-          let kk : ℕ := k + k0
-          let Rk : ℝ := r0 * (2 : ℝ) ^ ((kk : ℝ) + 1)
-          have hRk_ge_one : (1 : ℝ) ≤ Rk := by
-            have hkk : k0 ≤ kk + 1 := by
-              simp [kk, Nat.add_assoc, Nat.add_comm]
-            simpa [Rk] using
-              Real.one_le_dyadicRadius_succ_of_inv_le_two_pow hr0pos hk0 hkk
-          have hmain :
-              (∑' p : S kk, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ) ≤ A * q ^ kk + B * qσ ^ kk := by
-            simpa [S, kfun, Ctrail, A, B, q, qσ] using
-              tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
-                (f := f) (ρ := ρ) (τ := τ) hρ hτpos hf hCgrow_pos hCgrow hr0pos hr0 kk hRk_ge_one
-          have : A * q ^ kk + B * qσ ^ kk = A0 * q ^ k + B0 * qσ ^ k := by
-            simpa [A0, B0, kk] using Real.two_geometric_shift_add A B q qσ k k0
-          simpa [kk] using (hmain.trans_eq this)
-        )
-    exact (summable_nat_add_iff k0).1 hshell_summable_shift
-  have hpart :=
-    (summable_partition (f := fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-        ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ) hnonneg (s := S) hS)
-  exact (hpart.2 ⟨hSk_summable, hshell_summable⟩)
+  classical
+  obtain ⟨C, hC, hgrowth⟩ := hgrowth
+  let r (p : divisorZeroIndex₀ f Set.univ) : ℝ := max 1 ‖divisorZeroIndex₀_val p‖
+  let K : ℝ := |Real.log ‖meromorphicTrailingCoeffAt f 0‖|
+  have hfinite (R : ℝ) : {p | r p ≤ R}.Finite := by
+    apply (divisorZeroIndex₀_norm_le_finite (f := f) (U := Set.univ) R (by simp)).subset
+    intro p hp
+    exact (le_max_right (1 : ℝ) ‖divisorZeroIndex₀_val p‖).trans hp
+  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
+  have hcount : ∀ᶠ R : ℝ in atTop,
+      (∑' p : {p | r p ≤ R}, (1 : ℝ)) ≤
+        ((C * 3 ^ ρ + K) / Real.log 2) * R ^ ρ := by
+    filter_upwards [eventually_ge_atTop (1 : ℝ)] with R hR
+    let := (hfinite R).fintype
+    have hcard := card_subtype_le_divisorMassClosedBall₀_of_norm_le hf
+      (zero_lt_one.trans_le hR) (fun p : {p | r p ≤ R} ↦ (le_max_right _ _).trans p.property)
+    have hmass := divisorMassClosedBall₀_le_of_growth hf hgrowth hR
+    have hbase : 1 + |2 * R| ≤ 3 * R := by rw [abs_of_nonneg (by positivity)]; linarith
+    have hpow : (1 + |2 * R|) ^ ρ ≤ 3 ^ ρ * R ^ ρ := by
+      simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 3) (by positivity : 0 ≤ R)] using
+        Real.rpow_le_rpow (by positivity) hbase hρ
+    have hK : K ≤ K * R ^ ρ :=
+      le_mul_of_one_le_right (abs_nonneg _) (Real.one_le_rpow hR hρ)
+    have hnum : C * (1 + |2 * R|) ^ ρ + K ≤ (C * 3 ^ ρ + K) * R ^ ρ := by
+      nlinarith [mul_le_mul_of_nonneg_left hpow hC.le]
+    simpa only [tsum_fintype, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one,
+      K, div_mul_eq_mul_div] using
+      hcard.trans (hmass.trans (div_le_div_of_nonneg_right hnum hlog2.le))
+  have hs := TauCeti.summable_mul_rpow_of_count_growth r (fun _ ↦ (1 : ℝ))
+    (fun _ ↦ le_max_left _ _) (fun _ ↦ zero_le_one) hfinite
+    (hρ.trans hτ.le) hτ hcount
+  apply hs.congr_cofinite
+  filter_upwards [(divisorZeroIndex₀_norm_le_finite (f := f) (U := Set.univ) 1
+    (by simp)).eventually_cofinite_notMem] with p hp
+  have hp1 : 1 ≤ ‖divisorZeroIndex₀_val p‖ := le_of_lt (lt_of_not_ge hp)
+  simp only [one_mul, r, max_eq_right hp1, Real.rpow_neg_eq_inv_rpow]
 
 /-- Natural-power form of the divisor summability theorem. -/
 theorem summable_norm_inv_pow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {ρ : ℝ}
-    (hρ : 0 ≤ ρ) (hf : Differentiable ℂ f) (hnot : ∃ z : ℂ, f z ≠ 0)
+    (hρ : 0 ≤ ρ) (hf : Differentiable ℂ f)
     (hgrowth : ∃ C > 0, ∀ z : ℂ, Real.log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) :
     Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (Nat.floor ρ + 1)) := by
@@ -568,7 +530,7 @@ theorem summable_norm_inv_pow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {�
     simpa [Nat.cast_add, Nat.cast_one] using (Nat.lt_floor_add_one (a := ρ))
   have hs :=
     summable_norm_inv_rpow_divisorZeroIndex₀_of_growth (f := f) (ρ := ρ)
-      (τ := (Nat.floor ρ + 1 : ℝ)) hρ hτ hf hnot hgrowth
+      (τ := (Nat.floor ρ + 1 : ℝ)) hρ hτ hf hgrowth
   exact hs.congr fun p => by
     have hcast : ((Nat.floor ρ : ℝ) + 1) = ((Nat.floor ρ + 1 : ℕ) : ℝ) := by
       norm_num
