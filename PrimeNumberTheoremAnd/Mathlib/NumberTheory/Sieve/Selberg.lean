@@ -252,17 +252,9 @@ theorem selbergμPlus_eq_zero (d : ℕ) (hd : ¬d ≤ y) : μ⁺ d = 0 := by
   apply s.selbergWeights_eq_zero
 
 -- proved for general lambda squared sieves
-theorem mainSum_eq_diag_quad_form :
-    mainSum (s := s.toBoundingSieve) μ⁺ =
-      ∑ l ∈ divisors P,
-        1 / g l *
-          (∑ d ∈ divisors P, if l ∣ d then ν d * γ d else 0) ^ 2 :=
-  by simpa only [selbergMuPlus, one_div] using
-    BoundingSieve.mainSum_lambdaSquared_eq_sum_mul_sum_sq γ
-
 theorem selberg_bound_simple_mainSum :
     mainSum (s := s.toBoundingSieve) μ⁺ = S⁻¹ := by
-  rw [mainSum_eq_diag_quad_form]
+  simp only [selbergMuPlus, BoundingSieve.mainSum_lambdaSquared_eq_sum_mul_sum_sq, ← one_div]
   trans (∑ l ∈ divisors P, (if l ^ 2 ≤ y then g l * (S⁻¹) ^ 2 else 0))
   · apply sum_congr rfl; intro l hl
     rw [s.selbergWeights_diagonalisation l hl, ite_pow, zero_pow two_ne_zero, mul_ite_zero]
@@ -277,13 +269,6 @@ theorem selberg_bound_simple_mainSum :
   rw [←sum_mul, sq, ←mul_assoc, mul_inv_cancel₀]
   · ring
   · apply _root_.ne_of_gt; apply selbergBoundingSum_pos
-
-lemma eq_gcd_mul_of_dvd_of_coprime {k d m : ℕ} (hkd : k ∣ d) (hmd : Coprime m d) (hk : k ≠ 0) :
-    k = d.gcd (k*m) := by
-  obtain ⟨r, hr⟩ := hkd
-  have hrdvd : r ∣ d := by use k; rw [mul_comm]; exact hr
-  apply symm; rw [hr, Nat.gcd_mul_left, mul_eq_left₀ hk, Nat.gcd_comm]
-  apply Coprime.coprime_dvd_right hrdvd hmd
 
 private lemma _helper {k m d : ℕ} (hkd : k ∣ d) (hk : k ∈ divisors P) (hm : m ∈ divisors P) :
     k * m ∣ P ∧ k = Nat.gcd d (k * m) ∧ (k * m) ^ 2 ≤ y ↔
@@ -304,7 +289,8 @@ private lemma _helper {k m d : ℕ} (hkd : k ∣ d) (hk : k ∈ divisors P) (hm 
       · exact dvd_of_mem_divisors hk
       · exact dvd_of_mem_divisors hm
     constructor
-    · exact eq_gcd_mul_of_dvd_of_coprime hkd h.2 (by rintro rfl; simp at hk ⊢)
+    · rw [Nat.gcd_comm, Nat.mul_comm k m]
+      exact (Nat.gcd_mul_of_coprime_of_dvd h.2 hkd).symm
     · exact h.1
 
 theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :

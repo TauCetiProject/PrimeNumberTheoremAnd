@@ -28,28 +28,6 @@ open BoundingSieve SelbergSieve
 @[expose] public noncomputable section
 namespace Sieve
 
-lemma prodDistinctPrimes_squarefree (s : Finset ℕ) (h : ∀ p ∈ s, p.Prime) :
-    Squarefree (∏ p ∈ s, p) := by
-  refine Iff.mpr Nat.squarefree_iff_prime_squarefree ?_
-  intro p hp; by_contra h_dvd
-  by_cases hps : p ∈ s
-  · rw [←Finset.mul_prod_erase (a:=p) (h := hps), mul_dvd_mul_iff_left (Nat.Prime.ne_zero hp)]
-      at h_dvd
-    obtain ⟨q, hq⟩ := hp.prime.exists_mem_finset_dvd h_dvd
-    rw [Finset.mem_erase] at hq
-    exact hq.1.1 <| symm <| (Nat.prime_dvd_prime_iff_eq hp (h q hq.1.2)).mp hq.2
-  · have : p ∣ ∏ p ∈ s, p := Trans.trans (dvd_mul_right p p) h_dvd
-    obtain ⟨q, hq⟩ := hp.prime.exists_mem_finset_dvd this
-    have heq : p = q := by
-      rw [←Nat.prime_dvd_prime_iff_eq hp (h q hq.1)]
-      exact hq.2
-    rw [heq] at hps; exact hps hq.1
-
-lemma primorial_squarefree (n : ℕ) : Squarefree (primorial n) := by
-  apply prodDistinctPrimes_squarefree
-  simp_rw [Finset.mem_filter];
-  exact fun _ h => h.2
-
 theorem zeta_pos_of_prime : ∀ (p : ℕ), Nat.Prime p → (0:ℝ) < (↑ζ:ArithmeticFunction ℝ) p := by
   intro p hp
   rw [ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply, ite_eq_right (Nat.Prime.ne_zero hp)]
@@ -60,22 +38,6 @@ theorem zeta_lt_self_of_prime : ∀ (p : ℕ), Nat.Prime p → (↑ζ:Arithmetic
   rw [ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply, ite_eq_right (Nat.Prime.ne_zero hp)]
   norm_num;
   exact Nat.succ_le_iff.mp (Nat.Prime.two_le hp)
-
-theorem prime_dvd_primorial_iff (n p : ℕ) (hp : p.Prime) :
-    p ∣ primorial n ↔ p ≤ n := by
-  unfold primorial
-  constructor
-  · intro h
-    obtain ⟨q, hq⟩ : ∃ i, i ∈ Finset.filter Nat.Prime (Finset.range (n + 1)) ∧ p ∣ i :=
-      hp.prime.exists_mem_finset_dvd h
-    rw [Finset.mem_filter, Finset.mem_range] at hq
-    rw [prime_dvd_prime_iff_eq (Nat.Prime.prime hp) (Nat.Prime.prime hq.1.2)] at hq
-    rw [hq.2]
-    exact Nat.lt_succ_iff.mp hq.1.1
-  · intro h
-    apply Finset.dvd_prod_of_mem
-    rw [Finset.mem_filter, Finset.mem_range]
-    exact ⟨Nat.lt_succ_iff.mpr h, hp⟩
 
 theorem siftedSum_eq (s : SelbergSieve) (hw : ∀ i ∈ s.support, s.weights i = 1) (z : ℝ)
     (hz : 1 ≤ z) (hP : s.prodPrimes = primorial (Nat.floor z)) :
@@ -93,7 +55,7 @@ theorem siftedSum_eq (s : SelbergSieve) (hw : ∀ i ∈ s.support, s.weights i =
       · intro p hpp hpy
         rw [←Nat.Prime.coprime_iff_not_dvd hpp]
         apply Nat.Coprime.coprime_dvd_left _ hd.2
-        rw [prime_dvd_primorial_iff _ _ hpp]
+        rw [hpp.dvd_primorial_iff]
         apply Nat.le_floor hpy
     · intro h
       rw [Finset.mem_filter] at *
@@ -101,7 +63,7 @@ theorem siftedSum_eq (s : SelbergSieve) (hw : ∀ i ∈ s.support, s.weights i =
       · exact h.1
       refine Nat.coprime_of_dvd ?_
       intro p hp
-      erw [prime_dvd_primorial_iff _ _ hp]
+      erw [hp.dvd_primorial_iff]
       intro hpy
       apply h.2 p hp
       trans ↑(Nat.floor z)
@@ -149,9 +111,8 @@ theorem isMultiplicative {f : ArithmeticFunction ℝ} (hf : CompletelyMultiplica
 
 theorem apply_pow (f : ArithmeticFunction ℝ) (hf : CompletelyMultiplicative f) (a n : ℕ) :
     f (a^n) = f a ^ n := by
-  induction n with
-  | zero => simp_rw [pow_zero, hf.1]
-  | succ n' ih => simp_rw [pow_succ, hf.2, ih]
+  let F : ℕ →* ℝ := { toFun := f, map_one' := hf.1, map_mul' := hf.2 }
+  exact F.map_pow a n
 
 end CompletelyMultiplicative
 
@@ -332,25 +293,6 @@ theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ArithmeticFu
 
   exact Finset.sum_bij i hi i_inj i_surj h
 
-theorem prod_primes_dvd_of_dvd (P : ℕ) {s : Finset ℕ} (h : ∀ p ∈ s, p ∣ P) (h' : ∀ p ∈ s, p.Prime) :
-    ∏ p ∈ s, p ∣ P := by
-  simp_rw [Nat.prime_iff] at h'
-  apply Finset.prod_primes_dvd _ h' h
-
-lemma sqrt_le_self (x : ℝ) (hx : 1 ≤ x) : Real.sqrt x ≤ x := by
-  refine Iff.mpr Real.sqrt_le_iff ?_
-  constructor
-  · linarith
-  refine le_self_pow₀ hx ?right.h
-  norm_num
-
-lemma Nat.squarefree_dvd_pow (a b N : ℕ) (ha : Squarefree a) (hab : a ∣ b ^ N) : a ∣ b := by
-  by_cases hN : N=0
-  · rw [hN, pow_zero, Nat.dvd_one] at hab
-    rw [hab]; simp
-  rw [Squarefree.dvd_pow_iff_dvd ha hN] at hab
-  exact hab
-
 /-
 Proposed generalisation :
 
@@ -400,14 +342,15 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prim
         exact ne_of_gt <| Nat.succ_le_iff.mp hm.1
       use ∏ p ∈ m.primeFactors, p
       constructor; constructor; constructor
-      · apply prod_primes_dvd_of_dvd <;> intro p hp
-        · apply hP p <| Nat.prime_of_mem_primeFactors hp
+      · apply Finset.prod_primes_dvd
+        · intro p hp; exact (Nat.prime_of_mem_primeFactors hp).prime
+        · intro p hp
+          apply hP p <| Nat.prime_of_mem_primeFactors hp
           trans (m:ℝ)
           · exact_mod_cast Nat.le_of_mem_primeFactors hp
           trans (Real.sqrt s.level)
           · exact hm.2
-          apply sqrt_le_self s.level s.one_le_level
-        exact Nat.prime_of_mem_primeFactors hp
+          exact Real.sqrt_le_self_iff.mpr (Or.inr s.one_le_level)
       · exact prodPrimes_ne_zero
       · rw [←Real.sqrt_le_sqrt_iff (by linarith only [s.one_le_level]), Real.sqrt_sq]
         · trans (m:ℝ)
@@ -437,7 +380,7 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prim
               apply hm_ne_zero
             apply Nat.le_floor
             refine le_trans hm.2 ?_
-            apply sqrt_le_self _ s.one_le_level
+            exact Real.sqrt_le_self_iff.mpr (Or.inr s.one_le_level)
           · rw [←Nat.Prime.pow_dvd_iff_le_factorization hpp <| ne_of_gt hprod_pos, pow_one]
             apply Finset.dvd_prod_of_mem
             rw [Nat.mem_primeFactors]
@@ -455,8 +398,7 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prim
     simp_rw [Finset.mem_coe, Finset.mem_filter, Nat.mem_divisors] at *
     have h : ∀ i j {n}, i ∣ s.prodPrimes → i ∣ x → x ∣ j ^ n → i ∣ j := by
       intro i j n hiP hix hij
-      apply Nat.squarefree_dvd_pow i j n (squarefree_of_dvd_prodPrimes hiP)
-      exact Trans.trans hix hij
+      exact (squarefree_of_dvd_prodPrimes hiP).isRadical n j (hix.trans hij)
     have hidvdj : i ∣ j := by
       apply h i j hi.1.1 hti.2 htj.1.1
     have hjdvdi : j ∣ i := by

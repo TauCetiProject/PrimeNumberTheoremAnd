@@ -26,7 +26,7 @@ namespace BrunTitchmarsh
 def primeInterSieve (x y z : ℝ) (hz : 1 ≤ z) : SelbergSieve where
   support := Finset.Icc (Nat.ceil x) (Nat.floor (x+y))
   prodPrimes := primorial (Nat.floor z)
-  prodPrimes_squarefree := primorial_squarefree _
+  prodPrimes_squarefree := squarefree_primorial _
   weights := fun _ ↦ 1
   weights_nonneg := fun _ ↦ zero_le_one
   totalMass := y
@@ -139,12 +139,6 @@ theorem rem_eq (d : ℕ) (hd : d ≠ 0) :
   rw [multSum_eq x y z hx hz d hd]
   simp [primeInterSieve, ite_eq_right hd]
 
-theorem Nat.ceil_le_self_add_one (x : ℝ) (hx : 0 ≤ x) : Nat.ceil x ≤ x + 1 := by
-  trans Nat.floor x + 1
-  · exact_mod_cast Nat.ceil_le_floor_add_one x
-  · gcongr
-    exact Nat.floor_le hx
-
 theorem floor_approx (x : ℝ) (hx : 0 ≤ x) :
     ∃ C, |C| ≤ 1 ∧ ↑((Nat.floor x)) = x + C := by
   use ↑(Nat.floor x) - x
@@ -157,7 +151,7 @@ theorem ceil_approx (x : ℝ) (hx : 0 ≤ x) : ∃ C, |C| ≤ 1 ∧ ↑((Nat.cei
   simp only [add_sub_cancel, and_true, abs_le]
   refine ⟨by linarith [Nat.le_ceil x], ?_⟩
   rw [tsub_le_iff_right, add_comm]
-  exact Nat.ceil_le_self_add_one x hx
+  exact (Nat.ceil_lt_add_one hx).le
 
 theorem nat_div_approx (a b : ℕ) : ∃ C, |C| ≤ 1 ∧ ↑(a/b) = (a/b : ℝ) + C := by
   rw [← Nat.floor_div_eq_div (K := ℝ)]
@@ -189,7 +183,7 @@ theorem abs_rem_le {d : ℕ} (hd : d ≠ 0) :
     gcongr
     rw [Nat.le_floor_iff, ← add_le_add_iff_right 1]
     · rw_mod_cast [Nat.sub_add_cancel (by simp [hx])]
-      linarith [Nat.ceil_le_self_add_one x (le_of_lt hx)]
+      linarith [(Nat.ceil_lt_add_one (le_of_lt hx)).le]
     linarith
   rw [hpush]
   obtain ⟨C₁, hC₁_le, hC₁⟩ := floor_div_approx (x + y) (by linarith) d
@@ -220,9 +214,7 @@ theorem boudingSum_ge : (primeInterSieve x y z hz).selbergBoundingSum ≥ Real.l
   apply boundingSum_ge_log
   · exact rfl
   · intro p hpp hp
-    erw [prime_dvd_primorial_iff]
-    · exact Nat.le_floor hp
-    · exact hpp
+    exact hpp.dvd_primorial_iff.mpr (Nat.le_floor hp)
 
 include hx hy in
 theorem primeSieve_rem_sum_le :
@@ -399,30 +391,6 @@ theorem range_filter_isPrimePow_subset_union (N : ℕ) :
     have : 1 ≤ m := by omega
     aesop
 
-theorem IsBigO.nat_Top_of_atTop (f g : ℕ → ℝ) (h : f =O[Filter.atTop] g)
-    (h0 : ∀ n, g n = 0 → f n = 0) : f =O[⊤] g := by
-  simp only [Asymptotics.isBigO_top, Real.norm_eq_abs]
-  rw [Asymptotics.isBigO_atTop_iff_eventually_exists] at h
-  simp only [ge_iff_le, Real.norm_eq_abs, Filter.eventually_atTop] at h
-  obtain ⟨N, hN⟩ := h
-  specialize hN N le_rfl
-  obtain ⟨c, hc⟩ := hN
-  let C := Finset.max' (insert c ((Finset.range N).image (fun n ↦ |f n| * |g n|⁻¹))) (by simp)
-  refine ⟨C, fun n ↦ ?_⟩
-  by_cases hn : N ≤ n
-  · calc |f n| ≤ c * |g n| := hc n hn
-      _ ≤ C * |g n| := by
-        gcongr
-        apply Finset.le_max'
-        simp
-  · by_cases hg : g n = 0
-    · simp [hg, h0]
-    rw [← mul_inv_le_iff₀]
-    · apply Finset.le_max'
-      simp only [Finset.mem_insert, Finset.mem_image, Finset.mem_range]
-      exact .inr ⟨n, by omega, rfl⟩
-    · simp [hg]
-
 theorem pows_small_primes_le (N : ℕ) :
     (((Finset.Ico 1 (Nat.ceil (Real.sqrt N))) ×ˢ Finset.range (Nat.log 2 N + 1)).image
       (fun p ↦ p.1 ^ p.2)).card ≤
@@ -517,7 +485,8 @@ theorem card_range_filter_isPrimePow_le :
     rw [abs_of_nonneg]
     apply Real.log_nonneg
     norm_cast; omega
-  apply IsBigO.nat_Top_of_atTop _ _ card_isPrimePow_isBigO
+  apply card_isPrimePow_isBigO.nat_of_atTop
+  apply Filter.Eventually.of_forall
   have (a : ℕ) : (a : ℝ) ≠ -1 := by linarith [show 0 ≤ (a : ℝ) by positivity]
   simp [this, not_isPrimePow_zero]
 
