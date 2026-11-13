@@ -584,7 +584,8 @@ theorem isTheta_uniformlyOn_uIoc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
 lemma isTheta (xpos : 0 < x) :
     ((fun (y : ℝ) ↦ f x (σ + y * I)) =Θ[atBot] fun (y : ℝ) ↦ 1 / y^2) ∧
     (fun (y : ℝ) ↦ f x (σ + y * I)) =Θ[atTop] fun (y : ℝ) ↦ 1 / y^2 :=
-  isTheta_sup.mp <| isTheta_of_isThetaUniformly (isTheta_uniformlyOn_uIcc xpos σ σ) left_mem_uIcc
+  isTheta_sup.mp <| (eventually_principal.mp
+    (isTheta_uniformlyOn_uIcc xpos σ σ).fiberwise_right) σ left_mem_uIcc
 
 
 @[blueprint "isIntegrable"

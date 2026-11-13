@@ -29,29 +29,6 @@ namespace Asymptotics
 
 variable {α ι E F : Type*} {s : Set ι}
 
-section Basic
-
-variable [Norm E] [Norm F] {f : ι × α → E} {g : α → F} {l : Filter α}
-
-/-- If f = O(g) uniformly on `s`, then f_i = O(g) for any i.` -/
-theorem isBigO_of_isBigOUniformly (h : f =O[𝓟 s ×ˢ l] (g ∘ Prod.snd)) {i : ι}
-    (hi : i ∈ s) : (fun x ↦ f (i, x)) =O[l] g := by
-  exact h.comp_tendsto
-    ((tendsto_principal.mpr (Filter.Eventually.of_forall fun _ ↦ hi)).prodMk tendsto_id)
-
-/-- If f = Ω(g) uniformly on `s`, then f_i = Ω(g) for any i.` -/
-theorem isBigO_rev_of_isBigOUniformly_rev (h : (g ∘ Prod.snd) =O[𝓟 s ×ˢ l] f) {i : ι}
-    (hi : i ∈ s) : g =O[l] fun x ↦ f (i, x) := by
-  exact h.comp_tendsto
-    ((tendsto_principal.mpr (Filter.Eventually.of_forall fun _ ↦ hi)).prodMk tendsto_id)
-
-/-- If f = Θ(g) uniformly on `s`, then f_i = Θ(g) for any i.` -/
-theorem isTheta_of_isThetaUniformly (h : f =Θ[𝓟 s ×ˢ l] (g ∘ Prod.snd)) {i : ι}
-    (hi : i ∈ s) : (fun x ↦ f (i, x)) =Θ[l] g :=
-  ⟨isBigO_of_isBigOUniformly h.1 hi, isBigO_rev_of_isBigOUniformly_rev h.2 hi⟩
-
-end Basic
-
 section Order
 
 variable [NormedAddCommGroup α] [LinearOrder α] [ProperSpace α] [NormedAddCommGroup F]
