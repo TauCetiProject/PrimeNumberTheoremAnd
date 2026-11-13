@@ -10,7 +10,7 @@ public import Mathlib.Order.Interval.Set.UnorderedInterval
 public import PrimeNumberTheoremAnd.MellinCalculus
 public import PrimeNumberTheoremAnd.SmoothExistence
 public import PrimeNumberTheoremAnd.ZetaBounds
-public import PrimeNumberTheoremAnd.ZetaConj
+public import TauCeti.Analysis.Complex.Conformal.Reflection.LogDeriv
 
 
 @[expose] public section
@@ -98,6 +98,46 @@ noncomputable def SmoothedChebyshev (SmoothingF : ℝ → ℝ) (ε : ℝ) (X : �
 
 open ComplexConjugate
 
+blueprint_comment /--
+Now in Mathlib:
+-/
+blueprint_comment /--
+\begin{theorem}\label{deriv-conj-conj}
+    Let $f : \mathbb{C} \to \mathbb{C}$ be a function at $p \in \mathbb{C}$ with derivative $a$.
+    Then the derivative of the function $g(z) = \overline{f(\overline{z})}$ at $\overline{p}$ is
+    $\overline{a}$.
+  \end{theorem}
+\begin{proof}
+    We proceed by case analysis on whether $f$ is differentiable at $p$. If $f$ is differentiable
+    at $p$, then we can apply the previous theorem. If $f$ is not differentiable at $p$, then
+    neither is $g$, and both derivatives have the default value of zero.
+  \end{proof}
+-/
+
+blueprint_comment /--
+\begin{theorem}[deriv-riemannZeta-conj]\label{deriv_riemannZeta_conj}
+    Conjugation symmetry of the derivative of the Riemann zeta function. Let $s \in \mathbb{C}$.
+    Then $$\zeta'(\overline{s}) = \overline{\zeta'(s)}.$$
+\end{theorem}
+\begin{proof}
+    We apply the canonical affine derivative reflection theorem to the conjugation symmetry of
+    the Riemann zeta function. The theorem also covers its totalized derivative at the pole.
+\end{proof}
+-/
+
+blueprint_comment /--
+\begin{theorem}\label{intervalIntegral-conj}
+    The conjugation symmetry of the interval integral. Let $f : \mathbb{R} \to \mathbb{C}$ be a
+    measurable function, and let $a, b \in \mathbb{R}$. Then
+    $$\int_{a}^{b} \overline{f(x)} \, dx = \overline{\int_{a}^{b} f(x) \, dx}.$$
+  \end{theorem}
+\begin{proof}
+    We unfold the interval integral into an integral over a uIoc and use the conjugation property
+    of integrals.
+  \end{proof}
+-/
+
+
 set_option backward.isDefEq.respectTransparency false in
 lemma smoothedChebyshevIntegrand_conj
     {SmoothingF : ℝ → ℝ} {ε X : ℝ} (Xpos : 0 < X) (s : ℂ) :
@@ -106,7 +146,8 @@ lemma smoothedChebyshevIntegrand_conj
   unfold SmoothedChebyshevIntegrand
   simp only [map_mul, map_div₀, map_neg]
   congr
-  · exact deriv_riemannZeta_conj s
+  · simpa using TauCeti.deriv_conj_eq_mul_conj_deriv
+      (c := 0) (u := 1) isOpen_univ (fun z _ => by simp) (mem_univ s)
   · exact riemannZeta_conj s
   · unfold mellin
     rw[← integral_conj]
