@@ -4,6 +4,8 @@ Audit: 2026-11-13. Source: [PNT+ `938912b`](https://github.com/AlexKontorovich/P
 
 This is a migration inventory, not a claim that the refactor or upstream migration is complete. The source inventory contains 233 Lean files: 75 local `Mathlib/` extensions, 26 top-level files, one `Backlund/` file, 126 `IEANTN/` files, four `Unused/` files and one tactic file. Counts describe the inherited source tree; they will fall as duplicates are removed. `README.md`'s upstream notice redirects new IEANTN work to [teorth/IEANTN](https://github.com/teorth/IEANTN); the inherited IEANTN mathematics remains part of this fork's audit.
 
+The Lean 4.36.0-rc2 dependency port uses [TauCetiProject/leancert `eba44d6`](https://github.com/TauCetiProject/leancert/commit/eba44d6ec75ce248b14340547e3fc731bc009f0e), based on upstream `d3e7f68`, with the same exact Mathlib `2ddf59c8` pin as Tau Ceti. It repairs changed set-equality and matrix-continuity APIs, preserves comparison heads during tactic parsing, recognizes arithmetic before speculative max/min reification, and uses the existing reflective checker for two unchanged BKLNW bounds. All nine distinct LeanCert modules directly imported by this fork built successfully (7689 jobs); its compatibility checker confirmed the pin. This downstream dependency repair does not change Tau Ceti's prohibition on metaprogramming or native computation in mathematical contributions.
+
 ## Existing roadmap coverage: refactor or contribute now
 
 These targets already authorize their needed prerequisites. Missing implementations do not require new roadmaps. Existing Mathlib/Tau Ceti results should replace local duplicates, with all uses updated and obsolete modules removed.
