@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Meromorphic.DivisorSupport
+public import TauCeti.Analysis.Meromorphic.Divisor
 
 /-!
 # Indexing zeros via the divisor
@@ -80,7 +80,8 @@ lemma exists_ball_inter_divisor_support_eq_singleton_of_index
         {divisorZeroIndex₀_val p} := by
   simpa using
     Metric.exists_ball_inter_eq_singleton_of_mem_discrete
-      (hs := MeromorphicOn.divisor_support_discrete (f := f) (U := (Set.univ : Set ℂ)))
+      (hs := Function.locallyFinsuppWithin.discreteSupport
+        (D := MeromorphicOn.divisor f (Set.univ : Set ℂ)))
       (divisorZeroIndex₀_val_mem_divisor_support' (p := p))
 
 /-- The canonical product attached to the (nonzero) divisor of `f` on `U`. -/

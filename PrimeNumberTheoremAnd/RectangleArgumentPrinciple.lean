@@ -2,7 +2,7 @@ module
 
 public import Mathlib.Analysis.Calculus.LogDeriv
 public import Mathlib.Analysis.Meromorphic.Divisor
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Meromorphic.DivisorSupport
+public import TauCeti.Analysis.Meromorphic.Divisor
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 /-!
@@ -269,11 +269,7 @@ lemma divisor_support_rectangle_finite (f : ℂ → ℂ) (z w : ℂ) :
   let D := MeromorphicOn.divisor f R
   have hR_compact : IsCompact R := by
     exact IsCompact.reProdIm isCompact_uIcc isCompact_uIcc
-  have hfinite_inter :
-      (R ∩ D.support).Finite :=
-    MeromorphicOn.divisor_support_inter_compact_finite (f := f) (U := R) (K := R)
-      hR_compact subset_rfl
-  simpa [Set.inter_eq_right.mpr D.supportWithinDomain] using hfinite_inter
+  exact D.finiteSupport hR_compact
 
 theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
     {f : ℂ → ℂ} {z w : ℂ}

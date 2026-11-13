@@ -7,7 +7,7 @@ module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Meromorphic.DivisorHolomorphic
+public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Meromorphic.TrailingCoefficient
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
@@ -85,7 +85,8 @@ lemma log_two_mul_divisorMassClosedBall₀_le_logCounting_two_mul {f : ℂ → �
           (MeromorphicOn.divisor f (Set.univ : Set ℂ)) (2 * R) :=
   Function.locallyFinsuppWithin.log_two_mul_massClosedBall₀_le_logCounting
     (D := MeromorphicOn.divisor f (Set.univ : Set ℂ))
-    (Differentiable.divisor_nonneg hf) hR
+    (MeromorphicOn.AnalyticOnNhd.divisor_nonneg
+      (hf.differentiableOn.analyticOnNhd isOpen_univ)) hR
 
 lemma divisorMassClosedBall₀_le_of_growth {f : ℂ → ℂ} {ρ C : ℝ}
     (hf : Differentiable ℂ f)
@@ -104,7 +105,8 @@ lemma divisorMassClosedBall₀_mono {f : ℂ → ℂ} (hf : Differentiable ℂ f
   simpa [divisorMassClosedBall₀] using
     Function.locallyFinsuppWithin.massClosedBall₀_mono
       (D := MeromorphicOn.divisor f (Set.univ : Set ℂ))
-      (Differentiable.divisor_nonneg hf) hR₁ hR₁₂
+      (MeromorphicOn.AnalyticOnNhd.divisor_nonneg
+      (hf.differentiableOn.analyticOnNhd isOpen_univ)) hR₁ hR₁₂
 
 lemma exists_r0_le_norm_divisorZeroIndex₀_val {f : ℂ → ℂ}
     (hf : Differentiable ℂ f) (hnot : ∃ z : ℂ, f z ≠ 0) :
@@ -114,7 +116,8 @@ lemma exists_r0_le_norm_divisorZeroIndex₀_val {f : ℂ → ℂ}
   set U : Set ℂ := (Set.univ : Set ℂ)
   set D : Function.locallyFinsuppWithin U ℤ := MeromorphicOn.divisor f U
   have hDnonneg : 0 ≤ D := by
-    simpa [D, U] using (Differentiable.divisor_nonneg (f := f) hf)
+    simpa [D, U] using (MeromorphicOn.AnalyticOnNhd.divisor_nonneg
+      (hf.differentiableOn.analyticOnNhd isOpen_univ))
   have hzero : ∀ p : divisorZeroIndex₀ f U, f (divisorZeroIndex₀_val p) = 0 := by
     intro p
     set z : ℂ := divisorZeroIndex₀_val p
@@ -246,7 +249,8 @@ lemma card_ball_le_divisorMassClosedBall₀
       simpa using (finite_divisorZeroIndex₀_subtype_norm_le (f := f) (U := U) (B := R) this)
     exact Fintype.ofFinite _
   have hDnonneg : 0 ≤ D := by
-    simpa [D, U] using (Differentiable.divisor_nonneg (f := f) hf)
+    simpa [D, U] using (MeromorphicOn.AnalyticOnNhd.divisor_nonneg
+      (hf.differentiableOn.analyticOnNhd isOpen_univ))
   let SR : Finset ℂ :=
     (Function.locallyFinsuppWithin.finiteSupport (Function.locallyFinsuppWithin.toClosedBall R D)
           (isCompact_closedBall (0 : ℂ) |R|)).toFinset

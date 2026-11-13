@@ -15,7 +15,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
 public import Mathlib.Analysis.Real.Pi.Bounds
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaStripBound
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 
 
 /-!
@@ -32,7 +32,7 @@ The key ingredients are:
 * Mathlib's `differentiable_completedZeta₀` for entirety of Λ₀
 * The functional equation `completedRiemannZeta₀_one_sub`
 * Stirling-type bounds for `Complex.Gammaℝ`
-* `norm_riemannZeta_le` from `RiemannZetaStripBound` for strip bounds on `ζ`
+* `norm_riemannZeta_le` from `RiemannZetaConvexity` for strip bounds on `ζ`
 
 ## Main results
 

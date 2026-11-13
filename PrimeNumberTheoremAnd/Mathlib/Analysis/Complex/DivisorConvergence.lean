@@ -39,8 +39,8 @@ lemma finite_divisorZeroIndex₀_subtype_norm_le {f : ℂ → ℂ} {U : Set ℂ}
   set D : Function.locallyFinsuppWithin U ℤ := MeromorphicOn.divisor f U
   have hK : IsCompact (Metric.closedBall (0 : ℂ) B) := isCompact_closedBall _ _
   have hpts0 : ((Metric.closedBall (0 : ℂ) B) ∩ D.support).Finite :=
-    MeromorphicOn.divisor_support_inter_compact_finite (f := f) (U := U)
-      (K := Metric.closedBall (0 : ℂ) B) hK hBU
+    MeromorphicOn.divisor_finite_inter_support_of_isCompact (f := f) (U := U)
+      hK hBU subset_rfl
   set pts : Set ℂ := ((Metric.closedBall (0 : ℂ) B) ∩ D.support) \ {0}
   have hpts : pts.Finite := hpts0.sdiff
   let : Fintype pts := hpts.fintype
