@@ -802,6 +802,16 @@ theorem table_10_row13500_k5_margin :
         nlinarith [LogTables.exp_neg_6750_lt, LogTables.exp_neg_9000_lt,
                    Real.exp_pos (-(6750:ℝ)), Real.exp_pos (-(9000:ℝ))])
 
+/-- Coarse exponential estimates shared by the five columns at the final regime boundary. -/
+private lemma row13800_scalar_bound :
+    2 * exp (-(1 / 2 * (13800.7464 : ℝ))) +
+      19913 * exp (-(2 / 3 * (13800.7464 : ℝ))) + 2.5423e-35 ≤ (2.54231e-35 : ℝ) := by
+  have h1 : exp (-(1 / 2 * (13800.7464 : ℝ))) < (1e-100 : ℝ) :=
+    LogTables.exp_neg_lt_1e_neg_100 (by norm_num)
+  have h2 : exp (-(2 / 3 * (13800.7464 : ℝ))) < (1e-100 : ℝ) :=
+    LogTables.exp_neg_lt_1e_neg_100 (by norm_num)
+  linarith only [h1, h2]
+
 /-- Row 13800.7464 (k = 1), exact Table-10 margin target. -/
 theorem table_10_row13800_7464_k1_margin :
     B_8_exact 1 (13800.7464 : ℝ) (14000 : ℝ) ≤ (0.00000000000000000000000000000035592 * table_10_margin : ℝ) :=
@@ -809,7 +819,11 @@ theorem table_10_row13800_7464_k1_margin :
     (0.00000000000000000000000000000035592 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (a1_large_le_two (by norm_num)) row13800_7464_a2_le row13800_7464_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row13800_scalar_bound
+        (show (0 : ℝ) ≤ (14000 : ℝ) ^ 1 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 13800.7464 (k = 2), exact Table-10 margin target. -/
 theorem table_10_row13800_7464_k2_margin :
@@ -818,7 +832,11 @@ theorem table_10_row13800_7464_k2_margin :
     (0.0000000000000000000000000049829 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (a1_large_le_two (by norm_num)) row13800_7464_a2_le row13800_7464_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row13800_scalar_bound
+        (show (0 : ℝ) ≤ (14000 : ℝ) ^ 2 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 13800.7464 (k = 3), exact Table-10 margin target. -/
 theorem table_10_row13800_7464_k3_margin :
@@ -827,7 +845,11 @@ theorem table_10_row13800_7464_k3_margin :
     (0.000000000000000000000069761 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (a1_large_le_two (by norm_num)) row13800_7464_a2_le row13800_7464_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row13800_scalar_bound
+        (show (0 : ℝ) ≤ (14000 : ℝ) ^ 3 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 13800.7464 (k = 4), exact Table-10 margin target. -/
 theorem table_10_row13800_7464_k4_margin :
@@ -836,7 +858,11 @@ theorem table_10_row13800_7464_k4_margin :
     (0.00000000000000000097665 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (a1_large_le_two (by norm_num)) row13800_7464_a2_le row13800_7464_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row13800_scalar_bound
+        (show (0 : ℝ) ≤ (14000 : ℝ) ^ 4 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 13800.7464 (k = 5), exact Table-10 margin target. -/
 theorem table_10_row13800_7464_k5_margin :
@@ -845,7 +871,11 @@ theorem table_10_row13800_7464_k5_margin :
     (0.000000000000013673 * table_10_margin)
     (by norm_num) (by norm_num) (by norm_num) (by norm_num) (by norm_num)
     (a1_large_le_two (by norm_num)) row13800_7464_a2_le row13800_7464_eps_le
-    (by norm_num [table_10_margin, BKLNW_app.table_8_margin]; interval_decide)
+    (by
+      have h := mul_le_mul_of_nonneg_right row13800_scalar_bound
+        (show (0 : ℝ) ≤ (14000 : ℝ) ^ 5 by positivity)
+      norm_num [table_10_margin, BKLNW_app.table_8_margin] at h ⊢
+      nlinarith only [h])
 
 /-- Row 14000 (k = 1), exact Table-10 margin target. -/
 theorem table_10_row14000_k1_margin :
