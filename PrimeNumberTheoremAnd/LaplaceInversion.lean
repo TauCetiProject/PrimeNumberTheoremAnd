@@ -9,6 +9,7 @@ public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Topology.MetricSpace.Cauchy
 import TauCeti.Analysis.Asymptotics.Lemmas
+import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 
 /-!
 # Bilateral Laplace inversion
@@ -1960,17 +1961,6 @@ theorem tendsto_integral_Ioi_exp_neg_mul_sinc_nhdsGT_zero :
   filter_upwards [self_mem_nhdsWithin] with a ha
   exact (integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv a ha).symm
 
-/-- The classical one-sided sinc integral tends to `π / 2`. -/
-theorem tendsto_intervalIntegral_real_sinc_atTop :
-    Filter.Tendsto
-      (fun A : ℝ => ∫ x in (0 : ℝ)..A, Real.sinc x)
-      Filter.atTop (nhds (π / 2 : ℝ)) := by
-  rcases exists_tendsto_intervalIntegral_real_sinc_atTop with ⟨L, hL⟩
-  have hAbelL := tendsto_integral_Ioi_exp_neg_mul_sinc_of_tendsto_interval hL
-  have hlim : L = π / 2 :=
-    tendsto_nhds_unique hAbelL tendsto_integral_Ioi_exp_neg_mul_sinc_nhdsGT_zero
-  simpa [hlim] using hL
-
 /-- Scalar finite-window mass of the principal-value sine kernel. -/
 theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass {R : ℝ} (hR : 0 < R) :
     Filter.Tendsto
@@ -1979,7 +1969,7 @@ theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass {R : ℝ} (hR : 0 < 
           if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
       Filter.atTop (nhds (1 : ℂ)) := by
   exact tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_real_sinc_integral hR
-    tendsto_intervalIntegral_real_sinc_atTop
+    TauCeti.Contour.tendsto_integral_sinc_atTop
 
 /-- The scalar finite-window sine-kernel mass is eventually bounded by `2`. -/
 theorem eventually_norm_intervalIntegral_sin_div_kernel_scalar_mass_le_two

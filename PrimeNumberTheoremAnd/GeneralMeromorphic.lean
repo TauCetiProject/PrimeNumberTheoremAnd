@@ -11,13 +11,13 @@ open Complex BigOperators
 
 open scoped Interval
 
-/-- A function is `MeromorphicOnRectangle` if it's holomorphic off of a
-  finite set of `poles`, none of which is on the boundary of the rectangle
-  (so the function is continuous there). -/
+/-- Differentiability off a finite set, meromorphy at each listed point, and continuity
+on the rectangle boundary. The listed points may be removable singularities and may lie
+on the boundary; the predicate does not assert that they are poles. -/
 @[blueprint (statement := /--
-  A function $f$ is Meromorphic on a rectangle with corners $z$ and $w$
-  if it is holomorphic off a (finite) set of poles, none of which are on
-  the boundary of the rectangle.
+  A function $f$ satisfies this predicate on a rectangle with corners $z$ and $w$
+  if it is holomorphic off the listed finite set, meromorphic at each listed point,
+  and continuous on the boundary. Listed points need not be poles or avoid the boundary.
   -/)]
 class MeromorphicOnRectangle (f : ℂ → ℂ) (poles : Finset ℂ) (z w : ℂ) : Prop where
   holomorphicOn : DifferentiableOn ℂ f ((Rectangle z w) ∩ polesᶜ)
@@ -56,7 +56,7 @@ If $f$ has a pole of order $n$ at $z_0$, then
 $$
 Res_{z_0} f =
   \lim_{z\to z_0}\frac1{(n-1)!}
-    (\partial/\partial z)^{n-1}[(z-z_0)^{n-1}f(z)].
+    (\partial/\partial z)^{n-1}[(z-z_0)^n f(z)].
 $$
 \end{definition}
 -/
