@@ -60,6 +60,7 @@ Co-authored-by: Aristotle (Harmonic) <aristotle-harmonic@harmonic.fun>
 -/
 
 import Mathlib
+import TauCeti.Analysis.Calculus.MetricVariation
 
 
 import Batteries.Tactic.GeneralizeProofs
@@ -88,6 +89,8 @@ set_option relaxedAutoImplicit false
 set_option autoImplicit false
 
 namespace RS
+
+open Set
 
 noncomputable section
 
@@ -984,32 +987,19 @@ The sum of absolute differences of g over a partition is bounded by the total va
 -/
 lemma sum_abs_diff_le_variation {g : ℝ → ℝ} {a b : ℝ} (P : IPart.IPartition a b) (hg : BoundedVariationOn g (Set.Icc a b)) :
     ∑ i : Fin P.n, |g (P.x i.succ) - g (P.x i.castSucc)| ≤ (eVariationOn g (Set.Icc a b)).toReal := by
-      have h_sum_le_eVariationOn : ∑ i : Fin P.n, ENNReal.ofReal (abs ((g (P.x i.succ)) - (g (P.x i.castSucc)))) ≤ eVariationOn g (Set.Icc a b) := by
-        refine' le_trans _ ( eVariationOn.mono g _ );
-        swap;
-        exact Set.range P.x;
-        · refine' le_trans _ ( le_ciSup _ ⟨ P.n, _ ⟩ );
-          rotate_right;
-          use fun i => if hi : i ≤ P.n then P.x ⟨ i, by linarith ⟩ else P.x ⟨ P.n, by linarith ⟩;
-          refine' ⟨ _, _ ⟩;
-          intro i j hij;
-          all_goals norm_num [ edist_dist ];
-          · split_ifs <;> try linarith [ P.monotone ( show ⟨ i, by linarith ⟩ ≤ ⟨ j, by linarith ⟩ from Nat.le_trans hij ( Nat.le_refl _ ) ) ];
-            · exact P.monotone ( Nat.le_trans ( Nat.le_of_lt_succ ( by linarith ) ) ( Nat.le_refl _ ) );
-            · norm_num;
-          · aesop;
-          · rw [ Finset.sum_range ];
-            refine' Finset.sum_le_sum fun i _ => _;
-            split_ifs <;> norm_num [ Nat.succ_le_iff ];
-            · rfl;
-            · linarith [ Fin.is_lt i ];
-            · exact False.elim <| ‹¬ ( i : ℕ ) + 1 ≤ P.n› <| Nat.succ_le_of_lt <| Fin.is_lt i;
-            · linarith [ Fin.is_lt i ];
-        · rintro _ ⟨ i, rfl ⟩ ; exact ⟨ by linarith [ P.monotone ( show 0 ≤ i from Nat.zero_le _ ), P.left ], by linarith [ P.monotone ( show i ≤ Fin.last P.n from Fin.le_last _ ), P.right ] ⟩ ;
-      convert ENNReal.toReal_mono _ h_sum_le_eVariationOn using 1;
-      · rw [ ENNReal.toReal_sum ] ; aesop;
-        exact fun _ _ => ENNReal.ofReal_ne_top;
-      · exact hg
+  let u (n : ℕ) : ℝ := P.x ⟨min n P.n, Nat.lt_succ_of_le (min_le_right _ _)⟩
+  have hu : Monotone u := fun i j hij ↦ P.monotone (min_le_min_right _ hij)
+  have hmem (i : ℕ) : u i ∈ Icc a b := by
+    constructor
+    · simpa only [P.left] using P.monotone (show (0 : Fin (P.n + 1)) ≤ _ from Nat.zero_le _)
+    · simpa only [P.right] using P.monotone (Fin.le_last _)
+  have he := eVariationOn.sum_le (f := g) (n := P.n) hu hmem
+  have hreal := ENNReal.toReal_mono hg he
+  rw [ENNReal.toReal_sum (fun _ _ ↦ edist_ne_top _ _)] at hreal
+  simpa only [edist_dist, ENNReal.toReal_ofReal (dist_nonneg), Finset.sum_range,
+    u, min_eq_left (Nat.le_of_lt (Fin.is_lt _)), min_eq_left (Nat.succ_le_of_lt (Fin.is_lt _)),
+    Real.dist_eq, ENNReal.toReal_ofReal (abs_nonneg _)] using! hreal
+
 
 /-
 For a fixed interval of the coarser partition, the sum of the weighted differences is bounded by epsilon times the sum of the absolute differences of g.
@@ -1313,19 +1303,6 @@ lemma sumAbsDiff_eq_RSSum_abs_deriv
         refine' ⟨ T, rfl, Finset.sum_congr rfl fun i _ => _ ⟩ ; rw [ hT i ] ; rw [ abs_mul, abs_of_nonneg ( sub_nonneg.2 <| T.monotone <| Nat.le_succ _ ) ]
 
 /-
-The identity function has bounded variation on `[a, b]`.
--/
-lemma boundedVariationOn_id {a b : ℝ} : BoundedVariationOn (fun x => x) (Set.Icc a b) := by
-  apply (monotone_id.monotoneOn (Set.Icc a b) : MonotoneOn (fun x : ℝ => x) (Set.Icc a b)).boundedVariationOn
-    (C := |a| + |b|)
-  intro x hx
-  change |x| ≤ |a| + |b|
-  apply abs_le.mpr
-  constructor
-  · linarith [neg_abs_le a, abs_nonneg b, hx.1]
-  · linarith [le_abs_self b, abs_nonneg a, hx.2]
-
-/-
 The Riemann-Stieltjes integral of |g'| is less than or equal to the total variation of g.
 -/
 lemma integral_le_variation {a b : ℝ} (hab : a < b)
@@ -1410,6 +1387,81 @@ lemma sumAbsDiff_le_integral_add_eps {a b : ℝ} (hab : a < b)
      generalize_proofs at *; (
      linarith [ abs_lt.mp ( hη T ( by linarith ) ) ])
 
+/-- The local mesh integral agrees with the Bochner integral for continuous integrands.
+A fine MVT-tagged partition of a continuous primitive computes the integral exactly. -/
+private lemma rs_value_eq_intervalIntegral {a b I : ℝ} (hab : a < b) {f : ℝ → ℝ}
+    (hf : ContinuousOn f (Icc a b)) (hI : HasRSIntegral f id a b I) :
+    I = ∫ t in a..b, f t := by
+  let F := IccExtend hab.le (fun x : Icc a b ↦ f x)
+  have hF : Continuous F := continuous_IccExtend_iff.2 hf.domRestrict
+  have hFeq : EqOn F f (Icc a b) := fun x hx ↦ IccExtend_of_mem hab.le _ hx
+  let H (x : ℝ) : ℝ := ∫ t in a..x, F t
+  have hH (x : ℝ) : HasDerivAt H (F x) x :=
+    intervalIntegral.integral_hasDerivAt_right (hF.intervalIntegrable _ _)
+      hF.aestronglyMeasurable.stronglyMeasurableAtFilter hF.continuousAt
+  have htarget : H b - H a = ∫ t in a..b, f t := by
+    dsimp only [H]
+    rw [intervalIntegral.integral_same, sub_zero]
+    exact intervalIntegral.integral_congr fun t ht ↦ hFeq ((uIcc_of_le hab.le) ▸ ht)
+  have hsmall (ε : ℝ) (hε : 0 < ε) : |(∫ t in a..b, f t) - I| < ε := by
+    obtain ⟨δ, hδ, hbound⟩ := hI ε hε
+    obtain ⟨P, -, hmesh⟩ := RS.IPart.exists_refinement_mesh_le hab
+      (RS.IPart.uniformPartition 0 hab) hδ
+    obtain ⟨T, hT, hinc⟩ := mvt_tags_for_partition P (fun x hx ↦ (hH x).congr_deriv (hFeq hx))
+    have hsum : RSSum f id T = H b - H a := by
+      change (∑ i : Fin T.n, f (T.xi i) * (T.x i.succ - T.x i.castSucc)) = _
+      simp_rw [← hinc]
+      rw [Finset.sum_sub_distrib]
+      have hleft := Fin.sum_univ_succ (fun i : Fin (T.n + 1) ↦ H (T.x i))
+      have hright := Fin.sum_univ_castSucc (fun i : Fin (T.n + 1) ↦ H (T.x i))
+      rw [T.left] at hleft
+      rw [T.right] at hright
+      linarith only [hleft, hright]
+    rw [← htarget, ← hsum]
+    exact hbound T (hT ▸ hmesh)
+  apply le_antisymm
+  · apply le_of_forall_pos_le_add
+    intro ε hε
+    have hs := (abs_lt.mp (hsmall ε hε)).1
+    linarith
+  · apply le_of_forall_pos_le_add
+    intro ε hε
+    have hs := (abs_lt.mp (hsmall ε hε)).2
+    linarith
+
+/-- Transfer the native metric-variation formula to the local mesh integral.
+The separate helpers without derivative-continuity assumptions remain available below. -/
+private lemma variation_eq_of_hasRSIntegral_abs_deriv
+    {a b : ℝ} (hab : a < b) (g g' : ℝ → ℝ)
+    (hg : ∀ x ∈ Set.Icc a b, HasDerivAt g (g' x) x)
+    (hg' : ContinuousOn g' (Set.Icc a b)) (I : ℝ)
+    (hI : HasRSIntegral (fun x ↦ |g' x|) id a b I) :
+    BoundedVariationOn g (Set.Icc a b) ∧ (eVariationOn g (Set.Icc a b)).toReal = I := by
+  have hIvalue : I = ∫ t in a..b, |g' t| :=
+    rs_value_eq_intervalIntegral hab hg'.abs hI
+  have huniq : UniqueDiffOn ℝ (Set.Icc a b) := uniqueDiffOn_Icc hab
+  have hd : Set.EqOn (derivWithin g (Set.Icc a b)) g' (Set.Icc a b) :=
+    fun x hx ↦ (hg x hx).hasDerivWithinAt.derivWithin (huniq x hx)
+  have hc : ContDiffOn ℝ 1 g (Set.Icc a b) :=
+    (contDiffOn_one_iff_derivWithin huniq).2
+      ⟨fun x hx ↦ (hg x hx).differentiableAt.differentiableWithinAt, hg'.congr hd⟩
+  have hvar : eVariationOn g (Set.Icc a b) = ENNReal.ofReal I := by
+    rw [TauCeti.eVariationOn_eq_lintegral_enorm_derivWithin hc, hIvalue,
+      intervalIntegral.integral_of_le hab.le, ← MeasureTheory.integral_Icc_eq_integral_Ioc]
+    change (∫⁻ t in Set.Icc a b, ‖derivWithin g (Set.Icc a b) t‖ₑ) =
+      ENNReal.ofReal (∫ t in Set.Icc a b, ‖g' t‖)
+    rw [MeasureTheory.ofReal_integral_norm_eq_lintegral_eNorm
+      (hg'.integrableOn_Icc (μ := MeasureTheory.volume))]
+    apply MeasureTheory.setLIntegral_congr_fun measurableSet_Icc
+    intro x hx
+    dsimp only
+    rw [hd hx]
+  have hIpos : 0 ≤ I := by
+    rw [hIvalue]
+    exact intervalIntegral.integral_nonneg hab.le (fun x _ ↦ abs_nonneg (g' x))
+  refine ⟨ne_top_of_le_ne_top ENNReal.ofReal_ne_top hvar.le, ?_⟩
+  rw [hvar, ENNReal.toReal_ofReal hIpos]
+
 /-
 The total variation of `g` on `[a, b]` is bounded by the Riemann-Stieltjes integral of `|g'|` with respect to `id`.
 -/
@@ -1418,12 +1470,8 @@ lemma variation_le_integral_abs_deriv {a b : ℝ} (hab : a < b)
    (hg : ∀ x ∈ Set.Icc a b, HasDerivAt g (g' x) x)
    (hg' : ContinuousOn g' (Set.Icc a b))
    (I : ℝ) (hI : RS.Integ.HasRSIntegral (fun x => |g' x|) id a b I) :
-   (eVariationOn g (Set.Icc a b)).toReal ≤ I := by
-  apply le_of_forall_pos_le_add
-  intro ε hε
-  apply SumDiff.variation_le_of_forall_sumAbsDiff_le hab g (I + ε)
-  intro P
-  apply sumAbsDiff_le_integral_add_eps hab g g' hg I hI ε hε P
+   (eVariationOn g (Set.Icc a b)).toReal ≤ I :=
+  (variation_eq_of_hasRSIntegral_abs_deriv hab g g' hg hg' I hI).2.le
 
 lemma boundedVariationOn_of_forall_sumAbsDiff_le
     {a b : ℝ} (hab : a < b)
@@ -1500,7 +1548,7 @@ lemma exists_integral_abs_deriv
   apply MVThms.Theorem_A1 hab
   · apply ContinuousOn.abs
     exact hg'
-  · exact boundedVariationOn_id
+  · exact BoundedVariationOn.id_Icc a b
 
 namespace MVThms
 
@@ -1513,16 +1561,9 @@ theorem MV_Theorem_A3a
     HasRSIntegral (fun x => |g' x|) id a b I ∧
     BoundedVariationOn g (Set.Icc a b) ∧
     (eVariationOn g (Set.Icc a b)).toReal = I := by
-  obtain ⟨I, hI⟩ := exists_integral_abs_deriv (a := a) (b := b) hab (g' := g') hg'
-  have hg_bv : BoundedVariationOn g (Set.Icc a b) :=
-    boundedVariationOn_of_hasRSIntegral_abs_deriv (a := a) (b := b) hab g g' hg I hI
-  have hVar_le : (eVariationOn g (Set.Icc a b)).toReal ≤ I :=
-    variation_le_integral_abs_deriv (a := a) (b := b) hab g g' hg hg' I hI
-  have hI_le : I ≤ (eVariationOn g (Set.Icc a b)).toReal :=
-    integral_le_variation (a := a) (b := b) hab g g' hg hg_bv I hI
-  refine ⟨I, ?_, hg_bv, ?_⟩
-  · exact hI
-  exact (le_antisymm hVar_le hI_le)
+  obtain ⟨I, hI⟩ := exists_integral_abs_deriv hab hg'
+  obtain ⟨hBV, hvar⟩ := variation_eq_of_hasRSIntegral_abs_deriv hab g g' hg hg' I hI
+  exact ⟨I, hI, hBV, hvar⟩
 
 end MVThms
 
