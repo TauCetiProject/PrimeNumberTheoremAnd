@@ -18,8 +18,8 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.GammaBound
 /-!
 # Gamma bounds in half-planes
 
-Bounds for `Complex.Gamma` and Deligne's real Gamma factor `Complex.Gammaℝ`, used
-in finite-order estimates for completed zeta functions.
+Bounds for `Complex.Gamma` and Deligne's real Gamma factor `Complex.Gammaℝ` on full
+half-planes. Uncompleted zeta growth uses the plain Gamma bound; the archimedean bounds remain.
 -/
 
 @[expose] public section

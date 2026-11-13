@@ -15,7 +15,6 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
 public import Mathlib.NumberTheory.LSeries.DirichletContinuation
-public import TauCeti.NumberTheory.LSeries.CompletedRiemannZeta
 public import Mathlib.Analysis.Real.Pi.Bounds
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 
