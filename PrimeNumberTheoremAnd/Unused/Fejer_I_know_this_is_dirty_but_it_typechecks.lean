@@ -16,18 +16,12 @@ This module formalizes Fejér's Theorem on the convergence of Fourier series. It
 -/
 
 /-
-We have formalized Hardy's Tauberian Theorem.
-The main result is `hardy_tauberian`, which states that if the arithmetic means of the partial sums of a series `u` converge to `S`, and the terms satisfy `|u n| ≤ A / n`, then the partial sums themselves converge to `S`.
-The proof follows the method of delayed arithmetic means as outlined in Wheedon-Zygmund.
-Key lemmas include:
-- `hardy_sigma_delayed_eq`: Expresses delayed means in terms of arithmetic means.
-- `hardy_sigma_delayed_tendsto`: Shows delayed means converge if arithmetic means converge and `n/k` is bounded.
-- `hardy_sigma_delayed_bound`: Bounds the difference between delayed means and partial sums.
-- `hardy_diff_bound`: Shows the difference is eventually small for a specific choice of `k`.
-- `tendsto_of_approx_aux`: A general lemma for proving convergence via approximation.
+The Hardy Tauberian development previously repeated here is imported from its
+standalone source. The Fejér kernel and convergence theorems below are retained.
 -/
 
 import Mathlib
+import PrimeNumberTheoremAnd.Unused.Hardy_Tauberian_theorem
 
 set_option linter.mathlibStandardSet false
 
@@ -37,7 +31,6 @@ open scoped Nat
 open scoped Classical
 open scoped Pointwise
 
-set_option maxHeartbeats 0
 set_option maxRecDepth 4000
 set_option synthInstance.maxHeartbeats 20000
 set_option synthInstance.maxSize 128
@@ -47,236 +40,7 @@ set_option autoImplicit false
 
 noncomputable section
 
-/-
-The partial sum s_n of the series u_n.
--/
-def hardy_s (u : ℕ → ℝ) (n : ℕ) : ℝ := ∑ i ∈ Finset.range (n + 1), u i
-
-/-
-The arithmetic mean sigma_n of the partial sums s_n.
--/
-def hardy_sigma (u : ℕ → ℝ) (n : ℕ) : ℝ := (∑ i ∈ Finset.range (n + 1), hardy_s u i) / (n + 1)
-
-/-
-The delayed arithmetic mean sigma_{n,k}.
--/
-def hardy_sigma_delayed (u : ℕ → ℝ) (n k : ℕ) : ℝ := (∑ i ∈ Finset.Ioc n (n + k), hardy_s u i) / k
-
-/-
-Express delayed arithmetic means in terms of arithmetic means. Note: Corrected a likely typo in the source text from n/k to (n+1)/k.
--/
-theorem hardy_sigma_delayed_eq (u : ℕ → ℝ) (n k : ℕ) (hk : k ≠ 0) :
-    hardy_sigma_delayed u n k =
-    ((n + k + 1 : ℝ) / k) * hardy_sigma u (n + k) - ((n + 1 : ℝ) / k) * hardy_sigma u n := by
-  field_simp;
-  unfold hardy_sigma_delayed hardy_sigma;
-  rw [ div_mul_cancel₀ _ ( by positivity ), mul_div ];
-  rw [ eq_sub_iff_add_eq, eq_div_iff ] <;> norm_cast ; norm_num;
-  rw [ mul_comm, ← Finset.sum_range_add_sum_Ico _ ( by linarith : n + 1 ≤ n + k + 1 ) ];
-  field_simp;
-  rw [add_comm, Nat.Ico_succ_right ];
-  rw [ Nat.Icc_succ_left ]
-
-/-
-If the arithmetic means converge to S, and n/k_n is bounded, then the delayed arithmetic means also converge to S.
--/
-theorem hardy_sigma_delayed_tendsto (u : ℕ → ℝ) (S : ℝ) (k : ℕ → ℕ)
-    (h_sigma : Filter.Tendsto (hardy_sigma u) Filter.atTop (nhds S))
-    (h_bounded : Filter.IsBoundedUnder (· ≤ ·) Filter.atTop (fun (n : ℕ) => (n : ℝ) / k n))
-    (hk_pos : ∀ n, 0 < k n) :
-    Filter.Tendsto (fun n => hardy_sigma_delayed u n (k n)) Filter.atTop (nhds S) := by
-  -- Since $\lim_{n\to\infty} \frac{n}{k_n}$ exists and is finite, we have $\lim_{n\to\infty} \frac{1}{k_n} = 0$.
-  have h_lim_k_n_inv : Filter.Tendsto (fun n => (1 : ℝ) / (k n)) Filter.atTop (nhds 0) := by
-    -- Since $k_n$ is bounded above, there exists some $M > 0$ such that $k_n \geq \frac{n}{M}$ for all $n$.
-    obtain ⟨M, hM⟩ : ∃ M > 0, ∀ n, (k n : ℝ) ≥ n / M := by
-      obtain ⟨ M, hM ⟩ := h_bounded;
-      -- Since $k_n$ is bounded above, there exists some $N$ such that for all $n \geq N$, $n / k_n \leq M$.
-      obtain ⟨N, hN⟩ : ∃ N : ℕ, ∀ n ≥ N, (n : ℝ) / (k n : ℝ) ≤ M := by
-        aesop;
-      -- Since $k_n$ is bounded above, there exists some $M > 0$ such that for all $n \geq N$, $k_n \geq \frac{n}{M}$.
-      obtain ⟨M', hM'⟩ : ∃ M' > 0, ∀ n ≥ N, (k n : ℝ) ≥ n / M' := by
-        exact ⟨ Max.max M 1, by positivity, fun n hn => by rw [ ge_iff_le ] ; rw [ div_le_iff₀ ] <;> nlinarith [ hN n hn, le_max_left M 1, le_max_right M 1, show ( k n : ℝ ) ≥ 1 from mod_cast hk_pos n, div_mul_cancel₀ ( n : ℝ ) ( show ( k n : ℝ ) ≠ 0 from mod_cast ne_of_gt ( hk_pos n ) ) ] ⟩;
-      -- Since $k_n$ is bounded above, there exists some $M > 0$ such that for all $n < N$, $k_n \geq \frac{n}{M}$.
-      obtain ⟨M'', hM''⟩ : ∃ M'' > 0, ∀ n < N, (k n : ℝ) ≥ n / M'' := by
-        field_simp;
-        exact ⟨ N + 1, by positivity, fun n hn => by rw [ div_le_iff₀ ] <;> nlinarith [ show ( n : ℝ ) + 1 ≤ N by norm_cast, show ( k n : ℝ ) ≥ 1 by exact_mod_cast hk_pos n ] ⟩;
-      exact ⟨ Max.max M' M'', lt_max_of_lt_left hM'.1, fun n => if hn : n < N then le_trans ( div_le_div_of_nonneg_left ( Nat.cast_nonneg _ ) ( by linarith [ hM''.1 ] ) ( le_max_right _ _ ) ) ( hM''.2 n hn ) else le_trans ( div_le_div_of_nonneg_left ( Nat.cast_nonneg _ ) ( by linarith [ hM'.1 ] ) ( le_max_left _ _ ) ) ( hM'.2 n ( le_of_not_gt hn ) ) ⟩;
-    refine' tendsto_const_nhds.div_atTop _;
-    exact Filter.tendsto_atTop_mono hM.2 <| tendsto_natCast_atTop_atTop.atTop_div_const hM.1;
-  -- Using the fact that $n / k_n$ is bounded, we can apply the squeeze theorem.
-  have h_squeeze : Filter.Tendsto (fun n => ((n + k n + 1 : ℝ) / (k n)) * (hardy_sigma u (n + k n)) - ((n + 1 : ℝ) / (k n)) * (hardy_sigma u n)) Filter.atTop (nhds S) := by
-    -- We can split the limit into two parts: the term involving $hardy_sigma u$ and the term involving $1$.
-    have h_split : Filter.Tendsto (fun n => (hardy_sigma u (n + k n) - hardy_sigma u n) * (n / (k n) : ℝ)) Filter.atTop (nhds 0) ∧ Filter.Tendsto (fun n => hardy_sigma u (n + k n) + (hardy_sigma u (n + k n) - hardy_sigma u n) * (1 / (k n) : ℝ)) Filter.atTop (nhds S) := by
-      constructor;
-      · -- Since $hardy_sigma u (n + k n) - hardy_sigma u n$ tends to $0$ as $n$ tends to infinity, and $n / k n$ is bounded, their product tends to $0$.
-        have h_prod_zero : Filter.Tendsto (fun n => hardy_sigma u (n + k n) - hardy_sigma u n) Filter.atTop (nhds 0) := by
-          simpa using Filter.Tendsto.sub ( h_sigma.comp ( Filter.tendsto_atTop_mono ( fun n => Nat.le_add_right _ _ ) Filter.tendsto_id ) ) h_sigma;
-        rw [ Metric.tendsto_nhds ] at *;
-        field_simp;
-        intro ε hε; rcases h_bounded with ⟨ M, hM ⟩ ; rcases h_prod_zero ( ε / ( Max.max M 1 + 1 ) ) ( by positivity ) with h; filter_upwards [ h, hM ] with n hn hn'; simp_all +decide [ div_lt_iff₀ ] ;
-        rw [ lt_div_iff₀ ( by positivity ) ] at hn;
-        rw [ div_le_iff₀ ( Nat.cast_pos.mpr ( hk_pos n ) ) ] at hn';
-        nlinarith [ abs_nonneg ( hardy_sigma u ( n + k n ) - hardy_sigma u n ), show ( k n : ℝ ) ≥ 1 by exact_mod_cast hk_pos n, le_max_left M 1, le_max_right M 1, mul_le_mul_of_nonneg_left ( le_max_left M 1 ) ( show ( 0 : ℝ ) ≤ k n by positivity ), mul_le_mul_of_nonneg_left ( le_max_right M 1 ) ( show ( 0 : ℝ ) ≤ k n by positivity ) ];
-      · simpa using Filter.Tendsto.add ( h_sigma.comp ( Filter.tendsto_atTop_mono ( fun n => Nat.le_add_right _ _ ) Filter.tendsto_id ) ) ( Filter.Tendsto.mul ( Filter.Tendsto.sub ( h_sigma.comp ( Filter.tendsto_atTop_mono ( fun n => Nat.le_add_right _ _ ) Filter.tendsto_id ) ) h_sigma ) h_lim_k_n_inv );
-    convert h_split.2.add h_split.1 using 2 <;> ring_nf;
-    simpa [ ne_of_gt ( hk_pos _ ) ] using by ring;
-  exact h_squeeze.congr fun n => by rw [ hardy_sigma_delayed_eq _ _ _ ( ne_of_gt ( hk_pos n ) ) ] ;
-
-/-
-Identity for the difference between delayed arithmetic mean and partial sum.
--/
-theorem hardy_sigma_delayed_sub_s_eq (u : ℕ → ℝ) (n k : ℕ) (hk : k ≠ 0) :
-    hardy_sigma_delayed u n k - hardy_s u n =
-    (1 / k) * ∑ j ∈ Finset.Icc 1 k, (k - j + 1 : ℝ) * u (n + j) := by
-  field_simp;
-  -- By definition of $hardy_sigma_delayed$, we can rewrite the left-hand side of the equation.
-  have h_def : hardy_sigma_delayed u n k - hardy_s u n = (1 / k : ℝ) * ∑ j ∈ Finset.Icc 1 k, (hardy_s u (n + j) - hardy_s u n) := by
-    unfold hardy_sigma_delayed hardy_s; norm_num [ Finset.sum_Ioc_succ_top, (Nat.succ_eq_succ ▸ Finset.Icc_succ_left_eq_Ioc) ] ; ring_nf;
-    rw [ show ( Finset.Ioc n ( n + k ) ) = Finset.image ( fun x => n + x ) ( Finset.Ioc 0 k ) from ?_, Finset.sum_image ] <;> norm_num ; ring_nf;
-    norm_num [ hk ];
-  -- By definition of $hardy_s$, we can rewrite the sum inside the parentheses.
-  have h_sum : ∑ j ∈ Finset.Icc 1 k, (hardy_s u (n + j) - hardy_s u n) = ∑ j ∈ Finset.Icc 1 k, ∑ m ∈ Finset.Icc 1 j, u (n + m) := by
-    refine' Finset.sum_congr rfl fun j hj => _;
-    erw [ Finset.sum_Ico_eq_sub _ _ ] <;> norm_num [ Finset.sum_range_succ, hardy_s ];
-    rw [ Finset.sum_range_add ] ; ring;
-  -- By interchanging the order of summation, we can rewrite the double sum.
-  have h_interchange : ∑ j ∈ Finset.Icc 1 k, ∑ m ∈ Finset.Icc 1 j, u (n + m) = ∑ m ∈ Finset.Icc 1 k, ∑ j ∈ Finset.Icc m k, u (n + m) := by
-    erw [ Finset.sum_Ico_Ico_comm ];
-    rfl;
-  simp_all +decide;
-  rw [ inv_mul_eq_div, div_mul_cancel₀ _ ( by positivity ), Finset.sum_congr rfl ] ; intros ; rw [ Nat.cast_sub ] <;> push_cast <;> linarith [ Finset.mem_Icc.mp ‹_› ] ;
-
-/-
-Bound on the difference between delayed arithmetic mean and partial sum.
--/
-theorem hardy_sigma_delayed_bound (u : ℕ → ℝ) (n k : ℕ) (A : ℝ) (hk : k ≠ 0)
-    (h_u_bound : ∀ m, n < m → m ≤ n + k → |u m| ≤ A / m) :
-    |hardy_sigma_delayed u n k - hardy_s u n| ≤ (k : ℝ) / (n + 1) * A := by
-  -- Applying the bound $|u_{n+j}| \leq A / (n+j)$ to each term in the sum.
-  have h_sum_bound : ∑ j ∈ Finset.Icc 1 k, (k - j + 1 : ℝ) * |u (n + j)| ≤ ∑ j ∈ Finset.Icc 1 k, (k - j + 1 : ℝ) * (A / (n + j : ℝ)) := by
-    exact Finset.sum_le_sum fun x hx => mul_le_mul_of_nonneg_left ( mod_cast h_u_bound _ ( by linarith [ Finset.mem_Icc.mp hx ] ) ( by linarith [ Finset.mem_Icc.mp hx ] ) ) ( by linarith [ show ( x : ℝ ) ≤ k by norm_cast; linarith [ Finset.mem_Icc.mp hx ] ] );
-  -- Applying the bound $|(k - j + 1) u_{n+j}| \leq k |u_{n+j}|$ to each term in the sum.
-  have h_sum_bound' : ∑ j ∈ Finset.Icc 1 k, (k - j + 1 : ℝ) * |u (n + j)| ≤ ∑ j ∈ Finset.Icc 1 k, k * (A / (n + 1 : ℝ)) := by
-    refine le_trans h_sum_bound <| Finset.sum_le_sum fun x hx => mul_le_mul ?_ ?_ ?_ ?_;
-    · linarith [ show ( x : ℝ ) ≥ 1 by norm_cast; linarith [ Finset.mem_Icc.mp hx ] ];
-    · field_simp;
-      rw [ div_le_iff₀ ] <;> nlinarith only [ show ( x : ℝ ) ≥ 1 by norm_cast; linarith [ Finset.mem_Icc.mp hx ], show ( n : ℝ ) ≥ 0 by positivity, show ( A : ℝ ) ≥ 0 by exact le_of_not_gt fun h => by have := h_u_bound ( n + 1 ) ( by linarith [ Finset.mem_Icc.mp hx ] ) ( by linarith [ Finset.mem_Icc.mp hx ] ) ; rw [ le_div_iff₀ ] at this <;> norm_num at * <;> nlinarith [ abs_nonneg ( u ( n + 1 ) ) ] ];
-    · exact le_trans ( abs_nonneg _ ) ( h_u_bound ( n + x ) ( by linarith [ Finset.mem_Icc.mp hx ] ) ( by linarith [ Finset.mem_Icc.mp hx ] ) ) |> le_trans <| by norm_num;
-    · positivity;
-  -- Applying the bound $|(k - j + 1) u_{n+j}| \leq k |u_{n+j}|$ to each term in the sum and using the triangle inequality.
-  have h_triangle : |hardy_sigma_delayed u n k - hardy_s u n| ≤ (1 / k : ℝ) * ∑ j ∈ Finset.Icc 1 k, (k - j + 1 : ℝ) * |u (n + j)| := by
-    rw [ hardy_sigma_delayed_sub_s_eq u n k hk ];
-    rw [ abs_mul, abs_of_nonneg ( by positivity ) ];
-    exact mul_le_mul_of_nonneg_left ( le_trans ( Finset.abs_sum_le_sum_abs _ _ ) ( Finset.sum_le_sum fun _ _ => by rw [ abs_mul, abs_of_nonneg ] ; linarith [ show ( ↑‹ℕ› : ℝ ) ≤ k by norm_cast; linarith [ Finset.mem_Icc.mp ‹_› ] ] ) ) ( by positivity );
-  convert h_triangle.trans ( mul_le_mul_of_nonneg_left h_sum_bound' <| by positivity ) using 1 ; norm_num ; ring_nf;
-  simp +decide [ sq, mul_right_comm, hk ]
-
-/-
-Properties of k_n = floor(epsilon * n): eventually positive and n/k_n is bounded.
--/
-lemma k_n_properties (ε : ℝ) (hε : 0 < ε) :
-    Filter.IsBoundedUnder (· ≤ ·) Filter.atTop (fun (n : ℕ) => (n : ℝ) / Nat.floor (ε * n)) ∧
-    ∀ᶠ n in Filter.atTop, 0 < Nat.floor (ε * n) := by
-  constructor <;> norm_num [ Filter.IsBoundedUnder, Filter.IsBounded ];
-  · use 2 / ε;
-    exact ⟨ ⌈ε⁻¹ * 2⌉₊ + 1, fun n hn => by rw [ div_le_div_iff₀ ] <;> nlinarith [ Nat.le_ceil ( ε⁻¹ * 2 ), Nat.lt_of_ceil_lt hn, Nat.floor_le ( show 0 ≤ ε * ↑n by positivity ), Nat.lt_floor_add_one ( ε * ↑n ), mul_inv_cancel₀ ( ne_of_gt hε ), mul_div_cancel₀ ( 2 : ℝ ) hε.ne' ] ⟩;
-  · exact ⟨ 1 / ε + 1, fun x hx => Nat.floor_pos.2 <| by nlinarith [ mul_div_cancel₀ 1 hε.ne' ] ⟩
-
-/-
-Helper sequence k_n for the proof, defined as max(1, floor(epsilon * n)).
--/
-def hardy_k (ε : ℝ) (n : ℕ) : ℕ := max 1 (Nat.floor (ε * n))
-
-/-
-Eventually, the difference between delayed sigma and s is bounded by epsilon * A.
--/
-lemma hardy_diff_bound (u : ℕ → ℝ) (A : ℝ) (ε : ℝ) (hε : 0 < ε)
-    (h_bound : ∀ n ≥ 1, |u n| ≤ A / n) :
-    ∀ᶠ n in Filter.atTop, |hardy_sigma_delayed u n (hardy_k ε n) - hardy_s u n| ≤ ε * A := by
-  -- Apply `hardy_sigma_delayed_bound` with `k = hardy_k ε n`.
-  have h_bound : ∀ᶠ n in Filter.atTop, |hardy_sigma_delayed u n (hardy_k ε n) - hardy_s u n| ≤ (hardy_k ε n : ℝ) / (n + 1) * A := by
-    field_simp;
-    -- By the bound on the difference between the delayed arithmetic mean and the partial sum, we have:
-    have h_diff_bound : ∀ n ≥ 1, |hardy_sigma_delayed u n (hardy_k ε n) - hardy_s u n| ≤ (hardy_k ε n : ℝ) / (n + 1) * A := by
-      intros n hn
-      apply hardy_sigma_delayed_bound u n (hardy_k ε n) A (by
-      exact ne_of_gt ( lt_max_of_lt_left zero_lt_one )) (by
-      exact fun m hm₁ hm₂ => h_bound m ( by linarith ));
-    filter_upwards [ Filter.eventually_ge_atTop 1 ] with n hn using by have := h_diff_bound n hn; rw [ div_mul_eq_mul_div, le_div_iff₀ ] at this <;> linarith;;
-  -- Since `hardy_k ε n` is eventually equal to `Nat.floor (ε * n)`, we can simplify the expression.
-  have h_floor : ∀ᶠ n in Filter.atTop, (hardy_k ε n : ℝ) ≤ ε * n := by
-    simp [hardy_k];
-    exact ⟨ ⌈ε⁻¹⌉₊ + 1, fun n hn => ⟨ by nlinarith [ Nat.le_ceil ( ε⁻¹ ), mul_inv_cancel₀ ( ne_of_gt hε ), ( by norm_cast : ( ⌈ε⁻¹⌉₊ : ℝ ) + 1 ≤ n ) ], Nat.floor_le ( by positivity ) ⟩ ⟩;
-  filter_upwards [ h_bound, h_floor ] with n hn hn' using le_trans hn ( by rw [ div_mul_eq_mul_div, div_le_iff₀ ] <;> nlinarith [ show ( 0 :ℝ ) ≤ ε * A by exact mul_nonneg hε.le ( show 0 ≤ A by have := ‹∀ n ≥ 1, |u n| ≤ A / ( n :ℝ ) › 1 le_rfl; norm_num at this; linarith [ abs_le.mp this ] ) ] )
-
-/-
-If a sequence can be approximated arbitrarily well (up to a constant factor) by sequences converging to S, then it converges to S.
--/
-lemma tendsto_of_approx_aux {u : ℕ → ℝ} {S : ℝ} {C : ℝ} (hC : 0 ≤ C)
-    (h : ∀ ε > 0, ∃ (v : ℕ → ℝ), Filter.Tendsto v Filter.atTop (nhds S) ∧ ∀ᶠ n in Filter.atTop, |u n - v n| ≤ ε * C) :
-    Filter.Tendsto u Filter.atTop (nhds S) := by
-  refine' Metric.tendsto_atTop.mpr _;
-  intro ε hε;
-  rcases h ( ε / 2 / ( Max.max C 1 ) ) ( div_pos ( half_pos hε ) ( by positivity ) ) with ⟨ v, hv₁, hv₂ ⟩;
-  rcases Filter.eventually_atTop.mp ( hv₂.and ( hv₁.eventually ( Metric.ball_mem_nhds _ ( half_pos hε ) ) ) ) with ⟨ N, hN ⟩ ; exact ⟨ N, fun n hn => abs_lt.mpr ⟨ by nlinarith [ abs_lt.mp ( hN n hn |>.2 ), abs_le.mp ( hN n hn |>.1 ), le_max_left C 1, le_max_right C 1, mul_div_cancel₀ ( ε / 2 ) ( show ( Max.max C 1 ) ≠ 0 by positivity ) ], by nlinarith [ abs_lt.mp ( hN n hn |>.2 ), abs_le.mp ( hN n hn |>.1 ), le_max_left C 1, le_max_right C 1, mul_div_cancel₀ ( ε / 2 ) ( show ( Max.max C 1 ) ≠ 0 by positivity ) ] ⟩ ⟩
-
-/-
-The ratio n / k_n is bounded for our choice of k_n.
--/
-lemma hardy_k_ratio_bounded (ε : ℝ) (hε : 0 < ε) :
-    Filter.IsBoundedUnder (· ≤ ·) Filter.atTop (fun (n : ℕ) => (n : ℝ) / (hardy_k ε n : ℝ)) := by
-  -- We know `hardy_k ε n = max 1 (floor (ε * n))`. Eventually `floor (ε * n) >= 1`, so `hardy_k = floor`.
-  have h_eventually_floor : ∀ᶠ n in Filter.atTop, hardy_k ε n = Nat.floor (ε * n) := by
-    simp +zetaDelta at *;
-    exact ⟨ ⌈ε⁻¹⌉₊ + 1, fun n hn => max_eq_right <| Nat.floor_pos.mpr <| by nlinarith [ Nat.le_ceil ( ε⁻¹ ), show ( n : ℝ ) ≥ ⌈ε⁻¹⌉₊ + 1 by exact_mod_cast hn, mul_inv_cancel₀ hε.ne' ] ⟩;
-  -- We already proved `n / floor` is bounded in `k_n_properties`.
-  have h_bounded_floor : Filter.IsBoundedUnder (· ≤ ·) Filter.atTop (fun n : ℕ => (n : ℝ) / (Nat.floor (ε * n)) : ℕ → ℝ) := by
-    exact k_n_properties ε hε |>.1;
-  obtain ⟨ C, hC ⟩ := h_bounded_floor;
-  refine' ⟨ Max.max C 1, Filter.eventually_atTop.mpr _ ⟩;
-  obtain ⟨ N, hN ⟩ := Filter.eventually_atTop.mp hC; obtain ⟨ M, hM ⟩ := Filter.eventually_atTop.mp h_eventually_floor; use Max.max N M; intros n hn; aesop;
-
-/-
-Hardy's Tauberian Theorem: If the arithmetic means of partial sums of a series converge to S, and the terms are O(1/n), then the series converges to S.
--/
-theorem hardy_tauberian (u : ℕ → ℝ) (A : ℝ) (S : ℝ)
-    (h_conv : Filter.Tendsto (hardy_sigma u) Filter.atTop (nhds S))
-    (h_bound : ∀ n ≥ 1, |u n| ≤ A / n) :
-    Filter.Tendsto (hardy_s u) Filter.atTop (nhds S) := by
-      convert tendsto_of_approx_aux _ _;
-      exact |A| + 1;
-      · positivity;
-      · intro ε hε
-        use fun n => hardy_sigma_delayed u n (hardy_k ε n);
-        constructor;
-        · convert hardy_sigma_delayed_tendsto u S ( fun n => hardy_k ε n ) h_conv _ _ using 1;
-          · convert hardy_k_ratio_bounded ε hε using 1;
-          · exact fun n => Nat.pos_of_ne_zero ( by unfold hardy_k; aesop );
-        · have := hardy_diff_bound u A ε hε h_bound;
-          filter_upwards [ this ] with n hn using by rw [ abs_sub_comm ] ; exact le_trans hn ( mul_le_mul_of_nonneg_left ( by cases abs_cases A <;> linarith ) hε.le ) ;
-
-/-
-Hardy's Tauberian Theorem: If the arithmetic means of partial sums of a series converge to S, and the terms are O(1/n), then the series converges to S.
--/
-theorem hardy_tauberian_theorem (u : ℕ → ℝ) (A : ℝ) (S : ℝ)
-    (h_conv : Filter.Tendsto (hardy_sigma u) Filter.atTop (nhds S))
-    (h_bound : ∀ n ≥ 1, |u n| ≤ A / n) :
-    Filter.Tendsto (hardy_s u) Filter.atTop (nhds S) := by
-  have hA : 0 ≤ A := by
-    have := h_bound 1 le_rfl
-    norm_num at this
-    exact le_trans (abs_nonneg _) this
-  apply tendsto_of_approx_aux hA
-  intro ε hε
-  let k := hardy_k ε
-  have hk_pos : ∀ n, 0 < k n := fun n => lt_of_lt_of_le zero_lt_one (le_max_left _ _)
-  use fun n => hardy_sigma_delayed u n (k n)
-  constructor
-  · apply hardy_sigma_delayed_tendsto u S k h_conv (hardy_k_ratio_bounded ε hε) hk_pos
-  · have := hardy_diff_bound u A ε hε h_bound
-    filter_upwards [this] with n hn
-    rw [abs_sub_comm]
-    exact hn
+open MeasureTheory Set Filter Topology
 
 /-
 Definition of the Dirichlet kernel D_n(x) and the Fejér kernel K_n(x).
@@ -286,6 +50,49 @@ def dirichlet_kernel (n : ℕ) (x : ℝ) : ℝ :=
 
 def fejer_kernel (n : ℕ) (x : ℝ) : ℝ :=
   (1 / (n + 1 : ℝ)) * ∑ j ∈ Finset.range (n + 1), dirichlet_kernel j x
+
+
+lemma continuous_dirichlet_kernel (n : ℕ) : Continuous (dirichlet_kernel n) := by
+  change Continuous (fun x : ℝ => (1/2 : ℝ) + ∑ k ∈ Finset.Icc 1 n, Real.cos ((k : ℝ)*x))
+  exact continuous_const.add (continuous_finsetSum (Finset.Icc 1 n) fun k _ =>
+    Real.continuous_cos.comp ((continuous_const : Continuous (fun _ : ℝ => (k : ℝ))).mul continuous_id))
+
+lemma continuous_fejer_kernel (n : ℕ) : Continuous (fejer_kernel n) := by
+  change Continuous (fun x : ℝ => (1/(n+1 : ℝ)) *
+    ∑ j ∈ Finset.range (n+1), dirichlet_kernel j x)
+  exact continuous_const.mul (continuous_finsetSum (Finset.range (n+1))
+    fun j _ => continuous_dirichlet_kernel j)
+
+lemma dirichlet_kernel_periodic (n : ℕ) :
+    Function.Periodic (dirichlet_kernel n) (2 * Real.pi) := by
+  intro t
+  change (1/2 : ℝ) + (∑ k ∈ Finset.Icc 1 n, Real.cos ((k : ℝ)*(t+2*Real.pi))) =
+    (1/2 : ℝ) + ∑ k ∈ Finset.Icc 1 n, Real.cos ((k : ℝ)*t)
+  apply congrArg (fun y : ℝ => 1/2+y)
+  apply Finset.sum_congr rfl
+  intro k _
+  rw [mul_add, Real.cos_add_nat_mul_two_pi]
+
+lemma fejer_kernel_periodic (n : ℕ) :
+    Function.Periodic (fejer_kernel n) (2 * Real.pi) := by
+  intro t
+  apply congrArg (fun y : ℝ => (1/(n+1 : ℝ))*y)
+  apply Finset.sum_congr rfl
+  intro j _
+  exact dirichlet_kernel_periodic j t
+
+lemma periodic_intervalIntegrable {f : ℝ → ℝ}
+    (hi : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
+    (hp : Function.Periodic f (2 * Real.pi)) (a b : ℝ) :
+    IntervalIntegrable f MeasureTheory.volume a b := by
+  exact hp.intervalIntegrable (by positivity) (by convert hi using 1 <;> ring) a b
+
+lemma periodic_comp_sub_intervalIntegrable {f : ℝ → ℝ}
+    (hi : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
+    (hp : Function.Periodic f (2 * Real.pi)) (a b x : ℝ) :
+    IntervalIntegrable (fun t => f (x-t)) MeasureTheory.volume a b := by
+  have hf := periodic_intervalIntegrable hi hp (x-a) (x-b)
+  convert hf.comp_sub_left x using 1 <;> ring
 
 /-
 Definitions of Fourier coefficients and partial sums.
@@ -314,7 +121,7 @@ theorem fourier_partial_sum_eq_integral {f : ℝ → ℝ} (hf : IntervalIntegrab
     fourier_partial_sum f n x = (1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, f t * dirichlet_kernel n (x - t) := by
       unfold fourier_partial_sum dirichlet_kernel;
       simp +decide [ mul_add, mul_comm, mul_left_comm, div_eq_inv_mul, Finset.mul_sum _ _ _, Finset.sum_add_distrib, intervalIntegral.integral_const_mul, fourier_coeff_cos, fourier_coeff_sin ];
-      rw [ intervalIntegral.integral_add, intervalIntegral.integral_finset_sum ] <;> norm_num;
+      rw [ intervalIntegral.integral_add, intervalIntegral.integral_finsetSum ] <;> norm_num;
       · norm_num [ sub_mul, mul_assoc, mul_comm, mul_left_comm, Finset.mul_sum _ _ _, Finset.sum_add_distrib ];
         norm_num [ Real.cos_sub, Real.sin_sub, mul_sub, ← mul_assoc, ← Finset.mul_sum _ _ _, ← Finset.sum_add_distrib ] ; ring_nf;
         rw [ Finset.mul_sum _ _ _ ] ; refine' congr rfl ( Finset.sum_congr rfl fun i hi => _ ) ; rw [ intervalIntegral.integral_add ] <;> norm_num [ mul_assoc, mul_comm, mul_left_comm, ← intervalIntegral.integral_const_mul ] ; ring_nf;
@@ -326,7 +133,7 @@ theorem fourier_partial_sum_eq_integral {f : ℝ → ℝ} (hf : IntervalIntegrab
       · intro i hi₁ hi₂; exact hf.mul_continuousOn ( Continuous.continuousOn ( Real.continuous_cos.comp ( by continuity ) ) ) ;
       · exact hf.mul_const _;
       · rw [ intervalIntegrable_iff_integrableOn_Ioc_of_le ( by linarith [ Real.pi_pos ] ) ] at *;
-        refine' MeasureTheory.integrable_finset_sum _ fun i hi => _;
+        refine' MeasureTheory.integrable_finsetSum _ fun i hi => _;
         refine' hf.norm.mono' _ _;
         · exact hf.1.mul ( Continuous.aestronglyMeasurable ( Real.continuous_cos.comp ( by continuity ) ) );
         · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioc ] with a ha using by rw [ norm_mul ] ; exact mul_le_of_le_one_right ( norm_nonneg _ ) ( Real.abs_cos_le_one _ ) ;
@@ -340,11 +147,12 @@ theorem fejer_sum_eq_integral {f : ℝ → ℝ} (hf : IntervalIntegrable f Measu
       -- By Fubini's theorem, we can interchange the order of summation and integration.
       have h_fubini : ∫ t in (-Real.pi)..Real.pi, f t * (∑ j ∈ Finset.range (n + 1), dirichlet_kernel j (x - t)) = ∑ j ∈ Finset.range (n + 1), ∫ t in (-Real.pi)..Real.pi, f t * dirichlet_kernel j (x - t) := by
         simp +decide only [Finset.mul_sum _ _ _];
-        rw [ intervalIntegral.integral_finset_sum ];
+        rw [ intervalIntegral.integral_finsetSum ];
         intro i hi;
         apply_rules [ IntervalIntegrable.mul_continuousOn ];
         refine' Continuous.continuousOn _;
-        exact Continuous.add continuous_const <| continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity;
+        exact (continuous_dirichlet_kernel i).comp
+          (continuous_const.sub continuous_id);
       -- Substitute the definitions of fejer_sum and fejer_kernel into the goal.
       simp [fejer_sum, fejer_kernel];
       field_simp;
@@ -356,13 +164,19 @@ Closed form of the Dirichlet kernel D_n(t).
 -/
 theorem dirichlet_kernel_closed_form (n : ℕ) (t : ℝ) (h : Real.sin (t / 2) ≠ 0) :
     dirichlet_kernel n t = Real.sin ((n + 1 / 2) * t) / (2 * Real.sin (t / 2)) := by
-      unfold dirichlet_kernel;
-      induction n <;> simp_all +decide [ Finset.sum_Ioc_succ_top, Nat.Icc_succ_left ];
-      · ring_nf at * ; aesop;
-      · simp_all +decide [ ← add_assoc ];
-        field_simp;
-        rw [ ← Complex.ofReal_inj ] ; norm_num [ Complex.sin, Complex.cos ] ; ring_nf;
-        norm_num [ mul_assoc, ← Complex.exp_add ] ; ring_nf
+  induction n with
+  | zero => simp [dirichlet_kernel]; field_simp
+  | succ n ih =>
+    simp only [dirichlet_kernel] at ih ⊢
+    rw [Finset.sum_Icc_succ_top (by omega), ← add_assoc, ih]
+    have ht := Real.two_mul_sin_mul_cos (t/2) (((n : ℝ)+1)*t)
+    rw [show t/2-((n : ℝ)+1)*t = -(((n : ℝ)+1/2)*t) by ring,
+      show t/2+((n : ℝ)+1)*t = ((n : ℝ)+1+1/2)*t by ring, Real.sin_neg] at ht
+    push_cast
+    have hd : 2 * Real.sin (t/2) ≠ 0 := mul_ne_zero (by norm_num) h
+    apply (eq_div_iff hd).2
+    rw [add_mul, div_mul_cancel₀ _ hd]
+    nlinarith [ht]
 
 /-
 Closed form of the Fejér kernel K_n(t).
@@ -407,15 +221,15 @@ theorem fejer_kernel_integral_one (n : ℕ) : (1 / Real.pi) * ∫ t in (-Real.pi
   unfold fejer_kernel;
   -- By Fubini's theorem, we can interchange the order of summation and integration.
   have h_fubini : ∫ t in (-Real.pi)..Real.pi, (∑ j ∈ Finset.range (n + 1), dirichlet_kernel j t) = ∑ j ∈ Finset.range (n + 1), ∫ t in (-Real.pi)..Real.pi, dirichlet_kernel j t := by
-    rw [ intervalIntegral.integral_finset_sum ];
+    rw [ intervalIntegral.integral_finsetSum ];
     intro i hi; apply_rules [ Continuous.intervalIntegrable ] ; unfold dirichlet_kernel; continuity;
   -- By definition of $D_n(t)$, we know that $\int_{-\pi}^{\pi} D_n(t) \, dt = \pi$.
   have h_dirichlet_integral : ∀ j : ℕ, ∫ t in (-Real.pi)..Real.pi, dirichlet_kernel j t = Real.pi := by
     intro j; unfold dirichlet_kernel; rw [ intervalIntegral.integral_add ] <;> norm_num ; ring;
-    · erw [ intervalIntegral.integral_finset_sum ] <;> norm_num;
+    · erw [ intervalIntegral.integral_finsetSum ] <;> norm_num;
       · erw [ Finset.sum_eq_zero ] ; intros ; rw [ intervalIntegral.integral_comp_mul_left ] <;> norm_num ; aesop;
       · exact fun _ _ _ => Continuous.intervalIntegrable ( Real.continuous_cos.comp <| by continuity ) _ _;
-    · exact Continuous.intervalIntegrable ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) ) _ _;
+    · exact Continuous.intervalIntegrable ( continuous_finsetSum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) ) _ _;
   simp_all +decide [ div_eq_inv_mul, mul_assoc, mul_comm, mul_left_comm, ne_of_gt Real.pi_pos ];
   exact mul_inv_cancel₀ ( by positivity )
 
@@ -498,97 +312,16 @@ theorem uniform_continuity_shift {f : ℝ → ℝ} (a b : ℝ) (hab : a ≤ b)
       exact absurd ( le_of_tendsto_of_tendsto' tendsto_const_nhds ( Filter.Tendsto.abs ( h_cont.1.sub h_cont.2 ) ) fun k => h_diff ( nk k ) ) ( by norm_num; linarith )
 
 /-
-Lemma: Change of variables for convolution integral.
+Lemma: The integrand f(x-t)K_n(t) is 2pi-periodic.
 -/
-theorem convolution_change_variables (f g : ℝ → ℝ) (x : ℝ)
-    (hf : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
-    (hg : Continuous g) :
-    ∫ t in (-Real.pi)..Real.pi, f t * g (x - t) = ∫ u in (x - Real.pi)..(x + Real.pi), f (x - u) * g u := by
-      convert intervalIntegral.integral_comp_sub_left _ x using 2 <;> ring_nf
+theorem fejer_integrand_periodic (f : ℝ → ℝ) (hf_per : Function.Periodic f (2 * Real.pi)) (n : ℕ) (x : ℝ) :
+    Function.Periodic (fun t => f (x - t) * fejer_kernel n t) (2 * Real.pi) := by
+  intro t
+  dsimp only
+  rw [fejer_kernel_periodic]
+  congr 1
+  rw [show x - (t + 2 * Real.pi) = x - t - 2 * Real.pi by ring, hf_per.sub_eq]
 
-/-
-Lemma: The integral of a 2pi-periodic function over [x-pi, x+pi] is equal to the integral over [-pi, pi].
--/
-theorem integral_periodic_shift (g : ℝ → ℝ) (hg_per : Function.Periodic g (2 * Real.pi)) (x : ℝ)
-    (hg_int : IntervalIntegrable g MeasureTheory.volume (-Real.pi) Real.pi) :
-    ∫ u in (x - Real.pi)..(x + Real.pi), g u = ∫ u in (-Real.pi)..Real.pi, g u := by
-      -- Since $g$ is periodic with period $2\pi$, the integral over any interval of length $2\pi$ is the same.
-      have h_periodic : ∀ a : ℝ, ∫ u in a..a + 2 * Real.pi, g u = ∫ u in (-Real.pi)..Real.pi, g u := by
-        intro a;
-        have h_periodic : ∀ a b : ℝ, ∫ u in a..b, g u = ∫ u in (a - 2 * Real.pi).. (b - 2 * Real.pi), g u := by
-          simp +decide [ ← intervalIntegral.integral_comp_sub_right, hg_per ];
-          exact fun a b => by congr; ext u; rw [ hg_per.sub_eq ] ;
-        have h_split : ∫ u in a..a + 2 * Real.pi, g u = (∫ u in a..(-Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋), g u) + (∫ u in (-Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋)..(-Real.pi + 2 * Real.pi * (⌊(a + Real.pi) / (2 * Real.pi)⌋ + 1)), g u) + (∫ u in (-Real.pi + 2 * Real.pi * (⌊(a + Real.pi) / (2 * Real.pi)⌋ + 1))..a + 2 * Real.pi, g u) := by
-          rw [ intervalIntegral.integral_add_adjacent_intervals, intervalIntegral.integral_add_adjacent_intervals ] <;> apply_rules [ MeasureTheory.IntegrableOn.intervalIntegrable ];
-          · have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-              intro n; rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by nlinarith [ Real.pi_pos ] ) ] at hg_int; exact (by
-              have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-                intro n
-                have h_shift : ∀ x, g x = g (x - 2 * Real.pi * n) := by
-                  exact fun x => by simpa [ mul_comm ] using Function.Periodic.int_mul hg_per n ( x - 2 * Real.pi * n ) ;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert hg_int.comp_sub_right ( 2 * Real.pi * n ) using 1;
-                ext; simp [Set.indicator];
-                grind;
-              convert h_integrable n using 2 <;> ring);
-            have h_integrable : MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋) (Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋)) := by
-              exact h_integrable _;
-            refine' h_integrable.mono_set _;
-            intro x hx; constructor <;> cases Set.mem_uIcc.mp hx <;> nlinarith [ Int.floor_le ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Int.lt_floor_add_one ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( a + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ;
-          · have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-              intro n; rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by nlinarith [ Real.pi_pos ] ) ] at hg_int; exact (by
-              have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-                intro n
-                have h_shift : ∀ x, g x = g (x - 2 * Real.pi * n) := by
-                  exact fun x => by simpa [ mul_comm ] using Function.Periodic.int_mul hg_per n ( x - 2 * Real.pi * n ) ;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert hg_int.comp_sub_right ( 2 * Real.pi * n ) using 1;
-                ext; simp [Set.indicator];
-                grind;
-              convert h_integrable n using 2 <;> ring);
-            refine' MeasureTheory.IntegrableOn.mono_set _ _;
-            exact Set.Icc ( -Real.pi + 2 * Real.pi * ( ⌊ ( a + Real.pi ) / ( 2 * Real.pi ) ⌋ + 1 ) ) ( Real.pi + 2 * Real.pi * ( ⌊ ( a + Real.pi ) / ( 2 * Real.pi ) ⌋ + 1 ) );
-            · convert h_integrable ( ⌊ ( a + Real.pi ) / ( 2 * Real.pi ) ⌋ + 1 ) using 1 ; push_cast ; ring;
-            · rw [ Set.uIcc_of_le ( by nlinarith [ Int.floor_le ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Int.lt_floor_add_one ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( a + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ) ] ; exact Set.Icc_subset_Icc_right ( by nlinarith [ Int.floor_le ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Int.lt_floor_add_one ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( a + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ) ;
-          · have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-              intro n; rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by nlinarith [ Real.pi_pos ] ) ] at hg_int; exact (by
-              have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-                intro n
-                have h_shift : ∀ x, g x = g (x - 2 * Real.pi * n) := by
-                  exact fun x => by simpa [ mul_comm ] using Function.Periodic.int_mul hg_per n ( x - 2 * Real.pi * n ) ;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert hg_int.comp_sub_right ( 2 * Real.pi * n ) using 1;
-                ext; simp [Set.indicator];
-                grind;
-              convert h_integrable n using 2 <;> ring);
-            have h_integrable : MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋) (Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋)) := by
-              exact h_integrable _;
-            exact h_integrable.mono_set ( fun x hx => by constructor <;> cases Set.mem_uIcc.mp hx <;> nlinarith [ Int.floor_le ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Int.lt_floor_add_one ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( a + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] );
-          · have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-              intro n; rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by nlinarith [ Real.pi_pos ] ) ] at hg_int; exact (by
-              have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn g (Set.Icc (-Real.pi + 2 * Real.pi * n) (Real.pi + 2 * Real.pi * n)) := by
-                intro n
-                have h_shift : ∀ x, g x = g (x - 2 * Real.pi * n) := by
-                  exact fun x => by simpa [ mul_comm ] using Function.Periodic.int_mul hg_per n ( x - 2 * Real.pi * n ) ;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert hg_int.comp_sub_right ( 2 * Real.pi * n ) using 1;
-                ext; simp [Set.indicator];
-                grind;
-              convert h_integrable n using 2 <;> ring);
-            convert h_integrable ⌊ ( a + Real.pi ) / ( 2 * Real.pi ) ⌋ using 1 ; ring;
-            rw [ Set.uIcc_of_le ( by nlinarith [ Real.pi_pos ] ) ];
-        -- By periodicity, the integral over any interval of length $2\pi$ is the same.
-        have h_periodic_integral : ∀ k : ℤ, ∫ u in (-Real.pi + 2 * Real.pi * k)..(-Real.pi + 2 * Real.pi * (k + 1)), g u = ∫ u in (-Real.pi)..Real.pi, g u := by
-          intro k; symm; induction' k using Int.induction_on with n ihn n ihn <;> norm_num at *;
-          · grind;
-          · grind;
-          · rw [ ihn, h_periodic ] ; ring;
-        have h_periodic_integral : ∫ u in a..(-Real.pi + 2 * Real.pi * ⌊(a + Real.pi) / (2 * Real.pi)⌋), g u = ∫ u in (a + 2 * Real.pi)..(-Real.pi + 2 * Real.pi * (⌊(a + Real.pi) / (2 * Real.pi)⌋ + 1)), g u := by
-          grind;
-        have h_periodic_integral : ∫ u in (a + 2 * Real.pi)..(-Real.pi + 2 * Real.pi * (⌊(a + Real.pi) / (2 * Real.pi)⌋ + 1)), g u = -∫ u in (-Real.pi + 2 * Real.pi * (⌊(a + Real.pi) / (2 * Real.pi)⌋ + 1))..a + 2 * Real.pi, g u := by
-          rw [ intervalIntegral.integral_symm ];
-        linarith [ ‹∀ k : ℤ, ∫ u in -Real.pi + 2 * Real.pi * ( k : ℝ )..-Real.pi + 2 * Real.pi * ( k + 1 ), g u = ∫ u in -Real.pi..Real.pi, g u› ⌊ ( a + Real.pi ) / ( 2 * Real.pi ) ⌋ ];
-      convert h_periodic ( x - Real.pi ) using 2 ; ring
 
 /-
 Alternative integral representation of Fejér sum: sigma_n(x) = (1/pi) * integral_{-pi}^{pi} f(x-t) K_n(t) dt.
@@ -596,44 +329,18 @@ Alternative integral representation of Fejér sum: sigma_n(x) = (1/pi) * integra
 theorem fejer_sum_eq_integral_alt {f : ℝ → ℝ} (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) (n : ℕ) (x : ℝ) :
     fejer_sum f n x = (1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, f (x - t) * fejer_kernel n t := by
-      convert fejer_sum_eq_integral hf_int hf_per n x using 1;
-      -- By substitution using $ u = x - t $, we can rewrite the integral.
-      have h_subst : ∀ a b : ℝ, ∫ t in a..b, f (x - t) * fejer_kernel n t = ∫ u in (x - b).. (x - a), f u * fejer_kernel n (x - u) := by
-        norm_num [ ← intervalIntegral.integral_comp_sub_left ];
-      norm_num [ h_subst ];
-      convert integral_periodic_shift _ _ _ _ using 2;
-      · intro u; simp +decide [ hf_per, fejer_kernel ];
-        simp +decide [ dirichlet_kernel, hf_per ];
-        norm_num [ hf_per, mul_add, mul_sub, Real.cos_add, Real.cos_sub ];
-        norm_num [ show ∀ k : ℕ, Real.sin ( k * ( 2 * Real.pi ) ) = 0 from fun k => Real.sin_eq_zero_iff.mpr ⟨ k * 2, by push_cast; ring ⟩, hf_per ];
-        exact Or.inl <| hf_per u;
-      · apply_rules [ IntervalIntegrable.mul_continuousOn, hf_int ];
-        refine' Continuous.continuousOn _;
-        refine' Continuous.mul _ _;
-        · continuity;
-        · refine' continuous_finset_sum _ fun i hi => _;
-          exact continuous_const.add ( continuous_finset_sum _ fun j hj => Real.continuous_cos.comp ( by continuity ) )
+  rw [fejer_sum_eq_integral hf_int hf_per]
+  have hcv : ∫ t in (-Real.pi)..Real.pi, f t * fejer_kernel n (x-t) =
+      ∫ u in (x-Real.pi)..(x+Real.pi), f (x-u)*fejer_kernel n u := by
+    simpa only [sub_sub_cancel, sub_neg_eq_add] using
+      (intervalIntegral.integral_comp_sub_left (a := -Real.pi) (b := Real.pi)
+        (fun u ↦ f (x-u)*fejer_kernel n u) x)
+  rw [hcv]
+  apply congrArg (fun z : ℝ ↦ (1/Real.pi)*z)
+  convert (fejer_integrand_periodic f hf_per n x).intervalIntegral_add_eq
+    (x-Real.pi) (-Real.pi) using 1 <;> ring
 
-/-
-Lemma: The integrand f(x-t)K_n(t) is 2pi-periodic.
--/
-theorem fejer_integrand_periodic (f : ℝ → ℝ) (hf_per : Function.Periodic f (2 * Real.pi)) (n : ℕ) (x : ℝ) :
-    Function.Periodic (fun t => f (x - t) * fejer_kernel n t) (2 * Real.pi) := by
-      intro t; unfold fejer_kernel; simp +decide [ *, Real.sin_two_mul _, mul_assoc ] ; ring_nf;
-      simp +decide [ mul_assoc, mul_comm Real.pi _, mul_left_comm Real.pi _, add_comm, add_left_comm, add_assoc, hf_per ];
-      rw [ show x + ( -t - 2 * Real.pi ) = x - t - 2 * Real.pi by ring ] ; rw [ ← hf_per ] ; simp +decide [ sub_eq_add_neg, add_assoc, add_left_comm, add_comm, Finset.sum_add_distrib ] ; ring;
-      simp +decide [ mul_two, Real.sin_add, Real.cos_add, dirichlet_kernel ];
-      norm_num [ add_assoc, mul_add, Real.cos_add ];
-      norm_num [ ← sq, Real.cos_sq' ];
-      norm_num [ ← two_mul, Real.sin_two_mul ]
 
-/-
-Alternative integral representation of Fejér sum: sigma_n(x) = (1/pi) * integral_{-pi}^{pi} f(x-t) K_n(t) dt.
--/
-theorem fejer_sum_eq_integral_alt_v2 {f : ℝ → ℝ} (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
-    (hf_per : Function.Periodic f (2 * Real.pi)) (n : ℕ) (x : ℝ) :
-    fejer_sum f n x = (1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, f (x - t) * fejer_kernel n t := by
-      convert fejer_sum_eq_integral_alt hf_int hf_per n x using 1
 
 /-
 Lemma: Difference between Fejér sum and function as an integral.
@@ -641,62 +348,21 @@ Lemma: Difference between Fejér sum and function as an integral.
 theorem fejer_sum_sub_f_eq_integral {f : ℝ → ℝ} (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) (n : ℕ) (x : ℝ) :
     fejer_sum f n x - f x = (1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, (f (x - t) - f x) * fejer_kernel n t := by
-      -- By definition of Fejér sum, we have
-      have h_def : fejer_sum f n x = (1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, f (x - t) * fejer_kernel n t := by
-        convert fejer_sum_eq_integral_alt_v2 hf_int hf_per n x using 1;
-      simp +decide [ h_def, sub_mul ];
-      rw [ intervalIntegral.integral_sub ] <;> norm_num;
-      · field_simp;
-        rw [ show ∫ t in -Real.pi..Real.pi, fejer_kernel n t = Real.pi by
-              have := fejer_kernel_integral_one n;
-              rw [ div_mul_eq_mul_div, div_eq_iff ] at this <;> linarith [ Real.pi_pos ] ] ; ring;
-      · have h_integrable : IntervalIntegrable (fun t => f (x - t)) MeasureTheory.volume (-Real.pi) Real.pi := by
-          rw [ intervalIntegrable_iff_integrableOn_Ioc_of_le ( by linarith [ Real.pi_pos ] ) ] at *;
-          have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x - Real.pi) (x + Real.pi)) MeasureTheory.volume := by
-            have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi) Real.pi) MeasureTheory.volume := by
-              rwa [ MeasureTheory.IntegrableOn, MeasureTheory.Measure.restrict_congr_set MeasureTheory.Ioc_ae_eq_Icc ] at *;
-            -- Since $f$ is periodic with period $2\pi$, we can shift the interval of integration.
-            have h_shift : ∀ k : ℤ, MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi)) MeasureTheory.volume := by
-              intro k;
-              have h_shift : ∀ k : ℤ, MeasureTheory.IntegrableOn (fun t => f (t - k * 2 * Real.pi)) (Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi)) MeasureTheory.volume := by
-                intro k;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_sub_right ( k * 2 * Real.pi ) using 1;
-                ext; simp [Set.indicator];
-                split_ifs <;> ring_nf at * <;> aesop;
-              convert h_shift k using 1;
-              exact funext fun t => by simpa [ mul_assoc ] using Function.Periodic.int_mul hf_per k ( t - k * 2 * Real.pi ) ;
-            -- Choose $k$ such that $x - \pi \in [-\pi + k * 2 * \pi, \pi + k * 2 * \pi]$.
-            obtain ⟨k, hk⟩ : ∃ k : ℤ, x - Real.pi ∈ Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi) := by
-              exact ⟨ ⌊ ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-            have h_shift : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi)) MeasureTheory.volume := by
-              exact h_shift k;
-            have h_shift : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x - Real.pi) (x + Real.pi)) MeasureTheory.volume := by
-              have h_subset : Set.Icc (x - Real.pi) (x + Real.pi) ⊆ Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi) ∪ Set.Icc (-Real.pi + (k + 1) * 2 * Real.pi) (Real.pi + (k + 1) * 2 * Real.pi) := by
-                exact fun t ht => if h : t ≤ Real.pi + k * 2 * Real.pi then Or.inl ⟨ by linarith [ ht.1, hk.1 ], by linarith [ ht.2, hk.2 ] ⟩ else Or.inr ⟨ by linarith [ ht.1, hk.1 ], by linarith [ ht.2, hk.2 ] ⟩
-              have h_shift : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi + (k + 1) * 2 * Real.pi) (Real.pi + (k + 1) * 2 * Real.pi)) MeasureTheory.volume := by
-                convert ‹∀ k : ℤ, MeasureTheory.IntegrableOn ( fun t => f t ) ( Set.Icc ( -Real.pi + k * 2 * Real.pi ) ( Real.pi + k * 2 * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) using 1 ; push_cast ; ring;
-              exact MeasureTheory.IntegrableOn.mono_set ( MeasureTheory.IntegrableOn.union ‹_› ‹_› ) h_subset;
-            exact h_shift;
-          have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x - t)) (Set.Icc (-Real.pi) Real.pi) MeasureTheory.volume := by
-            rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-            convert h_integrable.comp_sub_left x using 1;
-            ext; simp [Set.indicator];
-            grind;
-          exact h_integrable.mono_set <| Set.Ioc_subset_Icc_self;
-        exact h_integrable.mul_continuousOn ( by exact Continuous.continuousOn <| by exact Continuous.mul ( continuous_const ) <| by exact continuous_finset_sum _ fun _ _ => continuous_const.add <| by exact continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity );
-      · apply_rules [ Continuous.intervalIntegrable ];
-        apply_rules [ Continuous.mul, continuous_const, continuous_const ];
-        refine' continuous_finset_sum _ fun i hi => _;
-        exact continuous_const.add <| continuous_finset_sum _ fun j hj => Real.continuous_cos.comp <| by continuity;
+  have hfi := (periodic_comp_sub_intervalIntegrable hf_int hf_per
+    (-Real.pi) Real.pi x).mul_continuousOn (continuous_fejer_kernel n).continuousOn
+  have hki : IntervalIntegrable (fejer_kernel n) MeasureTheory.volume (-Real.pi) Real.pi :=
+    (continuous_fejer_kernel n).intervalIntegrable (-Real.pi) Real.pi
+  rw [fejer_sum_eq_integral_alt hf_int hf_per]
+  simp_rw [sub_mul]
+  rw [intervalIntegral.integral_sub hfi (hki.const_mul _),
+    intervalIntegral.integral_const_mul]
+  have hK := fejer_kernel_integral_one n
+  calc
+    (1 / Real.pi) * (∫ t in (-Real.pi)..Real.pi, f (x-t) * fejer_kernel n t) - f x =
+      (1 / Real.pi) * (∫ t in (-Real.pi)..Real.pi, f (x-t) * fejer_kernel n t) -
+        f x * ((1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, fejer_kernel n t) := by rw [hK]; ring
+    _ = _ := by ring
 
-/-
-Lemma: Difference between Fejér sum and function as an integral.
--/
-theorem fejer_sum_sub_f_eq_integral_v2 {f : ℝ → ℝ} (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
-    (hf_per : Function.Periodic f (2 * Real.pi)) (n : ℕ) (x : ℝ) :
-    fejer_sum f n x - f x = (1 / Real.pi) * ∫ t in (-Real.pi)..Real.pi, (f (x - t) - f x) * fejer_kernel n t := by
-      convert fejer_sum_sub_f_eq_integral hf_int hf_per n x using 1
 
 /-
 Lemma: The integral of |f(x-t)| over [-pi, pi] is equal to the integral of |f(t)| over [-pi, pi].
@@ -704,9 +370,10 @@ Lemma: The integral of |f(x-t)| over [-pi, pi] is equal to the integral of |f(t)
 theorem integral_periodic_modulus_shift (f : ℝ → ℝ) (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) (x : ℝ) :
     ∫ t in (-Real.pi)..Real.pi, |f (x - t)| = ∫ t in (-Real.pi)..Real.pi, |f t| := by
-      rw [ intervalIntegral.integral_comp_sub_left fun t => |f t| ] ; norm_num;
-      convert ( integral_periodic_shift _ ( show Function.Periodic ( fun t => |f t| ) ( 2 * Real.pi ) from fun t => by simp +decide [ hf_per t ] ) x _ ) using 2;
-      exact hf_int.abs
+  rw [intervalIntegral.integral_comp_sub_left fun t ↦ |f t|]
+  have hp : Function.Periodic (fun t ↦ |f t|) (2*Real.pi) :=
+    fun t ↦ congrArg abs (hf_per t)
+  convert hp.intervalIntegral_add_eq (x-Real.pi) (-Real.pi) using 1 <;> ring
 
 /-
 Lemma: The integral of the difference over the tail region tends to 0 uniformly.
@@ -715,179 +382,129 @@ theorem fejer_tail_convergence (f : ℝ → ℝ) (hf_int : IntervalIntegrable f 
     (hf_per : Function.Periodic f (2 * Real.pi)) (a b : ℝ) (hab : a ≤ b)
     (hf_cont : ∀ x ∈ Set.Icc a b, ContinuousAt f x) (δ : ℝ) (hδ_pos : 0 < δ) (hδ_le : δ < Real.pi) :
     TendstoUniformlyOn (fun n x => (1 / Real.pi) * ∫ t in (Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi), (f (x - t) - f x) * fejer_kernel n t) 0 Filter.atTop (Set.Icc a b) := by
-      -- By Lemma 24, the integral of the difference over the tail region tends to 0 uniformly.
-      have h_tail : ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, ∀ x ∈ Set.Icc a b, |∫ t in Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, (f (x - t) - f x) * fejer_kernel n t| < ε := by
-        -- By Lemma 24, the integral of the difference over the tail region tends to 0 uniformly. Hence, we can apply the lemma directly.
-        intros ε hε_pos
-        obtain ⟨N, hN⟩ : ∃ N : ℕ, ∀ n ≥ N, ⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t < ε / (2 * (∫ t in Set.Icc (-Real.pi) Real.pi, |f t|) + 2 * Real.pi * (SupSet.sSup (Set.image (fun x => |f x|) (Set.Icc a b))) + 1) := by
-          have := fejer_kernel_uniform_limit_zero δ hδ_pos hδ_le.le |> fun h => h.eventually ( gt_mem_nhds <| show 0 < ε / ( ( 2 * ∫ t in Set.Icc ( -Real.pi ) Real.pi, |f t| ) + 2 * Real.pi * sSup ( ( fun x => |f x| ) '' Set.Icc a b ) + 1 ) from div_pos hε_pos <| by exact add_pos_of_nonneg_of_pos ( add_nonneg ( mul_nonneg zero_le_two <| MeasureTheory.integral_nonneg fun _ => abs_nonneg _ ) <| mul_nonneg ( mul_nonneg zero_le_two <| Real.pi_pos.le ) <| by apply_rules [ Real.sSup_nonneg ] ; rintro x ⟨ y, hy, rfl ⟩ ; exact abs_nonneg _ ) zero_lt_one ) ; aesop;
-        use N;
-        intros n hn x hx
-        have h_bound : |∫ t in Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, (f (x - t) - f x) * fejer_kernel n t| ≤ (∫ t in Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, |f (x - t)| + |f x|) * (⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t) := by
-          have h_bound : ∀ t ∈ Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, |(f (x - t) - f x) * fejer_kernel n t| ≤ (|f (x - t)| + |f x|) * (⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t) := by
-            intros t ht
-            have h_bound : |fejer_kernel n t| ≤ ⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t := by
-              have h_bound : ∀ t ∈ Set.Icc δ Real.pi, |fejer_kernel n t| ≤ ⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t := by
-                intros t ht
-                have h_bound : fejer_kernel n t ≤ ⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t := by
-                  apply le_csSup;
-                  · refine' ⟨ ( n + 1 ) / 2, Set.forall_mem_range.mpr fun t => _ ⟩;
-                    field_simp;
-                    rw [ @ciSup_eq_ite ] ; norm_num;
-                    split_ifs <;> [ exact le_trans ( mul_le_mul_of_nonneg_right ( fejer_kernel_le_linear n t ) zero_le_two ) ( by linarith ) ; exact by linarith ];
-                  · exact ⟨ t, by aesop ⟩;
-                rw [ abs_of_nonneg ( fejer_kernel_nonneg n t ) ] ; exact h_bound;
-              cases ht <;> simp_all +decide [ abs_of_nonneg, fejer_kernel_nonneg ];
-              convert h_bound ( -t ) ( by linarith ) ( by linarith ) using 1 ; rw [ ← fejer_kernel_even ];
-            simpa only [ abs_mul ] using mul_le_mul ( abs_sub _ _ ) h_bound ( by positivity ) ( by positivity );
-          rw [ ← MeasureTheory.integral_mul_const ];
-          refine' le_trans ( MeasureTheory.norm_integral_le_integral_norm ( _ : ℝ → ℝ ) ) ( MeasureTheory.integral_mono_of_nonneg _ _ _ );
-          · exact Filter.Eventually.of_forall fun t => norm_nonneg _;
-          · refine' MeasureTheory.Integrable.mul_const _ _;
-            refine' MeasureTheory.Integrable.add _ _;
-            · have h_integrable : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (-Real.pi) Real.pi) := by
-                rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; exact hf_int.abs;
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => |f (x - t)|) (Set.Icc (-Real.pi) Real.pi) := by
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (x - Real.pi) (x + Real.pi)) := by
-                  have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi)) := by
-                    intro m;
-                    have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi)) := by
-                      intro m
-                      have h_periodic : ∀ t, |f (t + m * 2 * Real.pi)| = |f t| := by
-                        exact fun t => by simpa [ mul_assoc ] using congr_arg abs ( Function.Periodic.int_mul hf_per m t ) ;
-                      rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                      convert h_integrable.comp_sub_right ( m * 2 * Real.pi ) using 1;
-                      ext t; simp [Set.indicator];
-                      grind;
-                    exact h_integrable m;
-                  -- Choose $m$ such that $m * 2 * \pi - \pi \leq x - \pi < m * 2 * \pi + \pi$.
-                  obtain ⟨m, hm⟩ : ∃ m : ℤ, m * 2 * Real.pi - Real.pi ≤ x - Real.pi ∧ x - Real.pi < m * 2 * Real.pi + Real.pi := by
-                    exact ⟨ ⌊ ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                  have h_integrable : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi + 2 * Real.pi)) := by
-                    have h_integrable : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi)) ∧ MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi + Real.pi) (m * 2 * Real.pi + Real.pi + 2 * Real.pi)) := by
-                      exact ⟨ h_integrable m, by convert h_integrable ( m + 1 ) using 1 ; push_cast ; ring ⟩;
-                    convert h_integrable.1.union h_integrable.2 using 1 ; ext ; norm_num;
-                    exact ⟨ fun h => if h' : _ ≤ _ then Or.inl ⟨ h.1, h' ⟩ else Or.inr ⟨ by linarith, h.2 ⟩, fun h => h.elim ( fun h => ⟨ h.1, by linarith ⟩ ) fun h => ⟨ by linarith, h.2 ⟩ ⟩;
-                  exact h_integrable.mono_set ( Set.Icc_subset_Icc ( by linarith ) ( by linarith ) );
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_sub_left x using 1;
-                ext; simp [Set.indicator];
-                grind;
-              exact h_integrable.mono_set ( Set.union_subset ( Set.Icc_subset_Icc_right ( by linarith ) ) ( Set.Icc_subset_Icc_left ( by linarith ) ) );
-            · exact Continuous.integrableOn_Icc ( by continuity ) |> fun h => h.union ( by exact Continuous.integrableOn_Icc ( by continuity ) );
-          · filter_upwards [ MeasureTheory.ae_restrict_mem ( measurableSet_Icc.union measurableSet_Icc ) ] with t ht using h_bound t ht;
-        -- By Lemma 24, the integral of |f(x-t)| over [-π, -δ] ∪ [δ, π] is bounded by the integral of |f(t)| over [-π, π].
-        have h_integral_bound : ∫ t in Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, |f (x - t)| ≤ ∫ t in Set.Icc (-Real.pi) Real.pi, |f t| := by
-          have h_integral_bound : ∫ t in Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, |f (x - t)| ≤ ∫ t in Set.Icc (-Real.pi) Real.pi, |f (x - t)| := by
-            refine' MeasureTheory.setIntegral_mono_set _ _ _;
-            · have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x - t)) (Set.Icc (-Real.pi) Real.pi) := by
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x - Real.pi) (x + Real.pi)) := by
-                  have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (m * (2 * Real.pi) - Real.pi) (m * (2 * Real.pi) + Real.pi)) := by
-                    intro m;
-                    have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (m * (2 * Real.pi) - Real.pi) (m * (2 * Real.pi) + Real.pi)) := by
-                      intro m
-                      have h_periodic : ∀ t, f (t + m * (2 * Real.pi)) = f t := by
-                        exact fun t => by simpa [ mul_assoc, mul_left_comm ] using Function.Periodic.int_mul hf_per m t;
-                      rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                      convert h_integrable.comp_sub_right ( m * ( 2 * Real.pi ) ) using 1;
-                      ext t; simp [Set.indicator];
-                      grind;
-                    exact h_integrable m;
-                  -- Choose $m$ such that $m * (2 * π) - π ≤ x - π < m * (2 * π) + π$.
-                  obtain ⟨m, hm⟩ : ∃ m : ℤ, m * (2 * Real.pi) - Real.pi ≤ x - Real.pi ∧ x - Real.pi < m * (2 * Real.pi) + Real.pi := by
-                    exact ⟨ ⌊ ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (m * (2 * Real.pi) - Real.pi) (m * (2 * Real.pi) + 3 * Real.pi)) := by
-                    have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (m * (2 * Real.pi) - Real.pi) (m * (2 * Real.pi) + Real.pi)) ∧ MeasureTheory.IntegrableOn f (Set.Icc (m * (2 * Real.pi) + Real.pi) (m * (2 * Real.pi) + 3 * Real.pi)) := by
-                      exact ⟨ h_integrable m, by convert h_integrable ( m + 1 ) using 1 ; push_cast ; ring ⟩;
-                    convert h_integrable.1.union h_integrable.2 using 1 ; ext ; norm_num;
-                    exact ⟨ fun h => if h' : _ ≤ _ then Or.inl ⟨ h.1, h' ⟩ else Or.inr ⟨ by linarith, h.2 ⟩, fun h => h.elim ( fun h => ⟨ h.1, by linarith ⟩ ) fun h => ⟨ by linarith, h.2 ⟩ ⟩;
-                  exact h_integrable.mono_set <| Set.Icc_subset_Icc ( by linarith ) ( by linarith );
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_sub_left x using 1;
-                ext; simp [Set.indicator];
-                grind;
-              exact h_integrable.abs;
-            · exact Filter.Eventually.of_forall fun t => abs_nonneg _;
-            · exact MeasureTheory.ae_of_all _ fun t ht => by cases ht <;> constructor <;> linarith [ Set.mem_Icc.mp ‹_› ] ;
-          have h_integral_bound : ∫ t in Set.Icc (-Real.pi) Real.pi, |f (x - t)| = ∫ t in Set.Icc (x - Real.pi) (x + Real.pi), |f t| := by
-            rw [ MeasureTheory.integral_Icc_eq_integral_Ioc, MeasureTheory.integral_Icc_eq_integral_Ioc ];
-            rw [ ← intervalIntegral.integral_of_le ( by linarith [ Real.pi_pos ] ), ← intervalIntegral.integral_of_le ( by linarith [ Real.pi_pos ] ) ] ; convert intervalIntegral.integral_comp_sub_left _ x using 2 <;> ring;
-          have h_integral_bound : ∫ t in Set.Icc (x - Real.pi) (x + Real.pi), |f t| = ∫ t in Set.Icc (-Real.pi) Real.pi, |f t| := by
-            rw [ MeasureTheory.integral_Icc_eq_integral_Ioc, MeasureTheory.integral_Icc_eq_integral_Ioc ];
-            rw [ ← intervalIntegral.integral_of_le ( by linarith [ Real.pi_pos ] ), ← intervalIntegral.integral_of_le ( by linarith [ Real.pi_pos ] ) ];
-            convert integral_periodic_shift _ _ _ _ using 2;
-            · exact fun x => by simp +decide [ hf_per x ] ;
-            · exact hf_int.abs;
-          linarith;
-        -- By Lemma 24, the integral of |f(x)| over [-π, -δ] ∪ [δ, π] is bounded by 2π times the supremum of |f(x)| over [a, b].
-        have h_integral_bound_f : ∫ t in Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi, |f x| ≤ 2 * Real.pi * (SupSet.sSup (Set.image (fun x => |f x|) (Set.Icc a b))) := by
-          rw [ MeasureTheory.setIntegral_union ] <;> norm_num;
-          · rw [ max_eq_left ( by linarith ), max_eq_left ( by linarith ) ];
-            nlinarith [ abs_nonneg ( f x ), Real.pi_pos, show |f x| ≤ sSup ( ( fun x => |f x| ) '' Set.Icc a b ) from le_csSup ( by exact ( IsCompact.bddAbove ( isCompact_Icc.image_of_continuousOn ( continuous_abs.comp_continuousOn ( show ContinuousOn f ( Set.Icc a b ) from fun x hx => ContinuousAt.continuousWithinAt ( hf_cont x hx ) ) ) ) ) ) ( Set.mem_image_of_mem _ hx ) ];
-          · exact Set.disjoint_left.mpr fun x hx₁ hx₂ => by linarith [ Set.mem_Icc.mp hx₁, Set.mem_Icc.mp hx₂ ] ;
-        refine lt_of_le_of_lt h_bound ?_;
-        rw [ MeasureTheory.integral_add ];
-        · refine' lt_of_le_of_lt ( mul_le_mul_of_nonneg_right ( add_le_add h_integral_bound h_integral_bound_f ) ( by exact Real.iSup_nonneg fun _ => Real.iSup_nonneg fun _ => fejer_kernel_nonneg _ _ ) ) _;
-          have := hN n hn;
-          rw [ lt_div_iff₀ ] at this <;> nlinarith [ show 0 ≤ ∫ t in Set.Icc ( -Real.pi ) Real.pi, |f t| from MeasureTheory.integral_nonneg fun _ => abs_nonneg _, show 0 ≤ 2 * Real.pi * sSup ( ( fun x => |f x| ) '' Set.Icc a b ) from mul_nonneg ( by positivity ) ( by apply_rules [ Real.sSup_nonneg ] ; rintro x ⟨ y, hy, rfl ⟩ ; exact abs_nonneg _ ) ];
-        · have h_integrable : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (-Real.pi) Real.pi) := by
-            rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; exact hf_int.abs;
-          have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => |f (x - t)|) (Set.Icc (-Real.pi) Real.pi) := by
-            have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (x - Real.pi) (x + Real.pi)) := by
-              have h_integrable_shift : ∀ m : ℤ, MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi)) := by
-                field_simp;
-                intro m;
-                have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => |f (t - m * 2 * Real.pi)|) (Set.Icc (Real.pi * (m * 2 - 1)) (Real.pi * (m * 2 + 1))) := by
-                  rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                  convert h_integrable.comp_sub_right ( m * 2 * Real.pi ) using 1;
-                  ext; simp [Set.indicator];
-                  exact if_congr ⟨ fun h => ⟨ by linarith, by linarith ⟩, fun h => ⟨ by linarith, by linarith ⟩ ⟩ rfl rfl;
-                convert h_integrable_shift using 1;
-                exact funext fun x => by rw [ show f x = f ( x - m * 2 * Real.pi ) by simpa [ mul_assoc ] using Function.Periodic.int_mul hf_per m ( x - m * 2 * Real.pi ) ] ;
-              -- Choose $m$ such that $m * 2 * \pi - \pi \leq x - \pi < m * 2 * \pi + \pi$.
-              obtain ⟨m, hm⟩ : ∃ m : ℤ, m * 2 * Real.pi - Real.pi ≤ x - Real.pi ∧ x - Real.pi < m * 2 * Real.pi + Real.pi := by
-                exact ⟨ ⌊ ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-              have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi + 2 * Real.pi)) := by
-                have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi)) ∧ MeasureTheory.IntegrableOn (fun t => |f t|) (Set.Icc (m * 2 * Real.pi + Real.pi) (m * 2 * Real.pi + Real.pi + 2 * Real.pi)) := by
-                  exact ⟨ h_integrable_shift m, by convert h_integrable_shift ( m + 1 ) using 1 ; push_cast ; ring ⟩;
-                convert h_integrable_shift.1.union h_integrable_shift.2 using 1 ; ext ; norm_num;
-                exact ⟨ fun h => if h' : _ ≤ _ then Or.inl ⟨ h.1, h' ⟩ else Or.inr ⟨ by linarith, h.2 ⟩, fun h => h.elim ( fun h => ⟨ h.1, by linarith ⟩ ) fun h => ⟨ by linarith, h.2 ⟩ ⟩;
-              exact h_integrable_shift.mono_set <| Set.Icc_subset_Icc ( by linarith ) ( by linarith );
-            rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-            convert h_integrable_shift.comp_sub_left x using 1;
-            ext; simp [Set.indicator];
-            grind;
-          exact h_integrable_shift.mono_set ( Set.union_subset ( Set.Icc_subset_Icc_right ( by linarith ) ) ( Set.Icc_subset_Icc_left ( by linarith ) ) );
-        · exact Continuous.integrableOn_Icc ( by continuity ) |> fun h => h.union ( by exact Continuous.integrableOn_Icc ( by continuity ) );
-      rw [ Metric.tendstoUniformlyOn_iff ];
-      field_simp;
-      exact fun ε hε => by rcases h_tail ( ε * Real.pi ) ( mul_pos hε Real.pi_pos ) with ⟨ N, hN ⟩ ; filter_upwards [ Filter.eventually_ge_atTop N ] with n hn x hx using abs_lt.mpr ⟨ by norm_num; nlinarith [ abs_lt.mp ( hN n hn x hx ), Real.pi_pos, mul_div_cancel₀ ( ∫ t in Set.Icc ( -Real.pi ) ( -δ ) ∪ Set.Icc δ Real.pi, ( f ( x - t ) - f x ) * fejer_kernel n t ) Real.pi_ne_zero ], by norm_num; nlinarith [ abs_lt.mp ( hN n hn x hx ), Real.pi_pos, mul_div_cancel₀ ( ∫ t in Set.Icc ( -Real.pi ) ( -δ ) ∪ Set.Icc δ Real.pi, ( f ( x - t ) - f x ) * fejer_kernel n t ) Real.pi_ne_zero ] ⟩ ;
+  let C : ℕ → ℝ := fun n ↦ Real.pi ^ 2 / (2 * (n + 1) * δ ^ 2)
+  have hCpos : ∀ n, 0 ≤ C n := fun n ↦ by dsimp [C]; positivity
+  have hC : Tendsto C atTop (𝓝 0) := by
+    have h := (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul (Real.pi ^ 2 / (2 * δ ^ 2))
+    convert h using 1
+    · ext n
+      dsimp [C]
+      field_simp
+    · simp
+  have hb (n : ℕ) (t : ℝ) (ht : t ∈ Icc (-Real.pi) (-δ) ∪ Icc δ Real.pi) : fejer_kernel n t ≤ C n := by
+    have htδ : δ ≤ |t| := by
+      rcases ht with ht | ht
+      · rw [abs_of_nonpos (by linarith [ht.2])]; linarith [ht.2]
+      · rw [abs_of_nonneg (by linarith [ht.1])]; exact ht.1
+    have htπ : |t| ≤ Real.pi := by
+      rcases ht with ht | ht
+      · rw [abs_of_nonpos (by linarith [ht.2])]; linarith [ht.1]
+      · rw [abs_of_nonneg (by linarith [ht.1])]; exact ht.2
+    have heq : fejer_kernel n t = fejer_kernel n |t| := by
+      rcases le_or_gt 0 t with ht0 | ht0
+      · rw [abs_of_nonneg ht0]
+      · rw [abs_of_neg ht0, fejer_kernel_even]
+    rw [heq]
+    refine (fejer_kernel_le_quadratic n |t| (hδ_pos.trans_le htδ) htπ).trans ?_
+    dsimp [C]
+    gcongr
+  have hshiftint (x : ℝ) : IntegrableOn (fun t ↦ f (x-t)) (Icc (-Real.pi) Real.pi) := by
+    rw [← intervalIntegrable_iff_integrableOn_Icc_of_le (by linarith [Real.pi_pos])]
+    exact periodic_comp_sub_intervalIntegrable hf_int hf_per (-Real.pi) Real.pi x
+  let M0 := ∫ t in Icc (-Real.pi) Real.pi, |f t|
+  have hshift (x : ℝ) : ∫ t in Icc (-Real.pi) Real.pi, |f (x-t)| = M0 := by
+    simpa only [M0, integral_Icc_eq_integral_Ioc,
+      intervalIntegral.integral_of_le (by linarith [Real.pi_pos] : -Real.pi ≤ Real.pi)]
+      using integral_periodic_modulus_shift f hf_int hf_per x
+  have hcont : ContinuousOn f (Icc a b) := fun x hx ↦ (hf_cont x hx).continuousWithinAt
+  let full := Icc (-Real.pi) Real.pi
+  let s := Icc (-Real.pi) (-δ) ∪ Icc δ Real.pi
+  have hfull : IsCompact full := isCompact_Icc
+  have hs : IsCompact s := isCompact_Icc.union isCompact_Icc
+  have hsm : MeasurableSet s := measurableSet_Icc.union measurableSet_Icc
+  have hsub : s ⊆ full := by
+    rintro t (ht | ht) <;> constructor <;> linarith [ht.1, ht.2]
+  obtain ⟨B0, hB0⟩ := isCompact_Icc.exists_bound_of_continuousOn hcont
+  let B := max B0 0
+  have hB : 0 ≤ B := le_max_right _ _
+  have hBx (x : ℝ) (hx : x ∈ Icc a b) : |f x| ≤ B :=
+    (show |f x| ≤ B0 by simpa only [Real.norm_eq_abs] using hB0 x hx).trans
+      (le_max_left _ _)
+  let D := M0 + volume.real full * B
+  have hlim : Tendsto (fun n ↦ ((1 / Real.pi) * D) * C n) atTop (𝓝 0) := by
+    simpa using hC.const_mul ((1 / Real.pi) * D)
+  have hbound (n : ℕ) (x : ℝ) (hx : x ∈ Icc a b) :
+      ‖∫ t in s, (f (x - t) - f x) * fejer_kernel n t‖ ≤ D * C n := by
+    have hmajor : IntegrableOn (fun t ↦ |f (x - t)| + B) full :=
+      (hshiftint x).abs.add (continuousOn_const.integrableOn_compact hfull)
+    have hdiff : IntegrableOn (fun t ↦ f (x - t) - f x) full :=
+      (hshiftint x).sub (continuousOn_const.integrableOn_compact hfull)
+    have hw : IntegrableOn (fun t ↦ (f (x - t) - f x) * fejer_kernel n t) s :=
+      (hdiff.mono_set hsub).mul_continuousOn (continuous_fejer_kernel n).continuousOn hs
+    calc
+      ‖∫ t in s, (f (x - t) - f x) * fejer_kernel n t‖
+        ≤ ∫ t in s, ‖(f (x - t) - f x) * fejer_kernel n t‖ := norm_integral_le_integral_norm _
+      _ ≤ ∫ t in s, (|f (x - t)| + B) * C n := by
+        apply setIntegral_mono_on hw.norm ((hmajor.mono_set hsub).mul_const _) hsm
+        intro t ht
+        rw [norm_mul, Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg (fejer_kernel_nonneg n t)]
+        exact mul_le_mul ((abs_sub _ _).trans (add_le_add le_rfl (hBx x hx)))
+          (hb n t ht) (fejer_kernel_nonneg n t) (by positivity)
+      _ ≤ ∫ t in full, (|f (x - t)| + B) * C n :=
+        setIntegral_mono_set (hmajor.mul_const _) (Eventually.of_forall fun t ↦
+          mul_nonneg (add_nonneg (abs_nonneg _) hB) (hCpos n))
+          (Eventually.of_forall fun _ ht ↦ hsub ht)
+      _ = D * C n := by
+        rw [integral_mul_const, integral_add (hshiftint x).abs
+          (continuousOn_const.integrableOn_compact hfull), setIntegral_const, hshift x]
+        rfl
+  rw [Metric.tendstoUniformlyOn_iff]
+  intro ε hε
+  filter_upwards [hlim.eventually (gt_mem_nhds hε)] with n hn x hx
+  rw [Pi.zero_apply, dist_zero_left, norm_mul, Real.norm_eq_abs,
+    abs_of_nonneg (by positivity : 0 ≤ 1 / Real.pi)]
+  exact (mul_le_mul_of_nonneg_left (hbound n x hx) (by positivity)).trans_lt (by
+    simpa only [mul_assoc] using hn)
 
 /-
 Lemma: The integral of the Fejér kernel over the tail region tends to 0.
 -/
 theorem fejer_kernel_tail_mass_vanishes (δ : ℝ) (hδ_pos : 0 < δ) (hδ_le : δ ≤ Real.pi) :
     Filter.Tendsto (fun n => ∫ t in (Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi), fejer_kernel n t) Filter.atTop (nhds 0) := by
-      have h_fejer_kernel_tail : Filter.Tendsto (fun n => ∫ t in Set.Icc δ Real.pi, fejer_kernel n t) Filter.atTop (nhds 0) := by
-        -- By the properties of the Fejér kernel, we know that its integral over $[\delta, \pi]$ is bounded by $\frac{1}{n+1} \int_{\delta}^{\pi} \frac{\pi^2}{2t^2} dt$.
-        have h_integral_bound : ∀ n : ℕ, ∫ t in Set.Icc δ Real.pi, fejer_kernel n t ≤ (1 / (n + 1 : ℝ)) * ∫ t in Set.Icc δ Real.pi, (Real.pi ^ 2 / (2 * t ^ 2)) := by
-          intro n;
-          rw [ ← MeasureTheory.integral_const_mul ];
-          field_simp;
-          refine' MeasureTheory.setIntegral_mono_on _ _ measurableSet_Icc fun t ht => _;
-          · exact Continuous.integrableOn_Icc ( show Continuous ( fejer_kernel n ) from by unfold fejer_kernel; exact Continuous.mul ( continuous_const ) <| continuous_finset_sum _ fun _ _ => continuous_const.add <| continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity );
-          · exact ContinuousOn.integrableOn_Icc ( continuousOn_of_forall_continuousAt fun x hx => ContinuousAt.div continuousAt_const ( ContinuousAt.mul continuousAt_const ( continuousAt_id.pow 2 ) ) ( by nlinarith [ hx.1, hx.2, Real.pi_pos ] ) );
-          · convert fejer_kernel_le_quadratic n t ( by linarith [ ht.1 ] ) ( by linarith [ ht.2 ] ) using 1 ; ring;
-        exact squeeze_zero ( fun n => MeasureTheory.setIntegral_nonneg measurableSet_Icc fun t ht => fejer_kernel_nonneg _ _ ) h_integral_bound <| by simpa using tendsto_one_div_add_atTop_nhds_zero_nat.mul_const _;
-      convert h_fejer_kernel_tail.const_mul 2 using 2 <;> ring;
-      rw [ MeasureTheory.setIntegral_union ] <;> norm_num;
-      · norm_num [ mul_two, MeasureTheory.integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le, hδ_pos.le, hδ_le ];
-        convert intervalIntegral.integral_comp_neg _ using 2 <;> norm_num [ fejer_kernel_even ];
-      · exact Set.disjoint_left.mpr fun x hx₁ hx₂ => by linarith [ Set.mem_Icc.mp hx₁, Set.mem_Icc.mp hx₂ ] ;
-      · exact Continuous.integrableOn_Icc ( by exact Continuous.mul ( continuous_const ) ( by exact continuous_finset_sum _ fun _ _ => by exact Continuous.add continuous_const <| by exact continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity ) );
-      · exact Continuous.integrableOn_Icc ( by unfold fejer_kernel; exact Continuous.mul ( continuous_const ) ( by exact continuous_finset_sum _ fun _ _ => by exact Continuous.add ( continuous_const ) ( by exact continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) ) ) )
+  let s := Icc (-Real.pi) (-δ) ∪ Icc δ Real.pi
+  let C : ℕ → ℝ := fun n ↦ Real.pi ^ 2 / (2 * (n + 1) * δ ^ 2)
+  have hs : IsCompact s := isCompact_Icc.union isCompact_Icc
+  have hsm : MeasurableSet s := measurableSet_Icc.union measurableSet_Icc
+  have hb (n : ℕ) (t : ℝ) (ht : t ∈ s) : fejer_kernel n t ≤ C n := by
+    have htδ : δ ≤ |t| := by
+      rcases ht with ht | ht
+      · rw [abs_of_nonpos (by linarith [ht.2])]; linarith [ht.2]
+      · rw [abs_of_nonneg (by linarith [ht.1])]; exact ht.1
+    have htπ : |t| ≤ Real.pi := by
+      rcases ht with ht | ht
+      · rw [abs_of_nonpos (by linarith [ht.2])]; linarith [ht.1]
+      · rw [abs_of_nonneg (by linarith [ht.1])]; exact ht.2
+    have heq : fejer_kernel n t = fejer_kernel n |t| := by
+      rcases le_or_gt 0 t with ht0 | ht0
+      · rw [abs_of_nonneg ht0]
+      · rw [abs_of_neg ht0, fejer_kernel_even]
+    rw [heq]
+    refine (fejer_kernel_le_quadratic n |t| (hδ_pos.trans_le htδ) htπ).trans ?_
+    dsimp [C]
+    gcongr
+  have hi (n : ℕ) : IntegrableOn (fejer_kernel n) s := (continuous_fejer_kernel n).continuousOn.integrableOn_compact hs
+  have hu (n : ℕ) : ∫ t in s, fejer_kernel n t ≤ ∫ _t in s, C n :=
+    setIntegral_mono_on (hi n) (continuousOn_const.integrableOn_compact hs) hsm (hb n)
+  have hC : Tendsto C atTop (𝓝 0) := by
+    have h := (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul (Real.pi ^ 2 / (2 * δ ^ 2))
+    convert h using 1
+    · ext n
+      dsimp [C]
+      field_simp
+    · simp
+  have hlim : Tendsto (fun n ↦ ∫ _t in s, C n) atTop (𝓝 0) := by
+    simpa only [setIntegral_const, smul_eq_mul, mul_zero] using hC.const_mul (volume.real s)
+  exact squeeze_zero (fun n ↦ setIntegral_nonneg hsm (fun t _ ↦ fejer_kernel_nonneg n t)) hu hlim
 
 /-
 Bound for the central part of the Fejér integral.
@@ -898,30 +515,36 @@ lemma fejer_central_bound {f : ℝ → ℝ} {n : ℕ} {x δ ε : ℝ}
     (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) :
     |(1 / Real.pi) * ∫ t in Set.Icc (-δ) δ, (f (x - t) - f x) * fejer_kernel n t| ≤ ε := by
-      -- Applying the bound |f(x-t) - f(x)| ≤ ε to the integral over [-δ, δ], we get:
-      have h_integral_bound : |∫ t in Set.Icc (-δ) δ, (f (x - t) - f x) * fejer_kernel n t| ≤ ε * ∫ t in Set.Icc (-δ) δ, fejer_kernel n t := by
-        rw [ ←MeasureTheory.integral_const_mul ];
-        refine' le_trans ( MeasureTheory.norm_integral_le_integral_norm ( _ : ℝ → ℝ ) ) ( MeasureTheory.integral_mono_of_nonneg _ _ _ );
-        · exact Filter.Eventually.of_forall fun t => norm_nonneg _;
-        · refine' Continuous.integrableOn_Icc _;
-          refine' Continuous.mul continuous_const _;
-          exact continuous_const.mul <| continuous_finset_sum _ fun i _ => continuous_const.add <| continuous_finset_sum _ fun j _ => Real.continuous_cos.comp <| by continuity;
-        · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using by simpa only [ Real.norm_eq_abs, abs_mul, abs_of_nonneg ( show 0 ≤ fejer_kernel n t from fejer_kernel_nonneg _ _ ) ] using mul_le_mul_of_nonneg_right ( h_cont t <| abs_le.mpr ⟨ by linarith [ ht.1 ], by linarith [ ht.2 ] ⟩ ) ( fejer_kernel_nonneg _ _ ) ;
-      -- Since $\int_{-\delta}^\delta K_n(t) dt \leq \int_{-\pi}^\pi K_n(t) dt = \pi$, we have:
-      have h_integral_le_pi : ∫ t in Set.Icc (-δ) δ, fejer_kernel n t ≤ ∫ t in Set.Icc (-Real.pi) Real.pi, fejer_kernel n t := by
-        refine' MeasureTheory.setIntegral_mono_set _ _ _;
-        · refine' Continuous.integrableOn_Icc _;
-          refine' continuous_const.mul _;
-          refine' continuous_finset_sum _ fun i hi => _;
-          exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-        · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using fejer_kernel_nonneg n t;
-        · exact MeasureTheory.ae_of_all _ fun t ht => ⟨ by linarith [ ht.1 ], by linarith [ ht.2 ] ⟩;
-      -- Since $\int_{-\pi}^\pi K_n(t) dt = \pi$, we have:
-      have h_integral_pi : ∫ t in Set.Icc (-Real.pi) Real.pi, fejer_kernel n t = Real.pi := by
-        convert congr_arg ( fun x : ℝ => x * Real.pi ) ( fejer_kernel_integral_one n ) using 1 <;> ring;
-        rw [ MeasureTheory.integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le ( by linarith [ Real.pi_pos ] ), mul_inv_cancel₀ Real.pi_ne_zero, one_mul ];
-      rw [ abs_mul, abs_of_nonneg ( by positivity ) ];
-      rw [ div_mul_eq_mul_div, div_le_iff₀ ] <;> nlinarith [ Real.pi_pos, show 0 ≤ ε by exact le_trans ( abs_nonneg _ ) ( h_cont 0 ( by norm_num; linarith ) ) ]
+  have hε : 0 ≤ ε := (abs_nonneg _).trans (h_cont 0 (by simpa only [abs_zero] using hδ_pos.le))
+  have hbound : |∫t in Set.Icc (-δ) δ, (f (x-t)-f x)*fejer_kernel n t| ≤
+      ε*(∫t in Set.Icc (-δ) δ, fejer_kernel n t) := by
+    refine (MeasureTheory.norm_integral_le_integral_norm
+      (μ := MeasureTheory.volume.restrict (Set.Icc (-δ) δ))
+      (fun t : ℝ => (f (x-t)-f x)*fejer_kernel n t)).trans ?_
+    rw [← MeasureTheory.integral_const_mul]
+    refine MeasureTheory.integral_mono_of_nonneg (Filter.Eventually.of_forall fun t => norm_nonneg _) ?_ ?_
+    · exact ((continuous_fejer_kernel n).integrableOn_Icc).const_mul ε
+    · filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Icc] with t ht
+      simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (fejer_kernel_nonneg n t)]
+      exact mul_le_mul_of_nonneg_right (h_cont t (abs_le.mpr ht)) (fejer_kernel_nonneg n t)
+  have hmass : (∫t in Set.Icc (-δ) δ, fejer_kernel n t) ≤
+      ∫t in Set.Icc (-Real.pi) Real.pi, fejer_kernel n t := by
+    apply MeasureTheory.setIntegral_mono_set (continuous_fejer_kernel n).integrableOn_Icc
+    · exact Filter.Eventually.of_forall fun t => fejer_kernel_nonneg n t
+    · exact Filter.Eventually.of_forall fun t ht =>
+        ⟨by linarith [ht.1], by linarith [ht.2]⟩
+  have htotal : (∫t in Set.Icc (-Real.pi) Real.pi, fejer_kernel n t) = Real.pi := by
+    have hn := fejer_kernel_integral_one n
+    rw [intervalIntegral.integral_of_le (by linarith [Real.pi_pos]),
+      ← MeasureTheory.integral_Icc_eq_integral_Ioc] at hn
+    calc _ = Real.pi*((1/Real.pi)*(∫t in Set.Icc (-Real.pi) Real.pi, fejer_kernel n t)) := by
+          field_simp
+         _ = Real.pi := by rw [hn]; ring
+  rw [abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1/Real.pi)]
+  calc
+    _ ≤ (1/Real.pi)*(ε*Real.pi) := mul_le_mul_of_nonneg_left
+      (hbound.trans (mul_le_mul_of_nonneg_left (hmass.trans_eq htotal) hε)) (by positivity)
+    _ = ε := by field_simp
 
 /-
 Decomposition of the integration interval $[-\pi, \pi]$ into the central region $[-\delta, \delta]$ and the tail regions.
@@ -937,48 +560,9 @@ lemma fejer_integrand_integrable {f : ℝ → ℝ} {n : ℕ} {x : ℝ}
     (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) :
     MeasureTheory.IntegrableOn (fun t => (f (x - t) - f x) * fejer_kernel n t) (Set.Icc (-Real.pi) Real.pi) := by
-      -- The function $f$ is integrable on $[-\pi, \pi]$ and periodic, so $t \mapsto f(x-t)$ is integrable on $[-\pi, \pi]$. The Fejér kernel $K_n$ is a trigonometric polynomial, hence continuous and bounded on $[-\pi, \pi]$. Therefore, $(f(x-t) - f(x)) K_n(t)$ is integrable.
-      have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x - t)) (Set.Icc (-Real.pi) Real.pi) := by
-        have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x - Real.pi) (x + Real.pi)) := by
-          have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi)) := by
-            intro m
-            have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t + m * 2 * Real.pi)) (Set.Icc (-Real.pi) Real.pi) := by
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi) Real.pi) := by
-                rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-              convert h_integrable using 1;
-              exact funext fun t => by simpa [ mul_assoc ] using Function.Periodic.int_mul hf_per m t;
-            rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-            convert h_integrable.comp_sub_right ( m * 2 * Real.pi ) using 1;
-            ext; simp [Set.indicator];
-            split_ifs <;> ring_nf at * <;> aesop;
-          -- Choose $m$ such that $m * 2 * \pi - \pi \leq x - \pi < m * 2 * \pi + \pi$.
-          obtain ⟨m, hm⟩ : ∃ m : ℤ, m * 2 * Real.pi - Real.pi ≤ x - Real.pi ∧ x - Real.pi < m * 2 * Real.pi + Real.pi := by
-            exact ⟨ ⌊ ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-          have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (m * 2 * Real.pi - Real.pi) (m * 2 * Real.pi + Real.pi + 2 * Real.pi)) := by
-            convert MeasureTheory.IntegrableOn.union ( h_integrable m ) ( h_integrable ( m + 1 ) ) using 1 ; ring;
-            grind;
-          exact h_integrable.mono_set ( Set.Icc_subset_Icc ( by linarith ) ( by linarith ) );
-        rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-        convert h_integrable.comp_sub_left x using 1;
-        ext; simp [Set.indicator];
-        grind;
-      have h_integrable : MeasureTheory.IntegrableOn (fun t => (f (x - t) - f x) * fejer_kernel n t) (Set.Icc (-Real.pi) Real.pi) := by
-        have h_bounded : ∃ C, ∀ t ∈ Set.Icc (-Real.pi) Real.pi, |fejer_kernel n t| ≤ C := by
-          use (n + 1) / 2;
-          field_simp;
-          exact fun t ht => by rw [ abs_of_nonneg ( fejer_kernel_nonneg n t ) ] ; exact le_trans ( mul_le_mul_of_nonneg_right ( fejer_kernel_le_linear n t ) zero_le_two ) ( by linarith ) ;
-        refine' MeasureTheory.Integrable.mono' _ _ _;
-        refine' fun t => |f ( x - t ) - f x| * h_bounded.choose;
-        · exact MeasureTheory.Integrable.mul_const ( MeasureTheory.Integrable.abs ( h_integrable.sub ( MeasureTheory.integrable_const _ ) ) ) _;
-        · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-          · exact MeasureTheory.AEStronglyMeasurable.sub h_integrable.aestronglyMeasurable ( MeasureTheory.aestronglyMeasurable_const );
-          · refine' Measurable.aestronglyMeasurable _;
-            refine' Measurable.mul _ _;
-            · exact measurable_const;
-            · refine' Finset.measurable_sum _ fun i _ => _;
-              exact Measurable.add measurable_const ( Finset.measurable_sum _ fun j hj => Real.continuous_cos.measurable.comp ( measurable_const.mul measurable_id' ) );
-        · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using by simpa only [ norm_mul, Real.norm_eq_abs, abs_abs ] using mul_le_mul_of_nonneg_left ( h_bounded.choose_spec t ht ) ( abs_nonneg _ ) ;
-      convert h_integrable using 1
+  rw [← intervalIntegrable_iff_integrableOn_Icc_of_le (by linarith [Real.pi_pos])]
+  exact ((periodic_comp_sub_intervalIntegrable hf_int hf_per (-Real.pi) Real.pi x).sub
+    (intervalIntegrable_const)).mul_continuousOn (continuous_fejer_kernel n).continuousOn
 
 /-
 The tail set for the Fejér integral.
@@ -992,7 +576,7 @@ lemma fejer_sum_diff_eq_set_integral {f : ℝ → ℝ} {n : ℕ} {x : ℝ}
     (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) :
     fejer_sum f n x - f x = (1 / Real.pi) * ∫ t in Set.Icc (-Real.pi) Real.pi, (f (x - t) - f x) * fejer_kernel n t := by
-      convert fejer_sum_sub_f_eq_integral_v2 hf_int hf_per n x using 1;
+      convert fejer_sum_sub_f_eq_integral hf_int hf_per n x using 1;
       rw [ MeasureTheory.integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le ( by linarith [ Real.pi_pos ] ) ]
 
 /-
@@ -1012,34 +596,6 @@ def fejer_diff_integrand (f : ℝ → ℝ) (n : ℕ) (x : ℝ) (t : ℝ) : ℝ :
   (f (x - t) - f x) * fejer_kernel n t
 
 /-
-Additivity of the integral over the union of almost disjoint sets.
--/
-lemma set_integral_union_ae_split {α : Type*} [MeasurableSpace α] {μ : MeasureTheory.Measure α}
-    {s t : Set α} {f : α → ℝ}
-    (h_disjoint : MeasureTheory.AEDisjoint μ s t)
-    (h_s : MeasurableSet s) (h_t : MeasurableSet t)
-    (hf_int : MeasureTheory.IntegrableOn f (s ∪ t) μ) :
-    ∫ x in s ∪ t, f x ∂μ = ∫ x in s, f x ∂μ + ∫ x in t, f x ∂μ := by
-      convert MeasureTheory.integral_union_ae h_disjoint _;
-      any_goals exact h_t.nullMeasurableSet;
-      exact ⟨ fun h => fun _ _ => h, fun h => h ( hf_int.mono_set ( Set.subset_union_left ) ) ( hf_int.mono_set ( Set.subset_union_right ) ) ⟩
-
-/-
-Checking interval integral notation.
--/
-#check ∫ x in (0:ℝ)..(1:ℝ), x
-
-/-
-Interval integrability on a subinterval.
--/
-lemma interval_integrable_subinterval {f : ℝ → ℝ} {a b c : ℝ}
-    (h_ab : a ≤ b) (h_bc : b ≤ c)
-    (hf : IntervalIntegrable f MeasureTheory.volume a c) :
-    IntervalIntegrable f MeasureTheory.volume a b := by
-      apply_rules [ hf.mono_set, Set.Icc_subset_Icc ] ; aesop;
-      exact max_le_max_left _ h_bc
-
-/-
 Bound the difference between the Fejér sum and the function by the sum of the absolute values of the integrals over the central and tail regions.
 -/
 lemma fejer_sum_diff_bound_split {f : ℝ → ℝ} {n : ℕ} {x δ : ℝ}
@@ -1049,30 +605,17 @@ lemma fejer_sum_diff_bound_split {f : ℝ → ℝ} {n : ℕ} {x δ : ℝ}
     |fejer_sum f n x - f x| ≤
     |(1 / Real.pi) * ∫ t in Set.Icc (-δ) δ, (f (x - t) - f x) * fejer_kernel n t| +
     |(1 / Real.pi) * ∫ t in (Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi), (f (x - t) - f x) * fejer_kernel n t| := by
-      rw [ fejer_sum_diff_eq_set_integral hf_int hf_per ];
-      rw [ ← MeasureTheory.integral_indicator, ← MeasureTheory.integral_indicator ];
-      · -- Apply the triangle inequality to the integral over the union of the central and tail regions.
-        have h_triangle : ∫ t, (Set.Icc (-Real.pi) Real.pi).indicator (fun t => (f (x - t) - f x) * fejer_kernel n t) t = (∫ t in Set.Icc (-δ) δ, (Set.Icc (-Real.pi) Real.pi).indicator (fun t => (f (x - t) - f x) * fejer_kernel n t) t) + (∫ t in (Set.Icc (-Real.pi) (-δ) ∪ Set.Icc δ Real.pi), (Set.Icc (-Real.pi) Real.pi).indicator (fun t => (f (x - t) - f x) * fejer_kernel n t) t) := by
-          rw [ ← MeasureTheory.integral_union_ae ];
-          · rw [ ← MeasureTheory.integral_indicator ] <;> norm_num [ Set.indicator ];
-            grind;
-          · exact?;
-          · exact MeasurableSet.nullMeasurableSet ( measurableSet_Icc.union measurableSet_Icc );
-          · refine' MeasureTheory.Integrable.integrableOn _;
-            rw [ MeasureTheory.integrable_indicator_iff ];
-            · exact?;
-            · norm_num;
-          · refine' MeasureTheory.Integrable.integrableOn _;
-            rw [ MeasureTheory.integrable_indicator_iff ];
-            · exact?;
-            · norm_num;
-        rw [ h_triangle, MeasureTheory.integral_indicator, MeasureTheory.integral_indicator ] <;> norm_num [ Set.indicator ];
-        rw [ ← mul_add ];
-        rw [ show ( Set.Icc ( -Real.pi ) Real.pi ∩ Set.Icc ( -δ ) δ : Set ℝ ) = Set.Icc ( -δ ) δ from Set.inter_eq_right.mpr <| Set.Icc_subset_Icc ( by linarith ) ( by linarith ), show ( Set.Icc ( -Real.pi ) Real.pi ∩ ( Set.Icc ( -Real.pi ) ( -δ ) ∪ Set.Icc δ Real.pi ) : Set ℝ ) = Set.Icc ( -Real.pi ) ( -δ ) ∪ Set.Icc δ Real.pi from Set.inter_eq_right.mpr <| Set.union_subset ( Set.Icc_subset_Icc ( by linarith ) ( by linarith ) ) ( Set.Icc_subset_Icc ( by linarith ) ( by linarith ) ) ];
-        rw [ ← MeasureTheory.integral_indicator, ← MeasureTheory.integral_indicator ] <;> norm_num [ Set.indicator ];
-        exact?;
-      · norm_num;
-      · norm_num
+  have hi := fejer_integrand_integrable (n := n) (x := x) hf_int hf_per
+  have hc := hi.mono_set (Set.Icc_subset_Icc (neg_le_neg hδ_le) hδ_le)
+  have ht := hi.mono_set (Set.union_subset
+    (Set.Icc_subset_Icc le_rfl (show -δ ≤ Real.pi by linarith [Real.pi_pos]))
+    (Set.Icc_subset_Icc (show -Real.pi ≤ δ by linarith [Real.pi_pos]) le_rfl))
+  have heq := MeasureTheory.setIntegral_union₀ (μ := MeasureTheory.volume)
+    (f := fun t => (f (x-t)-f x)*fejer_kernel n t)
+    (ae_disjoint_central_tail (δ := δ)) (measurableSet_Icc.union measurableSet_Icc).nullMeasurableSet hc ht
+  rw [← fejer_integration_domain_split hδ_pos hδ_le] at heq
+  rw [fejer_sum_diff_eq_set_integral hf_int hf_per, heq, mul_add]
+  exact abs_add_le _ _
 
 /-
 Fejér's Theorem Part (i): If f is continuous on a closed interval I, then the Fejér sums converge uniformly to f on I.
@@ -1118,20 +661,17 @@ The integral of the Fejér kernel over [0, pi] is pi/2 (normalized to 1/2 with t
 -/
 lemma fejer_kernel_integral_half_range (n : ℕ) :
     (1 / Real.pi) * ∫ t in (0:ℝ)..Real.pi, fejer_kernel n t = 1 / 2 := by
-      -- Since the Fejér kernel is even, we have $\int_{-\pi}^{\pi} K_n(t) dt = 2 \int_{0}^{\pi} K_n(t) dt$.
-      have h_even : ∫ t in (-Real.pi)..Real.pi, fejer_kernel n t = 2 * ∫ t in (0)..Real.pi, fejer_kernel n t := by
-        -- By definition of even function, we can split the integral into two parts: from -π to 0 and from 0 to π.
-        have h_split : ∫ t in (-Real.pi)..Real.pi, fejer_kernel n t = (∫ t in (-Real.pi)..0, fejer_kernel n t) + (∫ t in (0)..Real.pi, fejer_kernel n t) := by
-          rw [ intervalIntegral.integral_add_adjacent_intervals ] <;> apply_rules [ Continuous.intervalIntegrable ];
-          · unfold fejer_kernel;
-            unfold dirichlet_kernel;
-            fun_prop (disch := norm_num);
-          · unfold fejer_kernel;
-            unfold dirichlet_kernel;
-            fun_prop (disch := norm_num);
-        norm_num [ two_mul, h_split ];
-        convert intervalIntegral.integral_comp_neg _ using 2 <;> norm_num [ fejer_kernel_even ];
-      have := fejer_kernel_integral_one n; rw [ h_even ] at this; nlinarith [ Real.pi_pos, mul_inv_cancel₀ Real.pi_ne_zero ] ;
+  have hl : IntervalIntegrable (fejer_kernel n) MeasureTheory.volume (-Real.pi) 0 :=
+    (continuous_fejer_kernel n).intervalIntegrable _ _
+  have hr : IntervalIntegrable (fejer_kernel n) MeasureTheory.volume 0 Real.pi :=
+    (continuous_fejer_kernel n).intervalIntegrable _ _
+  have heven : (∫t in (-Real.pi)..0, fejer_kernel n t) =
+      ∫t in 0..Real.pi, fejer_kernel n t := by
+    simpa only [neg_zero, neg_neg, fejer_kernel_even] using
+      (intervalIntegral.integral_comp_neg (fejer_kernel n) (a := 0) (b := Real.pi)).symm
+  have hn := fejer_kernel_integral_one n
+  rw [← intervalIntegral.integral_add_adjacent_intervals hl hr, heven] at hn
+  nlinarith [hn]
 
 /-
 Identity for the difference between the Fejér sum at a point and the average of the left and right limits.
@@ -1141,366 +681,42 @@ theorem fejer_sum_at_jump_eq_integral {f : ℝ → ℝ} {n : ℕ} {x₀ L_plus L
     (hf_per : Function.Periodic f (2 * Real.pi)) :
     fejer_sum f n x₀ - (L_plus + L_minus) / 2 =
     (1 / Real.pi) * ∫ t in (0:ℝ)..Real.pi, (f (x₀ + t) + f (x₀ - t) - L_plus - L_minus) * fejer_kernel n t := by
-      -- Split the integral into two parts: from -π to 0 and from 0 to π.
-      have h_split : ∫ t in (-Real.pi)..Real.pi, fejer_kernel n t * (f (x₀ - t) - (L_plus + L_minus) / 2) = (∫ t in (0:ℝ)..Real.pi, fejer_kernel n t * (f (x₀ + t) - (L_plus + L_minus) / 2)) + (∫ t in (0:ℝ)..Real.pi, fejer_kernel n t * (f (x₀ - t) - (L_plus + L_minus) / 2)) := by
-        rw [ ← intervalIntegral.integral_add_adjacent_intervals ];
-        rw [ ← intervalIntegral.integral_comp_neg, neg_zero ];
-        · norm_num [ fejer_kernel_even ];
-        · have h_integrable : IntervalIntegrable (fun t => f (x₀ - t)) MeasureTheory.volume (-Real.pi) Real.pi := by
-            rw [ intervalIntegrable_iff_integrableOn_Ioc_of_le ( by linarith [ Real.pi_pos ] ) ] at *;
-            have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) MeasureTheory.volume := by
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi) Real.pi) MeasureTheory.volume := by
-                rwa [ MeasureTheory.IntegrableOn, MeasureTheory.Measure.restrict_congr_set MeasureTheory.Ioc_ae_eq_Icc ] at *;
-              -- By periodicity, we can shift the interval of integration.
-              have h_shift : ∀ k : ℤ, MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi)) MeasureTheory.volume := by
-                intro k;
-                have h_shift : ∀ k : ℤ, MeasureTheory.IntegrableOn (fun t => f (t - k * 2 * Real.pi)) (Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi)) MeasureTheory.volume := by
-                  intro k;
-                  rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                  convert h_integrable.comp_sub_right ( k * 2 * Real.pi ) using 1;
-                  ext; simp [Set.indicator];
-                  split_ifs <;> ring_nf at * <;> aesop;
-                convert h_shift k using 1;
-                exact funext fun x => by simpa [ mul_assoc ] using Function.Periodic.int_mul hf_per k ( x - k * 2 * Real.pi ) ;
-              -- Choose $k$ such that $x₀ - \pi \in [-\pi + k * 2 * \pi, \pi + k * 2 * \pi]$.
-              obtain ⟨k, hk⟩ : ∃ k : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi) := by
-                exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-              have h_shift : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi)) MeasureTheory.volume := by
-                exact h_shift k;
-              have h_shift : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) MeasureTheory.volume := by
-                have h_subset : Set.Icc (x₀ - Real.pi) (x₀ + Real.pi) ⊆ Set.Icc (-Real.pi + k * 2 * Real.pi) (Real.pi + k * 2 * Real.pi) ∪ Set.Icc (-Real.pi + (k + 1) * 2 * Real.pi) (Real.pi + (k + 1) * 2 * Real.pi) := by
-                  intro t ht; cases le_or_gt t ( Real.pi + k * 2 * Real.pi ) <;> [ left; right ] <;> constructor <;> linarith [ ht.1, ht.2, hk.1, hk.2 ] ;
-                have h_shift : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi + (k + 1) * 2 * Real.pi) (Real.pi + (k + 1) * 2 * Real.pi)) MeasureTheory.volume := by
-                  convert ‹∀ k : ℤ, MeasureTheory.IntegrableOn ( fun t => f t ) ( Set.Icc ( -Real.pi + k * 2 * Real.pi ) ( Real.pi + k * 2 * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) using 1 ; push_cast ; ring;
-                exact MeasureTheory.IntegrableOn.mono_set ( MeasureTheory.IntegrableOn.union ‹_› ‹_› ) h_subset;
-              convert h_shift using 1;
-            have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ - t)) (Set.Icc (-Real.pi) Real.pi) MeasureTheory.volume := by
-              rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-              convert h_integrable.comp_sub_left x₀ using 1;
-              ext; simp [Set.indicator];
-              grind;
-            exact h_integrable.mono_set <| Set.Ioc_subset_Icc_self;
-          have h_integrable : IntervalIntegrable (fun t => fejer_kernel n t * (f (x₀ - t) - (L_plus + L_minus) / 2)) MeasureTheory.volume (-Real.pi) Real.pi := by
-            convert h_integrable.mul_continuousOn ( Continuous.continuousOn ( show Continuous fun t => fejer_kernel n t from ?_ ) ) |> fun h => h.sub ( Continuous.intervalIntegrable ( show Continuous fun t => fejer_kernel n t * ( L_plus + L_minus ) / 2 from ?_ ) ( -Real.pi ) Real.pi ) using 1;
-            · exact funext fun x => by ring;
-            · refine' continuous_const.mul _;
-              refine' continuous_finset_sum _ fun j hj => _;
-              exact continuous_const.add ( continuous_finset_sum _ fun i hi => Real.continuous_cos.comp ( continuous_const.mul continuous_id' ) );
-            · apply_rules [ Continuous.mul, Continuous.div, continuous_const ];
-              refine' continuous_finset_sum _ fun i hi => _;
-              exact continuous_const.add ( continuous_finset_sum _ fun j hj => Real.continuous_cos.comp ( continuous_const.mul continuous_id' ) );
-          apply_rules [ h_integrable.mono_set, Set.Icc_subset_Icc ] <;> norm_num [ Real.pi_pos.le ];
-        · apply_rules [ MeasureTheory.IntegrableOn.intervalIntegrable ];
-          refine' MeasureTheory.Integrable.mono' _ _ _;
-          refine' fun t => ( n + 1 ) / 2 * |f ( x₀ - t ) - ( L_plus + L_minus ) / 2|;
-          · refine' MeasureTheory.Integrable.const_mul _ _;
-            refine' MeasureTheory.Integrable.abs _;
-            refine' MeasureTheory.Integrable.sub _ _;
-            · have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                  rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-                have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi)) := by
-                  intro m
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                    exact h_integrable
-                  have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => f (t - m * 2 * Real.pi)) (Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi)) := by
-                    rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                    convert h_integrable.comp_sub_right ( m * 2 * Real.pi ) using 1;
-                    ext; simp [Set.indicator];
-                    split_ifs <;> ring_nf at * <;> aesop
-                  have h_integrable_shift_eq : ∀ t, f (t - m * 2 * Real.pi) = f t := by
-                    exact fun t => by simpa [ mul_assoc ] using Function.Periodic.int_mul hf_per ( -m ) t;
-                  aesop;
-                -- Choose $m$ such that $x₀ - \pi \in [-\pi + m * 2 * \pi, \pi + m * 2 * \pi]$.
-                obtain ⟨m, hm⟩ : ∃ m : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi) := by
-                  exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi + 2 * Real.pi)) := by
-                  convert MeasureTheory.IntegrableOn.union ( h_integrable m ) ( h_integrable ( m + 1 ) ) using 1 ; ring;
-                  grind;
-                exact h_integrable.mono_set ( Set.Icc_subset_Icc ( by linarith [ hm.1 ] ) ( by linarith [ hm.2 ] ) );
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ - t)) (Set.Icc 0 Real.pi) := by
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x₀ - Real.pi) x₀) := by
-                  exact h_integrable.mono_set <| Set.Icc_subset_Icc_right <| by linarith [ Real.pi_pos ] ;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_sub_left x₀ using 1;
-                ext; simp [Set.indicator];
-                grind;
-              simpa [ Real.pi_pos.le ] using h_integrable;
-            · exact Continuous.integrableOn_Icc ( by continuity );
-          · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-            · refine' Continuous.aestronglyMeasurable _;
-              refine' continuous_const.mul _;
-              refine' continuous_finset_sum _ fun j _ => _;
-              refine' continuous_const.add _;
-              exact continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity;
-            · refine' MeasureTheory.AEStronglyMeasurable.sub _ _;
-              · have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ - t)) (Set.Icc (-Real.pi) Real.pi) := by
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                    have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                      rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-                    have h_integrable : ∀ m : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi)) := by
-                      intro m
-                      have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                        exact h_integrable
-                      have h_integrable_shift : MeasureTheory.IntegrableOn (fun t => f (t - m * 2 * Real.pi)) (Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi)) := by
-                        rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                        convert h_integrable.comp_sub_right ( m * 2 * Real.pi ) using 1;
-                        ext; simp [Set.indicator];
-                        split_ifs <;> ring_nf at * <;> aesop
-                      have h_integrable_shift_eq : ∀ t, f (t - m * 2 * Real.pi) = f t := by
-                        exact fun t => by simpa [ mul_assoc ] using Function.Periodic.int_mul hf_per ( -m ) t;
-                      aesop;
-                    -- Choose $m$ such that $x₀ - \pi \in [-\pi + m * 2 * \pi, \pi + m * 2 * \pi]$.
-                    obtain ⟨m, hm⟩ : ∃ m : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi) := by
-                      exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                    have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + m * 2 * Real.pi) (Real.pi + m * 2 * Real.pi + 2 * Real.pi)) := by
-                      convert MeasureTheory.IntegrableOn.union ( h_integrable m ) ( h_integrable ( m + 1 ) ) using 1 ; ring;
-                      grind;
-                    exact h_integrable.mono_set ( Set.Icc_subset_Icc ( by linarith [ hm.1 ] ) ( by linarith [ hm.2 ] ) );
-                  rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                  convert h_integrable.comp_sub_left x₀ using 1;
-                  ext; simp [Set.indicator];
-                  grind;
-                exact h_integrable.aestronglyMeasurable.mono_set ( by rw [ Set.uIcc_of_le ( by linarith [ Real.pi_pos ] ) ] ; exact Set.Icc_subset_Icc ( by linarith [ Real.pi_pos ] ) le_rfl );
-              · exact MeasureTheory.aestronglyMeasurable_const;
-          · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht;
-            rw [ Real.norm_eq_abs, abs_mul ];
-            exact mul_le_mul_of_nonneg_right ( by rw [ abs_of_nonneg ( show 0 ≤ fejer_kernel n t from by exact? ) ] ; exact? ) ( abs_nonneg _ );
-      convert congr_arg ( fun x : ℝ => ( Real.pi : ℝ ) ⁻¹ * x ) h_split using 1 <;> ring;
-      · convert congr_arg ( fun x : ℝ => x + L_plus * ( -1 / 2 ) + L_minus * ( -1 / 2 ) ) ( fejer_sum_eq_integral_alt hf_int hf_per n x₀ ) using 1 ; ring;
-        field_simp;
-        norm_num [ mul_div, mul_comm ];
-        rw [ show ( fun t => fejer_kernel n t * ( -L_plus + -L_minus + f ( x₀ - t ) * 2 ) ) = fun t => -L_plus * fejer_kernel n t + -L_minus * fejer_kernel n t + f ( x₀ - t ) * fejer_kernel n t * 2 by ext; ring ] ; rw [ intervalIntegral.integral_add, intervalIntegral.integral_add ] <;> norm_num ; ring;
-        · simp +decide only [mul_comm];
-          rw [ show ∫ x in -Real.pi..Real.pi, fejer_kernel n x = Real.pi by have := fejer_kernel_integral_one n; norm_num [ mul_comm, div_eq_mul_inv ] at *; nlinarith [ Real.pi_pos, mul_inv_cancel₀ Real.pi_ne_zero ] ];
-        · apply_rules [ Continuous.intervalIntegrable ];
-          refine' Continuous.neg ( Continuous.mul continuous_const _ );
-          refine' continuous_const.mul _;
-          refine' continuous_finset_sum _ fun i hi => _;
-          exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-        · apply_rules [ Continuous.intervalIntegrable ];
-          apply_rules [ Continuous.neg, Continuous.mul, continuous_const ];
-          refine' continuous_finset_sum _ fun i hi => _;
-          exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-        · apply_rules [ Continuous.intervalIntegrable ];
-          apply_rules [ Continuous.add, Continuous.neg, Continuous.mul, continuous_const, continuous_id ];
-          · refine' continuous_finset_sum _ fun i hi => _;
-            exact continuous_const.add ( continuous_finset_sum _ fun j hj => Real.continuous_cos.comp ( continuous_const.mul continuous_id' ) );
-          · refine' continuous_finset_sum _ fun i hi => _;
-            exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-        · apply_rules [ MeasureTheory.IntegrableOn.intervalIntegrable ];
-          have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ - t)) (Set.Icc (-Real.pi) Real.pi) := by
-            have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-              have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-              have h_integrable : ∀ k : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                intro k;
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t - 2 * k * Real.pi)) (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                  rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                  convert h_integrable.comp_sub_right ( 2 * k * Real.pi ) using 1;
-                  ext; simp [Set.indicator];
-                  grind;
-                convert h_integrable using 1;
-                exact funext fun x => by simpa [ mul_assoc, mul_left_comm ] using Function.Periodic.int_mul hf_per k ( x - 2 * k * Real.pi ) ;
-              -- Choose $k$ such that $x₀ - \pi \in [-\pi + 2k\pi, \pi + 2k\pi]$.
-              obtain ⟨k, hk⟩ : ∃ k : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) := by
-                exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-              have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                exact h_integrable k;
-              have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                have h_subset : Set.Icc (x₀ - Real.pi) (x₀ + Real.pi) ⊆ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi) := by
-                  grind
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi)) := by
-                  exact MeasureTheory.IntegrableOn.union h_integrable ( by simpa using ‹∀ k : ℤ, MeasureTheory.IntegrableOn f ( Set.Icc ( -Real.pi + 2 * ( k : ℝ ) * Real.pi ) ( Real.pi + 2 * ( k : ℝ ) * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) );
-                exact h_integrable.mono_set h_subset;
-              exact h_integrable;
-            rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-            convert h_integrable.comp_sub_left x₀ using 1;
-            ext; simp [Set.indicator];
-            exact if_congr ⟨ fun h => ⟨ by linarith, by linarith ⟩, fun h => ⟨ by linarith, by linarith ⟩ ⟩ rfl rfl;
-          rw [ Set.uIcc_of_le ( by linarith [ Real.pi_pos ] ) ];
-          refine' MeasureTheory.Integrable.mul_const _ _;
-          refine' h_integrable.norm.mul_const _ |> fun h => h.mono' _ _;
-          exact ( n + 1 ) / 2;
-          · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-            · exact h_integrable.aestronglyMeasurable;
-            · refine' Measurable.aestronglyMeasurable _;
-              refine' Measurable.mul _ _;
-              · exact measurable_const;
-              · refine' Finset.measurable_sum _ fun i _ => _;
-                exact Measurable.add ( measurable_const ) ( Finset.measurable_sum _ fun _ _ => Real.continuous_cos.measurable.comp ( measurable_const.mul measurable_id' ) );
-          · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using by rw [ norm_mul ] ; exact mul_le_mul_of_nonneg_left ( by rw [ Real.norm_of_nonneg ( fejer_kernel_nonneg n t ) ] ; exact fejer_kernel_le_linear n t ) ( norm_nonneg _ ) ;
-      · rw [ ← mul_add, ← intervalIntegral.integral_add ] ; congr ; ext ; ring;
-        · apply_rules [ MeasureTheory.IntegrableOn.intervalIntegrable ];
-          refine' MeasureTheory.Integrable.add ( MeasureTheory.Integrable.add _ _ ) _;
-          · refine' Continuous.integrableOn_Icc _;
-            refine' Continuous.mul ( Continuous.mul continuous_const _ ) continuous_const;
-            refine' continuous_const.mul _;
-            refine' continuous_finset_sum _ fun i hi => _;
-            exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-          · refine' Continuous.integrableOn_Icc _;
-            refine' Continuous.mul ( Continuous.mul continuous_const _ ) continuous_const;
-            refine' continuous_const.mul _;
-            refine' continuous_finset_sum _ fun i hi => _;
-            exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-          · refine' MeasureTheory.Integrable.mono' _ _ _;
-            refine' fun t => ( n + 1 ) / 2 * |f ( x₀ + t )|;
-            · refine' MeasureTheory.Integrable.const_mul _ _;
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ + t)) (Set.Icc (-Real.pi) Real.pi) := by
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                    rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-                  have h_integrable : ∀ k : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    intro k;
-                    have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t - 2 * k * Real.pi)) (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                      rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                      convert h_integrable.comp_sub_right ( 2 * k * Real.pi ) using 1;
-                      ext; simp [Set.indicator];
-                      grind;
-                    convert h_integrable using 1;
-                    exact funext fun x => by simpa [ mul_assoc, mul_left_comm ] using Function.Periodic.int_mul hf_per k ( x - 2 * k * Real.pi ) ;
-                  -- Choose $k$ such that $x₀ - \pi \in [-\pi + 2k\pi, \pi + 2k\pi]$.
-                  obtain ⟨k, hk⟩ : ∃ k : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) := by
-                    exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    exact h_integrable k;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                    have h_subset : Set.Icc (x₀ - Real.pi) (x₀ + Real.pi) ⊆ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi) := by
-                      grind
-                    have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi)) := by
-                      exact MeasureTheory.IntegrableOn.union h_integrable ( by simpa using ‹∀ k : ℤ, MeasureTheory.IntegrableOn f ( Set.Icc ( -Real.pi + 2 * ( k : ℝ ) * Real.pi ) ( Real.pi + 2 * ( k : ℝ ) * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) );
-                    exact h_integrable.mono_set h_subset;
-                  exact h_integrable;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_add_left x₀ using 1;
-                ext; simp [Set.indicator];
-                grind;
-              exact MeasureTheory.Integrable.abs ( h_integrable.mono_set <| by rw [ Set.uIcc_of_le Real.pi_pos.le ] ; exact Set.Icc_subset_Icc ( by linarith [ Real.pi_pos ] ) ( by linarith [ Real.pi_pos ] ) );
-            · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-              · refine' Continuous.aestronglyMeasurable _;
-                refine' continuous_const.mul _;
-                refine' continuous_finset_sum _ fun i hi => _;
-                exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-              · have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                    rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-                  have h_integrable : ∀ k : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    intro k;
-                    have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t - 2 * k * Real.pi)) (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                      rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                      convert h_integrable.comp_sub_right ( 2 * k * Real.pi ) using 1;
-                      ext; simp [Set.indicator];
-                      grind;
-                    convert h_integrable using 1;
-                    exact funext fun x => by simpa [ mul_assoc, mul_left_comm ] using Function.Periodic.int_mul hf_per k ( x - 2 * k * Real.pi ) ;
-                  -- Choose $k$ such that $x₀ - \pi \in [-\pi + 2k\pi, \pi + 2k\pi]$.
-                  obtain ⟨k, hk⟩ : ∃ k : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) := by
-                    exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    exact h_integrable k;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                    have h_subset : Set.Icc (x₀ - Real.pi) (x₀ + Real.pi) ⊆ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi) := by
-                      grind
-                    have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi)) := by
-                      exact MeasureTheory.IntegrableOn.union h_integrable ( by simpa using ‹∀ k : ℤ, MeasureTheory.IntegrableOn f ( Set.Icc ( -Real.pi + 2 * ( k : ℝ ) * Real.pi ) ( Real.pi + 2 * ( k : ℝ ) * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) );
-                    exact h_integrable.mono_set h_subset;
-                  exact h_integrable;
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ + t)) (Set.Icc (-Real.pi) Real.pi) := by
-                  rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                  convert h_integrable.comp_add_left x₀ using 1;
-                  ext; simp [Set.indicator];
-                  grind;
-                exact h_integrable.aestronglyMeasurable.mono_set ( by rw [ Set.uIcc_of_le Real.pi_pos.le ] ; exact Set.Icc_subset_Icc ( by linarith [ Real.pi_pos ] ) ( by linarith [ Real.pi_pos ] ) );
-            · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using by rw [ Real.norm_eq_abs, abs_mul ] ; exact mul_le_mul_of_nonneg_right ( by rw [ abs_of_nonneg ( show 0 ≤ fejer_kernel n t from by exact (by
-                                                                                                                                                                                                    exact?) ) ] ; exact (by
-                                                                                                                                                                                                    exact?) ) ( abs_nonneg _ ) ;
-        · apply_rules [ MeasureTheory.IntegrableOn.intervalIntegrable ];
-          refine' MeasureTheory.Integrable.add ( MeasureTheory.Integrable.add _ _ ) _;
-          · refine' Continuous.integrableOn_Icc _;
-            refine' Continuous.mul ( Continuous.mul continuous_const _ ) continuous_const;
-            exact continuous_const.mul <| continuous_finset_sum _ fun _ _ => continuous_const.add <| continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity;
-          · refine' Continuous.integrableOn_Icc _;
-            refine' Continuous.mul _ _;
-            · refine' continuous_const.mul _;
-              refine' continuous_const.mul _;
-              refine' continuous_finset_sum _ fun i hi => _;
-              exact continuous_const.add ( continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp ( by continuity ) );
-            · exact continuous_const;
-          · refine' MeasureTheory.Integrable.mono' _ _ _;
-            refine' fun t => ( n + 1 ) / 2 * |f ( x₀ - t )|;
-            · refine' MeasureTheory.Integrable.const_mul _ _;
-              have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                  rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-                have h_integrable : ∀ k : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                  intro k;
-                  have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t - 2 * k * Real.pi)) (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                    convert h_integrable.comp_sub_right ( 2 * k * Real.pi ) using 1;
-                    ext; simp [Set.indicator];
-                    grind;
-                  convert h_integrable using 1;
-                  exact funext fun x => by simpa [ mul_assoc, mul_left_comm ] using Function.Periodic.int_mul hf_per k ( x - 2 * k * Real.pi ) ;
-                -- Choose $k$ such that $x₀ - \pi \in [-\pi + 2k\pi, \pi + 2k\pi]$.
-                obtain ⟨k, hk⟩ : ∃ k : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) := by
-                  exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                  exact h_integrable k;
-                have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                  have h_subset : Set.Icc (x₀ - Real.pi) (x₀ + Real.pi) ⊆ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi) := by
-                    grind
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi)) := by
-                    exact MeasureTheory.IntegrableOn.union h_integrable ( by simpa using ‹∀ k : ℤ, MeasureTheory.IntegrableOn f ( Set.Icc ( -Real.pi + 2 * ( k : ℝ ) * Real.pi ) ( Real.pi + 2 * ( k : ℝ ) * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) );
-                  exact h_integrable.mono_set h_subset;
-                exact h_integrable;
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ - t)) (Set.Icc 0 Real.pi) := by
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x₀ - Real.pi) x₀) := by
-                  exact h_integrable.mono_set <| Set.Icc_subset_Icc_right <| by linarith [ Real.pi_pos ] ;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_sub_left x₀ using 1;
-                ext; simp [Set.indicator];
-                grind;
-              simpa only [ Set.uIcc_of_le Real.pi_pos.le ] using h_integrable.abs;
-            · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-              · refine' Continuous.aestronglyMeasurable _;
-                refine' continuous_const.mul _;
-                refine' continuous_finset_sum _ fun i hi => _;
-                exact continuous_const.add ( continuous_finset_sum _ fun j hj => Real.continuous_cos.comp ( continuous_const.mul continuous_id' ) );
-              · have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi) Real.pi) := by
-                    rw [ intervalIntegrable_iff_integrableOn_Icc_of_le ( by linarith [ Real.pi_pos ] ) ] at hf_int ; aesop;
-                  have h_integrable : ∀ k : ℤ, MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    intro k;
-                    have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t - 2 * k * Real.pi)) (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                      rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                      convert h_integrable.comp_sub_right ( 2 * k * Real.pi ) using 1;
-                      ext; simp [Set.indicator];
-                      grind;
-                    convert h_integrable using 1;
-                    exact funext fun x => by simpa [ mul_assoc, mul_left_comm ] using Function.Periodic.int_mul hf_per k ( x - 2 * k * Real.pi ) ;
-                  -- Choose $k$ such that $x₀ - \pi \in [-\pi + 2k\pi, \pi + 2k\pi]$.
-                  obtain ⟨k, hk⟩ : ∃ k : ℤ, x₀ - Real.pi ∈ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) := by
-                    exact ⟨ ⌊ ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x₀ - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x₀ - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi)) := by
-                    exact h_integrable k;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (x₀ - Real.pi) (x₀ + Real.pi)) := by
-                    have h_subset : Set.Icc (x₀ - Real.pi) (x₀ + Real.pi) ⊆ Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi) := by
-                      grind
-                    have h_integrable : MeasureTheory.IntegrableOn f (Set.Icc (-Real.pi + 2 * k * Real.pi) (Real.pi + 2 * k * Real.pi) ∪ Set.Icc (-Real.pi + 2 * (k + 1) * Real.pi) (Real.pi + 2 * (k + 1) * Real.pi)) := by
-                      exact MeasureTheory.IntegrableOn.union h_integrable ( by simpa using ‹∀ k : ℤ, MeasureTheory.IntegrableOn f ( Set.Icc ( -Real.pi + 2 * ( k : ℝ ) * Real.pi ) ( Real.pi + 2 * ( k : ℝ ) * Real.pi ) ) MeasureTheory.volume› ( k + 1 ) );
-                    exact h_integrable.mono_set h_subset;
-                  exact h_integrable;
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f (x₀ - t)) (Set.Icc 0 Real.pi) := by
-                  have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x₀ - Real.pi) x₀) := by
-                    exact h_integrable.mono_set <| Set.Icc_subset_Icc_right <| by linarith [ Real.pi_pos ] ;
-                  rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                  convert h_integrable.comp_sub_left x₀ using 1;
-                  ext; simp [Set.indicator];
-                  grind;
-                simpa only [ Set.uIcc_of_le Real.pi_pos.le ] using h_integrable.aestronglyMeasurable;
-            · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht;
-              rw [ Real.norm_eq_abs, abs_mul ];
-              exact mul_le_mul_of_nonneg_right ( by rw [ abs_of_nonneg ( show 0 ≤ fejer_kernel n t from by exact? ) ] ; exact? ) ( abs_nonneg _ )
+  let c := (L_plus + L_minus) / 2
+  have him (a b : ℝ) : IntervalIntegrable
+      (fun t => f (x₀-t)*fejer_kernel n t) MeasureTheory.volume a b :=
+    (periodic_comp_sub_intervalIntegrable hf_int hf_per a b x₀).mul_continuousOn
+      (continuous_fejer_kernel n).continuousOn
+  have hip : IntervalIntegrable (fun t => f (x₀+t)*fejer_kernel n t)
+      MeasureTheory.volume 0 Real.pi := by
+    have hi : IntervalIntegrable (fun t => f (x₀+t)) MeasureTheory.volume 0 Real.pi := by
+      have h := (periodic_intervalIntegrable hf_int hf_per x₀ (x₀+Real.pi)).comp_add_left x₀
+      convert h using 1 <;> ring
+    exact hi.mul_continuousOn (continuous_fejer_kernel n).continuousOn
+  have hreflect : (∫t in (-Real.pi)..0, f (x₀-t)*fejer_kernel n t) =
+      ∫t in 0..Real.pi, f (x₀+t)*fejer_kernel n t := by
+    simpa only [neg_zero, neg_neg, sub_neg_eq_add, fejer_kernel_even] using
+      (intervalIntegral.integral_comp_neg (fun t => f (x₀-t)*fejer_kernel n t)
+        (a := 0) (b := Real.pi)).symm
+  have hki : IntervalIntegrable (fejer_kernel n) MeasureTheory.volume 0 Real.pi :=
+    (continuous_fejer_kernel n).intervalIntegrable _ _
+  have h_integral : (∫t in 0..Real.pi,
+      (f (x₀+t)+f (x₀-t)-L_plus-L_minus)*fejer_kernel n t) =
+      (∫t in 0..Real.pi, f (x₀+t)*fejer_kernel n t + f (x₀-t)*fejer_kernel n t) -
+        (L_plus+L_minus)*(∫t in 0..Real.pi, fejer_kernel n t) := by
+    rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_sub
+      (hip.add (him 0 Real.pi)) (hki.const_mul _)]
+    apply intervalIntegral.integral_congr
+    intro t _
+    ring
+  rw [fejer_sum_eq_integral_alt hf_int hf_per,
+    ← intervalIntegral.integral_add_adjacent_intervals (him (-Real.pi) 0) (him 0 Real.pi),
+    hreflect, ← intervalIntegral.integral_add hip (him 0 Real.pi), h_integral]
+  have hhalf := fejer_kernel_integral_half_range n
+  calc
+    _ = (1/Real.pi)*(∫t in 0..Real.pi,
+        f (x₀+t)*fejer_kernel n t+f (x₀-t)*fejer_kernel n t) -
+        (L_plus+L_minus)*((1/Real.pi)*(∫t in 0..Real.pi, fejer_kernel n t)) := by rw [hhalf]; ring
+    _ = _ := by ring
 
 /-
 If g is integrable on [0, pi] and tends to 0 at 0+, then the weighted integral of |g| against the Fejér kernel tends to 0.
@@ -1509,109 +725,52 @@ lemma fejer_kernel_integral_limit_zero {g : ℝ → ℝ}
     (hg_int : IntervalIntegrable g MeasureTheory.volume 0 Real.pi)
     (hg_lim : Filter.Tendsto g (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)) :
     Filter.Tendsto (fun n => (1 / Real.pi) * ∫ t in (0:ℝ)..Real.pi, |g t| * fejer_kernel n t) Filter.atTop (nhds 0) := by
-      field_simp;
-      -- By definition of $K_n$, we know that $\int_0^\pi K_n(t) |g(t)| dt$ tends to $0$ as $n \to \infty$.
-      have h_integral : Filter.Tendsto (fun n => ∫ t in Set.Icc 0 Real.pi, |g t| * fejer_kernel n t) Filter.atTop (nhds 0) := by
-        -- Split the integral into two parts: one over $(0, \delta)$ and one over $[\delta, \pi]$.
-        have h_split : ∀ δ ∈ Set.Ioo 0 Real.pi, ∀ n, ∫ t in Set.Icc 0 Real.pi, |g t| * fejer_kernel n t ≤ (∫ t in Set.Ioo 0 δ, |g t| * fejer_kernel n t) + (∫ t in Set.Icc δ Real.pi, |g t| * fejer_kernel n t) := by
-          intros δ hδ n
-          have h_split_integral : ∫ t in Set.Icc 0 Real.pi, |g t| * fejer_kernel n t = (∫ t in Set.Icc 0 δ, |g t| * fejer_kernel n t) + (∫ t in Set.Ioc δ Real.pi, |g t| * fejer_kernel n t) := by
-            rw [ ← MeasureTheory.setIntegral_union ] <;> norm_num [ hδ.1.le, hδ.2.le ];
-            · exact Set.disjoint_left.mpr fun x hx₁ hx₂ => hx₁.2.not_lt hx₂.1;
-            · refine' MeasureTheory.Integrable.mono' _ _ _;
-              refine' fun t => |g t| * ( n + 1 ) / 2;
-              · refine' MeasureTheory.Integrable.div_const _ _;
-                refine' MeasureTheory.Integrable.mul_const _ _;
-                rw [ intervalIntegrable_iff_integrableOn_Icc_of_le Real.pi_pos.le ] at hg_int;
-                exact MeasureTheory.Integrable.abs ( hg_int.mono_set <| Set.Icc_subset_Icc_right hδ.2.le );
-              · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-                · have := hg_int.abs;
-                  rw [ intervalIntegrable_iff_integrableOn_Icc_of_le Real.pi_pos.le ] at this;
-                  exact this.aestronglyMeasurable.mono_set <| Set.Icc_subset_Icc_right hδ.2.le;
-                · refine' Measurable.aestronglyMeasurable _;
-                  refine' Measurable.mul _ _;
-                  · exact measurable_const;
-                  · refine' Finset.measurable_sum _ fun i _ => _;
-                    exact Measurable.add ( measurable_const ) ( Finset.measurable_sum _ fun _ _ => Real.continuous_cos.measurable.comp ( measurable_const.mul measurable_id' ) );
-              · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht ; rw [ Real.norm_eq_abs, abs_of_nonneg ( mul_nonneg ( abs_nonneg _ ) ( show 0 ≤ fejer_kernel n t from by exact? ) ) ] ; exact le_trans ( mul_le_mul_of_nonneg_left ( show fejer_kernel n t ≤ ( n + 1 ) / 2 from by exact? ) ( abs_nonneg _ ) ) ( by ring_nf; norm_num ) ;
-            · refine' MeasureTheory.Integrable.mono' _ _ _;
-              refine' fun t => |g t| * ( n + 1 ) / 2;
-              · refine' MeasureTheory.Integrable.div_const _ _;
-                refine' MeasureTheory.Integrable.mul_const _ _;
-                exact MeasureTheory.Integrable.abs ( hg_int.1.mono_set <| Set.Ioc_subset_Ioc hδ.1.le le_rfl );
-              · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-                · have := hg_int.abs;
-                  exact this.aestronglyMeasurable.mono_set <| Set.Ioc_subset_Ioc hδ.1.le le_rfl;
-                · refine' Measurable.aestronglyMeasurable _;
-                  refine' Measurable.mul _ _;
-                  · exact measurable_const;
-                  · refine' Finset.measurable_sum _ fun i _ => _;
-                    exact Measurable.add measurable_const ( Finset.measurable_sum _ fun _ _ => Real.continuous_cos.measurable.comp ( measurable_const.mul measurable_id' ) );
-              · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioc ] with t ht using by rw [ Real.norm_of_nonneg ( mul_nonneg ( abs_nonneg _ ) ( fejer_kernel_nonneg _ _ ) ) ] ; exact le_trans ( mul_le_mul_of_nonneg_left ( fejer_kernel_le_linear _ _ ) ( abs_nonneg _ ) ) ( by ring_nf; norm_num ) ;
-          simp_all +decide [ MeasureTheory.integral_Icc_eq_integral_Ioc, MeasureTheory.integral_Ioc_eq_integral_Ioo ];
-        -- By the properties of the Fejér kernel, we know that $\int_0^\delta |g(t)| K_n(t) dt \leq \frac{\varepsilon}{2}$ for sufficiently large $n$.
-        have h_small : ∀ ε > 0, ∃ δ ∈ Set.Ioo 0 Real.pi, ∃ N, ∀ n ≥ N, ∫ t in Set.Ioo 0 δ, |g t| * fejer_kernel n t ≤ ε / 2 := by
-          -- By the properties of the Fejér kernel, we know that $\int_0^\delta |g(t)| K_n(t) dt \leq \frac{\varepsilon}{2}$ for sufficiently large $n$ because $|g(t)|$ is bounded near $0$.
-          intros ε hε_pos
-          obtain ⟨δ, hδ_pos, hδ_small⟩ : ∃ δ ∈ Set.Ioo 0 Real.pi, ∀ t ∈ Set.Ioo 0 δ, |g t| ≤ ε / 4 := by
-            have := Metric.tendsto_nhdsWithin_nhds.mp hg_lim ( ε / 4 ) ( by linarith );
-            obtain ⟨ δ, hδ_pos, H ⟩ := this; exact ⟨ Min.min δ Real.pi / 2, ⟨ by positivity, by linarith [ min_le_left δ Real.pi, min_le_right δ Real.pi, Real.pi_pos ] ⟩, fun t ht => by simpa using le_of_lt ( H ht.1 ( by rw [ dist_comm ] ; exact abs_lt.mpr ⟨ by linarith [ ht.1, ht.2, min_le_left δ Real.pi, min_le_right δ Real.pi ], by linarith [ ht.1, ht.2, min_le_left δ Real.pi, min_le_right δ Real.pi ] ⟩ ) ) ⟩ ;
-          refine' ⟨ δ, hδ_pos, 0, fun n hn => _ ⟩ ; refine' le_trans ( MeasureTheory.setIntegral_mono_on _ _ measurableSet_Ioo fun t ht => mul_le_mul_of_nonneg_right ( hδ_small t ht ) ( _ ) ) _;
-          · refine' MeasureTheory.Integrable.mono' _ _ _;
-            refine' fun t => ε / 4 * ( n + 1 ) / 2;
-            · norm_num +zetaDelta at *;
-            · refine' MeasureTheory.AEStronglyMeasurable.mul _ _;
-              · exact MeasureTheory.AEStronglyMeasurable.norm ( hg_int.1.aestronglyMeasurable.mono_set <| Set.Ioo_subset_Ioc_self.trans <| Set.Ioc_subset_Ioc_right hδ_pos.2.le );
-              · refine' Measurable.aestronglyMeasurable _;
-                refine' Measurable.mul _ _;
-                · exact measurable_const;
-                · refine' Finset.measurable_sum _ fun i _ => _;
-                  exact Measurable.add measurable_const ( Finset.measurable_sum _ fun _ _ => Real.continuous_cos.measurable.comp ( measurable_const.mul measurable_id' ) );
-            · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioo ] with t ht using by rw [ Real.norm_of_nonneg ( mul_nonneg ( abs_nonneg _ ) ( fejer_kernel_nonneg _ _ ) ) ] ; exact le_trans ( mul_le_mul_of_nonneg_right ( hδ_small t ht ) ( fejer_kernel_nonneg _ _ ) ) ( by nlinarith [ show ( fejer_kernel n t : ℝ ) ≤ ( n + 1 ) / 2 from le_trans ( fejer_kernel_le_linear n t ) ( by ring_nf; norm_num ) ] ) ;
-          · field_simp;
-            exact ContinuousOn.integrableOn_Icc ( by exact ContinuousOn.div_const ( ContinuousOn.mul continuousOn_const <| by exact ContinuousOn.congr ( show ContinuousOn ( fun t => ( 1 / ( n + 1 : ℝ ) ) * ∑ j ∈ Finset.range ( n + 1 ), ( 1 / 2 + ∑ k ∈ Finset.Icc 1 j, Real.cos ( k * t ) ) ) _ from Continuous.continuousOn <| by exact Continuous.mul ( continuous_const ) <| by exact continuous_finset_sum _ fun _ _ => by exact Continuous.add continuous_const <| by exact continuous_finset_sum _ fun _ _ => Real.continuous_cos.comp <| by continuity ) fun t ht => rfl ) _ ) |> fun h => h.mono_set <| Set.Ioo_subset_Icc_self;
-          · exact?;
-          · rw [ ← MeasureTheory.integral_Ioc_eq_integral_Ioo, ← intervalIntegral.integral_of_le ] <;> norm_num [ hδ_pos.1.le, hδ_pos.2.le ];
-            -- By the properties of the Fejér kernel, we know that $\int_0^\delta K_n(t) dt \leq \frac{\pi}{2}$.
-            have h_fejer_integral : ∫ t in (0:ℝ)..Real.pi, fejer_kernel n t = Real.pi / 2 := by
-              convert congr_arg ( fun x : ℝ => x * Real.pi ) ( fejer_kernel_integral_half_range n ) using 1 <;> ring;
-              norm_num [ Real.pi_ne_zero ];
-            -- Since the Fejér kernel is non-negative, we can bound the integral over $[0, \delta]$ by the integral over $[0, \pi]$.
-            have h_fejer_integral_bound : ∫ t in (0:ℝ)..δ, fejer_kernel n t ≤ ∫ t in (0:ℝ)..Real.pi, fejer_kernel n t := by
-              apply_rules [ intervalIntegral.integral_mono_interval, hδ_pos.1.le, hδ_pos.2.le ];
-              · norm_num;
-              · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioc ] with t ht using fejer_kernel_nonneg n t;
-              · exact ( by contrapose! h_fejer_integral; rw [ intervalIntegral.integral_undef h_fejer_integral ] ; positivity );
-            nlinarith [ Real.pi_le_four ];
-        -- By the properties of the Fejér kernel, we know that $\int_\delta^\pi |g(t)| K_n(t) dt \leq \frac{\varepsilon}{2}$ for sufficiently large $n$.
-        have h_large : ∀ ε > 0, ∀ δ ∈ Set.Ioo 0 Real.pi, ∃ N, ∀ n ≥ N, ∫ t in Set.Icc δ Real.pi, |g t| * fejer_kernel n t ≤ ε / 2 := by
-          intros ε hε δ hδ
-          have h_bound : ∀ n, ∫ t in Set.Icc δ Real.pi, |g t| * fejer_kernel n t ≤ (∫ t in Set.Icc δ Real.pi, |g t|) * (⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t) := by
-            intro n
-            have h_bound : ∀ t ∈ Set.Icc δ Real.pi, |g t| * fejer_kernel n t ≤ |g t| * (⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t) := by
-              intro t ht; gcongr;
-              apply le_csSup;
-              · refine' ⟨ ( n + 1 ) / 2, Set.forall_mem_range.2 fun t => _ ⟩;
-                field_simp;
-                rw [ @ciSup_eq_ite ] ; norm_num ; split_ifs <;> linarith [ fejer_kernel_le_linear n t ] ;
-              · exact ⟨ t, by aesop ⟩
-            generalize_proofs at *;
-            rw [ ← MeasureTheory.integral_mul_const ];
-            refine' MeasureTheory.integral_mono_of_nonneg _ _ _;
-            · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using mul_nonneg ( abs_nonneg _ ) ( fejer_kernel_nonneg _ _ );
-            · refine' MeasureTheory.Integrable.mul_const _ _;
-              have h_integrable : MeasureTheory.IntegrableOn g (Set.Icc 0 Real.pi) := by
-                rw [ intervalIntegrable_iff_integrableOn_Icc_of_le Real.pi_pos.le ] at hg_int ; aesop
-                skip;
-              exact MeasureTheory.Integrable.abs ( h_integrable.mono_set <| Set.Icc_subset_Icc hδ.1.le le_rfl );
-            · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Icc ] with t ht using h_bound t ht;
-          have h_lim : Filter.Tendsto (fun n => ⨆ t ∈ Set.Icc δ Real.pi, fejer_kernel n t) Filter.atTop (nhds 0) := by
-            convert fejer_kernel_uniform_limit_zero δ hδ.1 hδ.2.le using 1;
-          have := h_lim.const_mul ( ∫ t in Set.Icc δ Real.pi, |g t| );
-          simpa using this.eventually ( ge_mem_nhds <| by linarith ) |> fun h => h.mono fun n hn => le_trans ( h_bound n ) hn;
-        rw [ Metric.tendsto_nhds ];
-        intro ε hε_pos; rcases h_small ( ε / 2 ) ( half_pos hε_pos ) with ⟨ δ, hδ₁, N₁, hN₁ ⟩ ; rcases h_large ( ε / 2 ) ( half_pos hε_pos ) δ hδ₁ with ⟨ N₂, hN₂ ⟩ ; filter_upwards [ Filter.Ici_mem_atTop N₁, Filter.Ici_mem_atTop N₂ ] with n hn₁ hn₂ using abs_lt.mpr ⟨ by linarith [ show 0 ≤ ∫ t in Set.Icc 0 Real.pi, |g t| * fejer_kernel n t from MeasureTheory.setIntegral_nonneg measurableSet_Icc fun t ht => mul_nonneg ( abs_nonneg _ ) ( fejer_kernel_nonneg n t ) ], by linarith [ h_split δ hδ₁ n, hN₁ n hn₁, hN₂ n hn₂ ] ⟩ ;
-      simpa [ MeasureTheory.integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le Real.pi_pos.le ] using h_integral.div_const Real.pi
+  have htail : ∀ u : Set ℝ, IsOpen u → (0 : ℝ) ∈ u →
+      TendstoUniformlyOn (fun n x ↦ (2 / Real.pi) * fejer_kernel n x) 0 atTop (Ioc 0 Real.pi \ u) := by
+    intro u hu h0
+    obtain ⟨δ, hδ, hδu⟩ := Metric.isOpen_iff.mp hu 0 h0
+    have hlim : Tendsto (fun n : ℕ ↦ (Real.pi / δ ^ 2) * (1 / ((n : ℝ) + 1)))
+        atTop (𝓝 0) := by
+      simpa using (tendsto_one_div_add_atTop_nhds_zero_nat (𝕜 := ℝ)).const_mul
+        (Real.pi / δ ^ 2)
+    rw [Metric.tendstoUniformlyOn_iff]
+    intro η hη
+    filter_upwards [hlim.eventually (gt_mem_nhds hη)] with n hn x hx
+    have hδx : δ ≤ x := by
+      by_contra h
+      apply hx.2
+      apply hδu
+      rw [Metric.mem_ball, dist_zero_right, Real.norm_eq_abs, abs_of_pos hx.1.1]
+      exact lt_of_not_ge h
+    have hbound : (2 / Real.pi) * fejer_kernel n x ≤ (Real.pi / δ ^ 2) * (1 / ((n : ℝ) + 1)) := by
+      calc (2 / Real.pi) * fejer_kernel n x
+        _ ≤ (2 / Real.pi) * (Real.pi ^ 2 / (2 * (n + 1) * x ^ 2)) :=
+          mul_le_mul_of_nonneg_left (fejer_kernel_le_quadratic n x hx.1.1 hx.1.2) (by positivity)
+        _ ≤ (2 / Real.pi) * (Real.pi ^ 2 / (2 * (n + 1) * δ ^ 2)) := by gcongr
+        _ = (Real.pi / δ ^ 2) * (1 / ((n : ℝ) + 1)) := by field_simp
+    rw [Pi.zero_apply, dist_zero_left, Real.norm_eq_abs,
+      abs_of_nonneg (mul_nonneg (by positivity) (fejer_kernel_nonneg n x))]
+    exact hbound.trans_lt hn
+  have h := tendsto_setIntegral_peak_smul_of_integrableOn_of_tendsto
+    (s := Ioc 0 Real.pi) (t := Ioc 0 Real.pi) (x₀ := (0 : ℝ))
+    («φ» := fun n x ↦ (2 / Real.pi) * fejer_kernel n x) (g := fun x ↦ |g x|)
+    measurableSet_Ioc measurableSet_Ioc subset_rfl self_mem_nhdsWithin
+    (by simp) (Eventually.of_forall fun n x _ ↦ mul_nonneg (by positivity) (fejer_kernel_nonneg n x))
+    htail
+    (by
+      convert tendsto_const_nhds (x := (1 : ℝ)) using 1
+      funext n
+      rw [integral_const_mul, ← intervalIntegral.integral_of_le Real.pi_pos.le]
+      linear_combination 2 * fejer_kernel_integral_half_range n)
+    (Eventually.of_forall fun n ↦ ((continuous_fejer_kernel n).const_mul _).aestronglyMeasurable)
+    hg_int.abs.1
+    (by simpa only [nhdsWithin_Ioc_eq_nhdsGT Real.pi_pos, abs_zero] using hg_lim.abs)
+  convert h.div_const (2 : ℝ) using 1
+  · funext n
+    rw [intervalIntegral.integral_of_le Real.pi_pos.le, ← integral_const_mul, ← integral_div]
+    apply integral_congr_ae
+    exact Eventually.of_forall fun x ↦ by simp only [smul_eq_mul]; ring
+  · norm_num
 
 /-
 If f is 2pi-periodic and integrable on [-pi, pi], then f(x+t) is integrable on [0, pi].
@@ -1619,34 +778,8 @@ If f is 2pi-periodic and integrable on [-pi, pi], then f(x+t) is integrable on [
 lemma integrable_shifted_periodic {f : ℝ → ℝ} (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) (x : ℝ) :
     IntervalIntegrable (fun t => f (x + t)) MeasureTheory.volume 0 Real.pi := by
-      have h_integrable_left : IntervalIntegrable (fun t => f (x + t)) MeasureTheory.volume (-Real.pi) Real.pi := by
-        have h_integrable : IntervalIntegrable (fun t => f t) MeasureTheory.volume (x - Real.pi) (x + Real.pi) := by
-          rw [ intervalIntegrable_iff ] at *;
-          have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (x - Real.pi) (x + Real.pi)) := by
-            have h_integrable : ∀ n : ℤ, MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (n * (2 * Real.pi) - Real.pi) (n * (2 * Real.pi) + Real.pi)) := by
-              intro n
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f (t - n * (2 * Real.pi))) (Set.Icc (n * (2 * Real.pi) - Real.pi) (n * (2 * Real.pi) + Real.pi)) := by
-                have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (-Real.pi) Real.pi) := by
-                  simpa only [ Set.uIoc_of_le ( neg_le_self Real.pi_pos.le ), MeasureTheory.IntegrableOn, MeasureTheory.Measure.restrict_congr_set MeasureTheory.Ioc_ae_eq_Icc ] using hf_int;
-                rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Icc ) ] at *;
-                convert h_integrable.comp_sub_right ( n * ( 2 * Real.pi ) ) using 1;
-                ext; simp [Set.indicator];
-                split_ifs <;> ring_nf at * <;> aesop;
-              convert h_integrable using 1;
-              exact funext fun x => by simpa using Function.Periodic.int_mul hf_per n ( x - n * ( 2 * Real.pi ) ) ;
-            -- Choose $n$ such that $n * (2 * π) - π ≤ x - π < (n + 1) * (2 * π) - π$.
-            obtain ⟨n, hn⟩ : ∃ n : ℤ, n * (2 * Real.pi) - Real.pi ≤ x - Real.pi ∧ x - Real.pi < (n + 1) * (2 * Real.pi) - Real.pi := by
-              exact ⟨ ⌊ ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x - Real.pi + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x - Real.pi + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-            have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (n * (2 * Real.pi) - Real.pi) ((n + 1) * (2 * Real.pi) + Real.pi)) := by
-              have h_integrable : MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc (n * (2 * Real.pi) - Real.pi) (n * (2 * Real.pi) + Real.pi)) ∧ MeasureTheory.IntegrableOn (fun t => f t) (Set.Icc ((n + 1) * (2 * Real.pi) - Real.pi) ((n + 1) * (2 * Real.pi) + Real.pi)) := by
-                exact ⟨ h_integrable n, by simpa using h_integrable ( n + 1 ) ⟩;
-              convert h_integrable.1.union h_integrable.2 using 1;
-              grind;
-            exact h_integrable.mono_set <| Set.Icc_subset_Icc ( by linarith ) ( by linarith );
-          exact h_integrable.mono_set ( by rw [ Set.uIoc_of_le ( by linarith [ Real.pi_pos ] ) ] ; exact Set.Ioc_subset_Icc_self );
-        convert h_integrable.comp_add_left x using 1 ; ring;
-        ring;
-      apply_rules [ h_integrable_left.mono_set, Set.Icc_subset_Icc ] <;> norm_num [ Real.pi_pos.le ]
+  have hi := periodic_intervalIntegrable hf_int hf_per x (x+Real.pi)
+  convert hi.comp_add_left x using 1 <;> ring
 
 /-
 Fejér's Theorem Part (ii): If f has a jump discontinuity at x0, then the Fejér sums converge to the average of the left and right limits.
@@ -1656,93 +789,38 @@ theorem fejer_theorem_at_jump (f : ℝ → ℝ) (hf_int : IntervalIntegrable f M
     (h_left : Filter.Tendsto f (nhdsWithin x₀ (Set.Iio x₀)) (nhds L_minus))
     (h_right : Filter.Tendsto f (nhdsWithin x₀ (Set.Ioi x₀)) (nhds L_plus)) :
     Filter.Tendsto (fun n => fejer_sum f n x₀) Filter.atTop (nhds ((L_plus + L_minus) / 2)) := by
-      -- By `fejer_sum_at_jump_eq_integral`, `fejer_sum f n x₀ - (L_plus + L_minus) / 2 = (1 / Real.pi) * ∫ t in (0:ℝ)..Real.pi, g t * fejer_kernel n t`.
-      have h_eq_integral : ∀ n, fejer_sum f n x₀ - (L_plus + L_minus) / 2 = (1 / Real.pi) * ∫ t in (0:ℝ)..Real.pi, (f (x₀ + t) + f (x₀ - t) - L_plus - L_minus) * fejer_kernel n t := by
-        exact?;
-      -- We want to show this tends to 0.
-      -- It suffices to show `(1 / Real.pi) * ∫ t in 0..Real.pi, |(f (x₀ + t) + f (x₀ - t) - L_plus - L_minus)| * fejer_kernel n t` tends to 0, because $| \int g K_n | \le \int |g| K_n$ (since $K_n \ge 0$).
-      suffices h_abs_integral : Filter.Tendsto (fun n => (1 / Real.pi) * ∫ t in (0:ℝ)..Real.pi, |(f (x₀ + t) + f (x₀ - t) - L_plus - L_minus)| * fejer_kernel n t) Filter.atTop (nhds 0) by
-        -- By the properties of integrals, we can bound the absolute value of the integral.
-        have h_abs_integral_bound : ∀ n, |∫ t in (0:ℝ)..Real.pi, (f (x₀ + t) + f (x₀ - t) - L_plus - L_minus) * fejer_kernel n t| ≤ ∫ t in (0:ℝ)..Real.pi, |(f (x₀ + t) + f (x₀ - t) - L_plus - L_minus)| * fejer_kernel n t := by
-          intro n; rw [ intervalIntegral.integral_of_le Real.pi_pos.le ] ; rw [ intervalIntegral.integral_of_le Real.pi_pos.le ] ; refine' le_trans ( MeasureTheory.norm_integral_le_integral_norm ( _ : ℝ → ℝ ) ) _ ; norm_num [ abs_mul, abs_of_nonneg, fejer_kernel_nonneg ] ;
-        rw [ tendsto_iff_norm_sub_tendsto_zero ];
-        simp_all +decide [ abs_mul, abs_inv ];
-        exact squeeze_zero ( fun _ => by positivity ) ( fun n => mul_le_mul_of_nonneg_left ( h_abs_integral_bound n ) ( by positivity ) ) ( by simpa [ abs_of_nonneg Real.pi_pos.le ] using h_abs_integral );
-      -- We check the conditions for `fejer_kernel_integral_limit_zero`:
-      -- 1. g is integrable on [0, pi].
-      have h_g_integrable : IntervalIntegrable (fun t => |f (x₀ + t) + f (x₀ - t) - L_plus - L_minus|) MeasureTheory.volume 0 Real.pi := by
-        have h_g_integrable : IntervalIntegrable (fun t => f (x₀ + t)) MeasureTheory.volume 0 Real.pi ∧ IntervalIntegrable (fun t => f (x₀ - t)) MeasureTheory.volume 0 Real.pi := by
-          constructor
-          all_goals generalize_proofs at *;
-          · exact?;
-          · have h_g_integrable : IntervalIntegrable (fun t => f t) MeasureTheory.volume (x₀ - Real.pi) x₀ := by
-              have h_integrable_neg : ∀ a b, a ≤ b → IntervalIntegrable f MeasureTheory.volume a b := by
-                intro a b hab; exact (by
-                rw [ intervalIntegrable_iff_integrableOn_Ioc_of_le hab ] at *;
-                have h_integrable : ∀ a b, a ≤ b → MeasureTheory.IntegrableOn f (Set.Ioc a b) MeasureTheory.volume := by
-                  intros a b hab
-                  have h_periodic : ∀ x, f x = f (x - 2 * Real.pi * ⌊(x + Real.pi) / (2 * Real.pi)⌋) := by
-                    exact fun x => by simpa [ mul_comm ] using Function.Periodic.int_mul hf_per ⌊ ( x + Real.pi ) / ( 2 * Real.pi ) ⌋ ( x - 2 * Real.pi * ⌊ ( x + Real.pi ) / ( 2 * Real.pi ) ⌋ ) ;
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Ioc (-Real.pi) Real.pi) MeasureTheory.volume := by
-                    exact hf_int.1.mono_set <| Set.Ioc_subset_Ioc le_rfl le_rfl
-                  have h_integrable : ∀ k : ℤ, MeasureTheory.IntegrableOn f (Set.Ioc (-Real.pi + 2 * Real.pi * k) (Real.pi + 2 * Real.pi * k)) MeasureTheory.volume := by
-                    intro k
-                    have h_integrable : MeasureTheory.IntegrableOn (fun x => f (x - 2 * Real.pi * k)) (Set.Ioc (-Real.pi + 2 * Real.pi * k) (Real.pi + 2 * Real.pi * k)) MeasureTheory.volume := by
-                      rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Ioc ) ] at *;
-                      convert h_integrable.comp_sub_right ( 2 * Real.pi * k ) using 1;
-                      ext; simp [Set.indicator]
-                    generalize_proofs at *; (
-                    convert h_integrable using 1;
-                    exact funext fun x => by simpa [ mul_comm ] using Function.Periodic.int_mul hf_per k ( x - 2 * Real.pi * k ) ;)
-                  -- Since $a$ and $b$ are real numbers, we can find integers $k$ and $m$ such that $a \in [-\pi + 2\pi k, \pi + 2\pi k]$ and $b \in [-\pi + 2\pi m, \pi + 2\pi m]$.
-                  obtain ⟨k, hk⟩ : ∃ k : ℤ, a ∈ Set.Icc (-Real.pi + 2 * Real.pi * k) (Real.pi + 2 * Real.pi * k) := by
-                    exact ⟨ ⌊ ( a + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( a + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( a + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( a + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩
-                  obtain ⟨m, hm⟩ : ∃ m : ℤ, b ∈ Set.Icc (-Real.pi + 2 * Real.pi * m) (Real.pi + 2 * Real.pi * m) := by
-                    exact ⟨ ⌊ ( b + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( b + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( b + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( b + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( b + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩
-                  generalize_proofs at *; (
-                  have h_integrable : MeasureTheory.IntegrableOn f (Set.Ioc (-Real.pi + 2 * Real.pi * k) (Real.pi + 2 * Real.pi * m)) MeasureTheory.volume := by
-                    have h_integrable : ∀ k m : ℤ, k ≤ m → MeasureTheory.IntegrableOn f (Set.Ioc (-Real.pi + 2 * Real.pi * k) (Real.pi + 2 * Real.pi * m)) MeasureTheory.volume := by
-                      intros k m hkm
-                      induction' m using Int.induction_on with m ih m ih
-                      generalize_proofs at *; (
-                      induction' k using Int.induction_on with k ih k ih;
-                      · simpa using ‹MeasureTheory.IntegrableOn f ( Set.Ioc ( -Real.pi ) Real.pi ) MeasureTheory.volume›;
-                      · linarith;
-                      · have := h_integrable ( -k - 1 ) ; norm_num at * ; (
-                        convert this.union ih using 1 ; ring;
-                        rw [ Set.Ioc_union_Ioc_eq_Ioc ] <;> nlinarith [ Real.pi_pos ]));
-                      · rcases hkm.eq_or_lt with hkm | hkm <;> norm_num at *;
-                        · convert h_integrable ( m + 1 ) using 1 ; push_cast [ hkm ] ; ring;
-                        · have h_integrable : MeasureTheory.IntegrableOn f (Set.Ioc (-Real.pi + 2 * Real.pi * k) (Real.pi + 2 * Real.pi * m)) MeasureTheory.volume ∧ MeasureTheory.IntegrableOn f (Set.Ioc (Real.pi + 2 * Real.pi * m) (Real.pi + 2 * Real.pi * (m + 1))) MeasureTheory.volume := by
-                            exact ⟨ ih ( by linarith ), by convert h_integrable ( m + 1 ) using 1 ; push_cast ; ring ⟩
-                          generalize_proofs at *; (
-                          convert h_integrable.1.union h_integrable.2 using 1 ; ring;
-                          rw [ Set.Ioc_union_Ioc_eq_Ioc ] <;> nlinarith [ Real.pi_pos, show ( k : ℝ ) ≤ m by norm_cast; linarith ]);
-                      · exact ih ( by linarith ) |> fun h => h.mono_set ( Set.Ioc_subset_Ioc_right ( by push_cast; linarith [ Real.pi_pos ] ) )
-                    generalize_proofs at *; (
-                    by_cases hkm : k ≤ m;
-                    · exact h_integrable k m hkm;
-                    · exact MeasureTheory.IntegrableOn.mono_set ( h_integrable m k ( by linarith ) ) ( Set.Ioc_subset_Ioc ( by nlinarith [ Real.pi_pos, show ( k : ℝ ) ≥ m + 1 by exact_mod_cast not_le.mp hkm ] ) ( by nlinarith [ Real.pi_pos, show ( k : ℝ ) ≥ m + 1 by exact_mod_cast not_le.mp hkm ] ) ))
-                  generalize_proofs at *; (
-                  exact h_integrable.mono_set ( Set.Ioc_subset_Ioc ( by linarith [ hk.1 ] ) ( by linarith [ hm.2 ] ) )))
-                generalize_proofs at *; (
-                exact h_integrable a b hab));
-              generalize_proofs at *; (
-              exact h_integrable_neg _ _ ( by linarith [ Real.pi_pos ] ))
-            generalize_proofs at *; (
-            rw [ intervalIntegrable_iff_integrableOn_Ioo_of_le ( by linarith [ Real.pi_pos ] ) ] at *;
-            rw [ ← MeasureTheory.integrable_indicator_iff ( measurableSet_Ioo ) ] at *;
-            convert h_g_integrable.comp_sub_left x₀ using 1 ; ext ; simp +decide [ Set.indicator ] ; ring;
-            split_ifs <;> tauto)
-        generalize_proofs at *; (
-        simpa only [ sub_sub ] using h_g_integrable.1.add h_g_integrable.2 |> fun h => h.sub ( intervalIntegrable_const ) |> fun h => h.abs)
-      generalize_proofs at *; (
-      -- 2. g(t) → 0 as t → 0+.
-      have h_g_zero : Filter.Tendsto (fun t => |f (x₀ + t) + f (x₀ - t) - L_plus - L_minus|) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0) := by
-        convert Filter.Tendsto.abs ( Filter.Tendsto.sub ( Filter.Tendsto.sub ( h_right.comp ( show Filter.Tendsto ( fun t : ℝ => x₀ + t ) ( nhdsWithin 0 ( Set.Ioi 0 ) ) ( nhdsWithin x₀ ( Set.Ioi x₀ ) ) by exact Filter.Tendsto.inf ( Continuous.tendsto' ( by continuity ) _ _ <| by norm_num ) <| Filter.tendsto_principal_principal.mpr <| by aesop_cat ) |> Filter.Tendsto.add <| h_left.comp ( show Filter.Tendsto ( fun t : ℝ => x₀ - t ) ( nhdsWithin 0 ( Set.Ioi 0 ) ) ( nhdsWithin x₀ ( Set.Iio x₀ ) ) by exact Filter.Tendsto.inf ( Continuous.tendsto' ( by continuity ) _ _ <| by norm_num ) <| Filter.tendsto_principal_principal.mpr <| by aesop_cat ) ) tendsto_const_nhds ) tendsto_const_nhds ) using 2 ; norm_num
-      generalize_proofs at *; (
-      convert fejer_kernel_integral_limit_zero h_g_integrable h_g_zero using 1;
-      norm_num [ abs_mul ]))
+  let g : ℝ → ℝ := fun t ↦ f (x₀+t) + f (x₀-t) - L_plus - L_minus
+  have hi : IntervalIntegrable g volume 0 Real.pi :=
+    (((integrable_shifted_periodic hf_int hf_per x₀).add
+      (periodic_comp_sub_intervalIntegrable hf_int hf_per 0 Real.pi x₀)).sub
+      intervalIntegrable_const).sub intervalIntegrable_const
+  have hid : Tendsto (fun t : ℝ ↦ t) (𝓝[>] (0 : ℝ)) (𝓝 (0 : ℝ)) :=
+    tendsto_id'.mpr nhdsWithin_le_nhds
+  have hr : Tendsto (fun t : ℝ ↦ x₀+t) (𝓝[>] 0) (𝓝[>] x₀) := by
+    refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
+    · simpa only [add_zero] using (tendsto_const_nhds (x := x₀)).add hid
+    · filter_upwards [self_mem_nhdsWithin] with t ht
+      simpa using ht
+  have hl : Tendsto (fun t : ℝ ↦ x₀-t) (𝓝[>] 0) (𝓝[<] x₀) := by
+    refine tendsto_nhdsWithin_iff.mpr ⟨?_, ?_⟩
+    · simpa only [sub_zero] using (tendsto_const_nhds (x := x₀)).sub hid
+    · filter_upwards [self_mem_nhdsWithin] with t ht
+      simpa using ht
+  have hg : Tendsto g (𝓝[>] 0) (𝓝 0) := by
+    simpa [g] using (((h_right.comp hr).add (h_left.comp hl)).sub
+      (tendsto_const_nhds (x := L_plus))).sub (tendsto_const_nhds (x := L_minus))
+  have hlim := fejer_kernel_integral_limit_zero hi hg
+  rw [tendsto_iff_norm_sub_tendsto_zero]
+  apply squeeze_zero (fun _ ↦ norm_nonneg _)
+    (fun n ↦ ?_) hlim
+  rw [fejer_sum_at_jump_eq_integral hf_int hf_per]
+  rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (by positivity : 0 ≤ 1/Real.pi)]
+  apply mul_le_mul_of_nonneg_left _ (by positivity)
+  rw [intervalIntegral.integral_of_le Real.pi_pos.le,
+    intervalIntegral.integral_of_le Real.pi_pos.le]
+  simpa [g, abs_mul, abs_of_nonneg (fejer_kernel_nonneg n _)] using
+    (norm_integral_le_integral_norm (μ := volume.restrict (Ioc 0 Real.pi))
+      (fun t : ℝ ↦ g t * fejer_kernel n t))
 
 /-
 The Fejér sum is 2pi-periodic.
@@ -1758,22 +836,21 @@ Fejér's Theorem Corollary: If f is continuous everywhere and periodic, then the
 theorem fejer_theorem_uniform_on_R (f : ℝ → ℝ) (hf_int : IntervalIntegrable f MeasureTheory.volume (-Real.pi) Real.pi)
     (hf_per : Function.Periodic f (2 * Real.pi)) (hf_cont : Continuous f) :
     TendstoUniformly (fejer_sum f) f Filter.atTop := by
-      -- By `fejer_theorem_uniform_on_I`, `fejer_sum f` converges uniformly to `f` on $[-\pi, \pi]$.
-      have h_unif : TendstoUniformlyOn (fejer_sum f) f Filter.atTop (Set.Icc (-Real.pi) Real.pi) := by
-        apply fejer_theorem_uniform_on_I f hf_int hf_per (-Real.pi) Real.pi (by linarith [Real.pi_pos]);
-        exact fun x hx => hf_cont.continuousAt;
-      rw [ Metric.tendstoUniformlyOn_iff ] at h_unif;
-      rw [ Metric.tendstoUniformly_iff ];
-      -- Given ε > 0, we can find N such that for all n ≥ N, the distance between f(x) and fejer_sum f n x is less than ε for all x in [-π, π].
-      intro ε hε_pos
-      obtain ⟨N, hN⟩ : ∃ N, ∀ n ≥ N, ∀ x ∈ Set.Icc (-Real.pi) Real.pi, dist (f x) (fejer_sum f n x) < ε := by
-        exact Filter.eventually_atTop.mp ( h_unif ε hε_pos ) |> fun ⟨ N, hN ⟩ => ⟨ N, fun n hn x hx => hN n hn x hx ⟩;
-      -- Since both `fejer_sum f n` and `f` are $2\pi$-periodic, we can extend the uniform convergence to all of $\mathbb{R}$.
-      have h_periodic : ∀ n x, fejer_sum f n (x + 2 * Real.pi) = fejer_sum f n x ∧ f (x + 2 * Real.pi) = f x := by
-        exact fun n x => ⟨ by exact Function.Periodic.int_mul ( fejer_sum_periodic f n ) 1 x ▸ by norm_num, by exact hf_per x ⟩;
-      refine' Filter.eventually_atTop.mpr ⟨ N, fun n hn x => _ ⟩;
-      -- By periodicity, we can reduce any $x$ to the interval $[-\pi, \pi]$.
-      obtain ⟨k, hk⟩ : ∃ k : ℤ, x - 2 * k * Real.pi ∈ Set.Icc (-Real.pi) Real.pi := by
-        exact ⟨ ⌊ ( x + Real.pi ) / ( 2 * Real.pi ) ⌋, by nlinarith [ Int.floor_le ( ( x + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ], by nlinarith [ Int.lt_floor_add_one ( ( x + Real.pi ) / ( 2 * Real.pi ) ), Real.pi_pos, mul_div_cancel₀ ( x + Real.pi ) ( by positivity : ( 2 * Real.pi ) ≠ 0 ) ] ⟩;
-      convert hN n hn ( x - 2 * k * Real.pi ) hk using 1 ; ring;
-      exact congr_arg₂ _ ( by simpa [ mul_assoc, mul_comm Real.pi ] using Function.Periodic.int_mul hf_per k ( x - k * Real.pi * 2 ) ) ( by simpa [ mul_assoc, mul_comm Real.pi ] using Function.Periodic.int_mul ( show Function.Periodic ( fun x => fejer_sum f n x ) ( 2 * Real.pi ) from fun x => h_periodic n x |>.1 ) k ( x - k * Real.pi * 2 ) )
+  have h_unif := fejer_theorem_uniform_on_I f hf_int hf_per (-Real.pi) Real.pi
+    (by linarith [Real.pi_pos]) (fun x _ ↦ hf_cont.continuousAt)
+  rw [Metric.tendstoUniformlyOn_iff] at h_unif
+  rw [Metric.tendstoUniformly_iff]
+  intro ε hε
+  filter_upwards [h_unif ε hε] with n hn x
+  let hp : 0 < 2*Real.pi := by positivity
+  let y := toIcoMod hp (-Real.pi) x
+  have hy : y ∈ Icc (-Real.pi) Real.pi := by
+    have h := toIcoMod_mem_Ico hp (-Real.pi) x
+    constructor
+    · exact h.1
+    · dsimp [y] at *
+      linarith [h.2]
+  have hfy : f y = f x := hf_per.sub_zsmul_eq (toIcoDiv hp (-Real.pi) x)
+  have hsy : fejer_sum f n y = fejer_sum f n x :=
+    (fejer_sum_periodic f n).sub_zsmul_eq (toIcoDiv hp (-Real.pi) x)
+  simpa only [hfy, hsy] using hn y hy
