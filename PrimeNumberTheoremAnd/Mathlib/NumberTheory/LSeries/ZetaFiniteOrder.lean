@@ -21,27 +21,25 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConv
 
 
 /-!
-# Analytic continuation and finite order for the Riemann zeta function
+# Reflection and pole-removed growth for the Riemann zeta function
 
-This file gives growth bounds for `completedRiemannZeta₀` (Λ₀) and the removable
-extension of `(s - 1)ζ(s)`.
+This file proves a growth bound for the removable extension of `(s - 1)ζ(s)` and
+records reflected functional-equation identities. Global growth of the entire completed
+function `completedRiemannZeta₀` (Λ₀) is supplied by the native Hurwitz zeta growth theorem
+at parameter zero.
 
 Note: Mathlib distinguishes between:
 - `completedRiemannZeta₀` : the entire function Λ₀(s)
 - `completedRiemannZeta` : Λ(s) = Λ₀(s) - 1/s - 1/(1-s), which has simple poles at 0 and 1
 
 The key ingredients are:
-* Mathlib's `differentiable_completedZeta₀` for entirety of Λ₀
-* The functional equation `completedRiemannZeta₀_one_sub`
-* Stirling-type bounds for `Complex.Gammaℝ`
+* Mathlib's functional equations for completed and uncompleted zeta functions
+* Mathlib's entire removable extension `DirichletCharacter.LFunctionTrivChar₁`
+* Stirling-type bounds for `Complex.Gamma`
 * `norm_riemannZeta_le` from `RiemannZetaConvexity` for strip bounds on `ζ`
 
 ## Main results
 
-* `completedRiemannZeta₀_order_one` : growth bound implying order at most one for
-  `completedRiemannZeta₀`
-* `completedRiemannZeta₀_entireOfOrderAtMost_one` (in `RiemannZetaHadamard`) : packaged as
-  `Complex.Hadamard.EntireOfOrderAtMost`
 * `zeta_minus_pole_entire_growth` : a coarse global bound for the removable extension of
   `(s - 1)ζ(s)`.
 
@@ -65,13 +63,6 @@ open scoped Real
 namespace Complex
 
 /-! ### Finite order of the completed zeta function -/
-
-/-- Boundedness of completedRiemannZeta₀ on compact sets. -/
-lemma completedRiemannZeta₀_bounded_on_closedBall (R : ℝ) (_hR : 0 < R) :
-    ∃ M : ℝ, 0 ≤ M ∧ ∀ w : ℂ, ‖w‖ ≤ R → ‖completedRiemannZeta₀ w‖ ≤ M := by
-  have hcont : ContinuousOn completedRiemannZeta₀ (Metric.closedBall 0 R) :=
-    differentiable_completedZeta₀.continuous.continuousOn
-  exact exists_norm_bound_on_closedBall hcont
 
 /-- The functional equation lets one work in the half-plane `1 / 2 ≤ re z`. -/
 lemma exists_completedRiemannZeta₀_right_halfPlane (z : ℂ) :
@@ -204,236 +195,6 @@ lemma norm_mul_riemannZeta_le_exp_of_reflected {z w : ℂ} {A CΓ C : ℝ}
     refine (Real.exp_le_exp).2 ?_
     simpa [mul_assoc] using mul_le_mul_of_nonneg_right hcoef hA2_nonneg
   exact le_trans (le_trans hprod hmul_exp) hdom
-
-/-- `completedRiemannZeta₀` has order at most one: for every `ε > 0` there exists `C > 0` with
-`‖completedRiemannZeta₀ z‖ ≤ exp (C * (1 + ‖z‖) ^ (1 + ε))`. -/
-theorem completedRiemannZeta₀_order_one :
-    ∀ ε : ℝ, 0 < ε → ∃ C > 0, ∀ z : ℂ,  ‖completedRiemannZeta₀ z‖ ≤
-      Real.exp (C * (1 + ‖z‖) ^ (1 + ε)) := by
-  intro ε hε
-  obtain ⟨M, hM_nonneg, hM⟩ := completedRiemannZeta₀_bounded_on_closedBall 3 (by norm_num)
-  obtain ⟨CΓ, hCΓ_pos, hΓ⟩ := Complex.Gammaℝ.Stirling.bound_re_ge_zero
-  let C : ℝ :=
-    max (Real.log (M + 1) + 1) (((2 : ℝ) ^ (1 + ε)) * (10 + CΓ / ε) + 1)
-  refine ⟨C, ?_, ?_⟩
-  · have : (0 : ℝ) < Real.log (M + 1) + 1 := by
-      have hlog : 0 ≤ Real.log (M + 1) := by
-        have : (1 : ℝ) ≤ M + 1 := by linarith [hM_nonneg]
-        exact Real.log_nonneg this
-      linarith
-    exact lt_of_lt_of_le this (le_max_left _ _)
-  · intro z
-    obtain ⟨w, hw_eq, hw_re, hw_norm_le⟩ := exists_completedRiemannZeta₀_right_halfPlane z
-    have hw_re0 : 0 ≤ w.re := by linarith
-    have htransfer : ‖completedRiemannZeta₀ z‖ = ‖completedRiemannZeta₀ w‖ := by
-      simp [hw_eq]
-    have hz_base : (1 : ℝ) ≤ (1 + ‖z‖) ^ (1 + ε) :=
-      Real.one_le_rpow (by linarith [norm_nonneg z]) (by linarith [le_of_lt hε])
-    by_cases hw_small : ‖w‖ ≤ 3
-    · have hbw : ‖completedRiemannZeta₀ w‖ ≤ M := hM w hw_small
-      have hlogC : Real.log (M + 1) ≤ C := by
-        have : Real.log (M + 1) + 1 ≤ C := le_max_left _ _
-        linarith
-      have hpos : 0 < (M + 1 : ℝ) := by linarith [hM_nonneg]
-      have hM_le_exp : M ≤ Real.exp (Real.log (M + 1)) := by
-        have : Real.exp (Real.log (M + 1)) = M + 1 := by simpa using (Real.exp_log hpos)
-        linarith [this]
-      have : ‖completedRiemannZeta₀ w‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (1 + ε)) := by
-        have h1 : ‖completedRiemannZeta₀ w‖ ≤ Real.exp (Real.log (M + 1)) := by
-          exact le_trans hbw hM_le_exp
-        have h2 : Real.log (M + 1) ≤ C * (1 + ‖z‖) ^ (1 + ε) := by
-          have hlogMC : Real.log (M + 1) ≤ C := hlogC
-          have hCmul : C ≤ C * (1 + ‖z‖) ^ (1 + ε) := by
-            have hC0 : 0 ≤ C := le_trans (by
-              have : (0 : ℝ) < Real.log (M + 1) + 1 := by
-                have hlog : 0 ≤ Real.log (M + 1) := Real.log_nonneg (by linarith [hM_nonneg])
-                linarith
-              exact this.le) (le_max_left _ _)
-            have := mul_le_mul_of_nonneg_left hz_base hC0
-            simpa [mul_one] using this
-          exact le_trans hlogMC hCmul
-        exact le_trans h1 (Real.exp_le_exp.2 h2)
-      simpa [htransfer] using this
-    · have hw_large : 3 < ‖w‖ := lt_of_not_ge hw_small
-      have hw_norm1 : 1 ≤ ‖w‖ := le_trans (by norm_num) (le_of_lt hw_large)
-      have hw_ne0 : w ≠ 0 := by
-        intro h0; have : (‖w‖ : ℝ) = 0 := by simp [h0]
-        linarith [hw_large]
-      have hw_ne1 : w ≠ 1 := by
-        intro h1; have : (‖w‖ : ℝ) = 1 := by simp [h1]
-        linarith [hw_large]
-      have hGamma : ‖Complex.Gammaℝ w‖ ≤ Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) :=
-        hΓ w hw_re0 hw_norm1
-      have hw_dom := mem_zetaAbelContinuationDomain_of_re hw_ne1
-        (lt_of_lt_of_le zetaAbelContinuationReLower_lt_half hw_re)
-      have hzeta0 := norm_riemannZeta_le w hw_dom
-      have hdist1 : ‖1 / (w - 1)‖ ≤ 1 := by
-        have hnorm : ‖w‖ ≤ ‖w - 1‖ + 1 := by
-          have : ‖(w - 1) + (1 : ℂ)‖ ≤ ‖w - 1‖ + ‖(1 : ℂ)‖ := norm_add_le _ _
-          simpa [sub_add_cancel w (1 : ℂ), norm_one] using this
-        have hsub : (2 : ℝ) ≤ ‖w - 1‖ := by
-          have : ‖w‖ ≤ ‖w - 1‖ + 1 := by simpa [norm_one] using hnorm
-          linarith [hw_large]
-        have hsub' : (1 : ℝ) ≤ ‖w - 1‖ := le_trans (by norm_num) hsub
-        simpa [one_div, norm_inv] using inv_le_one_of_one_le₀ hsub'
-      have hdiv : ‖w‖ / w.re ≤ 2 * ‖w‖ := by
-        have hhalf_pos : (0 : ℝ) < (2⁻¹ : ℝ) := by norm_num
-        have hinv : (1 / w.re : ℝ) ≤ 2 := by
-          have : (1 / w.re : ℝ) ≤ (1 / (2⁻¹ : ℝ)) :=
-            one_div_le_one_div_of_le hhalf_pos hw_re
-          simpa using this.trans_eq (by norm_num)
-        calc
-          ‖w‖ / w.re = ‖w‖ * (1 / w.re) := by ring
-          _ ≤ ‖w‖ * 2 := mul_le_mul_of_nonneg_left hinv (norm_nonneg _)
-          _ = 2 * ‖w‖ := by ring
-      have hzeta_le : ‖riemannZeta w‖ ≤ 2 + 2 * ‖w‖ := by
-        have hzeta' : ‖riemannZeta w‖ ≤ 1 + ‖1 / (w - 1)‖ + ‖w‖ / w.re := by
-          simpa [one_div] using hzeta0
-        linarith [hzeta', hdist1, hdiv]
-      have hGamma_ne0 : Complex.Gammaℝ w ≠ 0 :=
-        Complex.Gammaℝ_ne_zero_of_re_pos (by linarith [hw_re])
-      have hΛ_def : completedRiemannZeta w = riemannZeta w * Complex.Gammaℝ w := by
-        have hzeta_def := (riemannZeta_def_of_ne_zero (s := w) hw_ne0)
-        have hzeta_mul := congrArg (fun x => x * Complex.Gammaℝ w) hzeta_def
-        have : riemannZeta w * Complex.Gammaℝ w = completedRiemannZeta w := by
-          simpa [div_eq_mul_inv, mul_assoc, hGamma_ne0] using hzeta_mul
-        simpa [mul_comm, mul_left_comm, mul_assoc] using this.symm
-      have hΛ_bound :
-          ‖completedRiemannZeta w‖ ≤ (2 + 2 * ‖w‖) * Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) := by
-        calc
-          ‖completedRiemannZeta w‖ = ‖riemannZeta w * Complex.Gammaℝ w‖ := by simp [hΛ_def]
-          _ ≤ ‖riemannZeta w‖ * ‖Complex.Gammaℝ w‖ := norm_mul_le _ _
-          _ ≤ (2 + 2 * ‖w‖) * Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) := by
-            exact mul_le_mul hzeta_le hGamma (by positivity) (by positivity)
-      have hΛ0_def : completedRiemannZeta₀ w =
-          completedRiemannZeta w + 1 / w + 1 / (1 - w) := by
-        have h := completedRiemannZeta_eq w
-        have h' := congrArg (fun x => x + (1 / w) + (1 / (1 - w))) h
-        simpa [add_assoc, add_left_comm, add_comm, sub_eq_add_neg] using h'.symm
-      have hinv1 : ‖1 / w‖ ≤ 1 := by
-        have : (1 : ℝ) ≤ ‖w‖ := le_trans (by norm_num) (le_of_lt hw_large)
-        simpa [one_div, norm_inv] using inv_le_one_of_one_le₀ this
-      have hinv2 : ‖1 / (1 - w)‖ ≤ 1 := by
-        have hnorm : ‖w‖ ≤ ‖w - 1‖ + 1 := by
-          have : ‖(w - 1) + (1 : ℂ)‖ ≤ ‖w - 1‖ + ‖(1 : ℂ)‖ := norm_add_le _ _
-          simpa [sub_add_cancel w (1 : ℂ), norm_one] using this
-        have : (2 : ℝ) ≤ ‖w - 1‖ := by linarith [hw_large, hnorm]
-        have : (1 : ℝ) ≤ ‖w - 1‖ := le_trans (by norm_num) this
-        simpa [one_div, norm_inv, norm_sub_rev] using inv_le_one_of_one_le₀ this
-      have hΛ0_bound : ‖completedRiemannZeta₀ w‖ ≤ ‖completedRiemannZeta w‖ + 2 := by
-        have : ‖completedRiemannZeta₀ w‖ ≤ ‖completedRiemannZeta w‖ + ‖1 / w‖ + ‖1 / (1 - w)‖ := by
-          simpa [hΛ0_def, add_assoc] using
-            (norm_add₃_le (a := completedRiemannZeta w) (b := (1 / w)) (c := (1 / (1 - w))))
-        linarith [this, hinv1, hinv2]
-      have hB_nonneg : 0 ≤ CΓ * ‖w‖ * Real.log (1 + ‖w‖) := by
-        have hlog : 0 ≤ Real.log (1 + ‖w‖) := Real.log_nonneg (by linarith [norm_nonneg w])
-        have hC0 : 0 ≤ CΓ := le_of_lt hCΓ_pos
-        exact mul_nonneg (mul_nonneg hC0 (norm_nonneg w)) hlog
-      have hexp_ge_one : (1 : ℝ) ≤ Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) := by
-        simpa using (Real.one_le_exp_iff.2 hB_nonneg)
-      have hΛ0_mul_exp :
-          ‖completedRiemannZeta₀ w‖ ≤ (5 + 5 * ‖w‖) * Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) := by
-        have hw1 : (1 : ℝ) ≤ ‖w‖ := le_trans (by norm_num) (le_of_lt hw_large)
-        have h2 : (2 : ℝ) ≤ (3 + 3 * ‖w‖) * Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) := by
-          nlinarith [hexp_ge_one, hw1]
-        have :
-            ‖completedRiemannZeta w‖ + 2 ≤
-              (5 + 5 * ‖w‖) * Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) := by
-          nlinarith [hΛ_bound, h2]
-        exact le_trans hΛ0_bound this
-      have hlog : Real.log (1 + ‖w‖) ≤ (1 + ‖w‖) ^ ε / ε :=
-        Real.log_le_rpow_div (by linarith [norm_nonneg w]) hε
-      have hB_le : CΓ * ‖w‖ * Real.log (1 + ‖w‖) ≤ (CΓ / ε) * (1 + ‖w‖) ^ (1 + ε) := by
-        have hw_le : ‖w‖ ≤ 1 + ‖w‖ := by linarith [norm_nonneg w]
-        have hpos : 0 < (1 + ‖w‖ : ℝ) := by linarith [norm_nonneg w]
-        have hlog' : Real.log (1 + ‖w‖) ≤ (1 / ε) * (1 + ‖w‖) ^ ε := by
-          simpa [div_eq_mul_inv, one_div, mul_assoc, mul_left_comm, mul_comm] using hlog
-        have hpowε_nonneg : 0 ≤ (1 + ‖w‖) ^ ε := by positivity
-        have hstep1 : ‖w‖ * Real.log (1 + ‖w‖) ≤ ‖w‖ * ((1 / ε) * (1 + ‖w‖) ^ ε) :=
-          mul_le_mul_of_nonneg_left hlog' (norm_nonneg w)
-        have hfactor_nonneg : 0 ≤ (1 / ε) * (1 + ‖w‖) ^ ε := by
-          exact mul_nonneg (by positivity) hpowε_nonneg
-        have hstep2 :
-            ‖w‖ * ((1 / ε) * (1 + ‖w‖) ^ ε) ≤ (1 + ‖w‖) * ((1 / ε) * (1 + ‖w‖) ^ ε) :=
-          mul_le_mul_of_nonneg_right hw_le hfactor_nonneg
-        have hmulPow : (1 + ‖w‖) * (1 + ‖w‖) ^ ε = (1 + ‖w‖) ^ (1 + ε) := by
-          have h := (Real.rpow_add hpos (1 : ℝ) ε)
-          simpa [Real.rpow_one, mul_assoc, mul_left_comm, mul_comm] using h.symm
-        have hstep :
-            ‖w‖ * Real.log (1 + ‖w‖) ≤ (1 / ε) * (1 + ‖w‖) ^ (1 + ε) := by
-          have : ‖w‖ * Real.log (1 + ‖w‖) ≤ (1 + ‖w‖) * ((1 / ε) * (1 + ‖w‖) ^ ε) :=
-            le_trans hstep1 hstep2
-          calc
-            ‖w‖ * Real.log (1 + ‖w‖)
-                ≤ (1 + ‖w‖) * ((1 / ε) * (1 + ‖w‖) ^ ε) := this
-            _ = (1 / ε) * ((1 + ‖w‖) * (1 + ‖w‖) ^ ε) := by ring
-            _ = (1 / ε) * (1 + ‖w‖) ^ (1 + ε) := by simp [hmulPow]
-        have hCΓ0 : 0 ≤ CΓ := le_of_lt hCΓ_pos
-        have := mul_le_mul_of_nonneg_left hstep hCΓ0
-        simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using this
-      have hpref :
-          (5 + 5 * ‖w‖) ≤ Real.exp (10 * (1 + ‖w‖) ^ (1 + ε)) := by
-        have hlin : (5 + 5 * ‖w‖ : ℝ) ≤ 10 * (1 + ‖w‖) := by nlinarith [norm_nonneg w]
-        have hbase : (1 : ℝ) ≤ (1 + ‖w‖) := by linarith [norm_nonneg w]
-        have hexp : (1 + ‖w‖) ≤ (1 + ‖w‖) ^ (1 + ε) := by
-          have : (1 : ℝ) ≤ (1 + ε : ℝ) := by linarith [le_of_lt hε]
-          simpa [Real.rpow_one] using (Real.rpow_le_rpow_of_exponent_le hbase this)
-        have : (10 * (1 + ‖w‖) : ℝ) ≤ 10 * (1 + ‖w‖) ^ (1 + ε) := by nlinarith [hexp]
-        exact le_trans hlin (le_trans this (Real.le_exp_self _))
-      have hbig :
-          ‖completedRiemannZeta₀ w‖ ≤
-            Real.exp ((10 + CΓ / ε) * (1 + ‖w‖) ^ (1 + ε)) := by
-        set X : ℝ := (1 + ‖w‖) ^ (1 + ε)
-        have hexp_replace :
-            Real.exp (CΓ * ‖w‖ * Real.log (1 + ‖w‖)) ≤ Real.exp ((CΓ / ε) * X) :=
-          Real.exp_le_exp.2 (by simpa [X] using hB_le)
-        have hC0 : 0 ≤ (5 + 5 * ‖w‖ : ℝ) := by positivity
-        have h1 : ‖completedRiemannZeta₀ w‖ ≤ (5 + 5 * ‖w‖) * Real.exp ((CΓ / ε) * X) :=
-          le_trans hΛ0_mul_exp (by
-            simpa [mul_assoc] using (mul_le_mul_of_nonneg_left hexp_replace hC0))
-        have h2 :
-            (5 + 5 * ‖w‖) * Real.exp ((CΓ / ε) * X) ≤
-              Real.exp (10 * X) * Real.exp ((CΓ / ε) * X) := by
-          have : (5 + 5 * ‖w‖) ≤ Real.exp (10 * X) := by
-            simpa [X] using hpref
-          exact mul_le_mul_of_nonneg_right this (by positivity)
-        have h3 : Real.exp (10 * X) * Real.exp ((CΓ / ε) * X) = Real.exp ((10 + CΓ / ε) * X) := by
-          calc
-            Real.exp (10 * X) * Real.exp ((CΓ / ε) * X)
-                = Real.exp (10 * X + (CΓ / ε) * X) := by
-                    simp [Real.exp_add]
-            _ = Real.exp ((10 + CΓ / ε) * X) := by ring_nf
-        have : ‖completedRiemannZeta₀ w‖ ≤ Real.exp ((10 + CΓ / ε) * X) :=
-          le_trans (le_trans h1 h2) (by simp [h3])
-        simpa [X] using this
-      have hw_le_z : (1 + ‖w‖ : ℝ) ≤ 2 * (1 + ‖z‖) := by linarith [hw_norm_le, norm_nonneg z]
-      have hwbase_nonneg : (0 : ℝ) ≤ 1 + ‖w‖ := by linarith [norm_nonneg w]
-      have hε' : (0 : ℝ) ≤ 1 + ε := by linarith [le_of_lt hε]
-      have hpow_le :
-          (1 + ‖w‖) ^ (1 + ε) ≤ (2 * (1 + ‖z‖)) ^ (1 + ε) :=
-        Real.rpow_le_rpow hwbase_nonneg hw_le_z hε'
-      have hC_ge : ((2 : ℝ) ^ (1 + ε)) * (10 + CΓ / ε) ≤ C := by
-        have : ((2 : ℝ) ^ (1 + ε)) * (10 + CΓ / ε) + 1 ≤ C := le_max_right _ _
-        linarith
-      have hzpos : 0 ≤ (1 + ‖z‖ : ℝ) := by linarith [norm_nonneg z]
-      have hmul_rpow :
-          (2 * (1 + ‖z‖)) ^ (1 + ε) = (2 : ℝ) ^ (1 + ε) * (1 + ‖z‖) ^ (1 + ε) := by
-        simpa [mul_assoc] using
-          (Real.mul_rpow (x := (2 : ℝ)) (y := (1 + ‖z‖)) (z := (1 + ε)) (by positivity) hzpos)
-      have hdom :
-          (10 + CΓ / ε) * (1 + ‖w‖) ^ (1 + ε) ≤ C * (1 + ‖z‖) ^ (1 + ε) := by
-        calc
-          (10 + CΓ / ε) * (1 + ‖w‖) ^ (1 + ε)
-              ≤ (10 + CΓ / ε) * (2 * (1 + ‖z‖)) ^ (1 + ε) := by gcongr
-          _ = ((2 : ℝ) ^ (1 + ε)) * (10 + CΓ / ε) * (1 + ‖z‖) ^ (1 + ε) := by
-                simp [hmul_rpow]
-                ring
-          _ ≤ C * (1 + ‖z‖) ^ (1 + ε) := by
-                have : ((2 : ℝ) ^ (1 + ε)) * (10 + CΓ / ε) ≤ C := hC_ge
-                gcongr
-      have : ‖completedRiemannZeta₀ w‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (1 + ε)) := by
-        exact le_trans hbig (Real.exp_le_exp.2 hdom)
-      simpa [htransfer] using this
 
 /-- A coarse global growth bound for the removable extension of `(s - 1)ζ(s)`.
 

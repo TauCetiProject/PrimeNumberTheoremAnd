@@ -12,6 +12,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
+public import TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValues
 
 
@@ -21,8 +22,9 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValu
 This file specializes Tao's finite-order Hadamard factorization theorem
 ([tao246bComplexAnalysis], Thm. 22)
 to the entire completed zeta function `completedRiemannZeta₀` (Λ₀) and to Riemann's entire
-`riemannXi`. The analytic input is the order-one bound `completedRiemannZeta₀_order_one` from
-`ZetaFiniteOrder`; the product is the divisor-indexed canonical Weierstrass product at genus
+`riemannXi`. The analytic input is the native global completed Hurwitz zeta bound at parameter zero
+from `TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth`; the product is the divisor-indexed canonical
+Weierstrass product at genus
 `⌊ρ⌋ = 1`. Native-support products use `TauCeti.divisorProductOne`, with multiplicities
 from `MeromorphicOn.divisor`.
 
@@ -85,10 +87,10 @@ open scoped BigOperators
 /-- The completed zeta function `Λ₀` has order at most one. -/
 theorem completedRiemannZeta₀_entireOfOrderAtMost_one :
     Complex.Hadamard.EntireOfOrderAtMost (1 : ℝ) completedRiemannZeta₀ := by
-  refine ⟨differentiable_completedZeta₀, ?_⟩
-  intro ε hε
-  simpa [add_comm, add_left_comm, add_assoc] using
-    (Complex.completedRiemannZeta₀_order_one ε hε)
+  obtain ⟨C, _, hC⟩ := HurwitzZeta.exists_norm_completedHurwitzZetaEven₀_le_exp_mul_log 0
+  apply Complex.Hadamard.EntireOfOrderAtMost.of_orderLE (by norm_num)
+    differentiable_completedZeta₀
+  exact TauCeti.orderLE_one_of_norm_le_exp_mul_log hC
 
 /-- The Riemann xi function `ξ` has order at most one. -/
 theorem riemannXi_entireOfOrderAtMost_one :

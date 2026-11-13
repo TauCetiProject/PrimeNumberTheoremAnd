@@ -1133,7 +1133,7 @@ lemma zeta_mul_tau_square_eq (s : ℂ) (hs : 1 < s.re) :
 blueprint_comment /--
 The zeta-cubed identity can also be deduced by cancelling a zeta factor from the Ramanujan formula
 and the baby Rankin–Selberg identity. The canonical theorem below uses the direct Euler-product
-proof, which is independent of the admitted general Ramanujan formula.
+proof, which is independent of the general Ramanujan formula.
 -/
 
 -- `zeta_pow_three_eq` (IK 1.30) is proved below via Euler products, after the

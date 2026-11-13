@@ -8,6 +8,7 @@ public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Topology.MetricSpace.Cauchy
+import TauCeti.Analysis.Asymptotics.Lemmas
 
 /-!
 # Bilateral Laplace inversion
@@ -2377,65 +2378,28 @@ lemma bounded_of_continuous_of_isBigO_exp_atBot_atTop
     (htop : f =O[Filter.atTop] fun y : ℝ => Real.exp (cTop * y))
     (hbot : f =O[Filter.atBot] fun y : ℝ => Real.exp (cBot * y)) :
     ∃ B : ℝ, 0 ≤ B ∧ ∀ y : ℝ, ‖f y‖ ≤ B := by
-  obtain ⟨Ctop, hCtop⟩ := htop.bound
-  let Ctop' : ℝ := max Ctop 0
-  have hCtop'_nonneg : 0 ≤ Ctop' := le_max_right _ _
-  have htop_ev : ∀ᶠ y in Filter.atTop, ‖f y‖ ≤ Ctop' := by
-    filter_upwards [hCtop, Filter.eventually_ge_atTop (0 : ℝ)] with y hCy hy0
-    have hnorm : ‖Real.exp (cTop * y)‖ = Real.exp (cTop * y) := by
-      rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-    have hexp_le : Real.exp (cTop * y) ≤ 1 := by
-      rw [← Real.exp_zero]
-      exact Real.exp_le_exp.mpr (mul_nonpos_of_nonpos_of_nonneg hcTop.le hy0)
-    calc
-      ‖f y‖ ≤ Ctop * ‖Real.exp (cTop * y)‖ := hCy
-      _ = Ctop * Real.exp (cTop * y) := by rw [hnorm]
-      _ ≤ Ctop' * Real.exp (cTop * y) := by
-        exact mul_le_mul_of_nonneg_right (le_max_left _ _) (Real.exp_nonneg _)
-      _ ≤ Ctop' * 1 := by
-        exact mul_le_mul_of_nonneg_left hexp_le hCtop'_nonneg
-      _ = Ctop' := by ring
-  obtain ⟨Ytop, hYtop⟩ := Filter.eventually_atTop.mp htop_ev
-  obtain ⟨Cbot, hCbot⟩ := hbot.bound
-  let Cbot' : ℝ := max Cbot 0
-  have hCbot'_nonneg : 0 ≤ Cbot' := le_max_right _ _
-  have hbot_ev : ∀ᶠ y in Filter.atBot, ‖f y‖ ≤ Cbot' := by
-    filter_upwards [hCbot, Filter.eventually_le_atBot (0 : ℝ)] with y hCy hy0
-    have hnorm : ‖Real.exp (cBot * y)‖ = Real.exp (cBot * y) := by
-      rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
-    have hexp_le : Real.exp (cBot * y) ≤ 1 := by
-      rw [← Real.exp_zero]
-      exact Real.exp_le_exp.mpr (mul_nonpos_of_nonneg_of_nonpos hcBot.le hy0)
-    calc
-      ‖f y‖ ≤ Cbot * ‖Real.exp (cBot * y)‖ := hCy
-      _ = Cbot * Real.exp (cBot * y) := by rw [hnorm]
-      _ ≤ Cbot' * Real.exp (cBot * y) := by
-        exact mul_le_mul_of_nonneg_right (le_max_left _ _) (Real.exp_nonneg _)
-      _ ≤ Cbot' * 1 := by
-        exact mul_le_mul_of_nonneg_left hexp_le hCbot'_nonneg
-      _ = Cbot' := by ring
-  obtain ⟨Ybot, hYbot⟩ := Filter.eventually_atBot.mp hbot_ev
-  let lo : ℝ := min Ybot Ytop
-  let hi : ℝ := max Ybot Ytop
-  obtain ⟨Cmid, hCmid⟩ := isCompact_Icc.exists_bound_of_continuousOn
-    (s := Set.Icc lo hi) hf_cont.continuousOn
-  let B : ℝ := max Ctop' (max Cbot' (max Cmid 0))
-  refine ⟨B, ?_, ?_⟩
-  · exact le_max_of_le_right (le_max_of_le_right (le_max_right _ _))
-  · intro y
-    by_cases htop_case : Ytop ≤ y
-    · exact (hYtop y htop_case).trans (le_max_left _ _)
-    · by_cases hbot_case : y ≤ Ybot
-      · exact (hYbot y hbot_case).trans
-          ((le_max_left _ _).trans (le_max_right _ _))
-      · have hy_gt_bot : Ybot < y := lt_of_not_ge hbot_case
-        have hy_lt_top : y < Ytop := lt_of_not_ge htop_case
-        have hylo : lo ≤ y :=
-          (min_le_left Ybot Ytop).trans hy_gt_bot.le
-        have hyhi : y ≤ hi :=
-          hy_lt_top.le.trans (le_max_right Ybot Ytop)
-        exact (hCmid y ⟨hylo, hyhi⟩).trans
-          ((le_max_left _ _).trans ((le_max_right _ _).trans (le_max_right _ _)))
+  have ht := htop.isBigO_principal_Ici_of_continuousOn (a := 0)
+    hf_cont.continuousOn (by fun_prop) (fun _ _ ↦ Real.exp_ne_zero _)
+  have hb := (hbot.comp_tendsto tendsto_neg_atTop_atBot).isBigO_principal_Ici_of_continuousOn
+    (a := 0) (hf_cont.comp continuous_neg).continuousOn (by fun_prop)
+    (fun _ _ ↦ Real.exp_ne_zero _)
+  obtain ⟨Ct, hCt⟩ := Asymptotics.isBigO_principal.mp ht
+  obtain ⟨Cb, hCb⟩ := Asymptotics.isBigO_principal.mp hb
+  have hCt0 : 0 ≤ Ct := by simpa using (norm_nonneg (f 0)).trans (hCt 0 (by simp))
+  have hCb0 : 0 ≤ Cb := by
+    have h := hCb 0 (by simp)
+    simp only [Function.comp_apply, neg_zero, mul_zero, Real.exp_zero, norm_one, mul_one] at h
+    exact (norm_nonneg (f 0)).trans h
+  refine ⟨max Ct Cb, hCt0.trans (le_max_left _ _), fun y ↦ ?_⟩
+  rcases le_or_gt 0 y with hy | hy
+  · refine (hCt y hy).trans ((mul_le_of_le_one_right hCt0 ?_).trans (le_max_left _ _))
+    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _), Real.exp_le_one_iff]
+    exact mul_nonpos_of_nonpos_of_nonneg hcTop.le hy
+  · have h := hCb (-y) (neg_nonneg.mpr hy.le)
+    simp only [Function.comp_apply, neg_neg] at h
+    refine h.trans ((mul_le_of_le_one_right hCb0 ?_).trans (le_max_right _ _))
+    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _), Real.exp_le_one_iff]
+    exact mul_nonpos_of_nonneg_of_nonpos hcBot.le hy.le
 
 /-- Continuity of the bilateral Laplace integral along the `σ + tI` vertical line,
 under integrability of the exponentially weighted source. Companion to

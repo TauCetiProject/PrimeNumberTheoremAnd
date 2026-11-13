@@ -7,7 +7,7 @@ module
 
 
 public import TauCeti.Analysis.SpecialFunctions.Gamma.Growth
-public import TauCeti.Analysis.SpecialFunctions.Gamma.Stirling
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Stirling.Basic
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.Analysis.SpecialFunctions.Stirling
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
