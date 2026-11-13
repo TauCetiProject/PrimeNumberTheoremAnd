@@ -672,9 +672,235 @@ theorem LSeries_sigma_eq_riemannZeta_mul (ν : ℂ) {s : ℂ} (hs : 1 < s.re) (h
     rw[Complex.sub_re] at hsν
     exact_mod_cast (by linarith)
 
+/-- The native fourth divisor-function coefficient dominates the squared divisor count. -/
+private lemma ramanujan_square_le_choose (k : ℕ) : (k + 1) ^ 2 ≤ (k + 3).choose 3 := by
+  induction k with
+  | zero => norm_num
+  | succ k ih =>
+    have h2 : 2 * k + 3 ≤ (k + 3).choose 2 := by
+      rw [Nat.choose_two_right]
+      have h : 2 * (2 * k + 3) ≤ (k + 3) * (k + 3 - 1) := by
+        have : k + 3 - 1 = k + 2 := by omega
+        rw [this]
+        nlinarith
+      omega
+    rw [show k + 1 + 3 = (k + 3) + 1 by omega, Nat.choose_succ_succ]
+    nlinarith
+
+private lemma ramanujan_tau_sq_le_d_four (n : ℕ) : (tau n)^2 ≤ d 4 n := by
+  rcases eq_or_ne n 0 with rfl | hn
+  · simp
+  have ht : (tau.pmul tau).IsMultiplicative :=
+    (isMultiplicative_sigma (k := 0)).pmul (isMultiplicative_sigma (k := 0))
+  rw [← show tau.pmul tau n = (tau n)^2 from (pow_two _).symm,
+    ht.multiplicative_factorization _ hn,
+    (d_isMultiplicative 4).multiplicative_factorization _ hn,
+    prod_factorization_eq_prod_primeFactors, prod_factorization_eq_prod_primeFactors]
+  apply Finset.prod_le_prod
+  intro p hp
+  have hpp := prime_of_mem_primeFactors hp
+  simp only [ArithmeticFunction.pmul_apply]
+  rw [← pow_two]
+  change (tau (p ^ (n.factorization p))) ^ 2 ≤ _
+  rw [sigma_zero_apply_prime_pow hpp, d_apply_prime_pow (by norm_num) hpp]
+  exact ramanujan_square_le_choose _
+
+private lemma ramanujan_norm_sigmaR_le (α : ℂ) {n : ℕ} (hn : n ≠ 0) :
+    ‖sigmaR α n‖ ≤ (tau n : ℝ) * (n : ℝ) ^ max α.re 0 := by
+  rw [sigmaR_apply]
+  apply (norm_sum_le _ _).trans
+  have hd (d : ℕ) (hd : d ∈ n.divisors) :
+      ‖(d : ℂ) ^ α‖ ≤ (n : ℝ) ^ max α.re 0 := by
+    rw [Complex.norm_natCast_cpow_of_pos (Nat.pos_of_mem_divisors hd)]
+    apply (Real.rpow_le_rpow_of_exponent_le
+      (Nat.one_le_cast.mpr (Nat.pos_of_mem_divisors hd)) (le_max_left α.re 0)).trans
+    have hdn : (d : ℝ) ≤ (n : ℝ) := by
+      exact_mod_cast (Nat.le_of_dvd (Nat.pos_of_ne_zero hn) (Nat.dvd_of_mem_divisors hd))
+    exact Real.rpow_le_rpow (by positivity) hdn (le_max_right α.re 0)
+  apply (Finset.sum_le_sum hd).trans_eq
+  rw [Finset.sum_const, nsmul_eq_mul]
+  congr 1
+  simp [tau, sigma_zero_apply]
+
+private lemma ramanujan_norm_sigma_product_le (α β : ℂ) {n : ℕ} (hn : n ≠ 0) :
+    ‖sigmaR α n * sigmaR β n‖ ≤ (d 4 n : ℝ) *
+      (n : ℝ) ^ (max α.re 0 + max β.re 0) := by
+  rw [norm_mul]
+  apply ((mul_le_mul (ramanujan_norm_sigmaR_le α hn) (ramanujan_norm_sigmaR_le β hn)
+    (norm_nonneg _) (by positivity))).trans
+  calc
+    ((tau n : ℝ) * (n : ℝ) ^ max α.re 0) *
+        ((tau n : ℝ) * (n : ℝ) ^ max β.re 0) =
+        (tau n : ℝ)^2 * (n : ℝ) ^ (max α.re 0 + max β.re 0) := by
+      rw [Real.rpow_add (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn))]
+      ring
+    _ ≤ _ := mul_le_mul_of_nonneg_right (by exact_mod_cast ramanujan_tau_sq_le_d_four n)
+      (Real.rpow_nonneg (by positivity) _)
+
+/-- The four original half-plane hypotheses give absolute convergence for complex parameters. -/
+private lemma ramanujan_product_sigma_summable (α β s : ℂ)
+    (h1 : 1 < s.re) (h2 : 1 < (s - α).re)
+    (h3 : 1 < (s - β).re) (h4 : 1 < (s - α - β).re) :
+    LSeriesSummable (fun n ↦ sigmaR α n * sigmaR β n) s := by
+  let ρ := max α.re 0 + max β.re 0
+  have hr : 1 < (s - (ρ : ℂ)).re := by
+    simp only [Complex.sub_re, Complex.ofReal_re] at *
+    dsimp only [ρ]
+    rcases le_total α.re 0 with ha | ha <;> rcases le_total β.re 0 with hb | hb
+    · simpa only [max_eq_right ha, max_eq_right hb, zero_add, sub_zero] using h1
+    · simpa only [max_eq_right ha, max_eq_left hb, zero_add] using h3
+    · simpa only [max_eq_left ha, max_eq_right hb, add_zero] using h2
+    · rw [max_eq_left ha, max_eq_left hb]
+      linarith
+  refine Summable.of_norm_bounded (LSeries_d_summable 4 hr).norm ?_
+  intro n
+  rcases eq_or_ne n 0 with rfl | hn
+  · simp only [LSeries.term_zero, norm_zero, le_refl]
+  simp only [LSeries.norm_term_eq, hn, ↓reduceIte, ArithmeticFunction.natCoe_apply, Complex.norm_natCast,
+    Complex.sub_re, Complex.ofReal_re]
+  have hnpos : 0 < (n : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn)
+  rw [Real.rpow_sub hnpos]
+  calc
+    ‖sigmaR α n * sigmaR β n‖ / (n : ℝ) ^ s.re ≤
+        ((d 4 n : ℝ) * (n : ℝ) ^ ρ) / (n : ℝ) ^ s.re :=
+      div_le_div_of_nonneg_right (ramanujan_norm_sigma_product_le α β hn) (Real.rpow_nonneg hnpos.le _)
+    _ = _ := by rw [div_div_eq_mul_div]
+
+private lemma ramanujan_geom_weighted_relation {a x : ℂ}
+    (h : Summable (fun k : ℕ ↦ (∑ i ∈ range (k + 1), a ^ i) * x ^ k)) (hx : ‖x‖ < 1) :
+    (1 - a*x) * (∑' k : ℕ, (∑ i ∈ range (k + 1), a ^ i) * x ^ k) = (1-x)⁻¹ := by
+  have H := h.hasSum.sub_smul_eq_of_linearRec₁ (D := a*x)
+    (hasSum_geometric_of_norm_lt_one hx) (by simp) (fun r ↦ ?_)
+  · simpa only [smul_eq_mul, sub_mul, one_mul] using H
+  · change (∑ i ∈ range (r+1+1), a^i) * x^(r+1) =
+      (a*x)*((∑ i ∈ range (r+1), a^i)*x^r)+x^(r+1)
+    rw [show (∑ i ∈ range (r+1+1), a^i) = a*(∑ i ∈ range (r+1), a^i)+1
+      from geom_sum_succ, pow_succ]
+    ring
+
+private lemma ramanujan_geom_product_relation (a b : ℂ) (k : ℕ) :
+    (∑ i ∈ range (k+2), a^i) * (∑ i ∈ range (k+2), b^i) =
+      a*b*((∑ i ∈ range (k+1), a^i) * (∑ i ∈ range (k+1), b^i)) +
+      (∑ i ∈ range (k+2), a^i) + (∑ i ∈ range (k+2), b^i) - 1 := by
+  have ha : (∑ i ∈ range (k+2), a^i) = a*(∑ i ∈ range (k+1), a^i)+1 := geom_sum_succ
+  have hb : (∑ i ∈ range (k+2), b^i) = b*(∑ i ∈ range (k+1), b^i)+1 := geom_sum_succ
+  rw [ha,hb]
+  ring
+
+/-- A native first-order recurrence computes the local factor without dividing by 1-a or 1-b. -/
+private lemma ramanujan_geom_product_sum {a b x : ℂ}
+    (ha : Summable (fun k : ℕ ↦ (∑ i ∈ range (k+1), a^i)*x^k))
+    (hb : Summable (fun k : ℕ ↦ (∑ i ∈ range (k+1), b^i)*x^k))
+    (h : Summable (fun k : ℕ ↦ (∑ i ∈ range (k+1), a^i)*(∑ i ∈ range (k+1), b^i)*x^k))
+    (hx : ‖x‖ < 1) (hax : 1-a*x ≠ 0) (hbx : 1-b*x ≠ 0) (habx : 1-a*b*x ≠ 0) :
+    (∑' k : ℕ, (∑ i ∈ range (k+1), a^i)*(∑ i ∈ range (k+1), b^i)*x^k) =
+      (1-a*b*x^2) / ((1-x)*(1-a*x)*(1-b*x)*(1-a*b*x)) := by
+  have hx0 : 1-x ≠ 0 := by
+    intro hc
+    have he : x = 1 := (sub_eq_zero.mp hc).symm
+    simp only [he, norm_one, lt_self_iff_false] at hx
+  have HA := ramanujan_geom_weighted_relation ha hx
+  have HB := ramanujan_geom_weighted_relation hb hx
+  have HG : (1-x) * (1-x)⁻¹ = 1 := mul_inv_cancel₀ hx0
+  have H := h.hasSum.sub_smul_eq_of_linearRec₁ (D := a*b*x)
+    ((ha.hasSum.add hb.hasSum).sub (hasSum_geometric_of_norm_lt_one hx))
+    (by simp) (fun r ↦ ?_)
+  · apply (eq_div_iff (mul_ne_zero (mul_ne_zero (mul_ne_zero hx0 hax) hbx) habx)).2
+    simp only [smul_eq_mul] at H
+    linear_combination
+      ((1-x)*(1-a*x)*(1-b*x))*H + ((1-x)*(1-b*x))*HA +
+      ((1-x)*(1-a*x))*HB + (1-a*b*x^2)*HG
+  · change (∑ i ∈ range (r+1+1), a^i)*(∑ i ∈ range (r+1+1), b^i)*x^(r+1) =
+      (a*b*x)*((∑ i ∈ range (r+1), a^i)*(∑ i ∈ range (r+1), b^i)*x^r) +
+      ((∑ i ∈ range (r+1+1), a^i)*x^(r+1)+(∑ i ∈ range (r+1+1), b^i)*x^(r+1)-x^(r+1))
+    rw [show r+1+1 = r+2 by omega, ramanujan_geom_product_relation, pow_succ]
+    ring
+
+private lemma ramanujan_sigma_summable {α s : ℂ} (h1 : 1 < s.re) (h2 : 1 < (s - α).re) :
+    LSeriesSummable (sigmaR α) s := by
+  have hp : LSeriesSummable (powR α) s := by
+    apply LSeriesSummable_of_abscissaOfAbsConv_lt_re
+    apply (abscissa_powR_le α).trans_lt
+    exact_mod_cast (show α.re+1 < s.re from by rw [Complex.sub_re] at h2; linarith)
+  have hz : LSeriesSummable (zeta : ArithmeticFunction ℂ) s :=
+    LSeriesSummable_zeta_iff.mpr h1
+  have H := ArithmeticFunction.LSeriesSummable_mul hz hp
+  simpa only [← sigmaR_eq_zeta_mul_powR] using H
+
+private lemma ramanujan_sigma_term_prime_power (p : ℕ) (hp : p.Prime) (α s : ℂ) (k : ℕ) :
+    LSeries.term (sigmaR α) s (p^k) =
+      (∑ i ∈ range (k+1), ((p : ℂ)^α)^i) * ((p : ℂ)^(-s))^k := by
+  rw [TauCeti.LSeries.term_pow p hp.ne_zero k, sigmaR_apply_prime_pow hp]
+  simp only [Complex.cpow_nat_mul]
+
+private lemma ramanujan_local (α β s : ℂ) (p : Nat.Primes)
+    (h1 : 1 < s.re) (h2 : 1 < (s - α).re) (h3 : 1 < (s - β).re)
+    (h4 : 1 < (s - α - β).re) :
+    ∑' k : ℕ, LSeries.term (fun n ↦ sigmaR α n * sigmaR β n) s (p.val^k) =
+      (1 - (p : ℂ)^(-(2*s-α-β))) /
+        ((1-(p : ℂ)^(-s))*(1-(p : ℂ)^(-(s - α)))*
+          (1-(p : ℂ)^(-(s - β)))*(1-(p : ℂ)^(-(s - α - β)))) := by
+  let a : ℂ := (p : ℂ)^α
+  let b : ℂ := (p : ℂ)^β
+  let x : ℂ := (p : ℂ)^(-s)
+  have ha : Summable (fun k : ℕ ↦ (∑ i ∈ range (k+1), a^i)*x^k) := by
+    convert (ramanujan_sigma_summable h1 h2).comp_injective (Nat.pow_right_injective p.prop.two_le) using 1
+    ext k
+    exact (ramanujan_sigma_term_prime_power p p.prop α s k).symm
+  have hb : Summable (fun k : ℕ ↦ (∑ i ∈ range (k+1), b^i)*x^k) := by
+    convert (ramanujan_sigma_summable h1 h3).comp_injective (Nat.pow_right_injective p.prop.two_le) using 1
+    ext k
+    exact (ramanujan_sigma_term_prime_power p p.prop β s k).symm
+  have hterm (k : ℕ) : LSeries.term (fun n ↦ sigmaR α n * sigmaR β n) s (p.val^k) =
+      (∑ i ∈ range (k+1), a^i)*(∑ i ∈ range (k+1), b^i)*x^k := by
+    rw [TauCeti.LSeries.term_pow p p.prop.ne_zero k,
+      sigmaR_apply_prime_pow p.prop, sigmaR_apply_prime_pow p.prop]
+    simp only [Complex.cpow_nat_mul]
+    rfl
+  have h : Summable (fun k : ℕ ↦
+      (∑ i ∈ range (k+1), a^i)*(∑ i ∈ range (k+1), b^i)*x^k) := by
+    convert! (ramanujan_product_sigma_summable α β s h1 h2 h3 h4).comp_injective
+      (Nat.pow_right_injective p.prop.two_le) using 1
+    ext k
+    exact (hterm k).symm
+  have hx : ‖x‖ < 1 := by
+    dsimp only [x]
+    rw [Complex.norm_natCast_cpow_of_pos p.prop.pos, Complex.neg_re]
+    have hp1 : (1 : ℝ) < (p.val : ℝ) := by exact_mod_cast p.prop.one_lt
+    simpa only [Real.rpow_zero] using Real.rpow_lt_rpow_of_exponent_lt hp1
+      (show -s.re < 0 by linarith)
+  have hax : a*x = (p : ℂ)^(-(s - α)) := by
+    dsimp only [a,x]
+    rw [← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero)]
+    congr 1
+    ring
+  have hbx : b*x = (p : ℂ)^(-(s - β)) := by
+    dsimp only [b,x]
+    rw [← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero)]
+    congr 1
+    ring
+  have habx : a*b*x = (p : ℂ)^(-(s - α - β)) := by
+    dsimp only [a,b,x]
+    rw [← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero),
+      ← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero)]
+    congr 1
+    ring
+  have habxx : a*b*x^2 = (p : ℂ)^(-(2*s-α-β)) := by
+    rw [pow_two, ← mul_assoc, habx]
+    dsimp only [x]
+    rw [← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero)]
+    congr 1
+    ring
+  have H := ramanujan_geom_product_sum ha hb h hx
+    (by rw [hax]; exact Complex.one_sub_prime_cpow_ne_zero p.prop h2)
+    (by rw [hbx]; exact Complex.one_sub_prime_cpow_ne_zero p.prop h3)
+    (by rw [habx]; exact Complex.one_sub_prime_cpow_ne_zero p.prop h4)
+  simpa only [hterm, habxx,habx,hax,hbx] using H
+
+
 /--
 Ramanujan formula:
-`ζ(s)ζ(s-α)ζ(s-β)ζ(s-α-β)=ζ(2s-α-β) ∑ σ_α(n)σ_β(n)n^(-s)`. -/
+`ζ(s)ζ(s - α)ζ(s - β)ζ(s - α - β)=ζ(2s-α-β) ∑ σ_α(n)σ_β(n)n^(-s)`. -/
 @[blueprint
   "zeta_mul_zeta_mul_zeta_mul_zeta_eq"
   (title := "zeta mul zeta mul zeta mul zeta eq")
@@ -684,14 +910,56 @@ Ramanujan formula:
   \end{verbatim}
    -/)
   (proof := /--
-  This is a direct consequence of the multiplicative properties of the functions involved and the definition of the L-series. The left-hand side can be expressed as a product of L-series corresponding to the functions $\zeta$, $n \mapsto n^{-\alpha}$, and $n \mapsto n^{-\beta}$. The right-hand side involves the L-series of the convolution of $\sigma_\alpha$ and $\sigma_\beta$, which can be expressed in terms of the L-series of $\zeta$ and the power functions. By carefully applying the properties of Dirichlet convolutions and the definitions of the L-series, we can derive the stated formula.
+  Write $\rho=\max(\Re\alpha,0)+\max(\Re\beta,0)$. The four hypotheses give
+  $\Re s>1+\rho$, and the coefficient is bounded in norm by $d_4(n)n^\rho$, so its
+  $L$-series converges absolutely. At a prime $p$, put $a=p^\alpha$, $b=p^\beta$,
+  and $x=p^{-s}$. The finite geometric sums $S_a(k)=\sum_{i=0}^k a^i$ satisfy
+  $S_a(k+1)=aS_a(k)+1$ and
+  $S_a(k+1)S_b(k+1)=abS_a(k)S_b(k)+S_a(k+1)+S_b(k+1)-1$.
+  The native first-order recurrence identity therefore evaluates the local factor as
+  $(1-abx^2)/((1-x)(1-ax)(1-bx)(1-abx))$, without requiring $a\ne1$ or $b\ne1$.
+  Multiplying by the Euler factor of $\zeta(2s-\alpha-\beta)$ cancels its numerator;
+  uniqueness of the native Euler products proves the identity.
   -/)]
 theorem zeta_mul_zeta_mul_zeta_mul_zeta_eq (α β s : ℂ) (h1 : 1 < s.re) (h2 : 1 < (s - α).re)
     (h3 : 1 < (s - β).re) (h4 : 1 < (s - α - β).re) :
     riemannZeta s * riemannZeta (s - α) * riemannZeta (s - β) * riemannZeta (s - α - β) =
       riemannZeta (2 * s - α - β) *
       LSeries (fun n ↦ σᴿ α n * σᴿ β n) s := by
-  sorry
+  have h5 : 1 < (2*s-α-β).re := by
+    simp only [Complex.sub_re, Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat,
+      zero_mul, sub_zero] at *
+    linarith
+  let a : ℕ → ℂ := fun n ↦ sigmaR α n * sigmaR β n
+  have hsum : LSeriesSummable a s := ramanujan_product_sigma_summable α β s h1 h2 h3 h4
+  have hmul : ∀ {m n : ℕ}, m ≠ 0 → n ≠ 0 → m.Coprime n →
+      a (m*n) = a m * a n := by
+    intro m n _ _ hmn
+    dsimp only [a]
+    rw [(isMultiplicative_sigmaR (s := α)).map_mul_of_coprime hmn,
+      (isMultiplicative_sigmaR (s := β)).map_mul_of_coprime hmn]
+    ring
+  have Hprod : HasProd (fun p : Nat.Primes ↦ ∑' k : ℕ, LSeries.term a s (p.val^k))
+      (LSeries a s) :=
+    EulerProduct.eulerProduct_hasProd (by simp [a,sigmaR_one])
+      (TauCeti.LSeries.term_mul_of_coprime hmul) hsum.norm (LSeries.term_zero a s)
+  have Hfour := (((riemannZeta_eulerProduct_hasProd h1).mul
+    (riemannZeta_eulerProduct_hasProd h2)).mul
+    (riemannZeta_eulerProduct_hasProd h3)).mul (riemannZeta_eulerProduct_hasProd h4)
+  have hfactor (p : Nat.Primes) :
+      (1-(p : ℂ)^(-(2*s-α-β)))⁻¹ * (∑' k : ℕ, LSeries.term a s (p.val^k)) =
+        (1-(p : ℂ)^(-s))⁻¹*(1-(p : ℂ)^(-(s - α)))⁻¹*
+          (1-(p : ℂ)^(-(s - β)))⁻¹*(1-(p : ℂ)^(-(s - α - β)))⁻¹ := by
+    rw [ramanujan_local α β s p h1 h2 h3 h4]
+    rw [← mul_div_assoc, inv_mul_cancel₀ (Complex.one_sub_prime_cpow_ne_zero p.prop h5),
+      one_div]
+    simp only [mul_inv]
+  have Hfinal : HasProd (fun p : Nat.Primes ↦
+      (1-(p : ℂ)^(-s))⁻¹*(1-(p : ℂ)^(-(s - α)))⁻¹*
+        (1-(p : ℂ)^(-(s - β)))⁻¹*(1-(p : ℂ)^(-(s - α - β)))⁻¹)
+      (riemannZeta (2*s-α-β)*LSeries a s) := by
+    simpa only [hfactor] using (riemannZeta_eulerProduct_hasProd h5).mul Hprod
+  exact Hfour.unique Hfinal
 
 /-- Corollary:  `ζ(s)^4=ζ(2s) ∑ τ(n)^2 n^(-s)` -/
 @[blueprint
