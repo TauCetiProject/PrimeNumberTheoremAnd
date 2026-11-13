@@ -47,11 +47,9 @@ theorem deriv_riemannZeta_conj (s : ℂ) :
   simp [← deriv_conj_conj']
 
 theorem logDerivZeta_conj (s : ℂ) :
-    (deriv riemannZeta / riemannZeta) (conj s) = conj ((deriv riemannZeta / riemannZeta) s) := by
+    logDeriv riemannZeta (conj s) = conj (logDeriv riemannZeta s) := by
+  unfold logDeriv
   simp [deriv_riemannZeta_conj, riemannZeta_conj]
-
-theorem logDerivZeta_conj' (s : ℂ) :
-    (logDeriv riemannZeta) (conj s) = conj (logDeriv riemannZeta s) := logDerivZeta_conj s
 
 blueprint_comment /--
 % TODO: Submit this to Mathlib.
