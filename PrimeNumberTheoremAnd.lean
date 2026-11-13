@@ -1,7 +1,6 @@
 
 import PrimeNumberTheoremAnd.Auxiliary
 import PrimeNumberTheoremAnd.Backlund.ZeroCountCrude
-import PrimeNumberTheoremAnd.BorelCaratheodory
 import PrimeNumberTheoremAnd.BrunTitchmarsh
 import PrimeNumberTheoremAnd.Consequences
 import PrimeNumberTheoremAnd.Defs
@@ -15,15 +14,12 @@ import PrimeNumberTheoremAnd.IEANTN.Erdos392
 import PrimeNumberTheoremAnd.IEANTN.Mertens
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.LaplaceInversion
-import PrimeNumberTheoremAnd.Mathlib.Algebra.Notation.Support
 import PrimeNumberTheoremAnd.Mathlib.Algebra.Order.Floor.Ring
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Uniformly
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.AbsMax
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.BorelCaratheodory
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalDecomposition
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactorBound
@@ -52,13 +48,10 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Trigonometric
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Basic
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.WeierstrassFactor
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Meromorphic.DivisorHolomorphic
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Meromorphic.DivisorSupport
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaSeries
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.GammaStirlingAux
+import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.GammaBounds
@@ -69,7 +62,7 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
-import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntegrableOn
+import Mathlib.MeasureTheory.Integral.IntegrableOn
 import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.AbelSummation
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
@@ -77,15 +70,13 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelContinu
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaStripBound
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValues
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFunctionalEquation
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.AuxResults
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Basic
+import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.LambdaSquared
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
-import PrimeNumberTheoremAnd.Mathlib.Topology.MetricSpace.Annulus
 import PrimeNumberTheoremAnd.Mathlib.Topology.MetricSpace.Cauchy
 import PrimeNumberTheoremAnd.MediumPNT
 import PrimeNumberTheoremAnd.MellinCalculus
@@ -97,6 +88,6 @@ import PrimeNumberTheoremAnd.SincKernelErrorBounds
 import PrimeNumberTheoremAnd.SmoothExistence
 import PrimeNumberTheoremAnd.Sobolev
 import PrimeNumberTheoremAnd.StrongPNT
-import PrimeNumberTheoremAnd.Wiener
+import PrimeNumberTheoremAnd.FourierDecay
 import PrimeNumberTheoremAnd.ZetaBounds
 import PrimeNumberTheoremAnd.ZetaConj

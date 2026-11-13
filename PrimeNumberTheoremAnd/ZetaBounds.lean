@@ -16,7 +16,6 @@ public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 @[expose] public section
 
-set_option lang.lemmaCmd true
 
 open Complex Topology Filter Interval Set Asymptotics
 
@@ -1075,7 +1074,7 @@ lemma ZetaBnd_aux1p (N : ℕ) (Npos : 1 ≤ N) {σ : ℝ} (hσ : σ ∈ Ioc 0 2)
     (fun (t : ℝ) ↦
       ‖(σ + t * I) * ∫ x in Ioi (N : ℝ), (⌊x⌋ + 1 / 2 - x) / (x : ℂ) ^ ((σ + t * I) + 1)‖)
     =O[Filter.principal {t | 2 ≤ |t|}] fun t ↦ |t| * N ^ (-σ) / σ := by
-  rw [Asymptotics.IsBigO_def]
+  rw [Asymptotics.isBigO_iff_isBigOWith]
   use 2
   rw [Asymptotics.isBigOWith_principal]
   intro t ht
@@ -1098,7 +1097,8 @@ lemma ZetaBnd_aux1p (N : ℕ) (Npos : 1 ≤ N) {σ : ℝ} (hσ : σ ∈ Ioc 0 2)
   linarith [hσ.2]
 
 lemma isOpen_aux : IsOpen {z : ℂ | z ≠ 1 ∧ 0 < z.re} := by
-  refine IsOpen.inter isOpen_ne ?_
+  rw [Set.ofPred_and]
+  refine (isOpen_ne (x := (1 : ℂ))).inter ?_
   exact isOpen_lt (g := fun (z : ℂ) ↦ z.re) (by continuity) (by continuity)
 
 open MeasureTheory in
@@ -2612,7 +2612,7 @@ lemma deriv_fun_re {t : ℝ} {f : ℂ → ℂ} (diff : ∀ (σ : ℝ), Different
     (deriv fun {σ₂ : ℝ} ↦ f (σ₂ + t * I)) = fun (σ : ℝ) ↦ deriv f (σ + t * I) := by
   ext σ
   have := deriv_comp (h := fun (σ : ℝ) ↦ σ + t * I) (h₂ := f) σ (diff σ) ?_
-  · simp only [deriv_add_const', _root_.deriv_ofReal, mul_one] at this
+  · simp only [deriv_add_const', Complex.deriv_ofReal, mul_one] at this
     exact this
   · apply DifferentiableAt.add_const _ <| differentiableAt_ofReal σ
 

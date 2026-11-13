@@ -172,14 +172,15 @@ theorem symm_inv_log (t : ℝ) (ht : 0 < t) (ht' : t ≤ 1 / 2) :
     This follows from the previous estimate. -/)
   (latexEnv := "remark")
   (discussion := 758)]
-theorem li.sub_Li (x : ℝ) (h2x : 2 ≤ x) : li x - Li x = li 2 := by
+theorem li.sub_Li (x : ℝ) (h2x : 2 ≤ x) : li x - TauCeti.Real.logIntegral x = li 2 := by
   have : Filter.Tendsto (fun ε => ∫ t in Set.Ioc 0 x \ Set.Ioo (1 - ε) (1 + ε), 1 / log t)
-      (𝓝[>] 0) (nhds (Li2Bounds.li2_symmetric + Li x)) := by
+      (𝓝[>] 0) (nhds (Li2Bounds.li2_symmetric + TauCeti.Real.logIntegral x)) := by
     apply Filter.Tendsto.congr' (f₁ := fun ε ↦
-      (∫ t in (0:ℝ)..(1 - ε), 1 / log t) + (∫ t in (1 + ε)..2, 1 / log t) + Li x)
+      (∫ t in (0:ℝ)..(1 - ε), 1 / log t) + (∫ t in (1 + ε)..2, 1 / log t) + TauCeti.Real.logIntegral x)
     · filter_upwards [Ioo_mem_nhdsGT (by linarith : (0 : ℝ) < 1)] with ε hε
       rw [Li2Bounds.setDiff_integral_eq_split ε x hε.1 hε.2 h2x]
-      unfold Li
+      unfold TauCeti.Real.logIntegral
+      simp only [one_div]
       rw [add_assoc, intervalIntegral.integral_add_adjacent_intervals]
       all_goals
         apply ContinuousOn.intervalIntegrable fun t ht ↦
@@ -193,7 +194,7 @@ theorem li.sub_Li (x : ℝ) (h2x : 2 ≤ x) : li x - Li x = li 2 := by
       apply Li2Bounds.pv_tendsto_li2_symmetric.congr'
       filter_upwards [Ioo_mem_nhdsGT (by linarith : (0 : ℝ) < 1)] with ε hε using
         Li2Bounds.setDiff_integral_eq_split ε 2 hε.1 hε.2 (by rfl)
-  have : li x = Li2Bounds.li2_symmetric + Li x :=
+  have : li x = Li2Bounds.li2_symmetric + TauCeti.Real.logIntegral x :=
     this.limUnder_eq
   rw [this, Li2Bounds.li2_symmetric_eq_li2]
   simp only [add_sub_cancel_right]

@@ -321,8 +321,7 @@ theorem integral_M_sqrt_div (x : ℝ) (hx : 0 < x) :
                 rw [lintegral_indicator measurableSet_Ioc,
                   Measure.restrict_restrict measurableSet_Ioc]
                 congr 1
-                exact Measure.restrict_congr_set
-                  (Set.inter_eq_left.mpr (Set.Ioc_subset_Ioc_right hdiv_le)).eventuallyEq
+                rw [Set.inter_eq_left.mpr (Set.Ioc_subset_Ioc_right hdiv_le)]
             _ = ENNReal.ofReal |(moebius n : ℝ)| * volume (Set.Ioc 0 (x / n ^ 2)) :=
                 setLIntegral_const ..
             _ = ENNReal.ofReal |(moebius n : ℝ)| * ENNReal.ofReal (x / n ^ 2) := by

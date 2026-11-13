@@ -43,7 +43,11 @@ lemma LogDerivZetaBndAlt :
       refine ⟨4, fun b hb ↦ ?_⟩
       rwa [_root_.abs_of_nonneg (by linarith)]
   simp only [mem_ofPred_eq] at ht
-  convert h σ t (by linarith [mem_Ici.mp t_ge]) ⟨ht.le, (by bound)⟩
   simp only [mem_ofPred_eq] at t_ge
-  have := Real.log_nonneg (by linarith : 1 ≤ |t|)
-  simp only [Real.norm_eq_abs, norm_pow, abs_eq_self.mpr, this]
+  have hlog : 0 < Real.log |t| := Real.log_pos (by linarith)
+  have hband : σ ∈ Ico (1 - A / Real.log |t| ^ (9 : ℝ))
+      (1 + A / Real.log |t| ^ (9 : ℝ)) := by
+    simp only [Real.rpow_ofNat] at *
+    exact ⟨ht.le, lt_of_lt_of_le σ_lt (le_add_of_nonneg_right (div_nonneg hA.1.le (pow_pos hlog 9).le))⟩
+  simpa only [Real.rpow_ofNat, Real.norm_eq_abs, abs_of_pos (pow_pos hlog 9)] using
+    h σ t (by linarith) hband

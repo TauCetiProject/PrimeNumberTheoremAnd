@@ -3,6 +3,7 @@ module
 public import Mathlib.Algebra.Order.Star.Real
 public import Mathlib.MeasureTheory.Integral.Gamma
 public import Mathlib.NumberTheory.Harmonic.GammaDeriv
+public import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
 
 
 public section
@@ -313,6 +314,7 @@ lemma eulerMascheroni_eq_integral :
       · field_simp;
         constructor;
         · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioc ] with x hx;
+          change MeasureTheory.Integrable ((Set.Iic x).indicator (fun t : ℝ => Real.exp (-t) / x)) (volume.restrict (Set.Ioc 0 1))
           refine' MeasureTheory.Integrable.indicator _ _;
           · exact Continuous.integrableOn_Ioc ( by exact Continuous.div_const ( Real.continuous_exp.comp <| ContinuousNeg.continuous_neg ) _ );
           · exact measurableSet_Iic;

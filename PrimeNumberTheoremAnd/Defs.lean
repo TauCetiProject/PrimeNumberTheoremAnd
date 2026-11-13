@@ -3,6 +3,7 @@ module
 public import Architect
 public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 public import Mathlib.NumberTheory.Chebyshev
+public import TauCeti.Analysis.SpecialFunctions.LogIntegral
 public import PrimeNumberTheoremAnd.Fourier
 
 
@@ -21,8 +22,6 @@ noncomputable abbrev nth_prime (n : ℕ) : ℕ :=
 
 noncomputable abbrev nth_prime' (n : ℕ) : ℕ :=
   Nat.nth Nat.Prime (n - 1)
-
-noncomputable abbrev Psi (x : ℝ) : ℝ := ψ x
 
 noncomputable def M (x : ℝ) : ℝ :=
   ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ)
@@ -87,8 +86,6 @@ noncomputable def li (x : ℝ) : ℝ :=
     ∫ t in Set.diff (Set.Ioc 0 x) (Set.Ioo (1 - ε) (1 + ε)),
       1 / log t))
 
-@[blueprint "li-def"]
-noncomputable def Li (x : ℝ) : ℝ := ∫ t in 2..x, 1 / log t
 
 @[blueprint
   "Epsi-def"
@@ -129,10 +126,10 @@ def Eψ.numericalBound (x₀ : ℝ) (ε : ℝ → ℝ) : Prop :=
   $E_\pi(x) = |\pi(x) - \mathrm{Li}(x)| /
   (x / \log x)$. -/)]
 noncomputable def Eπ (x : ℝ) : ℝ :=
-  |pi x - Li x| / (x / log x)
+  |pi x - TauCeti.Real.logIntegral x| / (x / log x)
 
 noncomputable def Eπ_star (x : ℝ) : ℝ :=
-  |pi_star x - Li x| / (x / log x)
+  |pi_star x - TauCeti.Real.logIntegral x| / (x / log x)
 
 @[blueprint
   "Etheta-def"

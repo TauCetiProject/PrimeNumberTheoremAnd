@@ -43,8 +43,8 @@ theorem mu_asymp_num_le_cor14 :
       unfold pi
       rw [show ⌊(2:ℝ)⌋₊ = 2 from by norm_num, hpc]
       norm_num
-    have hLi2 : Li 2 = 0 := by
-      unfold Li
+    have hLi2 : TauCeti.Real.logIntegral 2 = 0 := by
+      unfold TauCeti.Real.logIntegral
       exact intervalIntegral.integral_same
     have hθ0 : (0:ℝ) ≤ θ 2 := Chebyshev.theta_nonneg 2
     have hθ3 : θ 2 ≤ 3 := by

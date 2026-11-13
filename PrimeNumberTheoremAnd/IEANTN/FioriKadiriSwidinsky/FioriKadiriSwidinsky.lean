@@ -319,7 +319,8 @@ theorem remark_2_6_b (s : ℝ) (h : s > 1) :
     norm_num [ sub_eq_add_neg, Real.exp_add, mul_assoc, mul_comm x, hx_pos.ne' ] ; ring
   have h_conv : Filter.Tendsto (fun x => ∫ u in Set.Ioi 0, Real.exp (-u) * (1 + u / x) ^ (s - 1)) Filter.atTop (nhds (∫ u in Set.Ioi 0, Real.exp (-u))) := by
     refine MeasureTheory.tendsto_integral_filter_of_dominated_convergence (fun u => Real.exp ( -u ) * ( 1 + u ) ^ ( s - 1 )) ?_ ?_ ?_ ?_
-    · filter_upwards [ Filter.eventually_gt_atTop 0 ] with x hx using Measurable.aestronglyMeasurable ( by exact Measurable.mul ( Real.continuous_exp.measurable.comp measurable_neg ) ( by exact Measurable.pow_const ( by exact measurable_const.add ( measurable_id'.div_const _ ) ) _ ) )
+    · filter_upwards [ Filter.eventually_gt_atTop 0 ] with x hx using Measurable.aestronglyMeasurable ( by exact Measurable.mul ( Real.continuous_exp.measurable.comp measurable_neg ) (show Measurable (fun u : ℝ ↦ (1 + u / x) ^ (s - 1)) from
+        (measurable_const.add (measurable_id.div_const x)).pow_const (s - 1)) )
     · filter_upwards [ Filter.eventually_gt_atTop 1 ] with n hn
       filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioi ] with x hx using by rw [ Real.norm_of_nonneg ( mul_nonneg ( Real.exp_pos _ |> le_of_lt ) ( Real.rpow_nonneg ( by linarith [ hx.out, div_nonneg hx.out.le ( by linarith : 0 ≤ n ) ] ) _ ) ) ] ; exact mul_le_mul_of_nonneg_left ( Real.rpow_le_rpow ( by linarith [ hx.out, div_nonneg hx.out.le ( by linarith : 0 ≤ n ) ] ) ( by linarith [ hx.out, div_le_self hx.out.le ( by linarith : 1 ≤ n ) ] ) ( by linarith ) ) ( Real.exp_pos _ |> le_of_lt )
     · have h_conv : MeasureTheory.IntegrableOn (fun u => Real.exp (-u) * (1 + u) ^ (s - 1)) (Set.Ioi 0) := by
@@ -333,7 +334,8 @@ theorem remark_2_6_b (s : ℝ) (h : s > 1) :
               exact this.mul_const _
             exact this.congr_fun ( fun u hu => by rw [ Real.mul_rpow ( by positivity ) ( by linarith [ hu.out ] ) ] ; ring ) measurableSet_Ioi
           refine this.mono' ?_ ?_
-          · exact Measurable.aestronglyMeasurable ( by exact Measurable.mul ( Real.continuous_exp.measurable.comp measurable_neg ) ( by exact Measurable.pow_const ( measurable_const.add measurable_id' ) _ ) )
+          · exact Measurable.aestronglyMeasurable ( by exact Measurable.mul ( Real.continuous_exp.measurable.comp measurable_neg ) (show Measurable (fun u : ℝ ↦ (1 + u) ^ (s - 1)) from
+              (measurable_const.add measurable_id).pow_const (s - 1)) )
           · filter_upwards [ MeasureTheory.ae_restrict_mem measurableSet_Ioi ] with u hu using by rw [ Real.norm_of_nonneg ( mul_nonneg ( Real.exp_pos _ |> le_of_lt ) ( Real.rpow_nonneg ( by linarith [ hu.out ] ) _ ) ) ] ; exact mul_le_mul_of_nonneg_left ( Real.rpow_le_rpow ( by linarith [ hu.out ] ) ( by linarith [ hu.out ] ) ( by linarith [ hu.out ] ) ) ( Real.exp_pos _ |> le_of_lt )
         have : MeasureTheory.IntegrableOn (fun u => Real.exp (-u) * (1 + u) ^ (s - 1)) (Set.Ioc 0 1) := by
           exact ContinuousOn.integrableOn_Icc ( by exact continuousOn_of_forall_continuousAt fun u hu => by exact ContinuousAt.mul ( Real.continuous_exp.continuousAt.comp <| ContinuousAt.neg continuousAt_id ) <| ContinuousAt.rpow ( continuousAt_const.add continuousAt_id ) continuousAt_const <| Or.inl <| by linarith [ hu.1 ] ) |> fun h => h.mono_set <| Set.Ioc_subset_Icc_self

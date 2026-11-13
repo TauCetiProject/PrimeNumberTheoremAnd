@@ -542,7 +542,7 @@ private lemma horizontalPath_not_eventuallyConst (h : ℝ) (x : ℝ) :
   intro hc
   obtain ⟨c, hc⟩ := Filter.eventuallyConst_iff_exists_eventuallyEq.1 hc
   have := hc.deriv.eq_of_nhds
-  simp at this
+  simp [Complex.deriv_ofReal] at this
 
 
 

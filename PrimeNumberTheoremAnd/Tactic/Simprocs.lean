@@ -1,9 +1,11 @@
 module
 
-public import Lean.Meta.Eval
+public meta import Lean.Meta.Eval
 public import Lean.Parser.Command
 public import Mathlib.Data.Nat.Count
+public meta import Mathlib.Data.Nat.Count
 public import Mathlib.Algebra.Group.Nat.Even
+public meta import Mathlib.Algebra.Group.Nat.Even
 
 
 @[expose] public section
@@ -13,7 +15,7 @@ This file defines the `count_ofNat` simproc, which simplifies `Nat.count` expres
 -/
 
 open Lean Meta in
-unsafe def evalNatExpr (e : Expr) : MetaM (Option Nat) := do
+meta unsafe def evalNatExpr (e : Expr) : MetaM (Option Nat) := do
   let ty ← inferType e
   let .const ``Nat _ := ty | return none
   let val ← Lean.Meta.evalExpr Nat (mkConst ``Nat) e

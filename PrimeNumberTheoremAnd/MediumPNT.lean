@@ -15,7 +15,6 @@ public import PrimeNumberTheoremAnd.ZetaConj
 
 @[expose] public section
 
-set_option lang.lemmaCmd true
 
 open Set Function Filter Complex Real
 
@@ -1605,7 +1604,7 @@ theorem ZetaBoxEval {SmoothingF : ℝ → ℝ}
   obtain ⟨C, hC⟩ := this
   use C
   have εpos : ∀ᶠ (ε : ℝ) in nhdsWithin 0 (Ioi 0), ε > 0 :=
-    eventually_mem_of_tendsto_nhdsWithin fun ⦃U⦄ hU ↦ hU
+    self_mem_nhdsWithin
   filter_upwards [hC, εpos] with ε hC εpos
   rw[id_eq, norm_of_nonneg (le_of_lt εpos)] at hC
   intro X Xnne
@@ -2516,7 +2515,7 @@ lemma log_pow_over_xsq_integral_bounded :
       · simp only [mem_Icc, ne_eq, log_eq_zero, not_or, n_pos.le, or_true, implies_true]
       · linarith [hx.1]
     _ ≤ ∫ (x : ℝ) in Ioi 3, g x := by
-      refine setIntegral_mono_set g_integrable ?_ (LE.le.eventuallyLE Ioo_subset_Ioi_self)
+      refine setIntegral_mono_set g_integrable ?_ (Filter.Eventually.of_forall (fun _ ht ↦ ht.1))
       exact MeasureTheory.ae_restrict_of_forall_mem measurableSet_Ioi (fun x hx ↦ g_nonneg x hx)
   linarith
 

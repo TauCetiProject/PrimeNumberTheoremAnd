@@ -43,7 +43,7 @@ theorem delta_two : δ 2 = 1 := by
   have hpi : pi 2 = 1 := by
     have hfl : ⌊(2:ℝ)⌋₊ = 2 := by norm_num
     unfold pi; rw [hfl]; norm_num [Nat.primeCounting, Nat.primeCounting']; decide
-  have hLi : Li 2 = 0 := by unfold Li; exact intervalIntegral.integral_same
+  have hLi : TauCeti.Real.logIntegral 2 = 0 := by unfold TauCeti.Real.logIntegral; exact intervalIntegral.integral_same
   have hth : θ (2:ℝ) = Real.log 2 := by
     rw [show (2:ℝ) = ((2:ℕ):ℝ) by norm_num, Chebyshev.theta_eq_sum_primesLE_log]
     have hpr : Nat.primesLE 2 = {2} := by decide

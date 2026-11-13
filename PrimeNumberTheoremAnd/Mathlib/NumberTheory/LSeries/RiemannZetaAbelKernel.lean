@@ -11,7 +11,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIn
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.MeasureTheory.Integral.IntegrableOn
 public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.MeasureTheory.Function.Floor
@@ -111,7 +111,7 @@ theorem integrableOn_Ioi (s : ℂ) (hs : 0 < s.re) :
       (norm_zetaAbelFractKernel_le u (le_of_lt hu) s).trans
         (Real.rpow_le_rpow_of_exponent_le (le_of_lt hu) (by linarith [hεle]))
   simpa [IntegrableOn] using
-    IntegrableOn.mono' (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos) hfm hbound
+    Integrable.mono' (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos) hfm hbound
 
 lemma aestronglyMeasurable_param_deriv (z : ℂ) :
     AEStronglyMeasurable (fun u : ℝ => -((Real.log u) : ℂ) * zetaAbelFractKernel z u)

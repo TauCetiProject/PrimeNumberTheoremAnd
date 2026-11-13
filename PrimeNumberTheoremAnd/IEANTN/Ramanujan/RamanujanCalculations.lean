@@ -328,43 +328,6 @@ theorem exp_8_lt_3914 : exp (8 : ℝ) < (3914 : ℝ) :=
   (show ∀ y ∈ Set.Icc (8 : ℝ) 8, exp y < (3914 : ℝ) by certify_bound 20)
     8 ⟨le_refl _, le_refl _⟩
 
-/-- The antiderivative `x ↦ x / log x + ∫ 1 / log² u` appearing in the integration-by-parts
-identity for `Li` has derivative `1 / log t` at any `t > 1`, provided the lower limit `a` of
-the integral also exceeds `1` (so `1 / log² u` is continuous across the interval). -/
-lemma hasDerivAt_li_antideriv {a t : ℝ} (ha : 1 < a) (ht : 1 < t) :
-    HasDerivAt (fun x ↦ x / log x + ∫ u in (a : ℝ)..x, 1 / log u ^ 2) (1 / log t) t := by
-  have ht0 : t ≠ 0 := (one_pos.trans ht).ne'
-  have htlog : log t ≠ 0 := ne_of_gt (log_pos ht)
-  have h_ftc : HasDerivAt (fun x ↦ ∫ u in (a : ℝ)..x, 1 / log u ^ 2) (1 / log t ^ 2) t := by
-    apply_rules [intervalIntegral.integral_hasDerivAt_right]
-    · apply_rules [ContinuousOn.intervalIntegrable]
-      exact continuousOn_of_forall_continuousAt fun u hu ↦
-        ContinuousAt.div continuousAt_const (ContinuousAt.pow
-          (continuousAt_log (by cases Set.mem_uIcc.mp hu <;> linarith)) _)
-            (ne_of_gt (sq_pos_of_pos (log_pos (by cases Set.mem_uIcc.mp hu <;> linarith))))
-    · exact (measurable_const.div (measurable_log.pow_const _)).stronglyMeasurable.stronglyMeasurableAtFilter
-    · exact ContinuousAt.div continuousAt_const
-        (ContinuousAt.pow (continuousAt_log ht0) _) (ne_of_gt (sq_pos_of_pos (log_pos ht)))
-  convert! (HasDerivAt.div (hasDerivAt_id t) (hasDerivAt_log ht0) htlog).add h_ftc using 1
-  simp only [id_eq]
-  field_simp
-  ring
-
-/-- Integration by parts formula for `Li(x)`. -/
-lemma Li_eq_sub_add_integral (x : ℝ) (hx : 2 ≤ x) :
-    Li x = x / log x - 2 / log 2 + ∫ t in Icc 2 x, 1 / log t ^ 2 := by
-  rw [MeasureTheory.integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le (by linarith),
-    Li, intervalIntegral.integral_eq_sub_of_hasDerivAt]
-  rotate_right
-  · use fun t ↦ t / log t + ∫ u in (2 : ℝ)..t, 1 / log u ^ 2
-  · norm_num; ring
-  · intro t ht
-    exact hasDerivAt_li_antideriv (by norm_num) (by cases Set.mem_uIcc.mp ht <;> linarith)
-  · exact ContinuousOn.intervalIntegrable (continuousOn_of_forall_continuousAt fun t ht ↦
-      ContinuousAt.div continuousAt_const (continuousAt_log
-        (by linarith [Set.mem_Icc.mp (by simpa [hx] using ht)]))
-          (ne_of_gt (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hx] using ht)]))))
-
 @[blueprint
   "pi-error-identity"
   (title := "Integral identity for pi - Li")
@@ -374,55 +337,43 @@ $$\pi(x) - \textrm{Li}(x) = \frac{\theta(x) - x}{\log x} + \frac{2}{\log 2} + \i
   (latexEnv := "lemma")
   (discussion := 986)]
 theorem pi_error_identity (x : ℝ) (hx : 2 ≤ x) :
-    pi x - Li x = (θ x - x) / log x + 2 / log 2 + ∫ t in Icc 2 x, (θ t - t) / (t * log t ^ 2) := by
+    pi x - TauCeti.Real.logIntegral x = (θ x - x) / log x + 2 / log 2 + ∫ t in Icc 2 x, (θ t - t) / (t * log t ^ 2) := by
+  have htheta := Chebyshev.integrableOn_theta_div_id_mul_log_sq x
+  have hlog : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 2) (Icc 2 x) volume := by
+    simpa only [one_div] using
+      (intervalIntegrable_iff_integrableOn_Icc_of_le hx).mp
+        (TauCeti.Real.intervalIntegrable_inv_log_pow 2 (by norm_num) (by linarith))
   have h_integral : ∫ t in Set.Icc 2 x, (θ t - t) / (t * log t ^ 2) =
       (∫ t in Set.Icc 2 x, θ t / (t * log t ^ 2)) -
       (∫ t in Set.Icc 2 x, 1 / log t ^ 2) := by
-    rw [← MeasureTheory.integral_sub]
-    · exact MeasureTheory.setIntegral_congr_fun measurableSet_Icc fun t ht ↦ by
-        rw [sub_div, div_eq_mul_inv]; ring_nf
-        norm_num [show t ≠ 0 by linarith [ht.1], show log t ≠ 0 from ne_of_gt <| log_pos <| by linarith [ht.1]]
-    · have h_bound : ∀ t ∈ Set.Icc 2 x, |θ t / (t * log t ^ 2)| ≤ log 4 / log t ^ 2 := by
-        intro t ht
-        have : θ t ≤ log 4 * t := Chebyshev.theta_le_log4_mul_x (by linarith [ht.1])
-        rw [abs_of_nonneg (div_nonneg (by exact Finset.sum_nonneg fun _ _ ↦
-              log_nonneg <| Nat.one_le_cast.2 <| Nat.Prime.pos <| by aesop)
-            (mul_nonneg (by linarith [ht.1]) (sq_nonneg _))), div_le_div_iff₀] <;>
-          nlinarith [ht.1, ht.2, log_pos <| show 1 < t by linarith [ht.1],
-            log_le_sub_one_of_pos <| show 0 < t by linarith [ht.1],
-            show 0 ≤ θ t from Finset.sum_nonneg fun _ _ ↦
-              log_nonneg <| Nat.one_le_cast.2 <| Nat.Prime.pos <| by aesop]
-      refine MeasureTheory.Integrable.mono' (g := fun t ↦ log 4 / log t ^ 2) ?_ ?_ ?_
-      · exact ContinuousOn.integrableOn_Icc (continuousOn_of_forall_continuousAt fun t ht ↦
-          ContinuousAt.div continuousAt_const
-            (ContinuousAt.pow (continuousAt_log (by linarith [ht.1])) _)
-              (ne_of_gt (sq_pos_of_pos (log_pos (by linarith [ht.1])))))
-      · refine (Measurable.mul ?_ ?_).aestronglyMeasurable
-        · have : Measurable (fun t : ℕ ↦ ∑ p ∈ Finset.filter Nat.Prime (Finset.Icc 0 t), log p) :=
-            measurable_from_nat
-          exact this.comp measurable_id'.nat_floor
-        · exact Measurable.inv (measurable_id.mul (measurable_log.pow_const 2))
-      · filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Icc] with t ht using h_bound t ht
-    · exact ContinuousOn.integrableOn_Icc (continuousOn_const.div
-        (ContinuousOn.pow (continuousOn_log.mono <| by norm_num) _) fun t ht ↦
-        ne_of_gt <| sq_pos_of_pos <| log_pos <| by linarith [ht.1])
+    rw [← MeasureTheory.integral_sub htheta hlog]
+    apply MeasureTheory.setIntegral_congr_fun measurableSet_Icc
+    intro t ht
+    have ht0 : t ≠ 0 := ne_of_gt (lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) ht.1)
+    field_simp
+    <;> ring
   have h_pi : pi x = θ x / log x + ∫ t in Icc 2 x, θ t / (t * log t ^ 2) := by
     rw [integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le hx]
     exact primeCounting_eq_theta_div_log_add_integral hx
-  rw [h_integral, h_pi, Li_eq_sub_add_integral x hx]; ring
+  rw [h_integral, h_pi, TauCeti.Real.logIntegral_eq_div_log_sub_add hx,
+    intervalIntegral.integral_of_le hx]
+  simp only [one_div, MeasureTheory.integral_Icc_eq_integral_Ioc]
+  ring
 
 theorem integrable_theta (x : ℝ) :
     IntegrableOn (fun t ↦ (θ t - t) / (t * log t ^ 2)) (Icc 2 x) volume := by
-  have l0 : ContinuousOn (fun t ↦ (t * log t ^ 2)⁻¹) (Set.Icc 2 x) := by
-    refine ContinuousOn.inv₀ (continuousOn_id.mul (ContinuousOn.pow (ContinuousOn.log
-      continuousOn_id fun y hy ↦ ?_) 2)) fun y hy ↦ ?_
-    repeat simp_all; grind
-  have l1 : IntegrableOn (fun t ↦ θ t / (t * log t ^ 2)) (Icc 2 x) volume :=
-    (theta_mono.monotoneOn _).integrableOn_isCompact isCompact_Icc |>.mul_continuousOn l0
-    isCompact_Icc
-  have l2 : IntegrableOn (fun t ↦ t / (t * log t ^ 2)) (Icc 2 x) volume :=
-    monotoneOn_id.integrableOn_isCompact isCompact_Icc |>.mul_continuousOn l0 isCompact_Icc
-  simpa [div_sub_div_same] using! l1.sub' l2
+  by_cases hx : 2 ≤ x
+  · have hlog : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 2) (Icc 2 x) volume := by
+      simpa only [one_div] using
+        (intervalIntegrable_iff_integrableOn_Icc_of_le hx).mp
+          (TauCeti.Real.intervalIntegrable_inv_log_pow 2 (by norm_num) (by linarith))
+    refine ((Chebyshev.integrableOn_theta_div_id_mul_log_sq x).sub hlog).congr_fun ?_
+      measurableSet_Icc
+    intro t ht
+    have ht0 : t ≠ 0 := ne_of_gt (lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) ht.1)
+    change θ t / (t * log t ^ 2) - 1 / log t ^ 2 = (θ t - t) / (t * log t ^ 2)
+    field_simp [ht0]
+  · simp only [Icc_eq_empty_of_lt (lt_of_not_ge hx), integrableOn_empty]
 
 @[blueprint
   "ramanujan-pi-upper"
@@ -440,10 +391,13 @@ theorem pi_upper (a : ℝ → ℝ) (htheta : ∀ x ≥ 2, |θ x - x| * log x ^ 5
     (hx : 2 ≤ x) :
     pi x ≤ x / log x + a x * x / log x ^ 6 + (∫ t in Icc 2 x, 1 / log t ^ 2)
     + ∫ t in Icc 2 x, a t / log t ^ 7 := calc
-  _ = pi x - Li x + Li x := by ring
+  _ = pi x - TauCeti.Real.logIntegral x + TauCeti.Real.logIntegral x := by ring
   _ = x / log x + (θ x - x) / log x + (∫ (t : ℝ) in Icc 2 x, 1 / log t ^ 2) +
      ∫ (t : ℝ) in Icc 2 x, (θ t - t) / (t * log t ^ 2) := by
-     rw [pi_error_identity x hx, Li_eq_sub_add_integral x hx]; ring
+     rw [pi_error_identity x hx, TauCeti.Real.logIntegral_eq_div_log_sub_add hx,
+       intervalIntegral.integral_of_le hx]
+     simp only [one_div, MeasureTheory.integral_Icc_eq_integral_Ioc]
+     ring
   _ ≤ _ := by
     gcongr ?_ + ?_ + ?_ + ?_
     · exact le_rfl
@@ -534,8 +488,11 @@ theorem pi_lower (a : ℝ → ℝ) (htheta : ∀ x ≥ 2, |θ x - x| * log x ^ 5
   have h2 : ∫ t in Icc 2 x, (θ t - t) / (t * log t ^ 2) ≥ - (∫ t in Icc 2 x, a t / log t ^ 7) := by linarith
   calc
     pi x = x / log x + (θ x - x) / log x + (∫ t in Icc 2 x, 1 / log t ^ 2) + ∫ t in Icc 2 x, (θ t - t) / (t * log t ^ 2) := by
-      have h_eq1 : pi x - Li x = (θ x - x) / log x + 2 / log 2 + ∫ t in Icc 2 x, (θ t - t) / (t * log t ^ 2) := pi_error_identity x hx
-      have h_eq2 : Li x = x / log x - 2 / log 2 + ∫ t in Icc 2 x, 1 / log t ^ 2 := Li_eq_sub_add_integral x hx
+      have h_eq1 : pi x - TauCeti.Real.logIntegral x = (θ x - x) / log x + 2 / log 2 + ∫ t in Icc 2 x, (θ t - t) / (t * log t ^ 2) := pi_error_identity x hx
+      have h_eq2 : TauCeti.Real.logIntegral x = x / log x - 2 / log 2 + ∫ t in Icc 2 x, 1 / log t ^ 2 := by
+        simpa only [intervalIntegral.integral_of_le hx, one_div,
+          MeasureTheory.integral_Icc_eq_integral_Ioc] using
+          TauCeti.Real.logIntegral_eq_div_log_sub_add hx
       linarith
     _ ≥ x / log x + (- (x * a x / log x ^ 6)) + (∫ t in Icc 2 x, 1 / log t ^ 2) + (- (∫ t in Icc 2 x, a t / log t ^ 7)) := by
       gcongr
@@ -545,131 +502,58 @@ theorem log_7_IBP (x : ℝ) (hx : 2 ≤ x) :
     ∫ t in Set.Icc 2 x, 1 / log t ^ 7 =
       x / log x ^ 7 - 2 / log 2 ^ 7 +
         7 * ∫ t in Set.Icc 2 x, 1 / log t ^ 8 := by
-  suffices h_ibp : ∀ a b : ℝ, 2 ≤ a → a ≤ b →
-      ∫ t in a..b, (1 / (log t) ^ 7) = (b / (log b) ^ 7) - (a / (log a) ^ 7) +
-        7 * ∫ t in a..b, (1 / (log t) ^ 8) by
-    simpa only [MeasureTheory.integral_Icc_eq_integral_Ioc,
-      intervalIntegral.integral_of_le hx] using h_ibp 2 x (by norm_num) hx
-  intro a b ha hab
-  have h_deriv : ∀ t ∈ Set.Icc a b,
-      deriv (fun t ↦ t / (log t) ^ 7) t =
-        1 / (log t) ^ 7 - 7 * (1 / (log t) ^ 8) := by
-    intro t ht
-    norm_num [differentiableAt_log, ne_of_gt (show 0 < log t from log_pos <| by linarith [ht.1]),
-      ne_of_gt (show 0 < t from by linarith [ht.1])]; ring_nf
-    grind
-  have h_ftc : ∫ t in a..b, deriv (fun t ↦ t / (log t) ^ 7) t =
-      (b / (log b) ^ 7) - (a / (log a) ^ 7) := by
-    rw [intervalIntegral.integral_deriv_eq_sub']
-    · rfl
-    · exact fun x hx ↦ DifferentiableAt.div differentiableAt_id
-        (DifferentiableAt.pow (differentiableAt_log
-          (by cases Set.mem_uIcc.mp hx <;> linarith)) _)
-        (pow_ne_zero _ <| ne_of_gt <| log_pos <|
-          by cases Set.mem_uIcc.mp hx <;> linarith)
-    · rw [Set.uIcc_of_le hab]
-      have hlog_cont := continuousOn_log.mono fun y (hy : y ∈ Set.Icc a b) ↦
-        ne_of_gt <| by linarith [hy.1]
-      have hpow_ne : ∀ (n : ℕ), ∀ y ∈ Set.Icc a b, log y ^ n ≠ 0 :=
-        fun n y hy ↦ pow_ne_zero n <| ne_of_gt <| log_pos <| by linarith [hy.1]
-      exact ContinuousOn.congr (ContinuousOn.sub
-        (continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))
-        (continuousOn_const.mul <| continuousOn_const.div (hlog_cont.pow _) (hpow_ne _))) h_deriv
-  rw [← h_ftc, intervalIntegral.integral_congr fun t ht =>
-    h_deriv t <| by simpa [hab] using ht]
-  rw [intervalIntegral.integral_sub] <;> norm_num
-  · ring_nf
-    exact ContinuousOn.intervalIntegrable (
-      continuousOn_of_forall_continuousAt fun x hx =>
-        ContinuousAt.pow (ContinuousAt.inv₀
-          (continuousAt_log (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)]))
-          (ne_of_gt (log_pos (by linarith [Set.mem_Icc.mp (by simpa [hab] using hx)])))) _) ..
-  · apply_rules [ContinuousOn.intervalIntegrable]
-    exact ContinuousOn.mul continuousOn_const <|
-      ContinuousOn.inv₀ (ContinuousOn.pow
-        (continuousOn_log.mono <| by
-          intro x hx; cases Set.mem_uIcc.mp hx <;> norm_num <;> linarith) _)
-        fun x hx ↦ ne_of_gt <| pow_pos (log_pos <| by
-          cases Set.mem_uIcc.mp hx <;> linarith) _
+  have hx1 : 1 < x := lt_of_lt_of_le (by norm_num : (1 : ℝ) < 2) hx
+  have h7 := TauCeti.Real.intervalIntegrable_inv_log_pow 7 (by norm_num : (1 : ℝ) < 2) hx1
+  have h8 := TauCeti.Real.intervalIntegrable_inv_log_pow 8 (by norm_num : (1 : ℝ) < 2) hx1
+  have hd (t : ℝ) (ht : t ∈ Set.uIcc 2 x) :
+      HasDerivAt (fun u : ℝ ↦ u / log u ^ 7)
+        ((log t ^ 7)⁻¹ - 7 * (log t ^ 8)⁻¹) t := by
+    have ht1 : 1 < t := lt_of_lt_of_le (by norm_num : (1 : ℝ) < 2)
+      ((Set.uIcc_of_le hx ▸ ht).1)
+    have ht0 := (zero_lt_one.trans ht1).ne'
+    have hlog := (log_pos ht1).ne'
+    convert (hasDerivAt_id t).div ((hasDerivAt_log ht0).pow 7) (pow_ne_zero 7 hlog) using 1
+    · ext u; rfl
+    · simp only [Pi.pow_apply, id_eq, Nat.cast_ofNat]
+      field_simp [ht0, hlog]
+      ring
+  have hftc := intervalIntegral.integral_eq_sub_of_hasDerivAt hd (h7.sub (h8.const_mul 7))
+  rw [intervalIntegral.integral_sub h7 (h8.const_mul 7), intervalIntegral.integral_const_mul] at hftc
+  simp only [intervalIntegral.integral_of_le hx] at hftc
+  simp only [integral_Icc_eq_integral_Ioc, one_div]
+  linarith
 
 theorem log_8_bound (x : ℝ) (hx : 2 ≤ x) :
     ∫ t in Set.Icc 2 x, 1 / log t ^ 8 <
       sqrt x / log 2 ^ 8 + 2 ^ 8 * x / log x ^ 8 := by
-  by_cases h : x < 4
-  · refine lt_of_le_of_lt (MeasureTheory.setIntegral_mono_on ?_ ?_ measurableSet_Icc fun t ht =>
-      one_div_le_one_div_of_le ?_ <| pow_le_pow_left₀ (log_nonneg <| by linarith [ht.1])
-        (log_le_log (by linarith [ht.1]) ht.1) 8) ?_
-    · exact ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-        (continuousOn_log.mono <| by norm_num) _) fun t ht ↦ pow_ne_zero _ <| ne_of_gt <|
-        log_pos <| by linarith [ht.1])
-    · norm_num
+  have hx1 : 1 < x := lt_of_lt_of_le (by norm_num : (1 : ℝ) < 2) hx
+  have hlog2 : 0 < log (2 : ℝ) ^ 8 := pow_pos (log_pos (by norm_num)) 8
+  have hlogx : 0 < log x ^ 8 := pow_pos (log_pos hx1) 8
+  suffices h : ∫ t in (2 : ℝ)..x, (log t ^ 8)⁻¹ <
+      sqrt x / log 2 ^ 8 + 2 ^ 8 * x / log x ^ 8 by
+    simpa only [integral_Icc_eq_integral_Ioc, intervalIntegral.integral_of_le hx, one_div] using h
+  by_cases hx4 : x < 4
+  · refine (TauCeti.Real.integral_inv_log_pow_le 8 (by norm_num) hx).trans_lt ?_
+    apply lt_add_of_le_of_pos
+    · apply (div_le_div_iff_of_pos_right hlog2).mpr
+      nlinarith [sqrt_nonneg x, sq_sqrt (zero_lt_one.trans hx1).le]
     · positivity
-    · norm_num [← div_eq_mul_inv]
-      exact lt_add_of_le_of_pos (by
-        gcongr; cases max_cases (x - 2) 0 <;>
-          nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)]) (
-        div_pos (by positivity) (pow_pos (log_pos (by linarith)) _))
-  · have h_split : ∫ t in Set.Icc 2 x, 1 / log t ^ 8 =
-        (∫ t in Set.Icc 2 (sqrt x), 1 / log t ^ 8) +
-          (∫ t in Set.Icc (sqrt x) x, 1 / log t ^ 8) := by
-      norm_num [MeasureTheory.integral_Icc_eq_integral_Ioc,
-        ← intervalIntegral.integral_of_le, sqrt_le_iff, hx]
-      rw [← intervalIntegral.integral_of_le (by
-            nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)]),
-        ← intervalIntegral.integral_of_le (by
-          nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)]),
-        intervalIntegral.integral_add_adjacent_intervals]
-        <;> apply_rules [ContinuousOn.intervalIntegrable]
-      · exact continuousOn_of_forall_continuousAt fun y hy =>
-          ContinuousAt.inv₀ (ContinuousAt.pow (continuousAt_log (by
-            cases Set.mem_uIcc.mp hy <;>
-              nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)])) _)
-            (pow_ne_zero _ <| ne_of_gt <| log_pos <| by
-              cases Set.mem_uIcc.mp hy <;>
-                nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)])
-      · exact continuousOn_of_forall_continuousAt fun y hy =>
-          ContinuousAt.inv₀ (ContinuousAt.pow (continuousAt_log (by
-            cases Set.mem_uIcc.mp hy <;>
-              nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)])) _)
-            (pow_ne_zero _ <| ne_of_gt <| log_pos <| by
-              cases Set.mem_uIcc.mp hy <;>
-                nlinarith [sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)])
-    have h_first : ∫ t in Set.Icc 2 (sqrt x), 1 / log t ^ 8 ≤
-        sqrt x / (log 2) ^ 8 := by
-      have h_mono : ∫ t in Set.Icc 2 (sqrt x), 1 / log t ^ 8 ≤
-          ∫ t in Set.Icc 2 (sqrt x), 1 / log 2 ^ 8 := by
-        refine MeasureTheory.setIntegral_mono_on ?_ ?_ ?_ ?_ <;> norm_num
-        · exact ContinuousOn.integrableOn_Icc (continuousOn_of_forall_continuousAt fun t ht =>
-            ContinuousAt.inv₀
-              ((Real.continuousAt_log (show t ≠ 0 from ne_of_gt (by linarith [ht.1]))).pow _)
-              (ne_of_gt (pow_pos (log_pos (show 1 < t by linarith [ht.1])) _)))
-        · exact fun t ht₁ ht₂ ↦ inv_anti₀ (pow_pos (log_pos (by linarith)) _)
-            (pow_le_pow_left₀ (log_nonneg (by linarith)) (log_le_log (by linarith) (by linarith)) _)
-      refine le_trans h_mono ?_; norm_num
-      rw [max_eq_left (sub_nonneg.mpr <| le_sqrt_of_sq_le <| by linarith)]
-      ring_nf; norm_num; positivity
-    have h_second : ∫ t in Set.Icc (sqrt x) x, 1 / log t ^ 8 ≤
-        (x - sqrt x) * (2 ^ 8 / (log x) ^ 8) := by
-      have hbd : ∀ t ∈ Set.Icc (sqrt x) x,
-          1 / log t ^ 8 ≤ 2 ^ 8 / (log x) ^ 8 := by
-        intro t ht
-        have hlog_half : log t ≥ log (sqrt x) := log_le_log (by positivity) ht.1
-        rw [log_sqrt (by positivity)] at hlog_half
-        rw [div_le_div_iff₀] <;>
-          nlinarith [pow_pos (log_pos (by linarith : 1 < x)) 8,
-            pow_le_pow_left₀ (by linarith [log_pos (by linarith : 1 < x)]) hlog_half 8]
-      convert! MeasureTheory.setIntegral_mono_on _ _ _ hbd <;> norm_num
-      · exact Or.inl <| Or.inr <| by linarith
-      · exact ContinuousOn.integrableOn_Icc (continuousOn_of_forall_continuousAt fun t ht =>
-          ContinuousAt.inv₀ (ContinuousAt.pow (continuousAt_log (by
-            nlinarith [ht.1, sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)])) _)
-            (pow_ne_zero _ <| ne_of_gt <| log_pos <| by
-              nlinarith [ht.1, sqrt_nonneg x, sq_sqrt (show 0 ≤ x by linarith)]))
-    refine h_split.symm ▸ lt_of_le_of_lt (add_le_add h_first h_second) ?_
-    ring_nf
-    nlinarith [show 0 < sqrt x * (log x)⁻¹ ^ 8 from
-      mul_pos (sqrt_pos.mpr (by linarith))
-        (pow_pos (inv_pos.mpr (log_pos (by linarith))) _)]
+  · have h2r : 2 ≤ sqrt x := (le_sqrt (by norm_num) (by positivity)).mpr (by linarith)
+    have hrx : sqrt x ≤ x := by
+      nlinarith [sqrt_nonneg x, sq_sqrt (zero_lt_one.trans hx1).le, sq_nonneg (x - 1)]
+    have hr1 : 1 < sqrt x := lt_of_lt_of_le (by norm_num : (1 : ℝ) < 2) h2r
+    have hleft := TauCeti.Real.integral_inv_log_pow_le 8 (by norm_num : (1 : ℝ) < 2) h2r
+    have hright := TauCeti.Real.integral_inv_log_pow_le 8 hr1 hrx
+    rw [log_sqrt (zero_lt_one.trans hx1).le, div_pow] at hright
+    have hright' : ∫ t in sqrt x..x, (log t ^ 8)⁻¹ ≤ 2 ^ 8 * x / log x ^ 8 := by
+      calc _ ≤ (x - sqrt x) / (log x ^ 8 / 2 ^ 8) := hright
+           _ = 2 ^ 8 * (x - sqrt x) / log x ^ 8 := by ring
+           _ ≤ 2 ^ 8 * x / log x ^ 8 := by gcongr; exact sub_le_self _ (sqrt_nonneg x)
+    rw [← intervalIntegral.integral_add_adjacent_intervals
+      (TauCeti.Real.intervalIntegrable_inv_log_pow 8 (by norm_num : (1 : ℝ) < 2) hr1)
+      (TauCeti.Real.intervalIntegrable_inv_log_pow 8 hr1 hx1)]
+    apply add_lt_add_of_lt_of_le (hleft.trans_lt ?_) hright'
+    exact (div_lt_div_iff_of_pos_right hlog2).mpr (by linarith)
 
 @[blueprint
   "log-7-int-bound"
@@ -784,13 +668,11 @@ theorem C1_le_one_of
     dsimp [K]
     positivity
   let f : ℝ → ℝ := fun t ↦ (720 + a t) / log t ^ 7
-  have hJ_int : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 7) (Set.Icc 2 xₐ) volume :=
-    ContinuousOn.integrableOn_Icc (continuousOn_const.div (ContinuousOn.pow
-      (continuousOn_log.mono <| by
-        intro t ht
-        exact ne_of_gt (lt_of_lt_of_le (by norm_num) ht.1)) _) (by
-      intro t ht
-      exact pow_ne_zero _ <| ne_of_gt <| log_pos <| by linarith [ht.1]))
+  have hJ_int : IntegrableOn (fun t : ℝ ↦ 1 / log t ^ 7) (Set.Icc 2 xₐ) volume := by
+    simpa only [one_div] using
+      (intervalIntegrable_iff_integrableOn_Icc_of_le h2xa).mp
+        (TauCeti.Real.intervalIntegrable_inv_log_pow 7 (by norm_num : (1 : ℝ) < 2)
+          (by linarith : 1 < xₐ))
   have hconst_int : IntegrableOn (fun t : ℝ ↦ (720 : ℝ) / log t ^ 7) (Set.Icc 2 xₐ) volume := by
     have htmp : IntegrableOn (fun t : ℝ ↦ (720 : ℝ) * (1 / log t ^ 7)) (Set.Icc 2 xₐ) volume :=
       hJ_int.const_mul 720

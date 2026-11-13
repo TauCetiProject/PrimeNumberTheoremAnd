@@ -4,12 +4,11 @@ public import Architect
 public import Batteries.Tactic.Lemma
 public import Mathlib.Geometry.Manifold.PartitionOfUnity
 public import Mathlib.Tactic.Bound
-public import PrimeNumberTheoremAnd.Mathlib.Algebra.Notation.Support
+public import Mathlib.Algebra.Notation.Support
 
 
 public section
 
-set_option lang.lemmaCmd true
 
 open MeasureTheory Set Real
 open scoped ContDiff
@@ -87,7 +86,8 @@ lemma SmoothExistence :
   · exact fun y hy hy' ↦ ⟨by linarith, by linarith⟩
   · rw [integral_pos_iff_support_of_nonneg]
     · simp only [Function.support_div, measurableSet_Ici, Measure.restrict_apply',
-        hνSupport, Function.support_id']
+        hνSupport]
+      simp only [Function.support_eq_preimage, Set.preimage_id']
       have : (Ioo (1 / 2 : ℝ) 2 ∩ {0}ᶜ ∩ Ici 0) = Ioo (1 / 2) 2 := by
         ext x
         simp only [one_div, mem_inter_iff, mem_Ioo, mem_compl_iff, mem_singleton_iff, mem_Ici]

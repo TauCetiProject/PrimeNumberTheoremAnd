@@ -37,18 +37,18 @@ theorem Epi_le_xpow_half (x : ℝ) (h2 : 2 ≤ x) (h19 : x ≤ (10 : ℝ) ^ 19) 
   have h2f := Buthe.theorem_2f h2 h19
   have hsub := li.sub_Li x h2
   have hli2 := li.two_approx
-  have hpiLi : pi x - Li x = li 2 - (li x - pi x) := by linarith [hsub]
-  have habs : |pi x - Li x| ≤ (li x - pi x) + li 2 := by
+  have hpiLi : pi x - TauCeti.Real.logIntegral x = li 2 - (li x - pi x) := by linarith [hsub]
+  have habs : |pi x - TauCeti.Real.logIntegral x| ≤ (li x - pi x) + li 2 := by
     rw [hpiLi, abs_le]; constructor <;> linarith [h2f, hli2.1]
-  have hEpi_eq : Eπ x = |pi x - Li x| * (Real.log x / x) := by
+  have hEpi_eq : Eπ x = |pi x - TauCeti.Real.logIntegral x| * (Real.log x / x) := by
     unfold Eπ; rw [div_div_eq_mul_div, mul_div_assoc]
   rw [hEpi_eq]
   set C := (1.95 + 3.9 / Real.log x + 19.5 / (Real.log x) ^ 2) with hC
   have hfac_nn : (0:ℝ) ≤ Real.log x / x := by positivity
-  have hstep : |pi x - Li x| * (Real.log x / x)
+  have hstep : |pi x - TauCeti.Real.logIntegral x| * (Real.log x / x)
       ≤ ((Real.sqrt x / Real.log x) * C + 1.0452) * (Real.log x / x) := by
     apply mul_le_mul_of_nonneg_right _ hfac_nn
-    calc |pi x - Li x| ≤ (li x - pi x) + li 2 := habs
+    calc |pi x - TauCeti.Real.logIntegral x| ≤ (li x - pi x) + li 2 := habs
       _ ≤ (Real.sqrt x / Real.log x) * C + 1.0452 := by
           apply add_le_add h2e hli2.2
   refine le_trans hstep (le_of_eq ?_)

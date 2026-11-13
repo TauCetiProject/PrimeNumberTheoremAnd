@@ -1836,9 +1836,9 @@ theorem l0 {x y : ℝ} (hx : 2 ≤ x) (hy : x ≤ y) :
   repeat simp_all; grind
 
 theorem Li_identity {x} (hx : 2 ≤ x) :
-    Li x = x / log x - 2 / log 2 + ∫ t in 2..x, 1 / (log t ^ 2) := by
+    TauCeti.Real.logIntegral x = x / log x - 2 / log 2 + ∫ t in 2..x, 1 / (log t ^ 2) := by
   have hnt {t} (ht : t ∈ Set.uIcc 2 x) : t ≠ 0 := by simp_all; linarith
-  rw [Li, funext fun t ↦ (mul_one (1 / log t)).symm,
+  rw [TauCeti.Real.logIntegral, funext fun t ↦ (mul_one (1 / log t)).symm,
     intervalIntegral.integral_mul_deriv_eq_deriv_mul (u := fun t ↦ 1 / log t)
     (u' := fun t ↦ -(1 / t) / log t ^ 2) _ (fun t _ ↦ hasDerivAt_id' t) _
     intervalIntegrable_const]
@@ -1861,7 +1861,7 @@ theorem l2 {x y} (hx : 2 ≤ x) (hy : x ≤ y) :
     IntervalIntegrable (fun t ↦ t / (t * log t ^ 2)) volume x y := by
   simpa [div_eq_mul_inv] using intervalIntegral.intervalIntegrable_id.mul_continuousOn (l0 hx hy)
 
-theorem he {x} (hx : 2 ≤ x) : pi x - Li x = (θ x - x) / log x + 2 / log 2
+theorem he {x} (hx : 2 ≤ x) : pi x - TauCeti.Real.logIntegral x = (θ x - x) / log x + 2 / log 2
   + ∫ t in 2..x, (θ t - t) / (t * log t ^ 2) := by
   simp only [RS_prime.eq_417 hx, Li_identity hx, sub_div,
     intervalIntegral.integral_sub (l1 (refl 2) hx) (l2 (refl 2) hx)]
@@ -1889,7 +1889,7 @@ To get from asymptotic estimates on $E_\theta$ to asymptotic estimates on $E_\pi
   (latexEnv := "sublemma")
   (discussion := 609)]
 theorem eq_17 {x₀ x : ℝ} (hx₀ : 2 ≤ x₀) (hx : x₀ < x) :
-    (pi x - Li x) - (pi x₀ - Li x₀) =
+    (pi x - TauCeti.Real.logIntegral x) - (pi x₀ - TauCeti.Real.logIntegral x₀) =
     (θ x - x) / log x - (θ x₀ - x₀) / log x₀ +
     ∫ t in x₀..x, (θ t - t) / (t * log t ^ 2) :=
   have px : 2 ≤ x := by linarith
@@ -1913,7 +1913,7 @@ The following definition is only implicitly in FKS2, but will be convenient:
   $$\delta(x_0) := |\frac{\pi(x_0) - \Li(x_0)}{x_0/\log x_0} - \frac{\theta(x_0) - x_0}{x_0}|.$$
   -/)]
 noncomputable def δ (x₀ : ℝ) : ℝ :=
-  |(pi x₀ - Li x₀) / (x₀ / log x₀) - (θ x₀ - x₀) / x₀|
+  |(pi x₀ - TauCeti.Real.logIntegral x₀) / (x₀ / log x₀) - (θ x₀ - x₀) / x₀|
 
 blueprint_comment /--
 We can now obtain an upper bound on $E_\pi$ in terms of $E_\theta$:
@@ -1933,7 +1933,7 @@ theorem eq_30 {x x₀ : ℝ} (hx : x ≥ x₀) (hx₀ : x₀ ≥ 2) :
   Eπ x ≤ Eθ x + (log x / x) * (x₀ / log x₀) * δ x₀ + (log x / x) * ∫ t in x₀..x, Eθ t / log t ^ 2 := by
   -- NOTE: the hypothesis `hx₀` was added to apply `eq_17`.
   -- It is not present in the original source material [FKS2].
-  have : (log x / x) * (x₀ / log x₀) * δ x₀ = (log x / x) * |pi x₀ - Li x₀ - (θ x₀ - x₀) / log x₀| := by
+  have : (log x / x) * (x₀ / log x₀) * δ x₀ = (log x / x) * |pi x₀ - TauCeti.Real.logIntegral x₀ - (θ x₀ - x₀) / log x₀| := by
     unfold δ
     have : log x₀ > 0 := log_pos (by linarith)
     field_simp
@@ -1942,9 +1942,9 @@ theorem eq_30 {x x₀ : ℝ} (hx : x ≥ x₀) (hx₀ : x₀ ≥ 2) :
   rw [this]; unfold Eπ Eθ
   field_simp [(by linarith : x > 0)]
   calc
-    _ = |pi x - Li x - (pi x₀ - Li x₀) + pi x₀ - Li x₀| * log x := by ring_nf
+    _ = |pi x - TauCeti.Real.logIntegral x - (pi x₀ - TauCeti.Real.logIntegral x₀) + pi x₀ - TauCeti.Real.logIntegral x₀| * log x := by ring_nf
     _ = |(θ x - x) / log x
-        + (pi x₀ - Li x₀ - (θ x₀ - x₀) / log x₀)
+        + (pi x₀ - TauCeti.Real.logIntegral x₀ - (θ x₀ - x₀) / log x₀)
         + (∫ t in x₀..x, (θ t - t) / (t * log t ^ 2))| * log x := by
       by_cases h : x = x₀
       · rw [h, intervalIntegral.integral_same]; ring_nf
@@ -1952,13 +1952,13 @@ theorem eq_30 {x x₀ : ℝ} (hx : x ≥ x₀) (hx₀ : x₀ ≥ 2) :
         rw [eq_17 hx₀ (lt_of_le_of_ne hx (Ne.symm h))]
         ring
     _ ≤ |(θ x - x) / log x| * log x
-        + |pi x₀ - Li x₀ - (θ x₀ - x₀) / log x₀| * log x
+        + |pi x₀ - TauCeti.Real.logIntegral x₀ - (θ x₀ - x₀) / log x₀| * log x
         + |∫ t in x₀..x, (θ t - t) / (t * log t ^ 2)| * log x := by
       rw [← distrib_three_right]; gcongr
       · exact log_nonneg (by linarith)
       · exact abs_add_three _ _ _
     _ ≤ |θ x - x|
-        + log x * |pi x₀ - Li x₀ - (θ x₀ - x₀) / log x₀|
+        + log x * |pi x₀ - TauCeti.Real.logIntegral x₀ - (θ x₀ - x₀) / log x₀|
         + log x * ∫ t in x₀..x, |θ t - t| / (t * log t ^ 2) := by
       have : log x > 0 := log_pos (by linarith)
       rw [abs_div, abs_of_pos this]
@@ -2671,7 +2671,7 @@ Here we record a way to convert a numerical bound on $E_\theta$ to a numerical b
 -/
 
 theorem Li_identity' {a b : ℝ} (ha : 2 ≤ a) (hb : a ≤ b) :
-    ∫ t in a..b, 1 / log t ^ 2 = Li b - Li a - b / log b + a / log a :=
+    ∫ t in a..b, 1 / log t ^ 2 = TauCeti.Real.logIntegral b - TauCeti.Real.logIntegral a - b / log b + a / log a :=
   have {x} (hx : 2 ≤ x) : IntervalIntegrable (fun t ↦ 1 / log t ^ 2) volume 2 x := by
     simp only [one_div]
     refine ((((continuousOn_id' _).log ?_).pow 2).inv₀ (fun t ht => ?_)).intervalIntegrable
@@ -2716,7 +2716,7 @@ theorem lemma_19 {x₀ x₁ : ℝ} (hx₁ : x₀ < x₁) (hx₀ : x₀ ≥ 2)
   |∫ t in x₀..x₁, (θ t - t) / (t * log t ^ 2)| ≤
     ∑ i ∈ Finset.Ico 0 N,
       εθ_num (exp (b i)) *
-      (Li (exp (b (i + 1))) - Li (exp (b i)) +
+      (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) +
       exp (b i) / b i - exp (b (i + 1)) / b (i + 1)) :=
   have h1 {i} : 2 ≤ exp (b i) := by
     trans exp (b 0)
@@ -2762,7 +2762,7 @@ theorem lemma_19 {x₀ x₁ : ℝ} (hx₁ : x₀ < x₁) (hx₀ : x₀ ≥ 2)
     rw [Li_identity' h1 h2, log_exp, log_exp]
     ring
 
-lemma hasDerivAt_Li {x : ℝ} (hx : x ∈ Set.Ioi 6.58) : HasDerivAt Li (1 / log x) x := by
+lemma hasDerivAt_Li {x : ℝ} (hx : x ∈ Set.Ioi 6.58) : HasDerivAt TauCeti.Real.logIntegral (1 / log x) x := by
   have hf (x) (hx : x ∈ Set.Ioi 6.58) : ContinuousAt (fun x ↦ 1 / log x) x := by
     have := log_pos (by linarith [Set.mem_Ioi.mp hx]) |>.ne'
     fun_prop (disch := simp_all)
@@ -2786,7 +2786,7 @@ lemma hasDerivAt_Li {x : ℝ} (hx : x ∈ Set.Ioi 6.58) : HasDerivAt Li (1 / log
   -/)
   (latexEnv := "lemma")
   (discussion := 713)]
-theorem lemma_20_a : StrictMonoOn (fun x ↦ Li x - x / log x) (Set.Ioi 6.58) := by
+theorem lemma_20_a : StrictMonoOn (fun x ↦ TauCeti.Real.logIntegral x - x / log x) (Set.Ioi 6.58) := by
   have hpos (x : ℝ) (hx : x ∈ Set.Ioi 6.58) := log_pos (by linarith [Set.mem_Ioi.mp hx]) |>.ne'
   apply strictMonoOn_of_deriv_pos (convex_Ioi _)
   · apply HasDerivAt.continuousOn (by apply hasDerivAt_Li) |>.sub
@@ -2798,7 +2798,7 @@ theorem lemma_20_a : StrictMonoOn (fun x ↦ Li x - x / log x) (Set.Ioi 6.58) :=
     simp [(hasDerivAt_Li hx).deriv, field, pow_two_pos_of_ne_zero, (hpos x hx), - sub_pos]
 
 private lemma Li_ibp {x : ℝ} (hx : x > 2) :
-    Li x - x / log x = -2 / log 2 + ∫ t in (2:ℝ)..x, 1 / (log t) ^ 2 := by
+    TauCeti.Real.logIntegral x - x / log x = -2 / log 2 + ∫ t in (2:ℝ)..x, 1 / (log t) ^ 2 := by
   have h_parts : ∀ a b : ℝ, 2 ≤ a → a < b →
       ∫ t in a..b, (1 : ℝ) / Real.log t =
         (b / Real.log b) - (a / Real.log a) + ∫ t in a..b, (1 : ℝ) / Real.log t ^ 2 := by
@@ -2825,8 +2825,8 @@ the proof of theorem_6_3, but was moved up here to be used for lemma_20_b as wel
 
 
 lemma hasDerivAt_Li_sub_div_log {t : ℝ} (ht : 1 < t) :
-    HasDerivAt (fun t => Li t - t / log t) (1 / (log t) ^ 2) t := by
-  have h_deriv_Li : HasDerivAt Li (1 / Real.log t) t := by
+    HasDerivAt (fun t => TauCeti.Real.logIntegral t - t / log t) (1 / (log t) ^ 2) t := by
+  have h_deriv_Li : HasDerivAt TauCeti.Real.logIntegral (1 / Real.log t) t := by
     apply_rules [ intervalIntegral.integral_hasDerivAt_right ];
     · apply_rules [ ContinuousOn.intervalIntegrable ];
       exact continuousOn_of_forall_continuousAt fun x hx => ContinuousAt.div continuousAt_const ( Real.continuousAt_log ( by cases Set.mem_uIcc.mp hx <;> linarith ) ) ( ne_of_gt ( Real.log_pos ( by cases Set.mem_uIcc.mp hx <;> linarith ) ) );
@@ -2873,7 +2873,7 @@ private lemma li_series_658_lower : (3.32710 : ℝ) ≤
     exact le_trans h_const h_const_le_partial
   exact le_trans h_partial h_sum_le_tsum
 
-theorem Li_diff_pos_at_6_58 : Li 6.58 - 6.58 / log 6.58 > 0 := by
+theorem Li_diff_pos_at_6_58 : TauCeti.Real.logIntegral 6.58 - 6.58 / log 6.58 > 0 := by
   have hli2 : li 2 ≤ (1.0452 : ℝ) := (li.two_approx).2
   have hll : (0.633415 : ℝ) ≤ Real.log (Real.log 6.58) := by linarith [LogTables.log_log_6_58_gt]
   have hdiv : 6.58 / Real.log 6.58 ≤ (3.492506 : ℝ) := by
@@ -2884,7 +2884,7 @@ theorem Li_diff_pos_at_6_58 : Li 6.58 - 6.58 / log 6.58 > 0 := by
   have hli : (4.537729 : ℝ) < li 6.58 := by
     rw [li_eq_eulerMascheroni_add_log_log_add_tsum (show (1 : ℝ) < 6.58 by norm_num)]
     linarith [hγ_lo, hll, li_series_658_lower]
-  have hLi : Li 6.58 = li 6.58 - li 2 := by
+  have hLi : TauCeti.Real.logIntegral 6.58 = li 6.58 - li 2 := by
     linarith [li.sub_Li 6.58 (show (2 : ℝ) ≤ 6.58 by norm_num)]
   rw [hLi]
   linarith
@@ -2901,9 +2901,9 @@ theorem Li_diff_pos_at_6_58 : Li 6.58 - 6.58 / log 6.58 > 0 := by
   (latexEnv := "lemma")
   (discussion := 714)]
 theorem lemma_20_b {x : ℝ} (hx : x > 6.58) :
-    Li x - x / log x > (x - 6.58) / (log x) ^ 2 ∧ (x - 6.58) / (log x) ^ 2 > 0 :=
+    TauCeti.Real.logIntegral x - x / log x > (x - 6.58) / (log x) ^ 2 ∧ (x - 6.58) / (log x) ^ 2 > 0 :=
 by
-  let f : ℝ → ℝ := fun t ↦ Li t - t / log t
+  let f : ℝ → ℝ := fun t ↦ TauCeti.Real.logIntegral t - t / log t
   obtain ⟨c, hc, h_slope⟩ : ∃ c ∈ Set.Ioo (6.58 : ℝ) x,
       deriv f c = (f x - f 6.58) / (x - 6.58) := by
     refine exists_deriv_eq_slope f hx ?_ ?_
@@ -2984,7 +2984,7 @@ private lemma bound_x0_x1 {x₀ x₁ : ℝ} (hx₀ : x₀ ≥ 2) (hx₀_le_x₁ 
     (∫ t in x₀..x₁, Eθ t / log t ^ 2) ≤
       ∑ i ∈ Finset.Iio (Fin.last N),
         εθ_num (exp (b i)) *
-        (Li (exp (b (i + 1))) - Li (exp (b i)) +
+        (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) +
         exp (b i) / b i - exp (b (i + 1)) / b (i + 1)) := by
   have h_int_x₀_x₁ := Eθ_integrable hx₀ hx₀_le_x₁
   have h_exp_ge_2 (i : Fin (N + 1)) : 2 ≤ exp (b i) := by
@@ -3063,7 +3063,7 @@ private lemma bound_x0_x1 {x₀ x₁ : ℝ} (hx₀ : x₀ ≥ 2) (hx₀_le_x₁ 
       rw [mul_one_div]; gcongr
       exact h_εθ_num i t ht₁.1.le
   have h_int_eq : (∫ t in (exp (b i))..(exp (b (i + 1))), 1 / (log t) ^ 2) =
-      Li (exp (b (i + 1))) - Li (exp (b i)) + exp (b i) / b i - exp (b (i + 1)) / b (i + 1) := by
+      TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) + exp (b i) / b i - exp (b (i + 1)) / b (i + 1) := by
     rw [Li_identity' (h_exp_ge_2 i) h_exp_le, log_exp, log_exp]
     ring
   rw [h_int_eq] at h_bound_x₀_x₁
@@ -3095,7 +3095,7 @@ theorem theorem_6_1 {x₀ x₁ : ℝ} (h : x₁ ≥ max x₀ 14)
   Eπ x ≤ εθ_num x₁ + (log x / x) * (x₀ / log x₀) * (Eπ x₀ + Eθ x₀) +
     (log x / x) * ∑ i ∈ Finset.Iio (Fin.last N),
       εθ_num (exp (b i)) *
-      (Li (exp (b (i + 1))) - Li (exp (b i)) +
+      (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) +
       exp (b i) / b i - exp (b (i + 1)) / b (i + 1)) +
     εθ_num x₁ * (log x / x) * ∫ t in x₁..x, 1 / (log t) ^ 2 := by
   have hx₀_le_x₁ : x₀ ≤ x₁ := le_trans (le_max_left _ _) h
@@ -3139,7 +3139,7 @@ theorem theorem_6_1 {x₀ x₁ : ℝ} (h : x₁ ≥ max x₀ 14)
     _ ≤ εθ_num x₁ + (log x / x) * (x₀ / log x₀) * (Eπ x₀ + Eθ x₀) +
       (log x / x) * ∑ i ∈ Finset.Iio (Fin.last N),
         εθ_num (exp (b i)) *
-          (Li (exp (b (i + 1))) - Li (exp (b i)) +
+          (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) +
           exp (b i) / b i - exp (b (i + 1)) / b (i + 1)) +
       εθ_num x₁ * (log x / x) * ∫ t in x₁..x, 1 / (log t) ^ 2 := by
       have h_bound_x1_x : ∫ t in x₁..x, Eθ t / log t ^ 2 ≤
@@ -3157,7 +3157,7 @@ theorem theorem_6_1 {x₀ x₁ : ℝ} (h : x₁ ≥ max x₀ 14)
 
 
 lemma integral_one_div_log_sq {a b : ℝ} (ha : 1 < a) (hab : a ≤ b) :
-    ∫ t in a..b, 1 / (log t) ^ 2 = (Li b - b / log b) - (Li a - a / log a) := by
+    ∫ t in a..b, 1 / (log t) ^ 2 = (TauCeti.Real.logIntegral b - b / log b) - (TauCeti.Real.logIntegral a - a / log a) := by
   rw [ intervalIntegral.integral_eq_sub_of_hasDerivAt ];
   · exact fun x hx => hasDerivAt_Li_sub_div_log ( by cases Set.mem_uIcc.mp hx <;> linarith );
   · apply_rules [ ContinuousOn.intervalIntegrable ];
@@ -3629,14 +3629,14 @@ theorem theorem_6_2 {x₁ : ℝ} (h : x₁ ≥ 14) (x : ℝ) (hx : x ≥ x₁) :
   (discussion := 717)]
 theorem theorem_6_3 {x₁ : ℝ} (h : x₁ ≥ 14) (x₂ : ℝ) (hx₂ : x₂ ≥ x₁) (x : ℝ) (hx : x ≥ x₁) (hx' : x ≤ x₂) (hx₂' : x₂ ≤ x₁ * log x₁) :
   (log x / x) * ∫ t in x₁..x, 1 / (log t) ^ 2 ≤
-    (log x₂ / x₂) * (Li x₂ - x₂ / log x₂ - Li x₁ + x₁ / log x₁) := by
-    have h_integral_le_integral : (log x / x) * ∫ t in x₁..x, 1 / (log t) ^ 2 ≤ (log x / x) * (Li x - x / log x - Li x₁ + x₁ / log x₁) := by
+    (log x₂ / x₂) * (TauCeti.Real.logIntegral x₂ - x₂ / log x₂ - TauCeti.Real.logIntegral x₁ + x₁ / log x₁) := by
+    have h_integral_le_integral : (log x / x) * ∫ t in x₁..x, 1 / (log t) ^ 2 ≤ (log x / x) * (TauCeti.Real.logIntegral x - x / log x - TauCeti.Real.logIntegral x₁ + x₁ / log x₁) := by
       rw [ integral_one_div_log_sq ] <;> try linarith;
-    have h_monotone : MonotoneOn (fun t => (log t / t) * (Li t - t / log t - Li x₁ + x₁ / log x₁)) (Set.Icc x₁ (x₁ * log x₁)) := by
+    have h_monotone : MonotoneOn (fun t => (log t / t) * (TauCeti.Real.logIntegral t - t / log t - TauCeti.Real.logIntegral x₁ + x₁ / log x₁)) (Set.Icc x₁ (x₁ * log x₁)) := by
       have h_monotone : MonotoneOn (fun t => (log t / t) * ∫ s in x₁..t, 1 / (log s) ^ 2) (Set.Icc x₁ (x₁ * log x₁)) := by
         apply_rules [ h_monotoneOn ];
     -- Using the fact that the integral of 1/(log t)^2 from x₁ to t is equal to Li t - t / log t - Li x₁ + x₁ / log x₁, we can rewrite the function.
-      have h_integral_eq : ∀ t ∈ Set.Icc x₁ (x₁ * log x₁), ∫ s in x₁..t, 1 / (log s) ^ 2 = Li t - t / log t - Li x₁ + x₁ / log x₁ := by
+      have h_integral_eq : ∀ t ∈ Set.Icc x₁ (x₁ * log x₁), ∫ s in x₁..t, 1 / (log s) ^ 2 = TauCeti.Real.logIntegral t - t / log t - TauCeti.Real.logIntegral x₁ + x₁ / log x₁ := by
         intros t ht; rw [ integral_one_div_log_sq ]
         · ring
         · linarith
@@ -3663,9 +3663,9 @@ noncomputable def μ_num_1 {N : ℕ} (b : Fin (N + 1) → ℝ) (εθ_num : ℝ �
   (x₀ * log x₁) / (εθ_num x₁ * x₁ * log x₀) * δ x₀ +
   (log x₁) / (εθ_num x₁ * x₁) *
     (∑ i ∈ Finset.Iio (Fin.last N), εθ_num (exp (b i)) *
-      (Li (exp (b (i + 1))) - Li (exp (b i)) +
+      (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) +
       exp (b i) / b i - exp (b (i + 1)) / b (i + 1))) +
-    (log x₂) / x₂ * (Li x₂ - x₂ / log x₂ - Li x₁ + x₁ / log x₁)
+    (log x₂) / x₂ * (TauCeti.Real.logIntegral x₂ - x₂ / log x₂ - TauCeti.Real.logIntegral x₁ + x₁ / log x₁)
 
 @[blueprint
   "fks2-eq-12"
@@ -3683,7 +3683,7 @@ noncomputable def μ_num_2 {N : ℕ} (b : Fin (N + 1) → ℝ) (εθ_num : ℝ �
   (x₀ * log x₁) / (εθ_num x₁ * x₁ * log x₀) * δ x₀ +
   (log x₁) / (εθ_num x₁ * x₁) *
     (∑ i ∈ Finset.Iio (Fin.last N), εθ_num (exp (b i)) *
-      (Li (exp (b (i + 1))) - Li (exp (b i)) +
+      (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) +
       exp (b i) / b i - exp (b (i + 1)) / b (i + 1))) +
     1 / (log x₁ + log (log x₁) - 1)
 
@@ -3732,7 +3732,7 @@ theorem remark_7 {x₀ x₁ : ℝ} (x₂ : ℝ) (h : x₁ ≥ max x₀ 14)
   simp only [μ_num_2, μ_num_1, sup_le_iff, add_lt_add_iff_left] at *
   convert theorem_6_2 (by linarith : x₁ ≥ 14) x₂ (by linarith) using 1
   · rw [intervalIntegral.integral_eq_sub_of_hasDerivAt]; rotate_right
-    · exact fun x ↦ Li x - x / log x
+    · exact fun x ↦ TauCeti.Real.logIntegral x - x / log x
     · ring_nf
     · intro x hx
       convert! HasDerivAt.sub (hasDerivAt_Li _) (HasDerivAt.div (hasDerivAt_id x)
@@ -3783,7 +3783,7 @@ theorem theorem_6 {x₀ x₁ : ℝ} (x₂ : EReal) (h : x₁ ≥ max x₀ 14)
   (h_εθ_num : ∀ i : Fin (N+1), Eθ.numericalBound (exp (b i)) εθ_num) (x : ℝ) (hx₁ : x₁ ≤ x) (hx₂ : x.toEReal ≤ x₂) (hx₀ : x₀ ≥ 2) :
   Eπ x ≤ επ_num b εθ_num x₀ x₁ x₂ := by
   -- NOTE: the hypothesis `hx₀ : x₀ ≥ 2` is not present in the original source material
-  have h_key : Eπ x ≤ εθ_num x₁ + (x₀ * log x₁) / (x₁ * log x₀) * δ x₀ + (log x₁ / x₁) * (∑ i ∈ Finset.Iio (Fin.last N), εθ_num (exp (b i)) * (Li (exp (b (i + 1))) - Li (exp (b i)) + exp (b i) / b i - exp (b (i + 1)) / b (i + 1))) + εθ_num x₁ * ((log x / x) * ∫ t in x₁..x, 1 / (Real.log t) ^ 2) := by
+  have h_key : Eπ x ≤ εθ_num x₁ + (x₀ * log x₁) / (x₁ * log x₀) * δ x₀ + (log x₁ / x₁) * (∑ i ∈ Finset.Iio (Fin.last N), εθ_num (exp (b i)) * (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) + exp (b i) / b i - exp (b (i + 1)) / b (i + 1))) + εθ_num x₁ * ((log x / x) * ∫ t in x₁..x, 1 / (Real.log t) ^ 2) := by
     have h_key : Eπ x ≤ Eθ x + (log x / x) * (x₀ / log x₀) * δ x₀ + (log x / x) * (∫ t in x₀..x₁, Eθ t / log t ^ 2) + (log x / x) * (∫ t in x₁..x, Eθ t / log t ^ 2) := by
       have h_split : ∫ t in x₀..x, Eθ t / log t ^ 2 = (∫ t in x₀..x₁, Eθ t / log t ^ 2) + (∫ t in x₁..x, Eθ t / log t ^ 2) := by
         rw [ intervalIntegral.integral_add_adjacent_intervals ] <;> apply_rules [ Eθ_integrable ] <;> linarith [ le_max_left x₀ 14, le_max_right x₀ 14 ];
@@ -3791,7 +3791,7 @@ theorem theorem_6 {x₀ x₁ : ℝ} (x₂ : EReal) (h : x₁ ≥ max x₀ 14)
     have h_bound : Eθ x ≤ εθ_num x₁ := by
       have := h_εθ_num ( Fin.last N ) ; simp_all +decide [ Eθ.numericalBound ] ;
       simpa [ Real.exp_log ( by linarith : 0 < x₁ ) ] using this x ( by rw [ Real.exp_log ( by linarith ) ] ; linarith )
-    have h_bound_integral : ∫ t in x₀..x₁, Eθ t / log t ^ 2 ≤ ∑ i ∈ Finset.Iio (Fin.last N), εθ_num (exp (b i)) * (Li (exp (b (i + 1))) - Li (exp (b i)) + exp (b i) / b i - exp (b (i + 1)) / b (i + 1)) := by
+    have h_bound_integral : ∫ t in x₀..x₁, Eθ t / log t ^ 2 ≤ ∑ i ∈ Finset.Iio (Fin.last N), εθ_num (exp (b i)) * (TauCeti.Real.logIntegral (exp (b (i + 1))) - TauCeti.Real.logIntegral (exp (b i)) + exp (b i) / b i - exp (b (i + 1)) / b (i + 1)) := by
       apply_rules [ bound_x0_x1 ];
       linarith [ le_max_left x₀ 14, le_max_right x₀ 14 ]
     have h_bound_integral_last : ∫ t in x₁..x, Eθ t / log t ^ 2 ≤ εθ_num x₁ * ∫ t in x₁..x, 1 / log t ^ 2 := by
@@ -4295,8 +4295,8 @@ theorem mu_asymp_num_le {A : ℝ} (hA : 1 ≤ A) :
       unfold pi
       rw [show ⌊(2:ℝ)⌋₊ = 2 from by norm_num, hpc]
       norm_num
-    have hLi2 : Li 2 = 0 := by
-      unfold Li
+    have hLi2 : TauCeti.Real.logIntegral 2 = 0 := by
+      unfold TauCeti.Real.logIntegral
       exact intervalIntegral.integral_same
     have hθ0 : (0:ℝ) ≤ θ 2 := Chebyshev.theta_nonneg 2
     have hθ3 : θ 2 ≤ 3 := by
@@ -4716,8 +4716,8 @@ lemma pi_eq_one_lt_e {x : ℝ} (hx2 : 2 ≤ x) (hxe : x < Real.exp 1) : pi x = 1
   unfold pi; rw [hfl]; norm_num [Nat.primeCounting, Nat.primeCounting']; decide
 
 /-- `Li x ≥ 0` for `x ≥ 2` (integrand `1/log t > 0`). -/
-lemma Li_nonneg_two {x : ℝ} (hx2 : 2 ≤ x) : (0:ℝ) ≤ Li x := by
-  unfold Li
+lemma Li_nonneg_two {x : ℝ} (hx2 : 2 ≤ x) : (0:ℝ) ≤ TauCeti.Real.logIntegral x := by
+  unfold TauCeti.Real.logIntegral
   apply intervalIntegral.integral_nonneg hx2
   intro t ht
   simp only [Set.mem_Icc] at ht
@@ -4726,7 +4726,7 @@ lemma Li_nonneg_two {x : ℝ} (hx2 : 2 ≤ x) : (0:ℝ) ≤ Li x := by
 
 /-- `Li x ≤ 2` on `[2, e)`: the integrand `1/log t ≤ 1/log 2`, integrated over a
 length `< 1.04` interval. -/
-lemma Li_le_two_lt_e {x : ℝ} (hx2 : 2 ≤ x) (hxe : x < Real.exp 1) : Li x ≤ 2 := by
+lemma Li_le_two_lt_e {x : ℝ} (hx2 : 2 ≤ x) (hxe : x < Real.exp 1) : TauCeti.Real.logIntegral x ≤ 2 := by
   have hlog2 : (0:ℝ) < Real.log 2 := Real.log_pos (by norm_num)
   have hint : IntervalIntegrable (fun t => 1 / Real.log t) MeasureTheory.volume 2 x := by
     apply ContinuousOn.intervalIntegrable
@@ -4735,8 +4735,8 @@ lemma Li_le_two_lt_e {x : ℝ} (hx2 : 2 ≤ x) (hxe : x < Real.exp 1) : Li x ≤
     rw [Set.uIcc_of_le hx2, Set.mem_Icc] at ht
     exact ContinuousAt.div continuousAt_const
       (Real.continuousAt_log (by linarith [ht.1])) (Real.log_pos (by linarith [ht.1])).ne'
-  have hmono : Li x ≤ ∫ _t in (2:ℝ)..x, 1 / Real.log 2 := by
-    unfold Li
+  have hmono : TauCeti.Real.logIntegral x ≤ ∫ _t in (2:ℝ)..x, 1 / Real.log 2 := by
+    unfold TauCeti.Real.logIntegral
     apply intervalIntegral.integral_mono_on hx2 hint intervalIntegrable_const
     intro t ht
     simp only [Set.mem_Icc] at ht
@@ -4754,7 +4754,7 @@ lemma Eπ_le_on_two_e {x : ℝ} (hx2 : 2 ≤ x) (hxe : x < Real.exp 1) : Eπ x �
   have hpi  := pi_eq_one_lt_e hx2 hxe
   have hLi0 := Li_nonneg_two hx2
   have hLi2 := Li_le_two_lt_e hx2 hxe
-  have habs : |pi x - Li x| ≤ 1 := by rw [hpi, abs_le]; constructor <;> linarith
+  have habs : |pi x - TauCeti.Real.logIntegral x| ≤ 1 := by rw [hpi, abs_le]; constructor <;> linarith
   have hloge : Real.log x ≤ x / Real.exp 1 := by
     have h := Real.log_le_sub_one_of_pos (show 0 < x / Real.exp 1 by positivity)
     rwa [Real.log_div (ne_of_gt hxpos) (ne_of_gt (Real.exp_pos 1)),
@@ -4767,7 +4767,7 @@ lemma Eπ_le_on_two_e {x : ℝ} (hx2 : 2 ≤ x) (hxe : x < Real.exp 1) : Eπ x �
     nlinarith [hcleared, he9, hlogx]
   unfold Eπ
   rw [div_le_iff₀ (by positivity)]
-  calc |pi x - Li x| ≤ 1 := habs
+  calc |pi x - TauCeti.Real.logIntegral x| ≤ 1 := habs
     _ ≤ 0.4298 * (x / Real.log x) := by nlinarith [hxlogx]
 
 

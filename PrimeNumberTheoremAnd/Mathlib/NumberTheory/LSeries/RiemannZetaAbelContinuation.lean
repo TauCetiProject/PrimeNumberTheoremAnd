@@ -11,7 +11,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIn
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
-public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.MeasureTheory.Integral.IntegrableOn
 
 /-!
 # Abel-summation continuation of the Riemann zeta function

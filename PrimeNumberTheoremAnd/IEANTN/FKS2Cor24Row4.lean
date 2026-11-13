@@ -55,19 +55,19 @@ theorem Epi_le_evalLhsE_wide (x : ℝ) (h2 : (2 : ℝ) ≤ x) (h19 : x ≤ (10 :
   have hsub := li.sub_Li x h2
   have hli2 := li.two_approx
   have hli2_le : li 2 ≤ 1.0452 := hli2.2
-  have hpiLi : pi x - Li x = li 2 - (li x - pi x) := by linarith [hsub]
-  have habs : |pi x - Li x| ≤ (li x - pi x) + li 2 := by
+  have hpiLi : pi x - TauCeti.Real.logIntegral x = li 2 - (li x - pi x) := by linarith [hsub]
+  have habs : |pi x - TauCeti.Real.logIntegral x| ≤ (li x - pi x) + li 2 := by
     rw [hpiLi, abs_le]
     constructor <;> linarith [h2f, hli2.1]
-  have hEpi_eq : Eπ x = |pi x - Li x| * (Real.log x / x) := by
+  have hEpi_eq : Eπ x = |pi x - TauCeti.Real.logIntegral x| * (Real.log x / x) := by
     unfold Eπ
     rw [div_div_eq_mul_div, mul_div_assoc]
   rw [hEpi_eq]
   set B := Real.sqrt x / Real.log x * (1.95 + 3.9 / Real.log x + 19.5 / (Real.log x) ^ 2) with hB_def
   have hfactor_nn : (0:ℝ) ≤ Real.log x / x := by positivity
-  have hstep1 : |pi x - Li x| * (Real.log x / x) ≤ (B + 1.0452) * (Real.log x / x) := by
+  have hstep1 : |pi x - TauCeti.Real.logIntegral x| * (Real.log x / x) ≤ (B + 1.0452) * (Real.log x / x) := by
     apply mul_le_mul_of_nonneg_right _ hfactor_nn
-    calc |pi x - Li x| ≤ (li x - pi x) + li 2 := habs
+    calc |pi x - TauCeti.Real.logIntegral x| ≤ (li x - pi x) + li 2 := habs
       _ ≤ B + 1.0452 := by
           apply add_le_add
           · rw [hB_def]; exact h2e

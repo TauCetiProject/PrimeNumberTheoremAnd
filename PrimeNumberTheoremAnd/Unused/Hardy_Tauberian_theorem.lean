@@ -68,8 +68,11 @@ theorem hardy_sigma_delayed_eq (u : ℕ → ℝ) (n k : ℕ) (hk : k ≠ 0) :
   rw [ eq_sub_iff_add_eq, eq_div_iff ] <;> norm_cast ; norm_num;
   rw [ mul_comm, ← Finset.sum_range_add_sum_Ico _ ( by linarith : n + 1 ≤ n + k + 1 ) ];
   field_simp;
-  rw [ add_comm, Nat.Ico_succ_right ];
-  rw [ Nat.Icc_succ_left ]
+  rw [add_comm]
+  congr 1
+  apply Finset.sum_congr
+  · ext i; simp only [Finset.mem_Ioc, Finset.mem_Ico]; omega
+  · intro i _; rfl
 
 /-
 If the arithmetic means converge to S, and n/k_n is bounded, then the delayed arithmetic means also converge to S.

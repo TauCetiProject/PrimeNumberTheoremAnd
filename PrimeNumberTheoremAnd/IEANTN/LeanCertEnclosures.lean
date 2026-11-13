@@ -123,28 +123,16 @@ def checkLi (request : UnaryEnclosureRequest) (output : IntervalRat) : Bool :=
     decide (request.input.hi - request.input.lo ≤ 1) &&
     decide (liBounds request.input = some output)
 
-/-- The `Li` integrand is interval-integrable from `2` to every `b ≥ 2`. -/
-theorem liIntegrable {b : ℝ} (hb : 2 ≤ b) :
-    IntervalIntegrable (fun t : ℝ => 1 / Real.log t) volume 2 b := by
-  apply ContinuousOn.intervalIntegrable_of_Icc hb
-  intro t ht
-  have ht1 : 1 < t := by linarith [ht.1]
-  have ht0 : t ≠ 0 := by positivity
-  have hlog0 : Real.log t ≠ 0 :=
-    Real.log_ne_zero_of_pos_of_ne_one (by positivity) (by linarith)
-  exact ContinuousAt.continuousWithinAt <|
-    continuousAt_const.div (Real.continuousAt_log ht0) hlog0
-
 /-- The PNT+ logarithmic integral is monotone on `[2, ∞)`. -/
-theorem liMonoOn {a b : ℝ} (ha : 2 ≤ a) (hab : a ≤ b) : Li a ≤ Li b := by
-  unfold Li
+theorem liMonoOn {a b : ℝ} (ha : 2 ≤ a) (hab : a ≤ b) : TauCeti.Real.logIntegral a ≤ TauCeti.Real.logIntegral b := by
+  unfold TauCeti.Real.logIntegral
   apply intervalIntegral.integral_mono_interval (c := 2) (d := b)
   · rfl
   · exact ha
   · exact hab
   · filter_upwards [ae_restrict_mem measurableSet_Ioc] with t ht
-    exact one_div_nonneg.mpr (Real.log_nonneg (by linarith [ht.1]))
-  · exact liIntegrable (le_trans ha hab)
+    exact inv_nonneg.mpr (Real.log_nonneg (by linarith [ht.1]))
+  · simpa using TauCeti.Real.intervalIntegrable_inv_log_pow 1 (by norm_num : (1 : ℝ) < 2) (by linarith : 1 < b)
 
 /-- Soundness theorem registered with LeanCert for downstream occurrences of `Li`. -/
 @[leancert_enclosure liCandidate]
@@ -152,7 +140,7 @@ theorem li_mem
     {request : UnaryEnclosureRequest} {x : ℝ} {output : IntervalRat}
     (hx : x ∈ request.input)
     (hcheck : checkLi request output = true) :
-    _root_.Li x ∈ output := by
+    TauCeti.Real.logIntegral x ∈ output := by
   simp only [checkLi, Bool.and_eq_true, decide_eq_true_eq] at hcheck
   obtain ⟨⟨hlo2, _hwidth⟩, hout⟩ := hcheck
   have hhi2 : 2 ≤ request.input.hi := le_trans hlo2 request.input.le
@@ -167,31 +155,35 @@ theorem li_mem
           split at hout
           · simp only [Option.some.injEq] at hout
             subst output
-            have hloInt : Li (request.input.lo : ℝ) ∈ lower := by
+            have hloInt : TauCeti.Real.logIntegral (request.input.lo : ℝ) ∈ lower := by
               unfold liAt at hlo
               split at hlo <;> rename_i hq
               · have hqR : (2 : ℝ) ≤ (request.input.lo : ℝ) := by exact_mod_cast hq
                 have hInt : IntervalIntegrable
                     (fun x => LeanCert.Core.Expr.eval (fun _ => x) liIntegrandExpr)
                     volume (2 : ℝ) (request.input.lo : ℝ) := by
-                  simpa [liIntegrandExpr] using liIntegrable hqR
+                  simpa [liIntegrandExpr, one_div] using
+                    TauCeti.Real.intervalIntegrable_inv_log_pow 1 (by norm_num : (1 : ℝ) < 2)
+                      (show (1 : ℝ) < (request.input.lo : ℝ) by linarith)
                 have hmem := LeanCert.Validity.Integration.integratePartitionChecked_correct
                     liIntegrandExpr ⟨2, request.input.lo, hq⟩ liPanels (by norm_num [liPanels])
                     lower hlo hInt
-                simpa [Li, liIntegrandExpr] using hmem
+                simpa [TauCeti.Real.logIntegral, liIntegrandExpr, one_div] using hmem
               · exact (hq hlo2).elim
-            have hhiInt : Li (request.input.hi : ℝ) ∈ upper := by
+            have hhiInt : TauCeti.Real.logIntegral (request.input.hi : ℝ) ∈ upper := by
               unfold liAt at hhi
               split at hhi <;> rename_i hq
               · have hqR : (2 : ℝ) ≤ (request.input.hi : ℝ) := by exact_mod_cast hq
                 have hInt : IntervalIntegrable
                     (fun x => LeanCert.Core.Expr.eval (fun _ => x) liIntegrandExpr)
                     volume (2 : ℝ) (request.input.hi : ℝ) := by
-                  simpa [liIntegrandExpr] using liIntegrable hqR
+                  simpa [liIntegrandExpr, one_div] using
+                    TauCeti.Real.intervalIntegrable_inv_log_pow 1 (by norm_num : (1 : ℝ) < 2)
+                      (show (1 : ℝ) < (request.input.hi : ℝ) by linarith)
                 have hmem := LeanCert.Validity.Integration.integratePartitionChecked_correct
                     liIntegrandExpr ⟨2, request.input.hi, hq⟩ liPanels (by norm_num [liPanels])
                     upper hhi hInt
-                simpa [Li, liIntegrandExpr] using hmem
+                simpa [TauCeti.Real.logIntegral, liIntegrandExpr, one_div] using hmem
               · exact (hq hhi2).elim
             simp only [IntervalRat.mem_def] at hloInt hhiInt ⊢
             constructor
@@ -253,9 +245,9 @@ theorem epi_mem
           have hlichk : checkLi request liI = true := by
             simp [checkLi, hlo2, hwidth, hli]
           have hpiMem : pi x ∈ piI := pi_mem hx hpichk
-          have hliMem : Li x ∈ liI := li_mem hx hlichk
+          have hliMem : TauCeti.Real.logIntegral x ∈ liI := li_mem hx hlichk
           have henv : LeanCert.Engine.envMem
-              (fun i => if i = 0 then x else if i = 1 then pi x else Li x)
+              (fun i => if i = 0 then x else if i = 1 then pi x else TauCeti.Real.logIntegral x)
               (fun i => if i = 0 then request.input else if i = 1 then piI else liI) := by
             intro i
             by_cases hi0 : i = 0
@@ -266,8 +258,8 @@ theorem epi_mem
           have hmem := LeanCert.Engine.evalInterval?_correct epiExpr
             (fun i => if i = 0 then request.input else if i = 1 then piI else liI)
             output hout
-            (fun i => if i = 0 then x else if i = 1 then pi x else Li x) henv
-          have hsqrt : Real.sqrt ((pi x - Li x) * (pi x - Li x)) = |pi x - Li x| := by
+            (fun i => if i = 0 then x else if i = 1 then pi x else TauCeti.Real.logIntegral x) henv
+          have hsqrt : Real.sqrt ((pi x - TauCeti.Real.logIntegral x) * (pi x - TauCeti.Real.logIntegral x)) = |pi x - TauCeti.Real.logIntegral x| := by
             rw [← pow_two, Real.sqrt_sq_eq_abs]
           simpa [epiExpr, Eπ, LeanCert.Core.Expr.abs, hsqrt] using hmem
 

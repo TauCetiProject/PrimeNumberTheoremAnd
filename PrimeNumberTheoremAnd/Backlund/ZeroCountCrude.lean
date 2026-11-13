@@ -9,7 +9,9 @@ public import PrimeNumberTheoremAnd.IEANTN.ZetaDefinitions
 public import PrimeNumberTheoremAnd.ZetaConj
 public import PrimeNumberTheoremAnd.ZetaBounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Summability
+public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Real.Pi.Bounds
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Vertical
 
 /-!
 # A crude polynomial bound for the zeta zero-counting function
@@ -273,19 +275,6 @@ private lemma zeta_norm_le_subband {z : ℂ} (h1 : 1 / 2 ≤ z.re) (him : 1 ≤ 
         refine add_le_add ?_ (mul_le_mul_of_nonneg_left hI (norm_nonneg z))
         exact add_le_add ((norm_add_le _ _).trans (add_le_add hA hB)) hC
     _ ≤ 3 + ‖z‖ := by linarith [norm_nonneg z]
-/-- The Euler integral bounds the complex `Γ` by the real `Γ` of the real part, on the
-right half-plane. Not in Mathlib; the keystone for the left-region growth bound. -/
-private lemma norm_Gamma_le_Gamma_re {z : ℂ} (hz : 0 < z.re) :
-    ‖Complex.Gamma z‖ ≤ Real.Gamma z.re := by
-  rw [Complex.Gamma_eq_integral hz, Real.Gamma_eq_integral hz]
-  unfold Complex.GammaIntegral
-  refine (MeasureTheory.norm_integral_le_integral_norm _).trans (le_of_eq ?_)
-  refine MeasureTheory.setIntegral_congr_fun measurableSet_Ioi fun x hx ↦ ?_
-  rw [Set.mem_Ioi] at hx
-  rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_pos (Real.exp_pos _),
-    Complex.norm_cpow_eq_rpow_re_of_pos hx]
-  simp [Complex.sub_re, Complex.one_re]
-
 /-- `Γ ≤ 2` on `[1, 2]`: the integrand is dominated by `e⁻ᵗ(t⁰ + t¹)`, whose integral
 is `Γ(1) + Γ(2) = 2`. -/
 private lemma Gamma_le_two_of_mem_Icc {x : ℝ} (h1 : 1 ≤ x) (h2 : x ≤ 2) :
@@ -1060,7 +1049,8 @@ lemma zetaCounting_le_surrogate_mass :
     intro ρ hρ
     obtain ⟨-, -, -, -, -, hρ1⟩ := hmem ρ (hfin.mem_toFinset.mp hρ)
     rw [hDdef, divisor_surrogate_eq_order hρ1]
-  have hDnn : 0 ≤ D := Differentiable.divisor_nonneg zetaSurrogate_differentiable
+  have hDnn : 0 ≤ D := MeromorphicOn.AnalyticOnNhd.divisor_nonneg
+    (zetaSurrogate_differentiable.differentiableOn.analyticOnNhd isOpen_univ)
   -- assemble: |N T| = N T = Σ orders = Σ divisor values ≤ mass
   have habs : |riemannZeta.N T| = riemannZeta.N T := by
     rw [abs_of_nonneg]

@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-public import PrimeNumberTheoremAnd.Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.MeasureTheory.Integral.IntegrableOn
 
 /-!
 # Improper-integral estimates
@@ -51,7 +51,7 @@ theorem intervalIntegral.tendsto_integral_Ioi_of_ae_norm_le {E : Type*} [NormedA
     (hbound : ∀ᵐ u ∂MeasureTheory.volume.restrict (Ioi c), ‖f u‖ ≤ g u)
     (hg : MeasureTheory.IntegrableOn g (Ioi c) MeasureTheory.volume) :
     Tendsto (fun N : ℕ => ∫ u in c..N, f u) atTop (𝓝 (∫ u in Ioi c, f u)) :=
-  intervalIntegral_tendsto_integral_Ioi c (MeasureTheory.IntegrableOn.mono' hg hfm hbound)
+  intervalIntegral_tendsto_integral_Ioi c (MeasureTheory.Integrable.mono' hg hfm hbound)
     tendsto_natCast_atTop_atTop
 
 /-- `∫_{1}^∞ u^{-re s - 1} = 1 / re s` for `0 < re s`. -/
