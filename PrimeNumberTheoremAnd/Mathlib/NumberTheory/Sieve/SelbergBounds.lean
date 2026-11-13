@@ -20,7 +20,6 @@ This file proves a number of results to help bound `Sieve.selbergSum`
 * `rem_sum_le_of_const`: If `R_d ≤ C` then the error term is at most `C * y * (1 + log y)^3`
 -/
 
-set_option lang.lemmaCmd true
 
 open scoped Nat ArithmeticFunction BigOperators Classical ArithmeticFunction.zeta
   ArithmeticFunction.omega
@@ -367,7 +366,7 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prim
   (hnu : CompletelyMultiplicative s.nu) (hnu_nonneg : ∀ n, 0 ≤ s.nu n) (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nu p < 1):
     s.selbergBoundingSum ≥ ∑ m ∈ Finset.Icc 1 (Nat.floor <| Real.sqrt s.level), s.nu m := by
   unfold selbergBoundingSum
-  calc ∑ l ∈ s.prodPrimes.divisors, (if l ^ 2 ≤ s.level then selbergTerms _ l else 0)
+  calc ∑ l ∈ s.prodPrimes.divisors, (if l ^ 2 ≤ s.level then (@BoundingSieve.selbergTerms _) l else 0)
      ≥ ∑ l ∈ s.prodPrimes.divisors.filter (fun (l:ℕ) => l^2 ≤ s.level),
         ∑ m ∈ (l^(Nat.floor s.level)).divisors.filter (l ∣ ·), s.nu m         := ?_
    _ ≥ ∑ m ∈ Finset.Icc 1 (Nat.floor <| Real.sqrt s.level), s.nu m           := ?_
@@ -380,7 +379,8 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prim
       · exact hlsq
       · rw [ne_eq, Nat.floor_eq_zero, not_lt]
         exact s.one_le_level
-    rw [selbergTerms_apply _ l]
+    rw [@BoundingSieve.selbergTerms_apply _ l]
+    simp only [← one_div]
     apply prod_factors_one_div_compMult_ge _ _ hnu _ _ hlsq
     · intro p hpp hpl
       apply hnu_lt p hpp (Trans.trans hpl hl.1.1)
@@ -502,8 +502,8 @@ theorem boundingSum_ge_log (s : SelbergSieve) (hnu : s.nu = (ζ : ArithmeticFunc
   · exact boundingSum_ge_sum s hnu hP
   trans (Real.log <| Real.sqrt s.level)
   · rw [ge_iff_le]; simp_rw[one_div]
-    apply Aux.log_le_sum_inv (Real.sqrt s.level)
-    rw [Real.le_sqrt] <;> linarith[s.one_le_level]
+    simpa only [harmonic_eq_sum_Icc, Rat.cast_sum, Rat.cast_inv, Rat.cast_natCast] using
+      log_le_harmonic_floor (Real.sqrt s.level) (Real.sqrt_nonneg _)
   · apply ge_of_eq
     refine Real.log_sqrt ?h.hx
     linarith[s.one_le_level]

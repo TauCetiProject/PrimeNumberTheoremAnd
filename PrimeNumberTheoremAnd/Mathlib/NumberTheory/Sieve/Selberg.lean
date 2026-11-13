@@ -8,7 +8,8 @@ Author: Arend Mellendijk
 module
 
 public import Batteries.Tactic.Lemma
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Basic
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.LambdaSquared
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.AuxResults
 
 /-!
 # The Selberg Sieve
@@ -16,13 +17,12 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Basic
 This file proves `selberg_bound_simple`, the main theorem of the Selberg.
 -/
 
-set_option lang.lemmaCmd true
 
 @[expose] public noncomputable section
 
 open scoped BigOperators Classical SelbergSieve ArithmeticFunction.Moebius ArithmeticFunction.omega
 
-open Finset Real Nat SelbergSieve.UpperBoundSieve ArithmeticFunction SelbergSieve BoundingSieve
+open Finset Real Nat ArithmeticFunction SelbergSieve BoundingSieve
 
 namespace SelbergSieve
 set_option quotPrecheck false
@@ -35,7 +35,7 @@ local notation3 "X" => BoundingSieve.totalMass (self := SelbergSieve.toBoundingS
 local notation3 "A" => BoundingSieve.support (self := SelbergSieve.toBoundingSieve (self := s))
 local notation3 "𝒜" => BoundingSieve.multSum (s := SelbergSieve.toBoundingSieve (self := s))
 local notation3 "R" => BoundingSieve.rem (s := SelbergSieve.toBoundingSieve (self := s))
-local notation3 "g" => SelbergSieve.selbergTerms (SelbergSieve.toBoundingSieve (self := s))
+local notation3 "g" => @BoundingSieve.selbergTerms (SelbergSieve.toBoundingSieve (self := s))
 local notation3 "y" => SelbergSieve.level (self := s)
 local notation3 "hy" => SelbergSieve.one_le_level (self := s)
 
@@ -53,7 +53,7 @@ theorem selbergBoundingSum_pos :
   apply sum_pos;
   · intro l hl
     rw [mem_filter, mem_divisors] at hl
-    · apply selbergTerms_pos _ _ (hl.1.1)
+    · apply @BoundingSieve.selbergTerms_pos _ _ (hl.1.1)
   · simp_rw [Finset.Nonempty, mem_filter]; use 1
     constructor
     · apply one_mem_divisors.mpr prodPrimes_ne_zero
@@ -108,11 +108,11 @@ theorem selbergWeights_mul_mu_nonneg (d : ℕ) (hdP : d ∣ P) :
   · apply sq_nonneg
   · rw [inv_nonneg]
     exact le_of_lt <| nu_pos_of_dvd_prodPrimes hdP
-  · exact le_of_lt <| selbergTerms_pos _ d hdP
+  · exact le_of_lt <| @BoundingSieve.selbergTerms_pos _ d hdP
   · exact s.selbergBoundingSum_nonneg
   apply sum_nonneg; intro m hm
   split_ifs with h
-  · exact le_of_lt <| selbergTerms_pos _ m (dvd_of_mem_divisors hm)
+  · exact le_of_lt <| @BoundingSieve.selbergTerms_pos _ m (dvd_of_mem_divisors hm)
   · rfl
 
 lemma sum_mul_subst (k n : ℕ) {f : ℕ → ℝ} (h : ∀ l, l ∣ n → ¬ k ∣ l → f l = 0) :
@@ -191,7 +191,7 @@ theorem selbergWeights_eq_dvds_sum (d : ℕ) :
     · intro h
       trans ((ν d)⁻¹ * (ν d) * g d * μ d / S * g m)
       · rw [inv_mul_cancel₀ (nu_ne_zero h_dvd),
-          (selbergTerms_mult _).map_mul_of_coprime <| coprime_comm.mp h.2]
+          (@BoundingSieve.selbergTerms_isMultiplicative _).map_mul_of_coprime <| coprime_comm.mp h.2]
         ring
       ring
   · intro l _ hdl
@@ -240,7 +240,7 @@ local notation3 "μ⁺" => SelbergSieve.selbergMuPlus s
 
 theorem weight_one_of_selberg : γ 1 = 1 := by
   dsimp only [selbergWeights]
-  rw [ite_eq_left (one_dvd P), s.nu_mult.left, (selbergTerms_mult _).map_one]
+  rw [ite_eq_left (one_dvd P), s.nu_mult.left, (@BoundingSieve.selbergTerms_isMultiplicative _).map_one]
   simp only [inv_one, mul_one, isUnit_one, IsUnit.squarefree, moebius_apply_of_squarefree,
     cardFactors_one, _root_.pow_zero, Int.cast_one, selbergBoundingSum, one_mul,
     coprime_one_right_eq_true, and_true, cast_one]
@@ -251,16 +251,14 @@ theorem selbergμPlus_eq_zero (d : ℕ) (hd : ¬d ≤ y) : μ⁺ d = 0 := by
   apply lambdaSquared_eq_zero_of_support _ y _ d hd
   apply s.selbergWeights_eq_zero
 
-def selbergUbSieve : UpperBoundSieve :=
-  ⟨μ⁺, upperMoebius_of_lambda_sq γ (s.weight_one_of_selberg)⟩
-
 -- proved for general lambda squared sieves
 theorem mainSum_eq_diag_quad_form :
     mainSum (s := s.toBoundingSieve) μ⁺ =
       ∑ l ∈ divisors P,
         1 / g l *
           (∑ d ∈ divisors P, if l ∣ d then ν d * γ d else 0) ^ 2 :=
-  by apply lambdaSquared_mainSum_eq_diag_quad_form
+  by simpa only [selbergMuPlus, one_div] using
+    BoundingSieve.mainSum_lambdaSquared_eq_sum_mul_sum_sq γ
 
 theorem selberg_bound_simple_mainSum :
     mainSum (s := s.toBoundingSieve) μ⁺ = S⁻¹ := by
@@ -272,7 +270,7 @@ theorem selberg_bound_simple_mainSum :
     trans (1/g l * g l * g l * (μ l:ℝ)^2  * (S⁻¹) ^ 2)
     · ring
     norm_cast; rw [moebius_sq_eq_one_of_squarefree <| squarefree_of_mem_divisors_prodPrimes hl]
-    rw [one_div_mul_cancel <| _root_.ne_of_gt <| selbergTerms_pos _ l <| dvd_of_mem_divisors hl]
+    rw [one_div_mul_cancel <| _root_.ne_of_gt <| @BoundingSieve.selbergTerms_pos _ l <| dvd_of_mem_divisors hl]
     ring
   conv => {lhs; congr; {skip}; {ext i; rw [← ite_zero_mul]}}
   dsimp only [selbergBoundingSum]
@@ -338,7 +336,7 @@ theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :
       apply if_ctx_congr _ _ fun _ => rfl
       · exact_mod_cast s._helper hkd hk hm
       · intro h
-        apply (selbergTerms_mult _).map_mul_of_coprime
+        apply (@BoundingSieve.selbergTerms_isMultiplicative _).map_mul_of_coprime
         rw [gcd_comm]; apply h.2.coprime_dvd_right hkd
     · intro l _ hkl; apply ite_eq_right
       push Not; intro h; exfalso
@@ -350,7 +348,7 @@ theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :
     split_ifs with hkd
     swap
     · rfl
-    apply mul_le_mul le_rfl _ _ (le_of_lt <| selbergTerms_pos _ k <| hkd.trans hdP)
+    apply mul_le_mul le_rfl _ _ (le_of_lt <| @BoundingSieve.selbergTerms_pos _ k <| hkd.trans hdP)
     · apply sum_le_sum; intro m hm
       split_ifs with h h' h'
       · rfl
@@ -361,15 +359,15 @@ theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :
             refine Nat.le_of_dvd ?_ hkd
             apply Nat.pos_of_ne_zero; apply ne_zero_of_dvd_ne_zero prodPrimes_ne_zero hdP
           exact h.1
-      · refine le_of_lt <| selbergTerms_pos _ m <| dvd_of_mem_divisors hm
+      · refine le_of_lt <| @BoundingSieve.selbergTerms_pos _ m <| dvd_of_mem_divisors hm
       · rfl
     apply sum_nonneg; intro m hm
     split_ifs
-    · apply le_of_lt <| selbergTerms_pos _ m <| dvd_of_mem_divisors hm
+    · apply le_of_lt <| @BoundingSieve.selbergTerms_pos _ m <| dvd_of_mem_divisors hm
     · rfl
   _ = _ := by
     conv => enter [1, 2, k]; rw [← ite_zero_mul]
-    rw [←sum_mul, conv_selbergTerms_eq_selbergTerms_mul_nu _ hdP]
+    rw [←sum_mul, BoundingSieve.sum_divisors_selbergTerms_eq_selbergTerms_mul_nu_inv hdP]
     trans (S * S⁻¹ * (μ d:ℝ)^2 * (ν d)⁻¹ * g d * (∑ m ∈ divisors P, if (d*m) ^ 2 ≤ y ∧
       Coprime m d then g m else 0))
     · rw [mul_inv_cancel₀, ←Int.cast_pow, moebius_sq_eq_one_of_squarefree]
@@ -438,10 +436,11 @@ theorem selberg_bound_simple :
     siftedSum (s := s.toBoundingSieve) ≤
       X / S +
         ∑ d ∈ divisors P, if (d : ℝ) ≤ y then (3:ℝ) ^ ω d * |R d| else 0 := by
-  let μPlus := s.selbergUbSieve
+  let μPlus := s.selbergMuPlus
   calc
     siftedSum ≤ X * mainSum μPlus + errSum μPlus :=
-      siftedSum_le_mainSum_errSum_of_UpperBoundSieve _ μPlus
+      BoundingSieve.siftedSum_le_mainSum_errSum_of_upperMoebius μPlus
+        (BoundingSieve.upperMoebius_lambdaSquared γ s.weight_one_of_selberg)
     _ ≤ _ := ?_
   gcongr
   · erw [s.selberg_bound_simple_mainSum, div_eq_mul_inv]
