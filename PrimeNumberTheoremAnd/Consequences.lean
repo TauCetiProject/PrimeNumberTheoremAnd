@@ -113,58 +113,29 @@ theorem chebyshev_asymptotic' :
       (∀ ε > (0 : ℝ), (f =o[atTop] fun t ↦ ε * t)) ∧
       (∀ (x : ℝ), 2 ≤ x → IntegrableOn f (Set.Icc 2 x)) ∧
       ∀ (x : ℝ), θ x = x + f x := by
-  have H := Chebyshev.isEquivalent_theta_id
-  rw [IsEquivalent, isLittleO_iff] at H
-  let f := (fun x ↦ θ x - x)
-  have integrable (x : ℝ) (hx : 2 ≤ x) : IntegrableOn f (Set.Icc 2 x) := by
-    rw [IntegrableOn]
-    refine Integrable.sub ?_ (ContinuousOn.integrableOn_Icc (continuousOn_id' _))
-    refine Chebyshev.integrableOn_theta_div_id_mul_log_sq x |>.mul_continuousOn (g' := fun t => t * log t ^ 2)
-      (ContinuousOn.mul (continuousOn_id' _) (ContinuousOn.pow (continuousOn_log |>.mono <| by
-        rintro t ⟨ht1, _⟩
-        simp only [Set.mem_compl_iff, Set.mem_singleton_iff]
-        linarith) 2)) isCompact_Icc |>.congr_fun_ae ?_
-    simp only [measurableSet_Icc, ae_restrict_eq, EventuallyEq, eventually_inf_principal]
-    refine .of_forall fun t ⟨ht1, _⟩ => ?_
-    rw [div_mul_cancel₀]
-    simpa only [ne_eq, _root_.mul_eq_zero, OfNat.ofNat_ne_zero, not_false_eq_true, pow_eq_zero_iff,
-      log_eq_zero, or_self_left, not_or] using ⟨by linarith, by linarith, by linarith⟩
-  refine ⟨f, fun ε hε ↦ ?_, integrable, ?_⟩
-  · rw [isLittleO_iff]
-    intro c hc
-    specialize @H (c * ε) (mul_pos hc hε)
-    simp only [Pi.sub_apply, norm_eq_abs, mul_assoc, eventually_atTop, norm_mul,
-      abs_of_pos hε, f] at H ⊢
-    exact H
-  refine fun r => by simp [f]
+  refine ⟨fun x ↦ θ x - x, fun ε hε ↦ ?_, fun x _ ↦ ?_, fun x ↦ by ring⟩
+  · exact Chebyshev.isEquivalent_theta_id.isLittleO.const_mul_right hε.ne'
+  · exact (Chebyshev.theta_mono.locallyIntegrable.integrableOn_isCompact isCompact_Icc).sub
+      continuous_id.integrableOn_Icc
 
 theorem chebyshev_asymptotic'' :
     ∃ (f : ℝ → ℝ),
       (∀ ε > (0 : ℝ), (f =o[atTop] fun _ ↦ ε)) ∧
       (∀ (x : ℝ), 2 ≤ x → IntegrableOn f (Set.Icc 2 x)) ∧
       ∀ x > (0 : ℝ), θ x = x + x * (f x) := by
-  obtain ⟨f, hf1, inte, hf2⟩ := chebyshev_asymptotic'
-  refine ⟨fun t => f t / t, fun ε hε ↦ ?_, ?_, ?_⟩
-  · simp only [isLittleO_iff, norm_eq_abs, norm_mul, eventually_atTop,
-      norm_div] at hf1 ⊢
-    intro r hr
-    replace hf1 := hf1 ε hε
-    obtain ⟨N, hN⟩ := hf1 hr
-    use |N| + 1
-    intro x hx
-    have hx' : |N| + 1 ≤ |x| := by rwa [abs_of_nonneg (a := x) (le_trans (by positivity) hx)]
-    rw [div_le_iff₀ (lt_of_lt_of_le (by positivity) hx'), mul_assoc]
-    exact hN x (le_trans (le_trans (le_abs_self N) (by linarith)) hx)
-
-  · intro x hx
-    refine inte x hx |>.mul_continuousOn (g' := fun t : ℝ => t⁻¹)
-      (continuousOn_inv₀ |>.mono <| by
-        rintro t ⟨ht1, _⟩
+  have hsmall : (fun x : ℝ ↦ (θ x - x) / x) =o[atTop] (fun _ ↦ (1 : ℝ)) := by
+    exact (isLittleO_one_iff ℝ).mpr Chebyshev.isEquivalent_theta_id.isLittleO.tendsto_div_nhds_zero
+  refine ⟨fun x ↦ (θ x - x) / x, fun ε hε ↦ ?_, fun x _ ↦ ?_, fun x hx ↦ ?_⟩
+  · simpa only [mul_one] using hsmall.const_mul_right hε.ne'
+  · have hcont : ContinuousOn (fun y : ℝ ↦ y⁻¹) (Set.Icc 2 x) :=
+      (continuousOn_inv₀ : ContinuousOn (fun y : ℝ ↦ y⁻¹) {0}ᶜ).mono fun y hy ↦ by
         simp only [Set.mem_compl_iff, Set.mem_singleton_iff]
-        linarith) isCompact_Icc |>.congr_fun_ae <| .of_forall <| by simp [div_eq_mul_inv]
-  intro x hx
-  rw [hf2, mul_div_cancel₀]
-  linarith
+        exact (lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) hy.1).ne'
+    simpa only [div_eq_mul_inv, Pi.sub_apply, id_eq] using
+      ((Chebyshev.theta_mono.locallyIntegrable.integrableOn_isCompact isCompact_Icc).sub
+        continuous_id.integrableOn_Icc).mul_continuousOn hcont isCompact_Icc
+  · rw [mul_div_cancel₀ _ hx.ne']
+    ring
 
 -- one could also consider adding a version with p < x instead of p \leq x
 
