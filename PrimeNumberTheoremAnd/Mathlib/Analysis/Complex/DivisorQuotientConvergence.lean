@@ -6,6 +6,8 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorPartialProductFactor
+import Mathlib.Analysis.Normed.Field.Lemmas
+import TauCeti.Topology.UniformSpace.UniformConvergence.Comp
 
 
 /-!
@@ -58,44 +60,15 @@ theorem tendstoUniformlyOn_divisorPartialProduct_div_pow_sub
       (fun z => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k)
       (Filter.atTop : Filter (Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))))
       K := by
-  have hloc :
-      TendstoLocallyUniformlyOn
-        (fun s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) => divisorPartialProduct m f s)
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ))
-        Filter.atTop
-        K :=
-    (tendstoLocallyUniformlyOn_divisorPartialProduct_univ (m := m) (f := f) h_sum).mono
-      (by intro z hz; simp)
-  have hunif :
-      TendstoUniformlyOn
-        (fun s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) => divisorPartialProduct m f s)
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ))
-        Filter.atTop
-        K :=
-    (tendstoLocallyUniformlyOn_iff_tendstoUniformlyOn_of_compact hK).1 hloc
-  let h : ℂ → ℂ := fun z => ((z - z₀) ^ k)⁻¹
-  have hh : ∃ C, ∀ z ∈ K, ‖h z‖ ≤ C := by
-    have hcont : ContinuousOn h K := by
-      have hpow : ContinuousOn (fun z : ℂ => (z - z₀) ^ k) K := by
-        fun_prop
-      refine hpow.inv₀ ?_
-      intro z hz
-      have hz0 : z - z₀ ≠ 0 := sub_ne_zero.mpr (hKz z hz)
-      exact pow_ne_zero k hz0
-    have hKimg : IsCompact (h '' K) := hK.image_of_continuousOn hcont
-    rcases (isBounded_iff_forall_norm_le.1 hKimg.isBounded) with ⟨C, hC⟩
-    refine ⟨C, ?_⟩
-    intro z hz
-    exact hC (h z) ⟨z, hz, rfl⟩
-  have hunif' :=
-    (TendstoUniformlyOn.mul_left_bounded (p := (Filter.atTop : Filter (Finset (divisorZeroIndex₀ f
-    (Set.univ : Set ℂ)))))
-        (K := K)
-        (F := fun s z => divisorPartialProduct m f s z)
-        (f := fun z => divisorCanonicalProduct m f (Set.univ : Set ℂ) z)
-        (h := h)
-        hunif hh)
-  simpa [h, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hunif'
+  have hloc :=
+    (tendstoLocallyUniformlyOn_divisorPartialProduct_univ m f h_sum).mono (Set.subset_univ K)
+  have hdenom := (TauCeti.tendstoUniformlyOn_const (fun z : ℂ ↦ (z - z₀) ^ k)
+    (Filter.atTop : Filter (Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))))) K
+  have hquot := hloc.div₀ hdenom.tendstoLocallyUniformlyOn
+    ((differentiableOn_divisorCanonicalProduct_univ m f h_sum).continuousOn.mono
+      (Set.subset_univ K))
+    (by fun_prop) (fun z hz ↦ pow_ne_zero k (sub_ne_zero.mpr (hKz z hz)))
+  exact (tendstoLocallyUniformlyOn_iff_tendstoUniformlyOn_of_compact hK).mp hquot
 
 /-!
 ## Quotient locally uniform convergence on the punctured plane `ℂ \ {z₀}`
