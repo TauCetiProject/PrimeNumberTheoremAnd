@@ -307,11 +307,6 @@ lemma support_MellinConvolution (f g : ℝ → 𝕂) :
     (MellinConvolution f g).support ⊆ f.support * g.support :=
   support_MellinConvolution_subsets subset_rfl subset_rfl
 
-lemma mem_within_strip (σ₁ σ₂ : ℝ) :
-    {s : ℂ | σ₁ ≤ s.re ∧ s.re ≤ σ₂} ∈
-      𝓟 {s | σ₁ ≤ s.re ∧ s.re ≤ σ₂} :=
-  mem_principal_self _
-
 set_option backward.isDefEq.respectTransparency false in
 lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     (suppν : ν.support ⊆ Set.Icc (1 / 2) 2)

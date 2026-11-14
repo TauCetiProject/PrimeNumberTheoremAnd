@@ -25,14 +25,6 @@ public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 open Complex Topology Filter Interval Set Asymptotics
 
-lemma div_rpow_neg_eq_rpow_div {x y s : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
-    x ^ (-s) / y ^ (-s) = (y / x) ^ s := by
-  rw [div_eq_mul_inv, Real.rpow_neg hx, Real.rpow_neg hy, Real.div_rpow hy hx]; field_simp
-
-lemma div_rpow_eq_rpow_div_neg {x y s : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) :
-    x ^ s / y ^ s = (y / x) ^ (-s) := by
-  convert div_rpow_neg_eq_rpow_div (s := -s) hx hy using 1; simp only [neg_neg]
-
 local notation (name := riemannzeta) "ζ" => riemannZeta
 local notation (name := derivriemannzeta) "ζ'" => deriv riemannZeta
 
@@ -1227,7 +1219,8 @@ lemma UpperBnd_aux6 {σ t : ℝ} (t_ge : 3 < |t|) (hσ : σ ∈ Ioc (1 / 2) 2)
   · apply (div_le_iff₀ <| norm_pos_iff.mpr <| sub_ne_zero_of_ne neOne.symm).mpr
     conv => rw [mul_assoc]; rhs; rw [mul_comm]
     apply (div_le_iff₀ <| Real.rpow_pos_of_pos (by linarith) _).mp
-    rw [div_rpow_eq_rpow_div_neg (by positivity) (by positivity), neg_sub]
+    rw [← Real.div_rpow (by positivity : 0 ≤ (⌊|t|⌋₊ : ℝ)) (abs_nonneg t),
+      ← inv_div |t| (⌊|t|⌋₊ : ℝ), ← Real.rpow_neg_eq_inv_rpow, neg_sub]
     refine le_trans (le_trans ?_ bnd') ?_
     · exact Real.rpow_le_rpow_of_exponent_le (one_le_div (by positivity) |>.mpr N_le_t) (by simp)
     · apply (mul_le_mul_iff_right₀ (by norm_num)).mpr; simpa using abs_im_le_norm (1 - (σ + t * I))
@@ -1235,12 +1228,14 @@ lemma UpperBnd_aux6 {σ t : ℝ} (t_ge : 3 < |t|) (hσ : σ ∈ Ioc (1 / 2) 2)
     rw [Real.rpow_sub (by linarith), Real.rpow_one, div_mul_eq_mul_div, mul_comm]
     apply div_le_iff₀ (by positivity) |>.mp
     convert! bnd' using 1
-    rw [← Real.rpow_neg (by linarith), div_rpow_neg_eq_rpow_div (by positivity) (by positivity)]
+    rw [← Real.rpow_neg (by linarith),
+      ← Real.div_rpow (by positivity) (by positivity), Real.rpow_neg_eq_inv_rpow, inv_div]
   · apply div_le_iff₀ (by linarith [hσ.1]) |>.mpr
     rw [mul_assoc, mul_comm, mul_assoc]
     apply div_le_iff₀' (by positivity) |>.mp
     apply le_trans ?_ (by linarith [hσ.1] : 4 ≤ σ * 8)
-    convert! bnd using 1; exact div_rpow_neg_eq_rpow_div (by positivity) (by positivity)
+    convert! bnd using 1
+    rw [← Real.div_rpow (by positivity) (by positivity), Real.rpow_neg_eq_inv_rpow, inv_div]
 
 lemma ZetaUpperBnd' {A σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2)) (t_gt : 3 < |t|)
     (hσ : σ ∈ Icc (1 - A / Real.log |t|) 2) :
