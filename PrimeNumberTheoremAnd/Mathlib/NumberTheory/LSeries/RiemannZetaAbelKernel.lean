@@ -95,10 +95,10 @@ lemma intervalIntegrable (s : ℂ) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
 theorem tendsto_integral_Ioi (s : ℂ) (hs : 1 < s.re) :
     Tendsto (fun N : ℕ => ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u) atTop
       (𝓝 (∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u)) :=
-  intervalIntegral.tendsto_integral_Ioi_of_ae_norm_le (f := fun u => zetaAbelFractKernel s u)
-    (g := fun u => u ^ (-s.re - 1)) 1
-    (aestronglyMeasurable s (Ioi (1 : ℝ)) measurableSet_Ioi) (ae_bound_Ioi s)
-    (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos)
+  intervalIntegral_tendsto_integral_Ioi 1
+    (Integrable.mono' (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos)
+      (aestronglyMeasurable s (Ioi (1 : ℝ)) measurableSet_Ioi) (ae_bound_Ioi s))
+    tendsto_natCast_atTop_atTop
 
 theorem integrableOn_Ioi (s : ℂ) (hs : 0 < s.re) :
     Integrable (fun u => zetaAbelFractKernel s u) (volume.restrict (Ioi (1 : ℝ))) := by

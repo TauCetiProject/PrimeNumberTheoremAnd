@@ -143,7 +143,9 @@ theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs_re : 0 < s.re) :
           intro u hu
           simpa [g] using norm_zetaAbelFractKernel_le u (le_of_lt hu) s)).trans
         (by simpa [μ, g, one_div] using
-          (le_of_eq (by simp [integral_Ioi_rpow_neg_re_sub_one (s := s) hs_re]))))
+          (le_of_eq (by
+            simpa only [sub_add_cancel, Real.one_rpow, neg_div_neg_eq, one_div] using
+              integral_Ioi_rpow_of_lt (by linarith : -s.re - 1 < -1) one_pos))))
       (norm_nonneg s)
   have hsplit :
       ‖zetaAbelContinuationFormula s‖ ≤
