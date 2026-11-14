@@ -45,18 +45,6 @@ lemma log_one_add_ge_log_two {x : ℝ} (hx : 1 ≤ x) :
   have hle : (2 : ℝ) ≤ 1 + x := by linarith
   exact Real.log_le_log h₂ hle
 
-/-- For `x ≥ 1`, `log (1 + x) > 0`. -/
-lemma log_one_add_pos {x : ℝ} (hx : 1 ≤ x) :
-    0 < Real.log (1 + x) := Real.log_pos (by linarith)
-
-/-- `√π < 2`. -/
-lemma sqrt_pi_lt_two : Real.sqrt Real.pi < 2 := by
-  have hπ4 : Real.pi < 4 := Real.pi_lt_four
-  have h4 : Real.sqrt (4 : ℝ) = (2 : ℝ) := by
-    rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num : (2 : ℝ) ≥ 0)]
-  calc Real.sqrt Real.pi < Real.sqrt 4 := Real.sqrt_lt_sqrt Real.pi_pos.le hπ4
-    _ = 2 := h4
-
 /-- For `x ≥ 1`, `log 2 ≤ x * log (1 + x)`. -/
 lemma log_two_le_mul_log_one_add {x : ℝ} (hx : 1 ≤ x) :
     Real.log 2 ≤ x * Real.log (1 + x) := by
@@ -192,18 +180,6 @@ lemma norm_Gamma_le_two_mul_norm_Gamma_add_one {z : ℂ} (hz_lb : (1 / 2 : ℝ) 
   rw [Gamma_add_one z hz, norm_mul]
   nlinarith only [mul_le_mul_of_nonneg_right hz_lb (norm_nonneg (Gamma z))]
 
-/-- `Gamma` is bounded on any compact set that does not contain non-positive integers. -/
-lemma norm_bounded_on_compact_of_no_poles {K : Set ℂ}
-    (hK : IsCompact K)
-    (h_poles : ∀ s ∈ K, ∀ n : ℕ, s ≠ -n) :
-    ∃ M : ℝ, ∀ s ∈ K, ‖Gamma s‖ ≤ M := by
-  have h_cont : ContinuousOn Gamma K := by
-    refine continuousOn_of_forall_continuousAt ?_
-    intro s hs
-    exact (differentiableAt_Gamma s (h_poles s hs)).continuousAt
-  rcases hK.exists_bound_of_continuousOn h_cont with ⟨M, hM⟩
-  exact ⟨M, fun s hs => hM s hs⟩
-
 /-- For `1/2 ≤ re w ≤ 1`, `‖Γ(w)‖ ≤ 4`. -/
 lemma norm_le_four_of_re_half_to_one {w : ℂ}
     (hw_lo : (1 / 2 : ℝ) ≤ w.re) (hw_hi : w.re ≤ 1) :
@@ -212,21 +188,12 @@ lemma norm_le_four_of_re_half_to_one {w : ℂ}
     (w := w) (a := (1 / 2 : ℝ)) (by norm_num) hw_lo hw_hi
   calc ‖Gamma w‖ ≤ 1 / (1 / 2 : ℝ) + Real.sqrt Real.pi := h
     _ = 2 + Real.sqrt Real.pi := by norm_num
-    _ ≤ 2 + 2 := by linarith [Real.Stirling.sqrt_pi_lt_two]
+    _ ≤ 2 + 2 := by
+      have hpi : Real.sqrt Real.pi < 2 := by
+        rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 2)]
+        nlinarith [Real.pi_lt_four]
+      linarith
     _ = 4 := by norm_num
-
-/-- For any `s : ℂ`, the real part of `s' := s - ⌊Re(s)⌋` lies in `[0, 1)`. -/
-lemma floor_shift_re_in_strip {s : ℂ} :
-    let s' := s - (⌊s.re⌋ : ℂ)
-    0 ≤ s'.re ∧ s'.re < 1 := by
-  intro s'
-  have h₁ : 0 ≤ s.re - (⌊s.re⌋ : ℝ) := sub_nonneg.mpr (Int.floor_le _)
-  have h₂ : s.re - (⌊s.re⌋ : ℝ) < 1 := by
-    have h := Int.lt_floor_add_one (s.re)
-    exact (sub_lt_iff_lt_add).mpr (by simp [add_comm])
-  constructor
-  · simp [s']
-  · simpa [s'] using h₂
 
 /-- For `re s ≥ 1`, the real Gamma bound controls `‖Γ(s)‖` in terms of `‖s‖`. -/
 theorem norm_bound_re_ge_one :

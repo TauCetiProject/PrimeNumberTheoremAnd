@@ -5,6 +5,7 @@ Authors: Robby Sneiderman
 -/
 module
 
+public import TauCeti.Analysis.SpecialFunctions.Gamma.Basic
 public import TauCeti.Analysis.SpecialFunctions.Gamma.SectorialDigamma
 public import TauCeti.Analysis.SpecialFunctions.Gamma.Order
 public import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
@@ -27,11 +28,7 @@ namespace Complex
 theorem analyticOnNhd_digamma_re_pos : AnalyticOnNhd ℂ digamma {z : ℂ | 0 < z.re} := by
   intro z hz
   change 0 < z.re at hz
-  have hregular : ∀ n : ℕ, z ≠ -(n : ℂ) := by
-    intro n hn
-    have h := congrArg Complex.re hn
-    simp only [neg_re, natCast_re] at h
-    linarith [Nat.cast_nonneg (α := ℝ) n]
+  have hregular := Complex.ne_neg_natCast_of_re_pos hz
   simpa only [digamma_def, logDeriv, Pi.div_def] using
     (analyticAt_Gamma hregular).deriv.div (analyticAt_Gamma hregular) (Gamma_ne_zero hregular)
 

@@ -37,17 +37,6 @@ theorem lambdaSquared_eq_zero_of_support (w : ℕ → ℝ) (y : ℝ)
     (hw : ∀ d : ℕ, ¬d ^ 2 ≤ y → w d = 0) (d : ℕ) (hd : ¬d ≤ y) :
     lambdaSquared w d = 0 := by
   dsimp only [lambdaSquared]
-  by_cases hy : 0 ≤ y
-  swap
-  · push Not at hd hy
-    have : ∀ d' : ℕ, w d' = 0 := by
-      intro d'; apply hw
-      have : (0:ℝ) ≤ (d') ^ 2 := by norm_num
-      linarith
-    apply sum_eq_zero; intro d1 _
-    apply sum_eq_zero; intro d2 _
-    rw [this d1, this d2]
-    simp only [mul_zero, ite_self]
   apply sum_eq_zero; intro d1 _
   apply sum_eq_zero; intro d2 _
   split_ifs with h

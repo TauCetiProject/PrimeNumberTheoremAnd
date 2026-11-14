@@ -54,23 +54,6 @@ theorem norm_le_one {z : ℂ} (hlo : 1 ≤ z.re) (hhi : z.re ≤ 2) : ‖Gamma z
     ‖Gamma z‖ ≤ Real.Gamma z.re := Complex.norm_Gamma_le_Gamma_re hz_pos
     _ ≤ 1 := Real.Gamma.le_one_of_mem_Icc hlo hhi
 
-/-- Squared form of `Complex.norm_Gamma_le_Gamma_re`. -/
-theorem norm_sq_le_Gamma_re_sq {z : ℂ} (hz : 0 < z.re) :
-    ‖Gamma z‖ ^ 2 ≤ (Real.Gamma z.re) ^ 2 := by
-  have h := Complex.norm_Gamma_le_Gamma_re hz
-  have hΓ : 0 ≤ Real.Gamma z.re := (Real.Gamma_pos_of_pos hz).le
-  simpa [pow_two] using mul_le_mul h h (norm_nonneg _) hΓ
-
-/-- Squared comparison against the real-axis value at `re z`. -/
-theorem norm_sq_le_norm_sq_Gamma_re {z : ℂ} (hz : 1 / 2 ≤ z.re) :
-    ‖Gamma z‖ ^ 2 ≤ ‖Gamma z.re‖ ^ 2 := by
-  have hz_pos : 0 < z.re := by linarith
-  have h := norm_sq_le_Gamma_re_sq hz_pos
-  have habs : ‖Gamma (z.re : ℂ)‖ = Real.Gamma z.re := by
-    rw [Gamma_ofReal z.re, norm_real]
-    exact abs_of_pos (Real.Gamma_pos_of_pos hz_pos)
-  rw [habs]
-  exact h
 
 end Gamma
 end Complex
