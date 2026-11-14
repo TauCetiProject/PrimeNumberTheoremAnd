@@ -5,7 +5,6 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Norm
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Trigonometric
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
@@ -205,7 +204,7 @@ theorem zeta_minus_pole_entire_growth :
   have hcont :
       ContinuousOn (DirichletCharacter.LFunctionTrivChar₁ 1) (Metric.closedBall (0 : ℂ) 3) :=
     (DirichletCharacter.differentiable_LFunctionTrivChar₁ 1).continuous.continuousOn
-  obtain ⟨M, hM_nonneg, hM⟩ := exists_norm_bound_on_closedBall hcont
+  obtain ⟨M, hM⟩ := (isCompact_closedBall (0 : ℂ) 3).exists_bound_of_continuousOn hcont
   obtain ⟨CΓ, hCΓ_pos, hΓ⟩ := Complex.Gamma.stirling_bound_re_ge_zero
   let C : ℝ := max (Real.log (1 + M) + 10) (max (40 : ℝ) (20 * CΓ + 500))
   refine ⟨C + Real.log 2, ?_, ?_⟩
@@ -219,7 +218,8 @@ theorem zeta_minus_pole_entire_growth :
     have hA1 : (1 : ℝ) ≤ A := by dsimp [A]; linarith [norm_nonneg z]
     have hA2_nonneg : 0 ≤ A ^ (2 : ℝ) := by positivity
     by_cases hz_small : ‖z‖ ≤ 3
-    · have hnorm : ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖ ≤ M := hM z hz_small
+    · have hnorm : ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖ ≤ M :=
+        hM z (by simpa using hz_small)
       have hlog :
           Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖) ≤ Real.log (1 + M) := by
         refine Real.log_le_log (by positivity) ?_

@@ -7,7 +7,7 @@ module
 
 
 public import TauCeti.Analysis.SpecialFunctions.Gamma.Growth
-public import TauCeti.Analysis.SpecialFunctions.Gamma.Stirling.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.Analysis.SpecialFunctions.Stirling
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
@@ -271,51 +271,33 @@ theorem stirling_bound_re_ge_zero :
     ∃ C : ℝ, 0 < C ∧
       ∀ s : ℂ, 0 ≤ s.re → 1 ≤ ‖s‖ →
         ‖Gamma s‖ ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
-  let K := Real.pi + |Real.log (2 * Real.pi)| / 2 + 2
-  have hK : 0 < K := by dsimp [K]; positivity
-  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
-  refine ⟨1 + K / Real.log 2, by positivity, ?_⟩
-  intro s hs hn
-  by_cases hG : Complex.Gamma s = 0
-  · simp only [hG, norm_zero]
-    exact (Real.exp_pos _).le
-  apply (Real.log_le_iff_le_exp (norm_pos_iff.mpr hG)).mp
-  have hs0 : s ≠ 0 := norm_ne_zero_iff.mp (ne_of_gt (zero_lt_one.trans_le hn))
-  have harg : |s.arg| ≤ Real.pi - Real.pi / 2 := by
-    simpa only [sub_half] using (Complex.abs_arg_le_pi_div_two_iff.mpr hs)
-  have he := TauCeti.abs_log_norm_Gamma_sub_stirling_le
-    (half_pos Real.pi_pos) (by linarith [Real.pi_pos]) harg hs0
-  simp only [Real.cos_pi_div_two, sub_zero, one_pow, one_mul] at he
-  have hlogn : 0 ≤ Real.log ‖s‖ := Real.log_nonneg hn
-  have hlogle : Real.log ‖s‖ ≤ Real.log (1 + ‖s‖) :=
-    Real.log_le_log (zero_lt_one.trans_le hn) (by linarith)
-  have hre : (s.re - 1 / 2) * Real.log ‖s‖ ≤ ‖s‖ * Real.log (1 + ‖s‖) :=
-    (mul_le_mul_of_nonneg_right (by linarith [Complex.re_le_norm s]) hlogn).trans
-      (mul_le_mul_of_nonneg_left hlogle (norm_nonneg _))
-  have him : -(s.im * s.arg) ≤ ‖s‖ * Real.pi := by
-    calc
-      -(s.im * s.arg) ≤ |s.im * s.arg| := neg_le_abs _
-      _ = |s.im| * |s.arg| := abs_mul _ _
-      _ ≤ ‖s‖ * Real.pi := mul_le_mul (Complex.abs_im_le_norm s)
-        (Complex.abs_arg_le_pi s) (abs_nonneg _) (norm_nonneg _)
-  have herr : 2 / ‖s‖ ≤ 2 := div_le_self (by norm_num) hn
-  have hconst : Real.log (2 * Real.pi) / 2 ≤ |Real.log (2 * Real.pi)| / 2 :=
-    div_le_div_of_nonneg_right (le_abs_self _) (by norm_num)
-  have hrough : Real.log ‖Complex.Gamma s‖ ≤
-      ‖s‖ * Real.log (1 + ‖s‖) + K * ‖s‖ := by
-    have hk : |Real.log (2 * Real.pi)| / 2 + 2 ≤
-        (|Real.log (2 * Real.pi)| / 2 + 2) * ‖s‖ :=
-      le_mul_of_one_le_right (by positivity) hn
-    have hupper := (abs_le.mp he).2
-    dsimp [K]
-    nlinarith
-  have hL : Real.log 2 ≤ Real.log (1 + ‖s‖) :=
-    Real.Stirling.log_one_add_ge_log_two hn
-  have hscale : K * ‖s‖ ≤ (K / Real.log 2) * (‖s‖ * Real.log (1 + ‖s‖)) := by
-    have hm := (le_div_iff₀ hlog2).mpr
-      (mul_le_mul_of_nonneg_left hL (mul_nonneg hK.le (norm_nonneg s)))
-    simpa only [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using hm
-  nlinarith
+  refine ⟨8, by norm_num, fun s hs hn ↦ ?_⟩
+  have hshift : ‖Gamma (s + 1)‖ ≤ ‖Gamma (s + 1 + 1)‖ := by
+    simpa only [Nat.cast_one] using
+      Complex.norm_Gamma_le_norm_Gamma_add_of_one_le_re (s := s + 1)
+        (by simp only [Complex.add_re, Complex.one_re]; linarith) 1
+  have hpart : (s + 1 + 1).re = s.re + 2 := by
+    simp only [Complex.add_re, Complex.one_re]
+    ring
+  have hΓ : ‖Gamma s‖ ≤ Real.Gamma (s.re + 2) := by
+    refine ((Complex.norm_Gamma_le_norm_Gamma_add_one hn).trans hshift).trans ?_
+    simpa only [hpart] using Complex.norm_Gamma_le_Gamma_re (s := s + 1 + 1)
+      (by rw [hpart]; linarith)
+  have hreal : Real.Gamma (s.re + 2) ≤
+      Real.exp ((s.re + 3) * Real.log (s.re + 3)) := by
+    simpa only [add_assoc, show (2 : ℝ) + 1 = 3 by norm_num] using
+      Real.Gamma_le_exp_mul_log (x := s.re + 2) (by linarith)
+  have hlinear : s.re + 3 ≤ 4 * ‖s‖ := by
+    linarith only [Complex.re_le_norm s, hn]
+  have hsquare : s.re + 3 ≤ (1 + ‖s‖) ^ 2 := by
+    nlinarith only [Complex.re_le_norm s, hn, sq_nonneg (‖s‖ - 1)]
+  have hlog : Real.log (s.re + 3) ≤ 2 * Real.log (1 + ‖s‖) := by
+    simpa only [Real.log_pow, Nat.cast_ofNat] using
+      Real.log_le_log (by linarith : 0 < s.re + 3) hsquare
+  have hprod : (s.re + 3) * Real.log (s.re + 3) ≤
+      (4 * ‖s‖) * (2 * Real.log (1 + ‖s‖)) :=
+    mul_le_mul hlinear hlog (Real.log_nonneg (by linarith)) (by positivity)
+  exact (hΓ.trans hreal).trans (Real.exp_le_exp.mpr (by nlinarith only [hprod]))
 
 /-- Stirling bound specialized to `Γ(s/2)` for `re s ≥ 0`. -/
 theorem half_bound_re_ge_zero :
