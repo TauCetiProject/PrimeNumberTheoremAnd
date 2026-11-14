@@ -11,4 +11,4 @@ Currently, the way these draft roadmaps are written, after #1495 we need to revi
 3. [ProbabilisticAndMetricNumberTheory (#1421)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1421).
 4. [ExplicitPrimeCounting (#1945)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1945). We also need §0.3b before we can migrate the nth-prime asymptotic from PNT+ into Tau Ceti.
 
-Alternatively, we could write a fresh roadmap covering just these sieve, Mellin-convolution, Möbius/Liouville PNT, Ramanujan and Dirichlet-series results. That could potentially be reviewed and merged sooner, and we could rewrite the larger draft roadmaps to depend on it.
+Alternatively, we could write a fresh roadmap covering just these sieve, Mellin-convolution, Möbius/Liouville PNT, nth-prime asymptotics, Ramanujan and Dirichlet-series results. That could potentially be reviewed and merged sooner, and we could rewrite the larger draft roadmaps to depend on it.
