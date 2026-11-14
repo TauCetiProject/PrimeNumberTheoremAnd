@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Basic
 public import TauCeti.Analysis.Complex.CanonicalProduct.ElementaryFactor
 public import Mathlib.Analysis.Analytic.Order
 public import Mathlib.Analysis.Complex.CauchyIntegral
@@ -260,7 +260,7 @@ lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_sub (m : ℕ) (z : ℂ) :
       _ = Real.log ‖(1 : ℂ) - z‖ + S.re := by
             simp [Complex.norm_exp, Real.log_exp]
       _ = Real.log ‖1 - z‖ + S.re := by simp [sub_eq_add_neg, add_comm]
-  have hre : S.re ≥ -‖S‖ := Complex.neg_norm_le_re S
+  have hre : S.re ≥ -‖S‖ := neg_le_of_abs_le (Complex.abs_re_le_norm S)
   have : Real.log ‖weierstrassFactor m z‖ ≥ Real.log ‖1 - z‖ - ‖S‖ := by
     linarith [hlog, hre]
   simpa [S] using this
@@ -279,7 +279,7 @@ lemma log_norm_weierstrassFactor_ge_neg_two_pow {m : ℕ} {z : ℂ} (hz : ‖z�
       Real.log ‖weierstrassFactor m z‖ = (-logTail m z).re := by
     simp [hEq, Complex.norm_exp, Real.log_exp]
   have hre : (-logTail m z).re ≥ -‖logTail m z‖ := by
-    simpa [norm_neg] using Complex.neg_norm_le_re (-logTail m z)
+    simpa [norm_neg] using neg_le_of_abs_le (Complex.abs_re_le_norm (-logTail m z))
   have htail := norm_logTail_le_two_mul_norm_pow hz_lt hz m
   have : (-logTail m z).re ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
     calc

@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Trigonometric
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
@@ -320,7 +320,8 @@ theorem zeta_minus_pole_entire_growth :
               (by norm_num [zetaAbelContinuationReLower, one_sub_zetaAbelContinuationReLower])
               hw_re_ge
           have hw_ne1 : w ≠ 1 := by
-            simpa [w] using Complex.one_sub_ne_one_of_norm_pos (lt_trans (by norm_num) hz_large)
+            intro h
+            exact (norm_pos_iff.mp (lt_trans (by norm_num) hz_large)) (sub_eq_self.mp h)
           have hw_ne_neg : ∀ n : ℕ, w ≠ -n := by
             exact Complex.ne_neg_natCast_of_re_pos (lt_trans zetaAbelContinuationReLower_pos hw_re1)
           have hzeta_fe :
@@ -332,7 +333,10 @@ theorem zeta_minus_pole_entire_growth :
           have hw_norm_le : ‖w‖ ≤ A := by
             simpa [w, A] using norm_sub_le (1 : ℂ) z
           have hw_norm_ge1 : (1 : ℝ) ≤ ‖w‖ := by
-            simpa [w] using one_le_norm_one_sub_of_norm_gt_three hz_large
+            have h := norm_sub_norm_le z (1 : ℂ)
+            rw [norm_one, norm_sub_rev] at h
+            dsimp only [w]
+            linarith
           have hΓw : ‖Complex.Gamma w‖ ≤ Real.exp (CΓ * A ^ (2 : ℝ)) := by
             have hΓ0 := hΓ w hw_re0 hw_norm_ge1
             have hlog_le : Real.log (1 + ‖w‖) ≤ A := by

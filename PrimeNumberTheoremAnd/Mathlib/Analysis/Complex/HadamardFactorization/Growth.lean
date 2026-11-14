@@ -131,8 +131,9 @@ theorem norm_inv_hadamardDenominator_le_exp_on_cartan_circle
   have hr_not_bad' : r ∉ bad := by
     simpa [bad, small, a] using hr_not_bad
   have hr1 : (1 : ℝ) ≤ r := le_trans hRle hR_le_r
-  have hpow_inv_le1 : ‖(u ^ analyticOrderNatAt f 0)⁻¹‖ ≤ 1 :=
-    Complex.norm_inv_pow_le_one_of_one_le_norm u (analyticOrderNatAt f 0) (by simpa [hur] using hr1)
+  have hpow_inv_le1 : ‖(u ^ analyticOrderNatAt f 0)⁻¹‖ ≤ 1 := by
+    rw [norm_inv, norm_pow]
+    exact inv_le_one_of_one_le₀ (one_le_pow₀ (by simpa [hur] using hr1))
   let fac : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℂ :=
     fun p => weierstrassFactor m (u / divisorZeroIndex₀_val p)
   have hloc :
