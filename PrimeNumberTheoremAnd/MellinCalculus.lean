@@ -167,32 +167,18 @@ lemma Filter.BigO_zero_atTop_of_support_in_Icc {a b : ℝ} (f : ℝ → 𝕂)
   refine norm_le_zero_iff.mpr <| Function.support_subset_iff'.mp fSupp c ?_
   exact fun h ↦ by linarith [mem_Icc.mp h]
 
-/-- *Need differentiability, and decay at `0` and `∞`* -/
-@[blueprint
-  (title := "PartialIntegration")
-  (statement := /--
-  Let $f, g$ be once differentiable functions from $\mathbb{R}_{>0}$ to $\mathbb{C}$ so that $fg'$
+blueprint_comment /--
+\label{PartialIntegration}
+
+Let $f, g$ be once differentiable functions from $\mathbb{R}_{>0}$ to $\mathbb{C}$ so that $fg'$
   and $f'g$ are both integrable, and $f\cdot g (x)\to 0$ as $x\to 0^+,\infty$.
   Then
   $$
   \int_0^\infty f(x)g'(x) dx = -\int_0^\infty f'(x)g(x)dx.
   $$
-  -/)
-  (proof := /-- Partial integration. -/)
-  (latexEnv := "lemma")]
-lemma PartialIntegration (f g : ℝ → ℂ)
-    (fDiff : DifferentiableOn ℝ f (Ioi 0))
-    (gDiff : DifferentiableOn ℝ g (Ioi 0))
-    (fDerivgInt : IntegrableOn (f * deriv g) (Ioi 0))
-    (gDerivfInt : IntegrableOn (deriv f * g) (Ioi 0))
-    (lim_at_zero : Tendsto (f * g) (𝓝[>] 0) (𝓝 0))
-    (lim_at_inf : Tendsto (f * g) atTop (𝓝 0)) :
-    ∫ x in Ioi 0, f x * deriv g x = -∫ x in Ioi 0, deriv f x * g x := by
-  simpa using integral_Ioi_mul_deriv_eq_deriv_mul
-    (fun x hx ↦ fDiff.hasDerivAt (Ioi_mem_nhds hx))
-    (fun x hx ↦ gDiff.hasDerivAt (Ioi_mem_nhds hx))
-    fDerivgInt gDerivfInt lim_at_zero lim_at_inf
 
+Partial integration.
+-/
 
 lemma PartialIntegration_of_support_in_Icc {a b : ℝ} (f g : ℝ → ℂ) (ha : 0 < a)
     (h : a ≤ b)
@@ -216,7 +202,10 @@ lemma PartialIntegration_of_support_in_Icc {a b : ℝ} (f g : ℝ → ℂ) (ha :
   have lim_at_zero : Tendsto (f * g) (𝓝[>]0) (𝓝 0) :=
     TendstoAtZero_of_support_in_Icc (f * g) ha fgSupp
   have lim_at_inf : Tendsto (f * g) atTop (𝓝 0) := TendstoAtTop_of_support_in_Icc (f * g) fgSupp
-  apply PartialIntegration f g fDiff gDiff fDerivgInt gDerivfInt lim_at_zero lim_at_inf
+  simpa using integral_Ioi_mul_deriv_eq_deriv_mul
+    (fun x hx ↦ fDiff.hasDerivAt (Ioi_mem_nhds hx))
+    (fun x hx ↦ gDiff.hasDerivAt (Ioi_mem_nhds hx))
+    fDerivgInt gDerivfInt lim_at_zero lim_at_inf
 
 blueprint_comment /--
 In this section, we define the Mellin transform (already in Mathlib, thanks to David Loeffler),
