@@ -222,38 +222,6 @@ lemma continuousOn_log1 : ContinuousOn (fun x ↦ (log x ^ 2)⁻¹ * x⁻¹) {0,
   refine fun t ht ↦ ContinuousAt.continuousWithinAt ?_
   fun_prop (disch := simp_all)
 
-lemma integral_log_inv (a b : ℝ) (ha : 2 ≤ a) (hb : a ≤ b) :
-    ∫ t in a..b, (log t)⁻¹ =
-    ((log b)⁻¹ * b) - ((log a)⁻¹ * a) +
-      ∫ t in a..b, ((log t)^2)⁻¹ := by
-  have ha1 : 1 < a := lt_of_lt_of_le one_lt_two ha
-  have hb1 : 1 < b := ha1.trans_le hb
-  have h1 : IntervalIntegrable (fun t : ℝ ↦ (log t)⁻¹) volume a b := by
-    simpa only [pow_one] using TauCeti.Real.intervalIntegrable_inv_log_pow 1 ha1 hb1
-  have h2 := TauCeti.Real.intervalIntegrable_inv_log_pow 2 ha1 hb1
-  have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt
-    (fun t ht ↦ TauCeti.Real.hasDerivAt_div_log
-      (ha1.trans_le ((Set.uIcc_of_le hb ▸ ht).1))) (h1.sub h2)
-  rw [intervalIntegral.integral_sub h1 h2] at hFTC
-  simp only [div_eq_mul_inv] at hFTC
-  linarith only [hFTC]
-
-lemma integral_log_inv' (a b : ℝ) (ha : 2 ≤ a) (hb : a ≤ b) :
-    ∫ t in Set.Icc a b, (log t)⁻¹ =
-    ((log b)⁻¹ * b) - ((log a)⁻¹ * a) +
-      ∫ t in Set.Icc a b, ((log t)^2)⁻¹ := by
-  have := integral_log_inv a b ha hb
-  simp only [intervalIntegral.intervalIntegral_eq_integral_uIoc, ite_eq_left hb, Set.uIoc_of_le hb,
-    smul_eq_mul, one_mul] at this
-  rw [integral_Icc_eq_integral_Ioc, integral_Icc_eq_integral_Ioc]
-  rw [this]
-
-lemma integral_log_inv'' (a b : ℝ) (ha : 2 ≤ a) (hb : a ≤ b) :
-    (log a)⁻¹ * a + ∫ t in Set.Icc a b, (log t)⁻¹ =
-    ((log b)⁻¹ * b) + ∫ t in Set.Icc a b, ((log t)^2)⁻¹ := by
-  rw [integral_log_inv' a b ha hb]
-  group
-
 lemma integral_log_inv_pos (x : ℝ) (hx : 2 < x) :
     0 < ∫ t in Set.Icc 2 x, (log t)⁻¹ := by
   rw [integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le hx.le,

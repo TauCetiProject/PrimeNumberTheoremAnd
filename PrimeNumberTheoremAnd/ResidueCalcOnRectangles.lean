@@ -8,6 +8,9 @@ public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.Analysis.Meromorphic.NormalForm
 public import TauCeti.Analysis.Contour.Residue.SimplePole
 public import PrimeNumberTheoremAnd.Rectangle
+import TauCeti.Analysis.Contour.Residue.Cycle
+import TauCeti.Analysis.Contour.Curve.Rectangle
+import TauCeti.Analysis.Contour.Winding.Number.Rectangle
 
 
 @[expose] public section
@@ -440,6 +443,39 @@ lemma RectanglePullToNhdOfPole'' [CompleteSpace E] {z w p : ℂ}
   filter_upwards [RectanglePullToNhdOfPole zRe_le_wRe zIm_le_wIm pInRectInterior fHolo] with c h
   simp_rw [RectangleIntegral', h]
 
+-- The local totalized four-edge integral agrees with the native closed-rectangle residue
+-- calculation under the stated differentiability hypotheses. No extension outside the rectangle
+-- or normalization of the original representative at its singularities is needed.
+private lemma rectangleIntegral'_eq_native_sum_residue
+    {f : ℂ → ℂ} {S : Finset ℂ} {z w : ℂ}
+    (hre : z.re ≤ w.re) (him : z.im ≤ w.im)
+    (hS : ∀ p ∈ S, p ∈ interior (Rectangle z w))
+    (hf : DifferentiableOn ℂ f (Rectangle z w \ (S : Set ℂ)))
+    (hmero : ∀ p ∈ S, MeromorphicAt f p) :
+    RectangleIntegral' f z w = ∑ p ∈ S, TauCeti.Contour.residue f p := by
+  let D := TauCeti.Contour.PolarPartDecomposition.ofMeromorphic hf hmero
+  have hoff : ∀ x ∈ frontier (Rectangle z w), x ∉ (S : Set ℂ) := by
+    intro x hx hxS
+    exact disjoint_left.1 disjoint_interior_frontier (hS x hxS) hx
+  have hcont : ContinuousOn f (frontier (Rectangle z w)) :=
+    hf.continuousOn.mono fun x hx ↦
+      ⟨(isClosed_rectangle z w).frontier_subset hx, hoff x hx⟩
+  have h := D.intervalIntegral_deriv_smul_eq_analyticRemainder_add_sum
+    (isPiecewiseC1On_rectBoundary z w) (fun _ _ ↦ rectBoundary_mem_rectangle _)
+    (by simp) (fun _ _ ↦ hoff _ (rectBoundary_mem_frontier _))
+  rw [integral_rectBoundary hcont,
+    integral_rectBoundary (D.analyticRemainder_differentiableOn.continuousOn.mono
+      (isClosed_rectangle z w).frontier_subset),
+    integral_boundary_rect_eq_zero_of_differentiableOn
+      D.analyticRemainder z w D.analyticRemainder_differentiableOn, zero_add] at h
+  rw [Finset.sum_congr rfl (fun p hp ↦ by
+    rw [TauCeti.Contour.windingNumber_rectBoundary_eq_one (by
+      simpa only [interior_rectangle hre him] using hS p hp), one_mul])] at h
+  have hraw : RectangleIntegral f z w =
+      2 * (π : ℂ) * I * ∑ p ∈ S, TauCeti.Contour.residue f p := h
+  rw [RectangleIntegral', hraw, smul_eq_mul, one_div, ← mul_assoc,
+    inv_mul_cancel₀ Complex.two_pi_I_ne_zero, one_mul]
+
 theorem ResidueTheoremAtOrigin_aux1c (a b : ℝ) :
     let f : ℝ → ℂ := fun y => (y + I)⁻¹
     IntervalIntegrable f volume a b :=
@@ -545,12 +581,8 @@ lemma integral_const_div_re_add_self (hx : x ≠ 0) :
     A / I * (Real.log (y₂ ^ 2 + (-x) ^ 2) / 2 - Real.log (y₁ ^ 2 + (-x) ^ 2) / 2) -
     A / I * I * (arctan (y₂ / -x) - arctan (y₁ / -x)) := by
   have l1 {y : ℝ} : A / (x + y * I) = A / I / (y + ↑(-x) * I) := by
-    have e1 : x + y * I ≠ 0 := by
-      contrapose! hx
-      simpa using congr_arg re hx
-    have e2 : y + I * ↑(-x) ≠ 0 := by
-      contrapose! hx
-      simpa using congr_arg im hx
+    have e1 : x + y * I ≠ 0 := fun h ↦ hx (by simpa using congrArg re h)
+    have e2 : y + I * ↑(-x) ≠ 0 := fun h ↦ hx (by simpa using congrArg im h)
     field_simp [*]
     push_cast
     ring_nf
@@ -558,39 +590,39 @@ lemma integral_const_div_re_add_self (hx : x ≠ 0) :
   have l2 : -x ≠ 0 := by rwa [neg_ne_zero]
   simp_rw [l1, integral_const_div_self_add_im l2]
 
-lemma ResidueTheoremAtOrigin' {z w c : ℂ}
-    (h1 : z.re < 0) (h2 : z.im < 0) (h3 : 0 < w.re) (h4 : 0 < w.im) :
-    RectangleIntegral (fun s => c / s) z w = 2 * I * π * c := by
-  simp only [RectangleIntegral, HIntegral, VIntegral, smul_eq_mul]
-  rw [integral_const_div_re_add_self h1.ne, integral_const_div_re_add_self h3.ne.symm]
-  rw [integral_const_div_self_add_im h2.ne, integral_const_div_self_add_im h4.ne.symm]
-  have l1 : z.im * w.re⁻¹ = (w.re * z.im⁻¹)⁻¹ := by group
-  have l3 := arctan_inv_of_neg <| mul_neg_of_pos_of_neg h3 <| inv_lt_zero.mpr h2
-  have l4 : w.im * z.re⁻¹ = (z.re * w.im⁻¹)⁻¹ := by group
-  have l6 := arctan_inv_of_neg <| mul_neg_of_neg_of_pos h1 <| inv_pos.mpr h4
-  have r1 : z.im * z.re⁻¹ = (z.re * z.im⁻¹)⁻¹ := by group
-  have r3 := arctan_inv_of_pos <| mul_pos_of_neg_of_neg h1 <| inv_lt_zero.mpr h2
-  have r4 : w.im * w.re⁻¹ = (w.re * w.im⁻¹)⁻¹ := by group
-  have r6 := arctan_inv_of_pos <| mul_pos h3 <| inv_pos.mpr h4
-  ring_nf
-  simp only [one_div, inv_I, mul_neg, neg_mul, I_sq, neg_neg, arctan_neg, ofReal_neg,
-    sub_neg_eq_add]
-  rw [l1, l3, l4, l6, r1, r3, r4, r6]
-  ring_nf
-  simp only [I_sq, ofReal_sub, ofReal_mul, ofReal_ofNat, ofReal_div, ofReal_neg, ofReal_one]
-  ring_nf
-
 theorem ResidueTheoremInRectangle
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
     (pInRectInterior : Rectangle z w ∈ 𝓝 p) :
     RectangleIntegral' (fun s => c / (s - p)) z w = c := by
-  simp only [rectangle_mem_nhds_iff, uIoo_of_le zRe_le_wRe, uIoo_of_le zIm_le_wIm,
-    mem_reProdIm, mem_Ioo] at pInRectInterior
-  rw [RectangleIntegral.translate', RectangleIntegral']
-  have : 1 / (2 * ↑π * I) * (2 * I * ↑π * c) = c := by
-    field_simp
-  rwa [ResidueTheoremAtOrigin']
-  all_goals simp [*]
+  have hS : ∀ q ∈ ({p} : Finset ℂ), q ∈ interior (Rectangle z w) := by
+    simpa only [Finset.mem_singleton, forall_eq] using
+      mem_interior_iff_mem_nhds.mpr pInRectInterior
+  have hf : DifferentiableOn ℂ (fun s : ℂ ↦ c / (s - p)) (Rectangle z w \ {p}) :=
+    (differentiableOn_const c).div (differentiableOn_id.sub_const p)
+      (fun s hs ↦ sub_ne_zero.mpr hs.2)
+  have hmero (q : ℂ) : MeromorphicAt (fun s : ℂ ↦ c / (s - p)) q :=
+    analyticAt_const.meromorphicAt.div (analyticAt_id.sub analyticAt_const).meromorphicAt
+  have hres : TauCeti.Contour.residue (fun s : ℂ ↦ c / (s - p)) p = c := by
+    simpa only [Nat.zero_add, pow_one, ↓reduceIte] using
+      TauCeti.Contour.residue_const_div_sub_pow c p 0
+  have h := rectangleIntegral'_eq_native_sum_residue (f := fun s : ℂ ↦ c / (s - p))
+    (S := {p}) zRe_le_wRe zIm_le_wIm hS (by simpa using hf) (fun q _ ↦ hmero q)
+  simpa only [Finset.sum_singleton, hres] using h
+
+lemma ResidueTheoremAtOrigin' {z w c : ℂ}
+    (h1 : z.re < 0) (h2 : z.im < 0) (h3 : 0 < w.re) (h4 : 0 < w.im) :
+    RectangleIntegral (fun s => c / s) z w = 2 * I * π * c := by
+  have hp : Rectangle z w ∈ 𝓝 (0 : ℂ) := by
+    rw [rectangle_mem_nhds_iff, uIoo_of_le (h1.trans h3).le,
+      uIoo_of_le (h2.trans h4).le]
+    exact ⟨⟨h1, h3⟩, h2, h4⟩
+  have h := ResidueTheoremInRectangle (c := c) (h1.trans h3).le (h2.trans h4).le hp
+  simp only [RectangleIntegral', smul_eq_mul, sub_zero, one_div] at h
+  calc
+    RectangleIntegral (fun s ↦ c / s) z w = (2 * π * I : ℂ) * c := by
+      simpa only [mul_inv_cancel_left₀ Complex.two_pi_I_ne_zero] using
+        congrArg (fun a : ℂ ↦ (2 * π * I : ℂ) * a) h
+    _ = 2 * I * π * c := by ring
 
 @[blueprint
   (title := "ResidueTheoremAtOrigin")
@@ -620,11 +652,8 @@ lemma ResidueTheoremAtOrigin :
   Replace $f$ with $g + A/(s-p)$ in the integral.
   The integral of $g$ vanishes by
   Lemma \ref{DifferentiableOn.vanishesOnRectangle}.
-  To evaluate the integral of $1/(s-p)$, pull everything to a
-  square about the origin using
-  Lemma \ref{RectanglePullToNhdOfPole}, and rescale by $c$;
-  what remains is handled by
-  Lemma \ref{ResidueTheoremAtOrigin}.
+  The canonical polar-part residue formula evaluates $A/(s-p)$: the native rectangle
+  boundary has winding number one about its interior point $p$, and its residue is $A$.
   -/)
   (latexEnv := "lemma")]
 lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ}
@@ -714,15 +743,37 @@ theorem ResidueTheoremOnRectangleWithSimplePole' {f : ℂ → ℂ} {z w p A : �
     (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : DifferentiableOn ℂ f (Rectangle z w \ {p}))
     (near_p : (f - (fun s ↦ A / (s - p))) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
     RectangleIntegral' f z w = A := by
-  set g := f - (fun s ↦ A / (s - p))
-  have gHolo : DifferentiableOn ℂ g (Rectangle z w \ {p}) := by
-    apply DifferentiableOn.sub fHolo
-    intro s hs
-    have : s - p ≠ 0 := sub_ne_zero.mpr hs.2
-    exact  DifferentiableWithinAt.div (by fun_prop) (by fun_prop) this
-  have := BddAbove_on_rectangle_of_bdd_near gHolo.continuousOn near_p
-  obtain ⟨h, ⟨hHolo, hEq⟩⟩ := existsDifferentiableOn_of_bddAbove pInRectInterior gHolo this
-  exact ResidueTheoremOnRectangleWithSimplePole zRe_le_wRe zIm_le_wIm pInRectInterior hHolo hEq
+  have hpint : p ∈ interior (Rectangle z w) := mem_interior_iff_mem_nhds.mpr pInRectInterior
+  have hdiff : ∀ᶠ s in 𝓝[≠] p, DifferentiableAt ℂ f s := by
+    filter_upwards [nhdsWithin_le_nhds (isOpen_interior.mem_nhds hpint),
+      self_mem_nhdsWithin] with s hs hsp
+    refine (fHolo s ⟨interior_subset hs, hsp⟩).differentiableAt ?_
+    filter_upwards [isOpen_interior.mem_nhds hs,
+      isClosed_singleton.isOpen_compl.mem_nhds hsp] with t ht htp
+    exact ⟨interior_subset ht, htp⟩
+  have hsmall : (fun s : ℂ ↦ s - p) =o[𝓝[≠] p] (1 : ℂ → ℂ) :=
+    (isLittleO_one_iff ℂ).mpr (tendsto_sub_nhds_zero_iff.mpr
+      (tendsto_id.mono_left nhdsWithin_le_nhds))
+  have hzero : Tendsto
+      (fun s : ℂ ↦ (s - p) * (f s - A / (s - p))) (𝓝[≠] p) (𝓝 0) := by
+    apply (isLittleO_one_iff ℂ).mp
+    simpa only [Pi.mul_apply, Pi.one_apply, one_mul, Pi.sub_apply] using
+      hsmall.mul_isBigO near_p
+  have hlim : Tendsto (fun s : ℂ ↦ (s - p) * f s) (𝓝[≠] p) (𝓝 A) := by
+    have heq : (fun s : ℂ ↦ (s - p) * f s) =ᶠ[𝓝[≠] p]
+        fun s ↦ (s - p) * (f s - A / (s - p)) + A := by
+      filter_upwards [self_mem_nhdsWithin] with s hs
+      have hsp : s - p ≠ 0 := sub_ne_zero.mpr hs
+      field_simp
+      ring
+    simpa only [zero_add] using (hzero.add_const A).congr' heq.symm
+  have hmero := TauCeti.Contour.meromorphicAt_of_tendsto_sub_mul hdiff hlim
+  have hres : TauCeti.Contour.residue f p = A :=
+    TauCeti.Contour.residue_eq_of_tendsto_sub_mul hmero hlim
+  have heq := rectangleIntegral'_eq_native_sum_residue (S := {p})
+    zRe_le_wRe zIm_le_wIm (by simpa using hpint) (by simpa using fHolo)
+    (by simpa using hmero)
+  simpa only [Finset.sum_singleton, hres] using heq
 
 /-! ## Residue calculus: residues, simple poles, and the rectangle residue theorem
 
@@ -733,11 +784,11 @@ reusable contour-integration lemmas (see issue #1537). -/
 /-- Every pole of `f` in `s` is at most simple: the meromorphic order is `≥ -1` everywhere on `s`
 (no poles of order `≤ -2`).
 
-**Temporary scaffold.** The placeholder `residue` below (and Mathlib's current residue-theorem API)
-is only correct for simple poles, so this hypothesis is added to Lemma 5.1 / Proposition 5.2 and
-their sub-lemmas to make them provable with the present API. It holds in the intended applications
-(e.g. `ζ'/ζ`, whose poles are all simple) and is to be removed once Mathlib gains general
-higher-order residue support. -/
+For meromorphic germs, the limit defining `residue` below agrees with the native residue under
+this condition. The native polar-part constructor supports higher-order poles, but the rectangle
+formula below needs the at-most-simple-pole condition to identify its coefficients.
+
+It holds in the intended applications, such as logarithmic derivatives. -/
 def HasSimplePolesOn (f : ℂ → ℂ) (s : Set ℂ) : Prop :=
   ∀ z ∈ s, (-1 : ℤ) ≤ meromorphicOrderAt f z
 
@@ -752,10 +803,10 @@ as the simple-pole limit `lim_{z → z₀} (z - z₀) · f z` (matching the conv
 pole it is the usual residue, but at a higher-order or essential singularity the limit diverges
 and this returns a junk value.
 
-A general complex residue (and the residue theorem) is planned for Mathlib but not yet available,
-so results stated in terms of this `residue` are likely **not provable in full generality** with
-the current API. This is a deliberate stopgap, to be replaced with the robust notion once the
-Mathlib residue-theorem API lands. -/
+The native `TauCeti.Contour.residue` is the general meromorphic residue. The limit defining
+`residue` agrees with it under the meromorphic, at-most-simple-pole hypotheses used below.
+The two definitions can disagree outside the stated hypotheses. The rectangle formula below
+uses their agreement only under those hypotheses. -/
 noncomputable def residue (f : ℂ → ℂ) (z₀ : ℂ) : ℂ :=
   Filter.limUnder (nhdsWithin z₀ {z₀}ᶜ) (fun z ↦ (z - z₀) * f z)
 
@@ -821,38 +872,6 @@ private lemma intervalIntegral_congr_ae_of_codiscreteWithin_along_path
       (Filter.codiscreteWithin_mono
         (by intro s hs; rcases hs with ⟨x, hx, rfl⟩; exact hp_maps hx) heq))
 
--- Under `HasSimplePolesOn f U`, every point with strictly negative meromorphic order has order
--- exactly -1: the simple-pole hypothesis gives `(-1 : ℤ) ≤ order`, negativity gives `order < 0`,
--- so the only integer fitting both is -1.
-private lemma meromorphicOrderAt_eq_neg_one_of_simplePole
-    {f : ℂ → ℂ} {U : Set ℂ} {p : ℂ}
-    (hpU : p ∈ U)
-    (hf_simple : HasSimplePolesOn f U)
-    (hpneg : meromorphicOrderAt f p < 0) :
-    meromorphicOrderAt f p = (-1 : ℤ) := by
-  lift meromorphicOrderAt f p to ℤ using hpneg.ne_top with n hn
-  have hsimple : (-1 : ℤ) ≤ n := WithTop.coe_le_coe.mp (hn ▸ hf_simple p hpU)
-  have hneg : n < 0 := by exact_mod_cast hpneg
-  have hn1 : n = -1 := by omega
-  simp [hn1]
-
--- At a simple pole `p` of `f` inside `U`, the residue of the meromorphic normal form
--- `toMeromorphicNFOn f U` equals the residue of `f`. The two functions agree on a punctured
--- neighborhood of `p` (by definition of the normal form), so their `(z - p) * ·` limits coincide.
-private lemma residue_toMeromorphicNFOn_eq_residue
-    {f : ℂ → ℂ} {U : Set ℂ} {p : ℂ}
-    (hpU : p ∈ U)
-    (hf_mero : MeromorphicOn f U)
-    (hf_simple : HasSimplePolesOn f U) :
-    residue (toMeromorphicNFOn f U) p = residue f p := by
-  have ht := TauCeti.Contour.tendsto_sub_mul_nhds_residue (hf_mero p hpU) (hf_simple p hpU)
-  have h_eq :
-      (fun z ↦ (z - p) * toMeromorphicNFOn f U z) =ᶠ[nhdsWithin p ({p}ᶜ)]
-        (fun z ↦ (z - p) * f z) := by
-    filter_upwards [hf_mero.toMeromorphicNFOn_eq_self_on_nhdsNE hpU] with z hz
-    simp only [hz]
-  exact (residue_eq_of_tendsto (ht.congr' h_eq.symm)).trans (residue_eq_of_tendsto ht).symm
-
 -- Non-constancy of horizontal paths `x ↦ x + h * I`.
 private lemma horizontalPath_not_eventuallyConst (h : ℝ) (x : ℝ) :
     ¬Filter.EventuallyConst (fun r : ℝ ↦ (r : ℂ) + (h : ℂ) * Complex.I) (nhds x) := by
@@ -913,264 +932,6 @@ private lemma rectangleIntegral'_toMeromorphicNFOn_eq {f : ℂ → ℂ} {z w : �
   unfold RectangleIntegral'; congr 1; unfold RectangleIntegral
   rw [hbot, htop, hright, hleft]
 
-private lemma principalPart_meromorphicOn {R : Set ℂ} {polesFin : Finset ℂ} {c : ℂ → ℂ} :
-    MeromorphicOn (fun s ↦ ∑ p ∈ polesFin, c p / (s - p)) R := by
-  intro x _
-  refine MeromorphicAt.fun_sum (G := fun p s ↦ c p / (s - p)) ?_
-  intro p _
-  exact (analyticAt_const.meromorphicAt.div
-    ((analyticAt_id.sub analyticAt_const).meromorphicAt))
-
-private lemma sub_principalPart_analyticAt_of_not_mem_poles
-    {f : ℂ → ℂ} {polesFin : Finset ℂ} {x : ℂ}
-    (h_nf : MeromorphicNFAt f x)
-    (hxnp : x ∉ polesFin)
-    (hxneg : 0 ≤ meromorphicOrderAt f x) :
-    AnalyticAt ℂ (f - fun s ↦ ∑ p ∈ polesFin, residue f p / (s - p)) x := by
-  have h_f_analytic : AnalyticAt ℂ f x :=
-    h_nf.meromorphicOrderAt_nonneg_iff_analyticAt.1 hxneg
-  have h_principal_analytic : AnalyticAt ℂ (fun s ↦ ∑ p ∈ polesFin, residue f p / (s - p)) x := by
-    refine Finset.analyticAt_fun_sum polesFin ?_
-    intro p hp
-    have hxp : x ≠ p := by
-      intro heq
-      subst heq
-      exact hxnp hp
-    have : AnalyticAt ℂ (fun z : ℂ ↦ residue f p / (z - p)) x := by
-      fun_prop (disch := exact sub_ne_zero.mpr hxp)
-    simpa using this
-  exact h_f_analytic.sub h_principal_analytic
-
-private lemma meromorphicOrderAt_sub_principalPart_nonneg
-    {f : ℂ → ℂ} {polesFin : Finset ℂ} {p : ℂ}
-    (hpFin : p ∈ polesFin)
-    (h_mero : MeromorphicAt f p)
-    (h_ord : meromorphicOrderAt f p = -1) :
-    0 ≤ meromorphicOrderAt (f - fun s ↦ ∑ q ∈ polesFin, residue f q / (s - q)) p := by
-  have hcore : (f - fun z ↦ residue f p / (z - p)) =O[nhdsWithin p ({p}ᶜ)] (1 : ℂ → ℂ) := by
-    exact simplePole_sub_residue_isBigO_one h_mero h_ord
-  let rest : ℂ → ℂ := fun z ↦ ∑ q ∈ polesFin.erase p, residue f q / (z - q)
-  have hrest_cont : ContinuousAt rest p := by
-    dsimp [rest]
-    refine tendsto_finsetSum _ (fun q hq ↦ ?_)
-    have hpq : p - q ≠ 0 := sub_ne_zero.mpr (Finset.mem_erase.mp hq).1.symm
-    have h_cont : ContinuousAt (fun z : ℂ ↦ residue f q / (z - q)) p := by
-      fun_prop (disch := exact hpq)
-    exact h_cont
-  have hrest : rest =O[nhdsWithin p ({p}ᶜ)] (1 : ℂ → ℂ) := by
-    have hbig : rest =O[nhds p] (1 : ℂ → ℂ) :=
-      hrest_cont.norm.isBoundedUnder_le.isBigO_one ℂ
-    exact IsBigO.mono hbig inf_le_left
-  have hraw_big : (f - fun s ↦ ∑ q ∈ polesFin, residue f q / (s - q)) =O[nhdsWithin p ({p}ᶜ)] (1 : ℂ → ℂ) := by
-    have htmp : (fun z : ℂ ↦ (f z - residue f p / (z - p)) - rest z) =O[nhdsWithin p ({p}ᶜ)] (1 : ℂ → ℂ) :=
-      hcore.sub hrest
-    have hdecomp : (f - fun s ↦ ∑ q ∈ polesFin, residue f q / (s - q)) =
-        (fun z : ℂ ↦ (f z - residue f p / (z - p)) - rest z) := by
-      funext z
-      dsimp [rest]
-      rw [← Finset.add_sum_erase (s := polesFin) (f := fun q ↦ residue f q / (z - q)) hpFin]
-      simp [sub_eq_add_neg, add_assoc, add_comm]
-    simpa [hdecomp, rest] using htmp
-  by_contra hneg
-  have hnorm : Filter.Tendsto (fun z : ℂ ↦ ‖(f - fun s ↦ ∑ q ∈ polesFin, residue f q / (s - q)) z‖) (nhdsWithin p ({p}ᶜ)) Filter.atTop := by
-    rw [tendsto_norm_atTop_iff_cobounded]
-    exact tendsto_cobounded_of_meromorphicOrderAt_neg (not_le.mp hneg)
-  exact (Filter.not_isBoundedUnder_of_tendsto_atTop hnorm) hraw_big.isBoundedUnder_le
-
-private lemma holoPart_holomorphicOn {f : ℂ → ℂ} {z w : ℂ}
-    (f_mero : MeromorphicOn f (Rectangle z w))
-    (f_simple_poles : HasSimplePolesOn f (Rectangle z w))
-    (f_poles_finite : (Rectangle z w ∩ {z | meromorphicOrderAt f z < 0}).Finite) :
-    DifferentiableOn ℂ (toMeromorphicNFOn (toMeromorphicNFOn f (Rectangle z w) -
-      fun s ↦ ∑ p ∈ f_poles_finite.toFinset, residue (toMeromorphicNFOn f (Rectangle z w)) p / (s - p)) (Rectangle z w)) (Rectangle z w) := by
-  classical
-  let R := Rectangle z w
-  let poles := R ∩ {u | meromorphicOrderAt f u < 0}
-  let polesFin := f_poles_finite.toFinset
-  let fNF := toMeromorphicNFOn f R
-  let principalPart := fun s ↦ ∑ p ∈ polesFin, residue fNF p / (s - p)
-  let holoPart := toMeromorphicNFOn (fNF - principalPart) R
-  have h_fNF_mero : MeromorphicOn fNF R := by
-    simpa [fNF] using
-      (meromorphicNFOn_toMeromorphicNFOn (f := f) (U := R)).meromorphicOn
-  have h_principalPart_mero : MeromorphicOn principalPart R := principalPart_meromorphicOn
-  have h_raw_mero : MeromorphicOn (fNF - principalPart) R := h_fNF_mero.sub h_principalPart_mero
-  intro x hx
-  have h_raw_nonneg : 0 ≤ meromorphicOrderAt (fNF - principalPart) x := by
-    by_cases hxp : x ∈ poles
-    · have hpFin : x ∈ polesFin := by simpa [polesFin, poles] using hxp
-      have hord : meromorphicOrderAt f x = (-1 : ℤ) :=
-        meromorphicOrderAt_eq_neg_one_of_simplePole hxp.1 f_simple_poles hxp.2
-      have hordNF : meromorphicOrderAt fNF x = (-1 : ℤ) := by
-        rw [show meromorphicOrderAt fNF x = meromorphicOrderAt f x by
-          simpa [fNF] using
-            (meromorphicOrderAt_toMeromorphicNFOn (f := f) (U := R) f_mero hxp.1)]
-        exact hord
-      exact meromorphicOrderAt_sub_principalPart_nonneg hpFin (h_fNF_mero x hxp.1) hordNF
-    · have hxnp : x ∉ polesFin := by
-        intro h
-        exact hxp (by simpa [polesFin, poles] using h)
-      have h_fNF_nonneg : 0 ≤ meromorphicOrderAt fNF x := by
-        rw [show meromorphicOrderAt fNF x = meromorphicOrderAt f x by
-          simpa [fNF] using
-            (meromorphicOrderAt_toMeromorphicNFOn (f := f) (U := R) f_mero hx)]
-        exact le_of_not_gt fun hxneg => hxp ⟨hx, hxneg⟩
-      have h_fNF_nf : MeromorphicNFAt fNF x := by
-        simpa [fNF] using
-          (meromorphicNFOn_toMeromorphicNFOn (f := f) (U := R) hx)
-      exact (sub_principalPart_analyticAt_of_not_mem_poles h_fNF_nf hxnp h_fNF_nonneg).meromorphicOrderAt_nonneg
-  have h_nf : MeromorphicNFAt holoPart x := by
-    simpa [holoPart] using
-      (meromorphicNFOn_toMeromorphicNFOn (f := fNF - principalPart) (U := R) hx)
-  have h_ord :
-      meromorphicOrderAt holoPart x = meromorphicOrderAt (fNF - principalPart) x := by
-    simpa [holoPart] using
-      (meromorphicOrderAt_toMeromorphicNFOn (f := fNF - principalPart) (U := R) h_raw_mero hx)
-  exact (h_nf.meromorphicOrderAt_nonneg_iff_analyticAt.1 (h_ord.symm ▸ h_raw_nonneg)).differentiableAt.differentiableWithinAt
-
--- Since no poles lie on the boundary of the rectangle, the principal part is continuous
--- on the boundary and therefore integrable.
-private lemma principalPart_borderIntegrable {f : ℂ → ℂ} {z w : ℂ}
-    (f_no_poles_boundary : Disjoint (RectangleBorder z w) {z | meromorphicOrderAt f z < 0})
-    (f_poles_finite : (Rectangle z w ∩ {z | meromorphicOrderAt f z < 0}).Finite) :
-    RectangleBorderIntegrable (fun s ↦ ∑ p ∈ f_poles_finite.toFinset, residue (toMeromorphicNFOn f (Rectangle z w)) p / (s - p)) z w := by
-  classical
-  let R := Rectangle z w
-  let poles := R ∩ {u | meromorphicOrderAt f u < 0}
-  let polesFin := f_poles_finite.toFinset
-  let fNF := toMeromorphicNFOn f R
-  let principalPart := fun s ↦ ∑ p ∈ polesFin, residue fNF p / (s - p)
-  refine ContinuousOn.rectangleBorder_integrable ?_
-  refine continuousOn_finsetSum _ ?_
-  intro p hp s hs
-  have hsp : s ≠ p := fun hsp => Set.disjoint_right.mp f_no_poles_boundary
-    ((by simpa [polesFin, poles] using hp : p ∈ poles).2) (hsp ▸ hs)
-  have : ContinuousAt (fun z : ℂ ↦ residue fNF p / (z - p)) s := by
-    fun_prop (disch := exact sub_ne_zero.mpr hsp)
-  exact this.continuousWithinAt
-
-private lemma rectangle_mem_nhds_of_interior {z w p : ℂ}
-    (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
-    (hpR : p ∈ Rectangle z w) (hpnot : p ∉ RectangleBorder z w) :
-    Rectangle z w ∈ nhds p := by
-  rw [mem_Rect zRe_le_wRe zIm_le_wIm] at hpR
-  have hp_re_left : z.re < p.re :=
-    lt_of_le_of_ne hpR.1 fun hEq => hpnot
-      (by simp [RectangleBorder, hEq, hpR.2.2.1, hpR.2.2.2, zIm_le_wIm, mem_reProdIm])
-  have hp_re_right : p.re < w.re :=
-    lt_of_le_of_ne hpR.2.1 fun hEq => hpnot
-      (by simp [RectangleBorder, hEq, hpR.2.2.1, hpR.2.2.2, zIm_le_wIm, mem_reProdIm])
-  have hp_im_left : z.im < p.im :=
-    lt_of_le_of_ne hpR.2.2.1 fun hEq => hpnot
-      (by simp [RectangleBorder, hEq, hpR.1, hpR.2.1, zRe_le_wRe, mem_reProdIm])
-  have hp_im_right : p.im < w.im :=
-    lt_of_le_of_ne hpR.2.2.2 fun hEq => hpnot
-      (by simp [RectangleBorder, hEq, hpR.1, hpR.2.1, zRe_le_wRe, mem_reProdIm])
-  rw [rectangle_mem_nhds_iff, mem_reProdIm, Set.uIoo_of_le zRe_le_wRe, Set.uIoo_of_le zIm_le_wIm]
-  exact ⟨⟨hp_re_left, hp_re_right⟩, ⟨hp_im_left, hp_im_right⟩⟩
-
-private lemma sum_div_rectangleBorderIntegrable {z w : ℂ} {S : Finset ℂ}
-    (hS_disjoint : Disjoint (RectangleBorder z w) S) (c : ℂ → ℂ) :
-    RectangleBorderIntegrable (fun s ↦ ∑ p ∈ S, c p / (s - p)) z w := by
-  refine ContinuousOn.rectangleBorder_integrable ?_
-  refine continuousOn_finsetSum _ ?_
-  intro p hp s hs
-  have hsp : s ≠ p := fun hsp => Set.disjoint_right.mp hS_disjoint hp (hsp ▸ hs)
-  have : ContinuousAt (fun z : ℂ ↦ c p / (z - p)) s := by
-    fun_prop (disch := exact sub_ne_zero.mpr hsp)
-  exact this.continuousWithinAt
-
--- The integral of a sum of simple pole terms `c p / (s - p)` along the boundary of the rectangle
--- equals the sum of the coefficients `c p` for all points `p` in the interior.
-private lemma rectangleIntegral'_sum_div_sub {z w : ℂ} (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
-    {S : Finset ℂ} (hS_subset : (S : Set ℂ) ⊆ Rectangle z w)
-    (hS_disjoint : Disjoint (RectangleBorder z w) S)
-    (c : ℂ → ℂ) :
-    RectangleIntegral' (fun s ↦ ∑ p ∈ S, c p / (s - p)) z w = ∑ p ∈ S, c p := by
-  classical
-  have h_partial_border : ∀ (S' : Finset ℂ), S' ⊆ S → RectangleBorderIntegrable (fun s ↦ ∑ p ∈ S', c p / (s - p)) z w := by
-    intro S' hS'
-    exact sum_div_rectangleBorderIntegrable (Disjoint.mono_right hS' hS_disjoint) c
-  have h_term_integral : ∀ {p : ℂ}, p ∈ S → RectangleIntegral' (fun s ↦ c p / (s - p)) z w = c p :=
-    fun {p} hp => ResidueTheoremInRectangle zRe_le_wRe zIm_le_wIm
-      (rectangle_mem_nhds_of_interior zRe_le_wRe zIm_le_wIm
-        (hS_subset hp) (Set.disjoint_right.mp hS_disjoint hp))
-  have h_partial_integral :
-      ∀ (S' : Finset ℂ), S' ⊆ S →
-        RectangleIntegral' (fun s ↦ ∑ p ∈ S', c p / (s - p)) z w =
-          ∑ p ∈ S', c p := by
-    intro S' hS'
-    revert hS'
-    refine Finset.induction_on S' ?_ ?_
-    · intro _
-      simp [RectangleIntegral', RectangleIntegral, HIntegral, VIntegral]
-    · intro a S' ha ih hS'
-      obtain ⟨haFin, hSsub⟩ := Finset.insert_subset_iff.mp hS'
-      have hterm_border :
-          RectangleBorderIntegrable (fun s ↦ c a / (s - a)) z w :=
-        by simpa using h_partial_border ({a} : Finset ℂ) (Finset.singleton_subset_iff.mpr haFin)
-      have hfun :
-          (fun s ↦ ∑ p ∈ insert a S', c p / (s - p)) =
-            (fun s ↦ c a / (s - a)) +
-              (fun s ↦ ∑ p ∈ S', c p / (s - p)) := by
-        funext s; simp [Finset.sum_insert, ha]
-      have h_add_primed :
-          RectangleIntegral' ((fun s ↦ c a / (s - a)) + (fun s ↦ ∑ p ∈ S', c p / (s - p))) z w =
-            RectangleIntegral' (fun s ↦ c a / (s - a)) z w +
-              RectangleIntegral' (fun s ↦ ∑ p ∈ S', c p / (s - p)) z w := by
-        unfold RectangleIntegral'
-        rw [RectangleBorderIntegrable.add hterm_border (h_partial_border S' hSsub), smul_add]
-      rw [hfun, h_add_primed, h_term_integral haFin, ih hSsub, Finset.sum_insert ha]
-  exact h_partial_integral S (by intro p hp; exact hp)
-
--- Splits the integral of `fNF` into the integral of its holomorphic part and its principal part.
-private lemma toMeromorphicNFOn_add_integral {f : ℂ → ℂ} {z w : ℂ}
-    (f_mero : MeromorphicOn f (Rectangle z w))
-    (f_no_poles_boundary : Disjoint (RectangleBorder z w) {z | meromorphicOrderAt f z < 0})
-    (f_poles_finite : (Rectangle z w ∩ {z | meromorphicOrderAt f z < 0}).Finite)
-    (f_simple_poles : HasSimplePolesOn f (Rectangle z w)) :
-    RectangleIntegral' (toMeromorphicNFOn f (Rectangle z w)) z w =
-      RectangleIntegral' (toMeromorphicNFOn (toMeromorphicNFOn f (Rectangle z w) -
-        fun s ↦ ∑ p ∈ f_poles_finite.toFinset, residue (toMeromorphicNFOn f (Rectangle z w)) p / (s - p)) (Rectangle z w)) z w +
-      RectangleIntegral' (fun s ↦ ∑ p ∈ f_poles_finite.toFinset, residue (toMeromorphicNFOn f (Rectangle z w)) p / (s - p)) z w := by
-  let R : Set ℂ := Rectangle z w
-  let poles : Set ℂ := R ∩ {u | meromorphicOrderAt f u < 0}
-  let polesFin : Finset ℂ := f_poles_finite.toFinset
-  let fNF : ℂ → ℂ := toMeromorphicNFOn f R
-  let principalPart : ℂ → ℂ := fun s ↦ ∑ p ∈ polesFin, residue fNF p / (s - p)
-  let holoPart : ℂ → ℂ := toMeromorphicNFOn (fNF - principalPart) R
-  have h_holoPart_border : RectangleBorderIntegrable holoPart z w :=
-    (holoPart_holomorphicOn f_mero f_simple_poles f_poles_finite).rectangleBorderIntegrable
-  have h_fNF_eq :
-      Set.EqOn fNF (holoPart + principalPart) (RectangleBorder z w) := by
-    intro s hs
-    have hsR : s ∈ R := rectangleBorder_subset_rectangle z w hs
-    have hsnp : s ∉ poles := fun hsp => Set.disjoint_right.mp f_no_poles_boundary hsp.2 hs
-    have hraw_analytic : AnalyticAt ℂ (fNF - principalPart) s := by
-      have h_fNF_nonneg : 0 ≤ meromorphicOrderAt fNF s := by
-        rw [show meromorphicOrderAt fNF s = meromorphicOrderAt f s by
-          simpa [fNF] using
-            (meromorphicOrderAt_toMeromorphicNFOn (f := f) (U := R) f_mero hsR)]
-        exact le_of_not_gt fun hsneg => hsnp ⟨hsR, hsneg⟩
-      exact sub_principalPart_analyticAt_of_not_mem_poles
-        (by simpa [fNF] using meromorphicNFOn_toMeromorphicNFOn (f := f) (U := R) hsR)
-        (fun h => hsnp (by simpa [polesFin, poles] using h))
-        h_fNF_nonneg
-    have hs_eq : holoPart s = (fNF - principalPart) s := by
-      rw [show holoPart = toMeromorphicNFOn (fNF - principalPart) R by rfl]
-      have h_fNF_mero : MeromorphicOn fNF R := by
-        simpa [fNF] using (meromorphicNFOn_toMeromorphicNFOn (f := f) (U := R)).meromorphicOn
-      have hf_sub_mero : MeromorphicOn (fNF - principalPart) R :=
-        h_fNF_mero.sub principalPart_meromorphicOn
-      rw [toMeromorphicNFOn_eq_toMeromorphicNFAt (f := fNF - principalPart) (U := R) hf_sub_mero hsR]
-      exact congr_fun (toMeromorphicNFAt_eq_self.2 hraw_analytic.meromorphicNFAt) s
-    calc
-      fNF s = (fNF - principalPart) s + principalPart s := by simp
-      _ = holoPart s + principalPart s := by rw [← hs_eq]
-  rw [RectangleIntegral'_congr h_fNF_eq, RectangleIntegral',
-    RectangleBorderIntegrable.add h_holoPart_border
-      (principalPart_borderIntegrable f_no_poles_boundary f_poles_finite), smul_add]
-
 /-- The Residue Theorem on a rectangle for functions with simple poles. -/
 lemma RectangleIntegral'_eq_sumResiduesIn {f : ℂ → ℂ} {z w : ℂ}
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
@@ -1179,43 +940,45 @@ lemma RectangleIntegral'_eq_sumResiduesIn {f : ℂ → ℂ} {z w : ℂ}
     (f_poles_finite : (Rectangle z w ∩ {z | meromorphicOrderAt f z < 0}).Finite)
     (f_simple_poles : HasSimplePolesOn f (Rectangle z w)) :
     RectangleIntegral' f z w = sumResiduesIn f (Rectangle z w ∩ {z | meromorphicOrderAt f z < 0}) := by
+  classical
   let R : Set ℂ := Rectangle z w
-  let poles : Set ℂ := R ∩ {u | meromorphicOrderAt f u < 0}
-  let polesFin : Finset ℂ := f_poles_finite.toFinset
-  let fNF : ℂ → ℂ := toMeromorphicNFOn f R
-  let principalPart : ℂ → ℂ := fun s ↦ ∑ p ∈ polesFin, residue fNF p / (s - p)
-  let holoPart : ℂ → ℂ := toMeromorphicNFOn (fNF - principalPart) R
-  have h_residue_congr : sumResiduesIn f poles = sumResiduesIn fNF poles := by
-    rw [sumResiduesIn, sumResiduesIn]
-    apply tsum_congr
-    intro p
-    exact (residue_toMeromorphicNFOn_eq_residue p.2.1 f_mero f_simple_poles).symm
-  have h_principalPart_integral : RectangleIntegral' principalPart z w = sumResiduesIn fNF poles := by
-    have h_sum : RectangleIntegral' principalPart z w = ∑ p ∈ polesFin, residue fNF p := by
-      apply rectangleIntegral'_sum_div_sub zRe_le_wRe zIm_le_wIm
-      · intro p hp
-        dsimp [polesFin, poles, R] at hp
-        simp only [Finset.mem_coe, Set.Finite.mem_toFinset] at hp
-        exact hp.1
-      · exact Disjoint.mono_right (by rw [f_poles_finite.coe_toFinset]; exact Set.inter_subset_right) f_no_poles_boundary
-    rw [h_sum]
-    have h_eq_poles : poles = ↑polesFin := by
-      dsimp [poles, polesFin, R]
-      exact f_poles_finite.coe_toFinset.symm
-    rw [sumResiduesIn, h_eq_poles,
-      tsum_fintype (f := fun p : (polesFin : Set ℂ) => residue fNF p),
-      ← Finset.sum_coe_sort polesFin]; rfl
-  calc
-    RectangleIntegral' f z w = RectangleIntegral' fNF z w := rectangleIntegral'_toMeromorphicNFOn_eq f_mero
-    _ = RectangleIntegral' holoPart z w + RectangleIntegral' principalPart z w :=
-      toMeromorphicNFOn_add_integral f_mero f_no_poles_boundary f_poles_finite f_simple_poles
-    _ = 0 + sumResiduesIn fNF poles := by
-      rw [h_principalPart_integral]
-      rw [RectangleIntegral',
-        (holoPart_holomorphicOn f_mero f_simple_poles f_poles_finite).vanishesOnRectangle subset_rfl]
-      simp
-    _ = sumResiduesIn fNF poles := by simp
-    _ = sumResiduesIn f poles := h_residue_congr.symm
+  let poles := R ∩ {u | meromorphicOrderAt f u < 0}
+  let S := f_poles_finite.toFinset
+  let fNF := toMeromorphicNFOn f R
+  have hmem (p : ℂ) : p ∈ S ↔ p ∈ poles := f_poles_finite.mem_toFinset
+  have hborder : RectangleBorder z w = frontier R := by
+    ext p
+    simp only [R, RectangleBorder, frontier_rectangle, mem_union, mem_reProdIm,
+      mem_insert_iff, mem_singleton_iff]
+    tauto
+  have hS (p : ℂ) (hp : p ∈ S) : p ∈ interior R := by
+    have hpR := (hmem p).mp hp
+    rw [← self_sdiff_frontier]
+    exact ⟨hpR.1, fun hfr ↦ Set.disjoint_right.mp f_no_poles_boundary hpR.2
+      (hborder.symm ▸ hfr)⟩
+  have hnf : MeromorphicNFOn fNF R := meromorphicNFOn_toMeromorphicNFOn f R
+  have hmero : MeromorphicOn fNF R := hnf.meromorphicOn
+  have hord (p : ℂ) (hp : p ∈ R) : meromorphicOrderAt fNF p = meromorphicOrderAt f p :=
+    meromorphicOrderAt_toMeromorphicNFOn f_mero hp
+  have hdiff : DifferentiableOn ℂ fNF (R \ (S : Set ℂ)) := by
+    intro p hp
+    apply ((hnf hp.1).meromorphicOrderAt_nonneg_iff_analyticAt.mp ?_).differentiableAt.differentiableWithinAt
+    rw [hord p hp.1]
+    exact le_of_not_gt fun hneg ↦ hp.2 ((hmem p).mpr ⟨hp.1, hneg⟩)
+  have hscalar := rectangleIntegral'_eq_native_sum_residue zRe_le_wRe zIm_le_wIm
+    hS hdiff (fun p hp ↦ hmero p ((hmem p).mp hp).1)
+  have hres (p : ℂ) (hp : p ∈ S) : TauCeti.Contour.residue fNF p = residue f p := by
+    have hpR := ((hmem p).mp hp).1
+    rw [TauCeti.Contour.residue_congr_nhdsNE
+      (f_mero.toMeromorphicNFOn_eq_self_on_nhdsNE hpR)]
+    exact ((TauCeti.Contour.tendsto_sub_mul_nhds_residue (f_mero p hpR)
+      (f_simple_poles p hpR)).limUnder_eq).symm
+  rw [rectangleIntegral'_toMeromorphicNFOn_eq f_mero, hscalar,
+    Finset.sum_congr rfl hres]
+  have hset : poles = (S : Set ℂ) := f_poles_finite.coe_toFinset.symm
+  change S.sum (residue f) = ∑' p : poles, residue f p
+  rw [hset, tsum_fintype, ← Finset.sum_coe_sort S]
+  rfl
 
 lemma residue_eq_zero_of_not_pole_of_meromorphicAt {F : ℂ → ℂ} {s : ℂ}
     (hs_mero : MeromorphicAt F s) (hs_not_pole : 0 ≤ meromorphicOrderAt F s) :
