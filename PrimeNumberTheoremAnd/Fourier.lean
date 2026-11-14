@@ -27,18 +27,6 @@ lemma tendsto_intervalIntegral_zero_of_uniform_norm_bound
   filter_upwards [hf] with T hT
   exact intervalIntegral.norm_integral_le_of_norm_le_const (fun x hx => hT x hx)
 
-/-- The decay `K * (log (T + 2) / (T + 2)) → 0` as `T → ∞`, for any constant `K`. -/
-lemma tendsto_const_mul_log_add_two_div_add_two_atTop (K : ℝ) :
-    Filter.Tendsto (fun T : ℝ => K * (Real.log (T + 2) / (T + 2)))
-      Filter.atTop (nhds 0) := by
-  have h0 : Filter.Tendsto (fun x : ℝ => Real.log x / x) Filter.atTop (nhds 0) := by
-    simpa using (Real.tendsto_pow_log_div_mul_add_atTop 1 0 1 (by norm_num : (1 : ℝ) ≠ 0))
-  have hshift : Filter.Tendsto (fun T : ℝ => Real.log (T + 2) / (T + 2))
-      Filter.atTop (nhds 0) := by
-    have := h0.comp (tendsto_atTop_add_const_right Filter.atTop 2 tendsto_id)
-    simpa [Function.comp_def] using this
-  simpa using hshift.const_mul K
-
 /-- Fourier-transform decay from an integrable derivative: for integrable,
 differentiable `g` with integrable derivative, `‖𝓕 g w‖ ≤ (∫ ‖deriv g x‖) / (2π·|w|)`. -/
 lemma norm_fourier_le_integral_deriv_div

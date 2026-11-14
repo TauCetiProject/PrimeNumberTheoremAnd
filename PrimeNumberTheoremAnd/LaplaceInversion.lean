@@ -8,6 +8,8 @@ public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Topology.MetricSpace.Cauchy
+import Mathlib.MeasureTheory.Group.Integral
+import Mathlib.Topology.Order.Compact
 import TauCeti.Analysis.Asymptotics.Lemmas
 import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 
@@ -192,23 +194,13 @@ theorem fourierInvTrunc_tendsto_of_sinc_kernel
   filter_upwards [Filter.eventually_ge_atTop (0 : ℝ)] with T hT
   exact (fourierInvTrunc_fourier_eq_sinc_kernel hf x T hT).symm
 
-/-- Whole-line change of variables for the reflection-translation `y ↦ x - y`. -/
-theorem integral_comp_sub_left_eq_self (g : ℝ → E) (x : ℝ) :
-    (∫ y : ℝ, g (x - y)) = ∫ u : ℝ, g u := by
-  calc
-    (∫ y : ℝ, g (x - y)) = ∫ y : ℝ, g (x + y) := by
-      simpa [sub_eq_add_neg] using
-        integral_neg_eq_self (f := fun y : ℝ => g (x + y)) (μ := volume)
-    _ = ∫ u : ℝ, g u := by
-      simpa using integral_add_left_eq_self (μ := volume) g x
-
 /-- The sinc kernel can be written in translated coordinates `u = x - y`. -/
 theorem sinc_kernel_integral_comp_sub_left
     (f : ℝ → E) (x T : ℝ) :
     (∫ y : ℝ, (2 * T * Real.sinc (T * (x - y)) : ℂ) • f y) =
       ∫ u : ℝ, (2 * T * Real.sinc (T * u) : ℂ) • f (x - u) := by
   let g : ℝ → E := fun u => (2 * T * Real.sinc (T * u) : ℂ) • f (x - u)
-  have h := integral_comp_sub_left_eq_self (E := E) g x
+  have h := integral_sub_left_eq_self g volume x
   simpa [g] using h
 
 /-- The normalized sinc kernel is the usual `sin (T * u) / (π * u)` kernel,
@@ -268,44 +260,21 @@ theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div_ae
   filter_upwards [show ∀ᵐ u : ℝ, u ≠ 0 by simp [ae_iff, measure_singleton]] with u hu
   rw [ite_eq_right hu, ite_eq_right hu]
 
-/-- The scaled positive-frequency ray `T / (2π)` tends to the cocompact filter. -/
-lemma tendsto_div_two_pi_atTop_cocompact :
-    Filter.Tendsto (fun T : ℝ => T / (2 * π)) Filter.atTop (Filter.cocompact ℝ) := by
-  refine tendsto_cocompact_of_tendsto_dist_comp_atTop (0 : ℝ) ?_
-  have h : Filter.Tendsto (fun T : ℝ => (1 / (2 * π)) * T) Filter.atTop
-      Filter.atTop := by
-    exact (Filter.tendsto_const_mul_atTop_of_pos
-      (by positivity : 0 < (1 / (2 * π) : ℝ))).2 Filter.tendsto_id
-  have h' : Filter.Tendsto (fun T : ℝ => T / (2 * π)) Filter.atTop Filter.atTop := by
-    simpa [one_div, div_eq_mul_inv, mul_comm] using h
-  simpa [dist_eq_norm, Function.comp_def, norm_div,
-    abs_of_pos (by positivity : 0 < (2 * π : ℝ))]
-    using tendsto_norm_atTop_atTop.comp h'
-
-/-- The scaled negative-frequency ray `-T / (2π)` tends to the cocompact filter. -/
-lemma tendsto_neg_div_two_pi_atTop_cocompact :
-    Filter.Tendsto (fun T : ℝ => -T / (2 * π)) Filter.atTop (Filter.cocompact ℝ) := by
-  refine tendsto_cocompact_of_tendsto_dist_comp_atTop (0 : ℝ) ?_
-  have h : Filter.Tendsto (fun T : ℝ => T / (2 * π)) Filter.atTop Filter.atTop := by
-    have h0 : Filter.Tendsto (fun T : ℝ => (1 / (2 * π)) * T) Filter.atTop
-        Filter.atTop := by
-      exact (Filter.tendsto_const_mul_atTop_of_pos
-        (by positivity : 0 < (1 / (2 * π) : ℝ))).2 Filter.tendsto_id
-    simpa [one_div, div_eq_mul_inv, mul_comm] using h0
-  have hn : Filter.Tendsto (fun T : ℝ => ‖T / (2 * π)‖) Filter.atTop Filter.atTop :=
-    tendsto_norm_atTop_atTop.comp h
-  simpa [dist_eq_norm, neg_div, norm_neg, norm_div,
-    abs_of_pos (by positivity : 0 < (2 * π : ℝ))] using hn
-
 /-- Riemann-Lebesgue on the scaled positive-frequency ray. -/
 theorem fourier_tendsto_atTop_scaled (f : ℝ → E) :
     Filter.Tendsto (fun T : ℝ => 𝓕 f (T / (2 * π))) Filter.atTop (nhds 0) := by
-  exact (Real.zero_at_infty_fourier f).comp tendsto_div_two_pi_atTop_cocompact
+  refine (Real.zero_at_infty_fourier f).comp ?_
+  exact ((tendsto_div_const_atTop_of_pos (by positivity : 0 < 2 * π)).2
+    tendsto_id).mono_right atTop_le_cocompact
 
 /-- Riemann-Lebesgue on the scaled negative-frequency ray. -/
 theorem fourier_tendsto_atTop_neg_scaled (f : ℝ → E) :
     Filter.Tendsto (fun T : ℝ => 𝓕 f (-T / (2 * π))) Filter.atTop (nhds 0) := by
-  exact (Real.zero_at_infty_fourier f).comp tendsto_neg_div_two_pi_atTop_cocompact
+  refine (Real.zero_at_infty_fourier f).comp ?_
+  have h : Tendsto (fun T : ℝ ↦ T / (2 * π)) atTop atTop :=
+    (tendsto_div_const_atTop_of_pos (by positivity)).2 tendsto_id
+  simpa only [neg_div, Function.comp_def] using
+    (tendsto_neg_atTop_atBot.comp h).mono_right atBot_le_cocompact
 
 /-- The negative complex exponential integral tends to zero on the positive height ray. -/
 theorem tendsto_integral_exp_neg_mul_I_smul_atTop (f : ℝ → E) :
