@@ -530,28 +530,6 @@ lemma continuous_self_div_sq_add_sq (hy : y ≠ 0) :
     Continuous fun x => x / (x ^ 2 + y ^ 2) :=
   continuous_id.div (continuous_id.pow 2 |>.add continuous_const) (fun _ => sq_add_sq_ne_zero hy)
 
-lemma integral_self_div_sq_add_sq (hy : y ≠ 0) :
-    ∫ x in x₁..x₂, x / (x ^ 2 + y ^ 2) =
-    Real.log (x₂ ^ 2 + y ^ 2) / 2 - Real.log (x₁ ^ 2 + y ^ 2) / 2 := by
-  let f (x : ℝ) : ℝ := Real.log (x ^ 2 + y ^ 2) / 2
-  have e1 {x} := HasDerivAt.add_const (y ^ 2) (by simpa using hasDerivAt_pow 2 x)
-  have e2 {x} : HasDerivAt f (x / (x ^ 2 + y ^ 2)) x := by
-    convert! (e1.log (sq_add_sq_ne_zero hy)).div_const 2 using 1
-    field_simp
-  have e3 : deriv f = fun x => x / (x ^ 2 + y ^ 2) := funext (fun _ => e2.deriv)
-  have e4 : Continuous (deriv f) := by simpa only [e3] using continuous_self_div_sq_add_sq hy
-  simp_rw [← e2.deriv]
-  exact integral_deriv_eq_sub (fun _ _ => e2.differentiableAt) (e4.intervalIntegrable _ _)
-
-lemma integral_const_div_sq_add_sq (hy : y ≠ 0) :
-    ∫ x in x₁..x₂, y / (x ^ 2 + y ^ 2) = arctan (x₂ / y) - arctan (x₁ / y) := by
-  nth_rewrite 1 [← div_mul_cancel₀ x₁ hy, ← div_mul_cancel₀ x₂ hy]
-  simp_rw [← mul_integral_comp_mul_right, ← intervalIntegral.integral_const_mul,
-    ← integral_one_div_one_add_sq]
-  exact integral_congr fun x _ => by
-    field_simp
-    ring
-
 set_option backward.isDefEq.respectTransparency false in
 lemma integral_const_div_self_add_im (hy : y ≠ 0) :
     ∫ x : ℝ in x₁..x₂, A / (x + y * I) =
@@ -574,7 +552,7 @@ lemma integral_const_div_self_add_im (hy : y ≠ 0) :
   simp_rw [integral_congr (fun _ _ => e1), integral_sub e2 e3, mul_div_assoc]
   norm_cast
   simp_rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_ofReal,
-    integral_self_div_sq_add_sq hy, integral_const_div_sq_add_sq hy]
+    add_comm (_ ^ 2) (y ^ 2), integral_id_div_sq_add_sq hy, integral_div_sq_add_sq, sub_div]
 
 lemma integral_const_div_re_add_self (hx : x ≠ 0) :
     ∫ y : ℝ in y₁..y₂, A / (x + y * I) =

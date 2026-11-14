@@ -7,6 +7,7 @@ Author: Arend Mellendijk
 module
 
 public import Mathlib.NumberTheory.Primorial
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
 public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
@@ -75,49 +76,10 @@ theorem siftedSum_eq (s : SelbergSieve) (hw : ∀ i ∈ s.support, s.weights i =
   simp only [Finset.mem_filter] at hx
   apply hw x hx.1
 
-def CompletelyMultiplicative (f : ArithmeticFunction ℝ) : Prop :=
-  f 1 = 1 ∧ ∀ a b, f (a*b) = f a * f b
 
-namespace CompletelyMultiplicative
-open ArithmeticFunction
-theorem zeta : CompletelyMultiplicative ζ := by
-  unfold CompletelyMultiplicative
-  simp_rw [ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply, one_ne_zero, ite_false,
-    mul_eq_zero, Nat.cast_ite, Nat.cast_one, CharP.cast_eq_zero, mul_ite, mul_zero, mul_one,
-    true_and, ← ite_or, or_comm, implies_true]
-
-theorem id : CompletelyMultiplicative ArithmeticFunction.id := by
-    constructor <;> simp
-
-theorem pmul (f g : ArithmeticFunction ℝ) (hf : CompletelyMultiplicative f)
-    (hg : CompletelyMultiplicative g) :
-    CompletelyMultiplicative (ArithmeticFunction.pmul f g) := by
-  constructor
-  · rw [pmul_apply, hf.1, hg.1, mul_one]
-  intro a b
-  simp_rw [pmul_apply, hf.2, hg.2]; ring
-
-theorem pdiv {f g : ArithmeticFunction ℝ} (hf : CompletelyMultiplicative f)
-    (hg : CompletelyMultiplicative g) :
-    CompletelyMultiplicative (ArithmeticFunction.pdiv f g) := by
-  constructor
-  · rw [pdiv_apply, hf.1, hg.1, div_one]
-  intro a b
-  simp_rw [pdiv_apply, hf.2, hg.2]; ring
-
-theorem isMultiplicative {f : ArithmeticFunction ℝ} (hf : CompletelyMultiplicative f) :
-    ArithmeticFunction.IsMultiplicative f :=
-  ⟨hf.1, fun _ => hf.2 _ _⟩
-
-theorem apply_pow (f : ArithmeticFunction ℝ) (hf : CompletelyMultiplicative f) (a n : ℕ) :
-    f (a^n) = f a ^ n := by
-  let F : ℕ →* ℝ := { toFun := f, map_one' := hf.1, map_mul' := hf.2 }
-  exact F.map_pow a n
-
-end CompletelyMultiplicative
 
 theorem prod_factors_one_div_compMult_ge (M : ℕ) (f : ArithmeticFunction ℝ)
-    (hf : CompletelyMultiplicative f) (hf_nonneg : ∀ n, 0 ≤ f n) (d : ℕ) (hd : Squarefree d)
+    (hf : ArithmeticFunction.IsCompletelyMultiplicative f) (hf_nonneg : ∀ n, 0 ≤ f n) (d : ℕ) (hd : Squarefree d)
     (hf_size : ∀ n, n.Prime → n ∣ d → f n < 1) :
     f d * ∏ p ∈ d.primeFactors, 1 / (1 - f p)
     ≥ ∏ p ∈ d.primeFactors, ∑ n ∈ Finset.Icc 1 M, f (p^n) := by
@@ -150,7 +112,7 @@ theorem prod_factors_one_div_compMult_ge (M : ℕ) (f : ArithmeticFunction ℝ)
      simp_rw [hf.apply_pow]
 
 theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ArithmeticFunction ℝ)
-    (hf : CompletelyMultiplicative f) (d : ℕ) (hd : Squarefree d) :
+    (hf : ArithmeticFunction.IsCompletelyMultiplicative f) (d : ℕ) (hd : Squarefree d) :
     ∏ p ∈ d.primeFactors, ∑ n ∈ Finset.Icc 1 M, f (p^n)
     = ∑ m ∈ (d^M).divisors.filter (d ∣ ·), f m := by
   rw [Finset.prod_sum]
@@ -297,7 +259,7 @@ theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ArithmeticFu
 Proposed generalisation :
 
 theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve)
-    (hnu : CompletelyMultiplicative s.nuDivSelf) (hnu_nonneg : ∀ n, 0 ≤ s.nuDivSelf n)
+    (hnu : ArithmeticFunction.IsCompletelyMultiplicative s.nuDivSelf) (hnu_nonneg : ∀ n, 0 ≤ s.nuDivSelf n)
     (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nuDivSelf p < 1):
     s.selbergBoundingSum ≥ ∑ m in
       (Finset.Icc 1 (Nat.floor <| Real.sqrt s.level)).filter (fun m => ∀ p, p.Prime → p ∣ m → p ∣ s.prodPrimes),
@@ -305,7 +267,7 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve)
 -/
 
 theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prime → (p:ℝ) ≤ s.level → p ∣ s.prodPrimes)
-  (hnu : CompletelyMultiplicative s.nu) (hnu_nonneg : ∀ n, 0 ≤ s.nu n) (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nu p < 1):
+  (hnu : ArithmeticFunction.IsCompletelyMultiplicative s.nu) (hnu_nonneg : ∀ n, 0 ≤ s.nu n) (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nu p < 1):
     s.selbergBoundingSum ≥ ∑ m ∈ Finset.Icc 1 (Nat.floor <| Real.sqrt s.level), s.nu m := by
   unfold selbergBoundingSum
   calc ∑ l ∈ s.prodPrimes.divisors, (if l ^ 2 ≤ s.level then (@BoundingSieve.selbergTerms _) l else 0)
@@ -414,7 +376,7 @@ theorem boundingSum_ge_sum (s : SelbergSieve) (hnu : s.nu = (ζ : ArithmeticFunc
     · intro p hpp hple
       apply hP p hpp hple
     · rw[hnu]
-      exact CompletelyMultiplicative.zeta.pdiv CompletelyMultiplicative.id
+      exact ArithmeticFunction.IsCompletelyMultiplicative.zeta.pdiv ArithmeticFunction.IsCompletelyMultiplicative.id
     · intro n
       rw[hnu]
       apply div_nonneg

@@ -1,6 +1,7 @@
 module
 
 public import Architect
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
 public import Mathlib.NumberTheory.LSeries.Dirichlet
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.NumberTheory.ArithmeticFunction.Liouville
@@ -1889,29 +1890,6 @@ blueprint_comment /--
 The Liouville function is Mathlib's canonical `ArithmeticFunction.liouville`, equal to
 `(-1)^Ω(n)` away from zero and zero at zero.
 -/
-
--- **NOTE:** `def CompletelyMultiplicative (f : ArithmeticFunction ℝ) : Prop :=
---  f 1 = 1 ∧ ∀ a b, f (a*b) = f a * f b` exists in the `SelbergBound` file.
-
-/--
-Define Complete Multiplicativity for an arithmetic function. -/
-@[blueprint
-  "IsCompletelyMultiplicative"
-  (title := "IsCompletelyMultiplicative")
-  (statement := /-- Define Complete Multiplicativity for an arithmetic function. -/)]
-def IsCompletelyMultiplicative (f : ArithmeticFunction ℝ) : Prop :=
-  f 1 = 1 ∧ ∀ a b, f (a * b) = f a * f b
-
-/-- A function that is completely multiplicative is also multiplicative. -/
-@[blueprint
-  "IsCompletelyMultiplicative.isMultiplicative"
-  (title := "IsCompletelyMultiplicative.isMultiplicative")
-  (statement := /-- A function that is completely multiplicative is also multiplicative. -/)
-  (proof := /--
-  Let $f$ be a completely multiplicative function. To show that $f$ is multiplicative, we need to verify that $f(1) = 1$ and that $f(ab) = f(a)f(b)$ for all coprime natural numbers $a$ and $b$. Since $f$ is completely multiplicative, we have $f(1) = 1$ by definition. For coprime $a$ and $b$, we can write $ab$ as a product of prime factors, and since $f$ is completely multiplicative, it will factor as the product of the values of $f$ at those prime factors. This means that $f(ab) = f(a)f(b)$ for coprime $a$ and $b$, which shows that $f$ is multiplicative.
-  -/)]
-lemma IsCompletelyMultiplicative.isMultiplicative {f : ArithmeticFunction ℝ} (hf : IsCompletelyMultiplicative f) : f.IsMultiplicative := by
-  exact ⟨hf.1, fun {m n} _ => hf.2 m n⟩
 
 /--
 The Liouville function is completely multiplicative. -/

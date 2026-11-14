@@ -8,7 +8,7 @@ module
 public import Mathlib.Algebra.Order.Floor.Ring
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
@@ -85,7 +85,9 @@ lemma intervalIntegrable (s : ℂ) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     exact (norm_zetaAbelFractKernel_le u (ha.trans huIcc.1) s).trans (le_of_eq hg_eq.symm)
   have hg : Integrable g μ := by
     simpa [μ, g] using!
-      (Complex.continuousOn_ofReal_cpow (ha := one_pos.trans_le ha)).norm.integrableOn_compact
+      (Complex.continuous_ofReal.continuousOn.cpow continuousOn_const
+        (fun u (hu : u ∈ Icc a b) => Complex.ofReal_mem_slitPlane.mpr (lt_of_lt_of_le
+          (one_pos.trans_le ha) hu.1))).norm.integrableOn_compact
         isCompact_Icc
   have hf0 : Integrable (fun _ : ℝ => (0 : ℂ)) μ := by simp [μ]
   exact (intervalIntegrable_iff_integrableOn_Icc_of_le hab).2 <|
@@ -130,13 +132,14 @@ lemma eventually_aestronglyMeasurable_param (s : ℂ) :
 theorem hasDerivAt_in_param (u : ℝ) (hu : 1 < u) (z : ℂ) :
     HasDerivAt (fun w => zetaAbelFractKernel w u)
       (-((Real.log u) : ℂ) * zetaAbelFractKernel z u) z := by
-  have h := HasDerivAt.const_mul_ofReal_cpow_neg_sub_one ((Int.fract u : ℝ) : ℂ)
-    (lt_trans zero_lt_one hu) z
+  have h := (((hasDerivAt_id z).neg.sub_const (1 : ℂ)).const_cpow
+    (Or.inl (Complex.ofReal_ne_zero.mpr (lt_trans zero_lt_one hu).ne'))).const_mul
+      ((Int.fract u : ℝ) : ℂ)
   have hfun : (fun w => zetaAbelFractKernel w u) = fun w => ((Int.fract u : ℝ) : ℂ) * (u : ℂ) ^ (-w - 1) := by
     ext w; simp [zetaAbelFractKernel]
   exact (h.congr_of_eventuallyEq (EventuallyEq.of_eq hfun)).congr_deriv (by
     simp [zetaAbelFractKernel, Complex.ofReal_log (x := u) (hx := le_of_lt (lt_trans zero_lt_one hu)),
-      mul_comm, mul_assoc, mul_left_comm])
+      mul_comm, mul_left_comm])
 
 theorem kernel_deriv_norm_bound_on_ball (ε : ℝ) (u : ℝ) (hu : 1 < u) (x : ℂ) (hx : ε ≤ x.re) :
     ‖-((Real.log u) : ℂ) * zetaAbelFractKernel x u‖ ≤ Real.log u * u ^ (-1 - ε) := by

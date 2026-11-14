@@ -9,6 +9,7 @@ import PrimeNumberTheoremAnd.GeneralMeromorphic
 import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
+import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
 import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
@@ -52,7 +53,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.MeasureTheory.Integral.IntegrableOn
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta

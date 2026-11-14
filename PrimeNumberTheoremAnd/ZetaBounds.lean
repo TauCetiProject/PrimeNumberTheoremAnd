@@ -554,32 +554,18 @@ lemma ZetaBnd_aux1a {a b : ℝ} (apos : 0 < a) (a_lt_b : a < b) {s : ℂ} (σpos
   refine ZetaSum_aux1_2 (c := s.re) apos a_lt_b ⟨ne_of_gt σpos, ?_⟩
   exact fun h ↦ (lt_self_iff_false 0).mp <| ZetaSum_aux1_1 apos a_lt_b h
 
-lemma finsetSum_tendsto_tsum {N : ℕ} {f : ℕ → ℂ} (hf : Summable f) :
-    Tendsto (fun (k : ℕ) ↦ ∑ n ∈ Finset.Ico N k, f n) atTop (𝓝 (∑' (n : ℕ), f (n + N))) := by
-  have := Summable.hasSum_iff_tendsto_nat hf (m := ∑' (n : ℕ), f n) |>.mp hf.hasSum
-  have const := tendsto_const_nhds (α := ℕ) (x := ∑ i ∈ Finset.range N, f i) (f := atTop)
-  have := Filter.Tendsto.sub this const
-  rw [← hf.sum_add_tsum_nat_add N, add_comm, add_sub_cancel_right] at this
-  apply this.congr'
-  filter_upwards [Filter.mem_atTop (N + 1)]
-  intro M hM
-  rw [Finset.sum_Ico_eq_sub]
-  linarith
-
 lemma ZetaSum_aux2a : ∃ C, ∀ (x : ℝ), ‖⌊x⌋ + 1 / 2 - x‖ ≤ C := by
   use 1 / 2; exact ZetaSum_aux1_3
 
 lemma ZetaSum_aux3 {N : ℕ} {s : ℂ} (s_re_gt : 1 < s.re) :
     Tendsto (fun k ↦ ∑ n ∈ Finset.Ioc N k, 1 / (n : ℂ) ^ s) atTop
     (𝓝 (∑' (n : ℕ), 1 / (n + N + 1 : ℂ) ^ s)) := by
-  let f := fun (n : ℕ) ↦ 1 / (n : ℂ) ^ s
-  have hf := summable_one_div_nat_cpow.mpr s_re_gt
-  simp_rw [← Finset.Ico_add_one_add_one_eq_Ioc]
-  convert finsetSum_tendsto_tsum (f := fun n ↦ f (n + 1)) (N := N) ?_ using 1
-  · ext k
-    rw [Finset.sum_Ico_add']
-  · congr; ext n; simp only [one_div, Nat.cast_add, Nat.cast_one, f]
-  · rwa [summable_nat_add_iff (k := 1)]
+  apply (tendsto_add_atTop_iff_nat N).mp
+  have hf := ((summable_nat_add_iff (N + 1)).mpr
+    (summable_one_div_nat_cpow.mpr s_re_gt)).hasSum.tendsto_sum_nat
+  simp only [← Finset.Ico_add_one_add_one_eq_Ioc, Finset.sum_Ico_eq_sum_range,
+    Nat.add_sub_add_right, Nat.add_sub_cancel_right]
+  simpa only [Nat.cast_add, Nat.cast_one, add_comm, add_left_comm, add_assoc] using hf
 
 lemma integrableOn_of_Zeta0_fun {N : ℕ} (N_pos : 0 < N) {s : ℂ} (s_re_gt : 0 < s.re) :
     MeasureTheory.IntegrableOn (fun (x : ℝ) ↦ (⌊x⌋ + 1 / 2 - x) * (x : ℂ) ^ (-(s + 1))) (Ioi N)
@@ -1729,30 +1715,6 @@ lemma ZetaDerivUpperBnd :
   apply le_trans (by apply norm_add₆_le) ?_
   convert ZetaDerivUpperBnd' hA t_gt ⟨σ_ge, σ_le⟩
 
-lemma Tendsto_nhdsWithin_punctured_map_add {f : ℝ → ℝ} (a x : ℝ)
-    (f_mono : StrictMono f) (f_iso : Isometry f) :
-    Tendsto (fun y ↦ f y + a) (𝓝[>] x) (𝓝[>] (f x + a)) := by
-  refine tendsto_nhdsWithin_iff.2 ⟨
-    (f_iso.continuous.continuousAt.add_const a).tendsto.mono_left inf_le_left, ?_⟩
-  filter_upwards [self_mem_nhdsWithin] with y hy
-  change f x + a < f y + a
-  simpa only [add_comm] using add_lt_add_right (f_mono hy) a
-
-
-lemma riemannZeta_isBigO_near_one_horizontal :
-    (fun x : ℝ ↦ ζ (1 + x)) =O[𝓝[>] 0] (fun x ↦ (1 : ℂ) / x) := by
-  have : (fun w : ℂ ↦ ζ (1 + w)) =O[𝓝[≠] 0] (1 / ·) := by
-    have H : Tendsto (fun w ↦ w * ζ (1 + w)) (𝓝[≠] 0) (𝓝 1) := by
-      convert Tendsto.comp (f := fun w ↦ 1 + w) riemannZeta_residue_one ?_ using 1
-      · ext w
-        simp only [Function.comp_apply, add_sub_cancel_left]
-      · refine tendsto_iff_comap.mpr <| map_le_iff_le_comap.mp <| Eq.le ?_
-        convert Homeomorph.map_punctured_nhds_eq (Homeomorph.addLeft (1 : ℂ)) 0 using 2 <;> simp
-    exact ((Asymptotics.isBigO_mul_iff_isBigO_div eventually_mem_nhdsWithin).mp <|
-      Tendsto.isBigO_one ℂ H).trans <| Asymptotics.isBigO_refl ..
-  exact (isBigO_comp_ofReal_nhds_ne this).mono <| nhdsGT_le_nhdsNE 0
-
-
 @[blueprint
   (title := "ZetaNear1BndFilter")
   (statement := /--
@@ -1769,10 +1731,12 @@ lemma riemannZeta_isBigO_near_one_horizontal :
   (latexEnv := "lemma")]
 lemma ZetaNear1BndFilter :
     (fun σ : ℝ ↦ ζ σ) =O[𝓝[>](1 : ℝ)] (fun σ ↦ (1 : ℂ) / (σ - 1)) := by
-  have := Tendsto_nhdsWithin_punctured_map_add (-1) 1 strictMono_id isometry_id
-  simp only [id_eq, add_neg_cancel, ← sub_eq_add_neg] at this
-  have := riemannZeta_isBigO_near_one_horizontal.comp_tendsto this
-  convert this using 1 <;> {ext; simp}
+  have hne : ∀ᶠ z : ℂ in 𝓝[≠] 1, z - 1 ≠ 0 := by
+    filter_upwards [self_mem_nhdsWithin] with z hz
+    exact sub_ne_zero.mpr hz
+  have hbound := (isBigO_mul_iff_isBigO_div hne).mp (riemannZeta_residue_one.isBigO_one ℂ)
+  simpa only [ofReal_sub, ofReal_one] using
+    (isBigO_comp_ofReal_nhds_ne hbound).mono (nhdsGT_le_nhdsNE (1 : ℝ))
 
 @[blueprint
   (title := "ZetaNear1BndExact")

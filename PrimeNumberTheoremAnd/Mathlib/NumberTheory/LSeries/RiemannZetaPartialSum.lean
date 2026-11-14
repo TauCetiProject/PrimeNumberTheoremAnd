@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Algebra.Order.Floor.Ring
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 public import Mathlib.NumberTheory.AbelSummation
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
@@ -48,7 +48,9 @@ private lemma intervalIntegrable_mul_cpow_id (s : ℂ) {a b : ℝ} (ha : 1 ≤ a
     IntervalIntegrable (fun u : ℝ => (u : ℂ) * (u : ℂ) ^ (-s - 1)) volume a b := by
   have hcont : ContinuousOn (fun u : ℝ => (u : ℂ) * (u : ℂ) ^ (-s - 1)) (Icc a b) :=
     Complex.continuous_ofReal.continuousOn.mul
-      (Complex.continuousOn_ofReal_cpow (r := -s - 1) (ha := one_pos.trans_le ha))
+      (Complex.continuous_ofReal.continuousOn.cpow continuousOn_const
+        (fun u (hu : u ∈ Icc a b) => Complex.ofReal_mem_slitPlane.mpr
+          (lt_of_lt_of_le (one_pos.trans_le ha) hu.1)))
   exact (intervalIntegrable_iff_integrableOn_Icc_of_le (μ := volume) (a := a) (b := b)
     (f := fun u : ℝ => (u : ℂ) * (u : ℂ) ^ (-s - 1)) hab).2
     (hcont.integrableOn_compact isCompact_Icc)
@@ -65,8 +67,11 @@ private lemma abel_summation (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
     simpa [f] using (hasDerivAt_ofReal_cpow_const (lt_of_lt_of_le zero_lt_one ht.1).ne'
       (neg_ne_zero.mpr hs)).differentiableAt
   have hint : IntegrableOn (deriv f) (Set.Icc (1 : ℝ) (N : ℝ)) :=
-    (Complex.continuousOn_deriv_ofReal_cpow_neg (s := s) (a := (1 : ℝ)) (b := (N : ℝ)) zero_lt_one).integrableOn_compact
-      isCompact_Icc
+    ((continuousOn_const : ContinuousOn (fun _ : ℝ => -s) (Icc (1 : ℝ) N)).mul
+      (Complex.continuous_ofReal.continuousOn.cpow continuousOn_const
+        (fun u (hu : u ∈ Icc (1 : ℝ) N) => Complex.ofReal_mem_slitPlane.mpr (zero_lt_one.trans_le hu.1)))).congr
+          (fun u hu => Complex.deriv_ofReal_cpow_const (-s)
+            (zero_lt_one.trans_le hu.1).ne') |>.integrableOn_compact isCompact_Icc
   have habel :=
     sum_mul_eq_sub_integral_mul₀' (c := c) (f := f) (m := N)
       (hc := by simp [c]) (hf_diff := hdiff) (hf_int := hint)
@@ -111,7 +116,9 @@ private lemma abel_split (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
     filter_upwards with u _
     simp [neg_mul, mul_left_comm]
   rw [hInt, sub_eq_add_neg, neg_mul, neg_neg]
-  simp [Complex.natCast_mul_cpow_neg_eq_cpow_one_sub N s (Nat.ne_of_gt (Nat.succ_le_iff.mp hN))]
+  rw [show (1 : ℂ) - s = 1 + -s by ring,
+    Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr (Nat.ne_of_gt (Nat.succ_le_iff.mp hN))),
+    Complex.cpow_one]
 
 private lemma integral_split_fract (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
     ∫ u in (1 : ℝ)..N, (Nat.floor u : ℂ) * (u : ℂ) ^ (-s - 1)
@@ -139,7 +146,10 @@ private lemma integral_split_fract (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
           apply intervalIntegral.integral_congr_ae
           filter_upwards with u hu
           rw [uIoc_of_le hab] at hu
-          exact Complex.ofReal_cpow_mul_cpow_neg_sub_one (s := s) (hu := lt_trans zero_lt_one hu.1)
+          rw [show -s - 1 = -s + -(1 : ℂ) by ring,
+            Complex.cpow_add _ _ (Complex.ofReal_ne_zero.mpr (zero_lt_one.trans hu.1).ne')]
+          simp [Complex.cpow_neg, mul_comm,
+            Complex.ofReal_ne_zero.mpr (zero_lt_one.trans hu.1).ne']
 
 private lemma cpow_integral (s : ℂ) (hs : s ≠ 1) (N : ℕ) (hN : 1 ≤ N) :
     s * ∫ u in (1 : ℝ)..N, (u : ℂ) ^ (-s) = s / (1 - s) * ((N : ℂ) ^ (1 - s) - 1) := by
