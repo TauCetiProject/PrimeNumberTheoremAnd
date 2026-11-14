@@ -24,7 +24,7 @@ Mellin integration by parts now calls Mathlib directly, removing the duplicate `
 
 ## Human roadmap decisions
 
-The current review priorities and missing targets are in [ROADMAPS.md](ROADMAPS.md). In particular, open roadmap PR #2008 already proposes the Ramanujan, arithmetic-series and Mellin-convolution targets; these need proposal review rather than duplicate new roadmaps.
+The current review priorities and missing targets are in [ROADMAPS.md](ROADMAPS.md). In particular, open roadmap PR #2008 already proposes the Ramanujan, arithmetic-series and Mellin-convolution targets; these need proposal review rather than duplicate new roadmaps. Proposal #2008 also needs explicit Möbius and Liouville PNT conclusions, including the reciprocal-weighted Möbius sum; the approved nonnegative-coefficient transfer does not supply them.
 
 ## Existing coverage: migrate without new roadmaps
 
