@@ -60,41 +60,20 @@ private lemma log_four_mul_pi_lt_one_hundred_twenty_seven_div_fifty :
 /-- The completed Riemann zeta factor has value `π / 6` at `2`. -/
 theorem completedRiemannZeta_two :
     completedRiemannZeta (2 : ℂ) = (Real.pi : ℂ) / 6 := by
-  have hs : (1 : ℝ) < Complex.re (2 : ℂ) := by norm_num
-  have hpi0 : (Real.pi : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
-  have htsum :
-      completedRiemannZeta (2 : ℂ) = (Real.pi : ℂ)⁻¹ * (∑' n : ℕ, ((n : ℂ) ^ 2)⁻¹) := by
-    simpa [Complex.cpow_neg_one] using
-      (completedZeta_eq_tsum_of_one_lt_re (s := (2 : ℂ)) hs)
-  have hzeta : riemannZeta (2 : ℂ) = ∑' n : ℕ, ((n : ℂ) ^ 2)⁻¹ := by
-    simpa using (zeta_eq_tsum_one_div_nat_cpow (s := (2 : ℂ)) hs)
-  have hζ2 : riemannZeta (2 : ℂ) = (Real.pi : ℂ) ^ 2 / 6 := by
-    simpa using (riemannZeta_two : riemannZeta (2 : ℂ) = (Real.pi : ℂ) ^ 2 / 6)
-  have hΛ2' : completedRiemannZeta (2 : ℂ) = (Real.pi : ℂ)⁻¹ * riemannZeta (2 : ℂ) := by
-    simpa [hzeta] using htsum
+  have h := riemannZeta_def_of_ne_zero (s := (2 : ℂ)) (by norm_num)
+  rw [riemannZeta_two] at h
+  norm_num [Gammaℝ_def, cpow_neg_one] at h
+  apply mul_right_cancel₀ (Complex.ofReal_ne_zero.mpr Real.pi_ne_zero)
   calc
-    completedRiemannZeta (2 : ℂ)
-        = (Real.pi : ℂ)⁻¹ * ((Real.pi : ℂ) ^ 2 / 6) := by
-            simpa [hζ2] using hΛ2'
-    _ = (Real.pi : ℂ) / 6 := by
-            field_simp [hpi0]
+    completedRiemannZeta (2 : ℂ) * Real.pi = (Real.pi : ℂ) ^ 2 / 6 := h.symm
+    _ = ((Real.pi : ℂ) / 6) * Real.pi := by ring
 
 /-- The entire completed zeta function `Λ₀` has value `(π - 3) / 6` at `2`. -/
 theorem completedRiemannZeta₀_two :
     completedRiemannZeta₀ (2 : ℂ) = ((Real.pi : ℂ) - 3) / 6 := by
   have h := completedRiemannZeta_eq (2 : ℂ)
-  have h' :
-      completedRiemannZeta (2 : ℂ) + (1 : ℂ) / 2 + (1 : ℂ) / (1 - (2 : ℂ)) =
-        completedRiemannZeta₀ (2 : ℂ) := by
-    have := congrArg (fun x => x + (1 : ℂ) / 2 + (1 : ℂ) / (1 - (2 : ℂ))) h
-    simpa [sub_eq_add_neg, add_assoc, add_left_comm, add_comm] using this
-  have h'' :
-      completedRiemannZeta₀ (2 : ℂ) =
-        completedRiemannZeta (2 : ℂ) + (1 : ℂ) / 2 + (1 : ℂ) / (1 - (2 : ℂ)) := by
-    simpa [add_assoc, add_left_comm, add_comm] using h'.symm
-  have hden : (1 : ℂ) / (1 - (2 : ℂ)) = (-1 : ℂ) := by norm_num
-  simpa [h'', completedRiemannZeta_two, hden] using (by ring :
-    (Real.pi : ℂ) / 6 + (1 : ℂ) / 2 + (-1 : ℂ) = ((Real.pi : ℂ) - 3) / 6)
+  norm_num [completedRiemannZeta_two] at h
+  linear_combination -h
 
 /-- The entire completed zeta function `Λ₀` is not identically zero. -/
 theorem completedRiemannZeta₀_nontrivial : ∃ z : ℂ, completedRiemannZeta₀ z ≠ 0 := by
