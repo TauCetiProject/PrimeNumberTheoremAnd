@@ -277,121 +277,35 @@ theorem divisorComplementCanonicalProduct_ne_zero_at
     (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) :
     divisorComplementCanonicalProduct m f z₀ z₀ ≠ 0 := by
-  let Φ : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℂ :=
-    fun p => if divisorZeroIndex₀_val p = z₀ then (1 : ℂ)
-      else weierstrassFactor m (z₀ / divisorZeroIndex₀_val p)
-  let a : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℂ := fun p => Φ p - 1
-  have hΦ_ne : ∀ p, Φ p ≠ 0 := by
+  let a : divisorZeroIndex₀ f Set.univ → ℂ :=
+    fun p ↦ divisorComplementFactor m f z₀ p z₀ - 1
+  have hfactor : ∀ p : divisorZeroIndex₀ f Set.univ,
+      divisorComplementFactor m f z₀ p z₀ ≠ 0 := by
     intro p
     by_cases hp : divisorZeroIndex₀_val p = z₀
-    · simp [Φ, hp]
-    · have hval : divisorZeroIndex₀_val p ≠ z₀ := hp
-      have hz : z₀ / divisorZeroIndex₀_val p ≠ (1 : ℂ) := by
-        intro h
-        by_cases hp0 : divisorZeroIndex₀_val p = 0
-        · have : z₀ / divisorZeroIndex₀_val p = (0 : ℂ) := by simp [hp0]
-          have h01 := h
-          rw [this] at h01
-          exact (show False from (by simpa using (show (0 : ℂ) ≠ (1 : ℂ) from by simp) h01))
-        · have : z₀ = divisorZeroIndex₀_val p := (div_eq_one_iff_eq hp0).1 h
-          exact hval this.symm
-      have hE : weierstrassFactor m (z₀ / divisorZeroIndex₀_val p) ≠ 0 := by
-        intro h0
-        have : z₀ / divisorZeroIndex₀_val p = (1 : ℂ) :=
-          (weierstrassFactor_eq_zero_iff (m := m) (z := z₀ / divisorZeroIndex₀_val p)).1 h0
-        exact hz this
-      simp [Φ, hp, hE]
-  have hz0_le : ‖z₀‖ ≤ max ‖z₀‖ 1 := le_max_left _ _
-  set R : ℝ := max ‖z₀‖ 1
-  have hRpos : 0 < R := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) (le_max_right _ _)
-  let u : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℝ :=
-    fun p => (4 * R ^ (m + 1)) * (‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))
-  have hu : Summable u := h_sum.mul_left (4 * R ^ (m + 1))
-  have h_big :
-      ∀ᶠ p : divisorZeroIndex₀ f (Set.univ : Set ℂ) in Filter.cofinite,
-        (2 * R : ℝ) < ‖divisorZeroIndex₀_val p‖ := by
-    have hfin : ({p : divisorZeroIndex₀ f (Set.univ : Set ℂ) | ‖divisorZeroIndex₀_val p‖ ≤
-        2 * R} : Set _).Finite := by
-      have : Metric.closedBall (0 : ℂ) (2 * R) ⊆ (Set.univ : Set ℂ) := by simp
-      exact divisorZeroIndex₀_norm_le_finite (f := f) (U := (Set.univ : Set ℂ)) (B := 2 * R) this
-    have := hfin.eventually_cofinite_notMem
-    filter_upwards [this] with p hp
-    have : ¬ ‖divisorZeroIndex₀_val p‖ ≤ 2 * R := by simpa using hp
-    exact lt_of_not_ge this
-  have hBound :
-      ∀ᶠ p in Filter.cofinite, ‖a p‖ ≤ u p := by
-    filter_upwards [h_big] with p hp
-    have ha_pos : 0 < ‖divisorZeroIndex₀_val p‖ := lt_trans (by nlinarith [hRpos]) hp
-    have hz_div : ‖z₀ / divisorZeroIndex₀_val p‖ ≤ (1 / 2 : ℝ) := by
-      have h2R_pos : 0 < (2 * R : ℝ) := by nlinarith [hRpos]
-      have hinv : ‖divisorZeroIndex₀_val p‖⁻¹ < (2 * R)⁻¹ := by
-        simpa [one_div] using (one_div_lt_one_div_of_lt h2R_pos hp)
-      have hmul_le : ‖z₀‖ * ‖divisorZeroIndex₀_val p‖⁻¹ ≤ R * ‖divisorZeroIndex₀_val p‖⁻¹ := by
-        refine mul_le_mul_of_nonneg_right ?_ (inv_nonneg.2 (norm_nonneg _))
-        exact hz0_le
-      have hmul_lt : R * ‖divisorZeroIndex₀_val p‖⁻¹ < R * (2 * R)⁻¹ :=
-        mul_lt_mul_of_pos_left hinv hRpos
-      have hlt : ‖z₀‖ * ‖divisorZeroIndex₀_val p‖⁻¹ < R * (2 * R)⁻¹ :=
-        lt_of_le_of_lt hmul_le hmul_lt
-      have hRhalf : R * (2 * R)⁻¹ = (1 / 2 : ℝ) := by
-        have hRne : (R : ℝ) ≠ 0 := hRpos.ne'
-        have : R * (2 * R)⁻¹ = R / (2 * R) := by simp [div_eq_mul_inv]
-        rw [this]
-        field_simp [hRne]
-      have hnorm : ‖z₀ / divisorZeroIndex₀_val p‖ = ‖z₀‖ * ‖divisorZeroIndex₀_val p‖⁻¹ := by
-        simp [div_eq_mul_inv]
-      have hzlt : ‖z₀ / divisorZeroIndex₀_val p‖ < (1 / 2 : ℝ) := by
-        calc
-          ‖z₀ / divisorZeroIndex₀_val p‖ = ‖z₀‖ * ‖divisorZeroIndex₀_val p‖⁻¹ := hnorm
-          _ < R * (2 * R)⁻¹ := hlt
-          _ = (1 / 2 : ℝ) := hRhalf
-      exact le_of_lt hzlt
-    have hE :
-        ‖weierstrassFactor m (z₀ / divisorZeroIndex₀_val p) - 1‖ ≤
-          4 * ‖z₀ / divisorZeroIndex₀_val p‖ ^ (m + 1) :=
-      weierstrassFactor_sub_one_pow_bound (m := m) (z := z₀ / divisorZeroIndex₀_val p) hz_div
-    have hz_pow :
-        ‖z₀ / divisorZeroIndex₀_val p‖ ^ (m + 1) ≤
-          (R ^ (m + 1)) * (‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)) := by
-      have : ‖z₀ / divisorZeroIndex₀_val p‖ = ‖z₀‖ * ‖divisorZeroIndex₀_val p‖⁻¹ := by
-        simp [div_eq_mul_inv]
-      rw [this]
-      have : (‖z₀‖ * ‖divisorZeroIndex₀_val p‖⁻¹) ^ (m + 1) =
-          ‖z₀‖ ^ (m + 1) * (‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)) := by
-        simp [mul_pow]
-      rw [this]
-      have hzle_pow : ‖z₀‖ ^ (m + 1) ≤ R ^ (m + 1) :=
-        pow_le_pow_left₀ (norm_nonneg z₀) hz0_le (m + 1)
-      gcongr
-    have hp_ne : divisorZeroIndex₀_val p ≠ z₀ := by
-      intro h
-      have : ‖divisorZeroIndex₀_val p‖ ≤ R := by
-        simp [h, R]  -- `‖z₀‖ ≤ max ‖z₀‖ 1`
-      exact (not_lt_of_ge this) (lt_trans (by nlinarith [hRpos]) hp)
-    have ha : ‖a p‖ = ‖weierstrassFactor m (z₀ / divisorZeroIndex₀_val p) - 1‖ := by
-      simp [a, Φ, hp_ne, sub_eq_add_neg]
-    calc
-      ‖a p‖ = ‖weierstrassFactor m (z₀ / divisorZeroIndex₀_val p) - 1‖ := ha
-      _ ≤ 4 * ‖z₀ / divisorZeroIndex₀_val p‖ ^ (m + 1) := by
-            simpa [sub_eq_add_neg, add_comm] using hE
-      _ ≤ 4 * (R ^ (m + 1) * (‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) := by
-            gcongr
-      _ = u p := by
-            simp [u, mul_assoc, mul_comm]
-  have hsum_norm : Summable (fun p => ‖a p‖) := by
-    refine (Summable.of_norm_bounded_eventually (E := ℝ) (f := fun p => ‖a p‖) (g := u) hu ?_)
-    filter_upwards [hBound] with p hp
-    simpa [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg (a p))] using hp
-  have htprod_ne :
-      (∏' p : divisorZeroIndex₀ f (Set.univ : Set ℂ), (1 + a p)) ≠ 0 :=
-    tprod_one_add_ne_zero_of_summable (R := ℂ) (f := a) (hf := fun p => by
-      simpa [a, Φ, add_sub_cancel] using hΦ_ne p) hsum_norm
-  have : (∏' p : divisorZeroIndex₀ f (Set.univ : Set ℂ), (1 + a p)) =
-      divisorComplementCanonicalProduct m f z₀ z₀ := by
-    simp [a, Φ, divisorComplementCanonicalProduct, divisorComplementFactor_def]
-  exact by
-    intro h0
-    exact htprod_ne (by simpa [this] using h0)
+    · simp [hp]
+    · simpa only [divisorComplementFactor_def, ite_eq_right hp] using
+        (weierstrassFactor_div_ne_zero_iff (m := m)
+          (divisorZeroIndex₀_val_ne_zero p)).mpr (Ne.symm hp)
+  have hs : Summable (fun p : divisorZeroIndex₀ f Set.univ ↦
+      ‖z₀ / divisorZeroIndex₀_val p‖ ^ (m + 1)) := by
+    simpa only [div_eq_mul_inv, norm_mul, norm_inv, mul_pow] using h_sum.mul_left (‖z₀‖ ^ (m + 1))
+  have hnorm : Summable (fun p ↦ ‖a p‖) := by
+    apply (hs.mul_left 4).of_norm_bounded_eventually
+    filter_upwards [hs.tendsto_cofinite_zero.eventually_le_const
+      (pow_pos (by norm_num : (0 : ℝ) < 1 / 2) (m + 1))] with p hp
+    rw [Real.norm_eq_abs, abs_norm]
+    by_cases hval : divisorZeroIndex₀_val p = z₀
+    · simp only [a, divisorComplementFactor_def, ite_eq_left hval, sub_self, norm_zero]
+      positivity
+    · dsimp only [a]
+      rw [divisorComplementFactor_def, ite_eq_right hval]
+      exact weierstrassFactor_sub_one_pow_bound
+        ((pow_le_pow_iff_left₀ (norm_nonneg _) (by norm_num) (by omega : m + 1 ≠ 0)).mp hp)
+  have hprod := tprod_one_add_ne_zero_of_summable (R := ℂ) (f := a)
+    (fun p ↦ by simpa only [a, ← add_sub_assoc, add_sub_cancel_left] using hfactor p) hnorm
+  simpa only [a, ← add_sub_assoc, add_sub_cancel_left, divisorComplementCanonicalProduct]
+    using hprod
 
 theorem exists_ball_divisorComplementCanonicalProduct_ne_zero
     (m : ℕ) (f : ℂ → ℂ) (z₀ : ℂ)
