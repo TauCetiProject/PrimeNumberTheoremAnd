@@ -9,6 +9,8 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Growth
 public import TauCeti.Analysis.Complex.GrowthOrder
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
+import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
 public import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
 
 /-!
@@ -176,15 +178,11 @@ theorem summable_norm_inv_pow_divisorZeroIndex₀ {ρ : ℝ} {f : ℂ → ℂ}
     (h : EntireOfOrderAtMost ρ f) (hρ : 0 ≤ ρ) :
     Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (Nat.floor ρ + 1)) := by
-  rcases Real.exists_between_self_and_floor_add_one_same_floor hρ with
-    ⟨τ, hτ, _hτ_lt, hτ_nonneg, hfloorτ⟩
-  have hgrowthτ :
-      ∃ C' > 0, ∀ z : ℂ, Real.log (1 + ‖f z‖) ≤ C' * (1 + ‖z‖) ^ τ :=
-    h.exists_log_growth hτ hτ_nonneg
-  have hsummable :=
-    summable_norm_inv_pow_divisorZeroIndex₀_of_growth
-      (f := f) (ρ := τ) hτ_nonneg h.differentiable hgrowthτ
-  simpa [hfloorτ] using hsummable
+  have hp : ρ < ((Nat.floor ρ + 1 : ℕ) : ℝ) := by
+    simpa only [Nat.cast_add, Nat.cast_one] using Nat.lt_floor_add_one (a := ρ)
+  have hs := summable_norm_rpow_divisorZeroIndex₀_of_summable_divisor h.differentiable
+    ((h.orderLE hρ).summable_divisor_mul_norm_rpow h.differentiable hp)
+  simpa only [Real.rpow_neg_eq_inv_rpow, Real.rpow_natCast] using hs
 
 end EntireOfOrderAtMost
 

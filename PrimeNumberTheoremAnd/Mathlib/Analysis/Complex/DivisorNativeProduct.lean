@@ -14,6 +14,7 @@ public import TauCeti.Analysis.Complex.CanonicalProduct.Divisor
 The general-genus product uses a separate index for each zero multiplicity.
 For genus one, summing or multiplying over each finite multiplicity fiber gives
 Tau Ceti's native divisor-support API, with multiplicity as a weight or power.
+For any real exponent, native weighted summability transfers to the repeated nonzero indices.
 -/
 
 public section
@@ -21,6 +22,38 @@ public section
 open Complex Filter Function Topology
 
 namespace Complex.Hadamard
+
+/-- Summability with native divisor multiplicities gives summability over the repeated nonzero
+indices of an entire function, for every real exponent. The finite fiber over zero can be omitted
+without an assumption on the value of the function at zero. -/
+theorem summable_norm_rpow_divisorZeroIndex₀_of_summable_divisor {f : ℂ → ℂ} (hf : Differentiable ℂ f) {p : ℝ}
+    (hs : Summable (fun ρ : (MeromorphicOn.divisor f Set.univ).support ↦
+      (MeromorphicOn.divisor f Set.univ ρ : ℝ) * ‖(ρ : ℂ)‖ ^ p)) :
+    Summable (fun q : divisorZeroIndex₀ f Set.univ ↦ ‖divisorZeroIndex₀_val q‖ ^ p) := by
+  let D := MeromorphicOn.divisor f Set.univ
+  have hsupport : support (fun z : ℂ ↦ (D z : ℝ) * ‖z‖ ^ p) ⊆ D.support := by
+    intro z hz
+    change D z ≠ 0
+    intro hz0
+    apply hz
+    simp [hz0]
+  have hfull : Summable (fun z : ℂ ↦ (D z : ℝ) * ‖z‖ ^ p) :=
+    ((hasSum_subtype_iff_of_support_subset hsupport).mp hs.hasSum).summable
+  have hcast (z : ℂ) : ((D z).toNat : ℝ) = (D z : ℝ) := by
+    exact_mod_cast Int.toNat_of_nonneg
+      (MeromorphicOn.AnalyticOnNhd.divisor_nonneg (fun z _ ↦ hf.analyticAt z) z)
+  have hnat : Summable (fun z : ℂ ↦ ((D z).toNat : ℝ) * ‖z‖ ^ p) :=
+    hfull.congr (fun z ↦ by rw [hcast])
+  have hSigma : Summable (fun q : divisorZeroIndex f Set.univ ↦ ‖q.1‖ ^ p) := by
+    change Summable (fun q : (Σ z : ℂ, Fin (D z).toNat) ↦ ‖q.1‖ ^ p)
+    apply (summable_sigma_of_nonneg (fun _ ↦ Real.rpow_nonneg (norm_nonneg _) _)).mpr
+    constructor
+    · intro z
+      exact Summable.of_finite
+    · simpa only [tsum_fintype, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+        nsmul_eq_mul] using hnat
+  exact hSigma.subtype (fun q ↦ q.1 ≠ 0)
+
 
 /-- Inverse-square summability with repeated indices implies native weighted summability. -/
 theorem summable_native_divisor_inv_sq {f : ℂ → ℂ}
