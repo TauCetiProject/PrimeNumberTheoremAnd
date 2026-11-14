@@ -18,19 +18,17 @@ open Complex ContinuousLinearMap in
 lemma HasDerivAt.of_hasDerivAt_ofReal_comp {z : ℝ} {f : ℝ → ℝ} {u : ℂ}
     (hf : HasDerivAt (fun y ↦ (f y : ℂ)) u z) :
     ∃ u' : ℝ, u = u' ∧ HasDerivAt f u' z := by
-  lift u to ℝ
-  · have H := (imCLM.hasFDerivAt.comp z hf.hasFDerivAt).hasDerivAt.deriv
-    simp only [Function.comp_def, imCLM_apply, ofReal_im, deriv_const] at H
-    rwa [eq_comm, comp_apply, imCLM_apply, toSpanSingleton_apply_one] at H
-  refine ⟨u, rfl, ?_⟩
-  convert! (reCLM.hasFDerivAt.comp z hf.hasFDerivAt).hasDerivAt
-  rw [comp_apply, toSpanSingleton_apply_one, reCLM_apply, ofReal_re]
+  have h : HasDerivAt f u.re z := by
+    simpa only [Function.comp_def, comp_apply, toSpanSingleton_apply_one, reCLM_apply,
+      ofReal_re] using
+      (reCLM.hasFDerivAt.comp z hf.hasFDerivAt).hasDerivAt
+  exact ⟨u.re, hf.unique h.ofReal_comp, h⟩
 
 lemma DifferentiableAt.ofReal_comp_iff {z : ℝ} {f : ℝ → ℝ} :
     DifferentiableAt ℝ (fun (y : ℝ) ↦ (f y : ℂ)) z ↔ DifferentiableAt ℝ f z := by
-  refine ⟨fun H ↦ ?_, fun hf ↦ hf.hasDerivAt.ofReal_comp.differentiableAt⟩
-  obtain ⟨u, _, hu₂⟩ := H.hasDerivAt.of_hasDerivAt_ofReal_comp
-  exact HasDerivAt.differentiableAt hu₂
+  refine ⟨fun hf ↦ ?_, fun hf ↦ hf.hasDerivAt.ofReal_comp.differentiableAt⟩
+  simpa only [Function.comp_def, Complex.reCLM_apply, Complex.ofReal_re] using
+    Complex.reCLM.differentiableAt.comp z hf
 
 lemma Differentiable.ofReal_comp_iff {f : ℝ → ℝ} :
     Differentiable ℝ (fun (y : ℝ) ↦ (f y : ℂ)) ↔ Differentiable ℝ f :=

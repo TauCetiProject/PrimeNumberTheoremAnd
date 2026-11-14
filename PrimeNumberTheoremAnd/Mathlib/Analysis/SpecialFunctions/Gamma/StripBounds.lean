@@ -186,27 +186,11 @@ lemma norm_mul_log_shift_half_bound {s : ℂ} (hs : 1 ≤ ‖s‖) :
       exact le_trans hstep2 (by simp [hEq])
 
 /-- From `Γ(z + 1) = z Γ(z)` and `1/2 ≤ ‖z‖`, bound `‖Γ(z)‖` by `2 * ‖Γ(z + 1)‖`. -/
-lemma norm_Gamma_le_two_mul_norm_Gamma_add_one {z : ℂ} (hz : z ≠ 0) (hz_lb : (1 / 2 : ℝ) ≤ ‖z‖) :
+lemma norm_Gamma_le_two_mul_norm_Gamma_add_one {z : ℂ} (hz_lb : (1 / 2 : ℝ) ≤ ‖z‖) :
     ‖Gamma z‖ ≤ 2 * ‖Gamma (z + 1)‖ := by
-  have hfunc := Gamma_add_one z hz
-  have hnorm_mul : ‖Gamma (z + 1)‖ = ‖z‖ * ‖Gamma z‖ := by
-    calc
-      ‖Gamma (z + 1)‖ = ‖z * Gamma z‖ := by simp [hfunc]
-      _ = ‖z‖ * ‖Gamma z‖ := by simp
-  have hz_pos : 0 < ‖z‖ := lt_of_lt_of_le (by norm_num) hz_lb
-  have hz_ne : ‖z‖ ≠ 0 := ne_of_gt hz_pos
-  have h_inv : 1 / ‖z‖ ≤ (2 : ℝ) := by
-    have hhalf_pos : (0 : ℝ) < (1 / 2 : ℝ) := by norm_num
-    simpa using one_div_le_one_div_of_le hhalf_pos hz_lb
-  have : ‖Gamma z‖ = ‖Gamma (z + 1)‖ / ‖z‖ := by
-    calc
-      ‖Gamma z‖ = (‖z‖ * ‖Gamma z‖) / ‖z‖ := by field_simp [hz_ne]
-      _ = ‖Gamma (z + 1)‖ / ‖z‖ := by simp [hnorm_mul]
-  rw [this, div_eq_mul_inv]
-  have :
-      (‖Gamma (z + 1)‖ : ℝ) * (1 / ‖z‖) ≤ ‖Gamma (z + 1)‖ * 2 :=
-    mul_le_mul_of_nonneg_left h_inv (norm_nonneg _)
-  simpa [mul_assoc, mul_left_comm, mul_comm] using this
+  have hz : z ≠ 0 := norm_pos_iff.mp (by linarith only [hz_lb])
+  rw [Gamma_add_one z hz, norm_mul]
+  nlinarith only [mul_le_mul_of_nonneg_right hz_lb (norm_nonneg (Gamma z))]
 
 /-- `Gamma` is bounded on any compact set that does not contain non-positive integers. -/
 lemma norm_bounded_on_compact_of_no_poles {K : Set ℂ}
@@ -309,7 +293,6 @@ theorem half_bound_re_ge_zero :
   have hA : 0 < A := Real.Stirling.half_shift_log_constant_pos
   refine ⟨1 + C * A, by positivity, ?_⟩
   intro s hs hn
-  have hs0 : s ≠ 0 := norm_ne_zero_iff.mp (ne_of_gt (zero_lt_one.trans_le hn))
   have hs2 : (1 / 2 : ℝ) ≤ ‖s / 2‖ := by simpa using (show (1 / 2 : ℝ) ≤ ‖s‖ / 2 by linarith)
   have hwre : 0 ≤ (s / 2 + 1).re := by simp; linarith
   have hw1 : (1 : ℝ) ≤ (s / 2 + 1).re := by simp; linarith
@@ -319,7 +302,7 @@ theorem half_bound_re_ge_zero :
   have hlog := Real.Stirling.log_two_le_mul_log_one_add hn
   calc
     ‖Complex.Gamma (s / 2)‖ ≤ 2 * ‖Complex.Gamma (s / 2 + 1)‖ :=
-      Complex.Gamma.norm_Gamma_le_two_mul_norm_Gamma_add_one (div_ne_zero hs0 (by norm_num)) hs2
+      Complex.Gamma.norm_Gamma_le_two_mul_norm_Gamma_add_one hs2
     _ ≤ 2 * Real.exp (C * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) :=
       mul_le_mul_of_nonneg_left (hbound _ hwre hwnorm) (by norm_num)
     _ = Real.exp (Real.log 2 + C * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by
@@ -398,33 +381,12 @@ theorem finite_order :
   use C + 1, 2
   refine ⟨by linarith, by norm_num, ?_⟩
   intro s hs_re hs_norm
-  have h := hC s hs_re hs_norm
-  apply le_trans h
-  apply Real.exp_le_exp.mpr
-  -- log(1 + |s|) ≤ |s| for |s| ≥ 1, so C|s|log(1+|s|) ≤ C|s|² ≤ (C+1)|s|²
-  have h_log : Real.log (1 + ‖s‖) ≤ ‖s‖ := by
-    have h1 : 0 < 1 + ‖s‖ := by linarith [norm_nonneg s]
-    have h2 : ‖s‖ + 1 ≤ Real.exp ‖s‖ := Real.add_one_le_exp ‖s‖
-    have h2' : 1 + ‖s‖ ≤ Real.exp ‖s‖ := by linarith
-    rw [Real.log_le_iff_le_exp (by linarith [norm_nonneg s])]
-    exact h2'
-  have step1 : C * ‖s‖ * Real.log (1 + ‖s‖) ≤ C * ‖s‖ * ‖s‖ := by
-    apply mul_le_mul_of_nonneg_left h_log
-    apply mul_nonneg (by linarith) (norm_nonneg s)
-  have step2 : C * ‖s‖ * ‖s‖ = C * ‖s‖ ^ 2 := by ring
-  have step3 : C * ‖s‖ ^ 2 ≤ (C + 1) * ‖s‖ ^ 2 := by
-    apply mul_le_mul_of_nonneg_right (by linarith) (sq_nonneg _)
-  have h_combined : C * ‖s‖ * Real.log (1 + ‖s‖) ≤ (C + 1) * ‖s‖ ^ 2 := by
-    calc C * ‖s‖ * Real.log (1 + ‖s‖)
-        ≤ C * ‖s‖ * ‖s‖ := step1
-      _ = C * ‖s‖ ^ 2 := step2
-      _ ≤ (C + 1) * ‖s‖ ^ 2 := step3
-  -- Convert from ℕ exponent (^ 2) to ℝ exponent (^ (2 : ℝ))
-  -- The goal is (C + 1) * ‖s‖ ^ (2 : ℝ), which equals (C + 1) * ‖s‖ ^ (2 : ℕ)
-  -- This type coercion is handled by norm_cast
-  have hconv : (C + 1) * ‖s‖ ^ 2 = (C + 1) * ‖s‖ ^ (2 : ℝ) := by norm_cast
-  rw [← hconv]
-  exact h_combined
+  refine (hC s hs_re hs_norm).trans (Real.exp_le_exp.mpr ?_)
+  have hlog : Real.log (1 + ‖s‖) ≤ ‖s‖ := by
+    simpa using Real.log_le_sub_one_of_pos (by positivity : 0 < 1 + ‖s‖)
+  have h := mul_le_mul_of_nonneg_left hlog (mul_nonneg hC_pos.le (norm_nonneg s))
+  rw [Real.rpow_two]
+  nlinarith only [h, sq_nonneg ‖s‖]
 
 end Complex.Gammaℝ.Stirling
 end

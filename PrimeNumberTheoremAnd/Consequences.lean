@@ -853,23 +853,18 @@ lemma M_isLittleO : M =o[atTop] id := by
   (proofUses := ["WeakPNT", "mun"])
   (latexEnv := "proposition")]
 theorem mu_pnt : (fun x : ℝ ↦ ∑ n ∈ range ⌊x⌋₊, μ n) =o[atTop] fun x ↦ x := by
-  have h_moebius_sum : (fun x : ℝ => ∑ n ∈ Finset.range ⌊x⌋₊, (μ n : ℝ)) =o[atTop] (fun x : ℝ => x) := by
-    have h_bound : (fun x : ℝ => ∑ n ∈ Finset.range ⌊x⌋₊, (μ n : ℝ)) =o[atTop] (fun x : ℝ => x) := by
-      have h_sum : (fun x : ℝ => ∑ n ∈ Finset.range (⌊x⌋₊ + 1), (μ n : ℝ)) =o[atTop] (fun x : ℝ => x) := by
-        have h_moebius_sum : (fun x : ℝ => ∑ n ∈ Finset.Iic ⌊x⌋₊, (μ n : ℝ)) =o[atTop] (fun x : ℝ => x) := by
-          convert! M_isLittleO using 1
-        simpa only [Finset.range_eq_Ico] using! h_moebius_sum
-      have h_mu_floor : (fun x : ℝ => (μ ⌊x⌋₊ : ℝ)) =o[atTop] (fun x : ℝ => x) := by
-        rw [Asymptotics.isLittleO_iff_tendsto'] <;> norm_num
-        · refine squeeze_zero_norm (a := fun x : ℝ => 1 / |x|) ?_ ?_
-          · intro x; norm_num [abs_div]
-            exact mul_le_of_le_one_left (by positivity) (mod_cast by exact abs_moebius_le_one)
-          · exact tendsto_const_nhds.div_atTop (tendsto_norm_atTop_atTop)
-        · exact ⟨1, by intros; linarith⟩
-      simpa [Finset.sum_range_succ] using h_sum.sub h_mu_floor
-    convert h_bound using 1
-  rw [Asymptotics.isLittleO_iff] at *
-  simp_all +decide [Norm.norm]
+  have hM : (fun x : ℝ ↦ ∑ n ∈ range (⌊x⌋₊ + 1), (μ n : ℝ)) =o[atTop] id := by
+    simpa only [M, Nat.range_succ_eq_Iic] using! M_isLittleO
+  have hb : (fun x : ℝ ↦ (μ ⌊x⌋₊ : ℝ)) =O[atTop] (fun _ ↦ (1 : ℝ)) := by
+    apply IsBigO.of_bound 1
+    filter_upwards with x
+    simpa only [norm_one, mul_one, Real.norm_eq_abs] using
+      (show |(μ ⌊x⌋₊ : ℝ)| ≤ 1 from mod_cast abs_moebius_le_one)
+  have h := hM.sub (hb.trans_isLittleO (isLittleO_const_id_atTop (1 : ℝ)))
+  have hr : (fun x : ℝ ↦ ∑ n ∈ range ⌊x⌋₊, (μ n : ℝ)) =o[atTop] id := by
+    simpa only [Finset.sum_range_succ, add_sub_cancel_right] using h
+  rw [← isLittleO_norm_left] at hr ⊢
+  simpa only [← Int.cast_sum, Int.norm_cast_real] using! hr
 
 
 private lemma sum_divisors_liouville {n : ℕ} (hn : n ≠ 0) :
