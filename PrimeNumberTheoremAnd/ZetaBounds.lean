@@ -108,75 +108,6 @@ theorem riemannZetaResidue :
   simp
 
 
-@[blueprint
-  (title := "nonZeroOfBddAbove")
-  (statement := /--
-  If a function $f$ has a simple pole at a point $p$ with residue $A \neq 0$, then
-  $f$ is nonzero in a punctured neighborhood of $p$.
-  -/)
-  (proof := /--
-  We know that $f(s) = \frac{A}{s-p} + O(1)$ near $p$, so we can write
-  $$f(s) = \left(f(s) - \frac{A}{s-p}\right) + \frac{A}{s-p}.$$
-  The first term is bounded, say by $M$, and the second term goes to $\infty$ as $s \to p$.
-  Therefore, there exists a neighborhood $V$ of $p$ such that for all $s \in V \setminus \{p\}$,
-  we have $f(s) \neq 0$.
-  -/)]
-theorem nonZeroOfBddAbove {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
-    (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    ∃ V ∈ 𝓝 p, IsOpen V ∧ ∀ s ∈ V \ {p}, f s ≠ 0 := by
-
-  -- Step 1: Rewrite f as the sum of two parts
-  have h_decomp : ∀ s, f s = (f s - A * (s - p)⁻¹) + A * (s - p)⁻¹ := by
-    intro s
-    ring
-  -- Get a bound for the first summand
-  obtain ⟨M, hM⟩ := f_near_p
-  -- Step 2: The second summand A * (s - p)⁻¹ goes to ∞ as s → p
-  -- We need to find a neighborhood where |A * (s - p)⁻¹| > M + 1
-  have A_norm_pos : 0 < ‖A‖ := norm_pos_iff.mpr A_ne_zero
-  -- Choose δ such that for |s - p| < δ, we have |A * (s - p)⁻¹| > M + 1
-  let δ := ‖A‖ / (‖M‖ + 1)
-  have δ_pos : 0 < δ := by
-    refine div_pos A_norm_pos (add_pos_of_nonneg_of_pos (norm_nonneg M) one_pos)
-  -- Find an open neighborhood V contained in both U and the δ-ball around p
-  obtain ⟨V, hV_open, hV_mem, hV_sub⟩ : ∃ V, IsOpen V ∧ p ∈ V ∧ V ⊆ U ∩ Metric.ball p δ := by
-    -- rw [mem_nhds_iff] at U_in_nhds
-    obtain ⟨W, hW_sub, hW_open, hW_mem⟩ := mem_nhds_iff.mp U_in_nhds
-    let V := W ∩ Metric.ball p δ
-    have VNp : V ∈ 𝓝 p := (𝓝 p).inter_mem (IsOpen.mem_nhds hW_open hW_mem)
-      (Metric.ball_mem_nhds p δ_pos)
-    exact ⟨V, IsOpen.inter hW_open Metric.isOpen_ball, mem_of_mem_nhds VNp,
-      inter_subset_inter_left _ hW_sub⟩
-  use V, mem_nhds_iff.mpr ⟨V, subset_refl V, hV_open, hV_mem⟩, hV_open
-  -- Show f ≠ 0 on V
-  intro s hs
-  have hs_in_U : s ∈ U := hV_sub hs.1 |>.1
-  have hs_near_p : dist s p < δ := hV_sub hs.1 |>.2
-  have hs_ne_p : s ≠ p := hs.2
-  -- Step 3: Therefore the sum of the two terms has large norm
-  rw [h_decomp s]
-  -- The first summand is bounded
-  have bound_first : ‖f s - A * (s - p)⁻¹‖ ≤ M := by
-    apply hM
-    exact ⟨s, ⟨hs_in_U, hs_ne_p⟩, rfl⟩
-  -- The second summand has large norm
-  have large_second : ‖M‖ + 1 < ‖A * (s - p)⁻¹‖ := by
-    rw [norm_mul, norm_inv, ← div_eq_mul_inv]
-    rw [lt_div_iff₀ (norm_pos_iff.mpr (sub_ne_zero.mpr hs_ne_p))]
-    rw [mul_comm, ← lt_div_iff₀ (add_pos_of_nonneg_of_pos (norm_nonneg M) one_pos)]
-    rw [dist_eq_norm_sub] at hs_near_p
-    exact hs_near_p
-  -- Step 4: Therefore the sum is nonzero near p
-  by_contra h_zero
-  -- If f s = 0, then the two summands are negatives of each other
-  rw [add_eq_zero_iff_eq_neg] at h_zero
-  rw [h_zero, norm_neg] at bound_first
-  -- But this contradicts our bounds
-  have : ‖M‖ + 1 < ‖M‖ := (lt_of_lt_of_le (lt_of_lt_of_le large_second bound_first)
-    (Real.le_norm_self M))
-  norm_num at this
-
 /-- A bounded remainder vanishes after multiplication by the displacement from the pole. -/
 private theorem simple_pole_limit_of_bounded_remainder {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (hU : U ∈ 𝓝 p) {A : ℂ}
@@ -196,6 +127,31 @@ private theorem simple_pole_limit_of_bounded_remainder {f : ℂ → ℂ} {p : �
   filter_upwards [self_mem_nhdsWithin] with z hz
   field_simp [sub_ne_zero.mpr hz]
   ring
+
+
+@[blueprint
+  (title := "nonZeroOfBddAbove")
+  (statement := /--
+  If a function $f$ has a simple pole at a point $p$ with residue $A \neq 0$, then
+  $f$ is nonzero in a punctured neighborhood of $p$.
+  -/)
+  (proof := /--
+  We know that $f(s) = \frac{A}{s-p} + O(1)$ near $p$, so we can write
+  $$f(s) = \left(f(s) - \frac{A}{s-p}\right) + \frac{A}{s-p}.$$
+  The first term is bounded, say by $M$, and the second term goes to $\infty$ as $s \to p$.
+  Therefore, there exists a neighborhood $V$ of $p$ such that for all $s \in V \setminus \{p\}$,
+  we have $f(s) \neq 0$.
+  -/)]
+theorem nonZeroOfBddAbove {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
+    (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
+    (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
+    ∃ V ∈ 𝓝 p, IsOpen V ∧ ∀ s ∈ V \ {p}, f s ≠ 0 := by
+  have hlim := simple_pole_limit_of_bounded_remainder U_in_nhds f_near_p
+  have hf : ∀ᶠ z in 𝓝[≠] p, f z ≠ 0 :=
+    (hlim.eventually_ne A_ne_zero).mono fun _ hz ↦ right_ne_zero_of_mul hz
+  obtain ⟨V, hV, hVo, hpV⟩ := mem_nhds_iff.mp (eventually_nhdsWithin_iff.mp hf)
+  exact ⟨V, hVo.mem_nhds hpV, hVo, fun z hz ↦ hV hz.1 hz.2⟩
+
 
 @[blueprint
   (title := "logDerivResidue")
@@ -1339,26 +1295,6 @@ lemma Real.log_natCast_monotone : Monotone (fun (n : ℕ) ↦ Real.log n) := by
     · exact Nat.cast_add_one_pos _
     · exact_mod_cast hnm
 
-lemma Finset.Icc0_eq (N : ℕ) : Finset.Icc 0 N = {0} ∪ Finset.Icc 1 N := by
-  refine Finset.ext_iff.mpr ?_
-  intro a
-  cases a
-  · simp only [Finset.mem_Icc, le_refl, zero_le, and_self, Finset.mem_union, Finset.mem_singleton,
-    nonpos_iff_eq_zero, one_ne_zero, and_true, or_false]
-  · simp only [Finset.mem_Icc, le_add_iff_nonneg_left, zero_le, true_and, Finset.mem_union,
-    Finset.mem_singleton, add_eq_zero, one_ne_zero, and_false, false_or]
-
-lemma harmonic_eq_sum_Icc0_aux (N : ℕ) :
-    ∑ i ∈ Finset.Icc 0 N, (i : ℝ)⁻¹ = ∑ i ∈ Finset.Icc 1 N, (i : ℝ)⁻¹ := by
-  rw [Finset.Icc0_eq, Finset.sum_union]
-  · simp only [Finset.sum_singleton, CharP.cast_eq_zero, inv_zero, zero_add]
-  · simp only [Finset.disjoint_singleton_left, Finset.mem_Icc, nonpos_iff_eq_zero, one_ne_zero,
-    zero_le, and_true, not_false_eq_true]
-
-lemma harmonic_eq_sum_Icc0 (N : ℕ) : ∑ i ∈ Finset.Icc 0 N, (i : ℝ)⁻¹ = (harmonic N : ℝ) := by
-  rw [harmonic_eq_sum_Icc0_aux, harmonic_eq_sum_Icc]
-  simp only [Rat.cast_sum, Rat.cast_inv, Rat.cast_natCast]
-
 lemma DerivUpperBnd_aux1 {A C σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2))
     (σ_ge : 1 - A / Real.log |t| ≤ σ) (t_gt : 3 < |t|) (hC : 2 ≤ C) : let N := ⌊|t|⌋₊;
     ‖∑ n ∈ Finset.range (N + 1), -1 / (n : ℂ) ^ (σ + t * I) * (Real.log n)‖
@@ -1384,7 +1320,11 @@ lemma DerivUpperBnd_aux1 {A C σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2))
   rw [← Finset.sum_mul, ← Finset.sum_mul, mul_comm _ A.exp, mul_assoc] at this
   rw [mul_assoc]
   apply le_trans this <| (mul_le_mul_iff_right₀ A.exp_pos).mpr ?_
-  rw [pow_two, ← mul_assoc, Finset.range_eq_Ico, Finset.Ico_add_one_right_eq_Icc, harmonic_eq_sum_Icc0]
+  have hsum : ∑ n ∈ Finset.range (N + 1), (n : ℝ)⁻¹ = (harmonic N : ℝ) := by
+    rw [Finset.sum_range_succ']
+    simp only [Nat.cast_zero, inv_zero, add_zero, harmonic, Rat.cast_sum, Rat.cast_inv,
+      Rat.cast_add, Rat.cast_natCast, Rat.cast_one, Nat.cast_add, Nat.cast_one]
+  rw [pow_two, ← mul_assoc, hsum]
   apply le_trans (mul_le_mul (h₁ := harmonic_le_one_add_log (n := N)) (le_refl (Real.log |t|))
     (by linarith) (by linarith))
   apply (mul_le_mul_iff_left₀ (by linarith)).mpr

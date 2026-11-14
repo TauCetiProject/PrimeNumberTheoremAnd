@@ -157,31 +157,16 @@ lemma IsCompletelyAdditive.isAdditive [AddZeroClass R] {f : ArithmeticFunction R
   -/)]
 lemma unique_divisor_decomposition {a b d : ℕ} (hab : Coprime a b) (hd : d ∣ a * b) :
     ∃! p : ℕ × ℕ, p.1 ∣ a ∧ p.2 ∣ b ∧ p.1 * p.2 = d := by
-  by_cases ha : a = 0
-  · subst a
-    have hb : b = 1 := by simpa using hab
-    subst b
-    refine ⟨(d,1), by simp, ?_⟩
-    rintro ⟨x,y⟩ ⟨_,hy,hxy⟩
-    have hy1 : y = 1 := Nat.dvd_one.mp hy
-    subst y
-    simpa using hxy
-  by_cases hb : b = 0
-  · subst b
-    have ha1 : a = 1 := by simpa using hab
-    subst a
-    refine ⟨(1,d), by simp, ?_⟩
-    rintro ⟨x,y⟩ ⟨hx,_,hxy⟩
-    have hx1 : x = 1 := Nat.dvd_one.mp hx
-    subst x
-    simpa using hxy
-  obtain ⟨x,y,hx,hy,hxy⟩ := Nat.dvd_mul.mp hd
-  refine ⟨(x,y), ⟨hx,hy,hxy⟩, ?_⟩
-  intro p hp
-  apply hab.mul_injOn_divisors
-  · exact Finset.mem_product.mpr ⟨Nat.mem_divisors.mpr ⟨hp.1,ha⟩, Nat.mem_divisors.mpr ⟨hp.2.1,hb⟩⟩
-  · exact Finset.mem_product.mpr ⟨Nat.mem_divisors.mpr ⟨hx,ha⟩, Nat.mem_divisors.mpr ⟨hy,hb⟩⟩
-  · exact hp.2.2.trans hxy.symm
+  refine ⟨(d.gcd a, d.gcd b), ⟨Nat.gcd_dvd_right _ _, Nat.gcd_dvd_right _ _,
+    (Nat.gcd_mul_gcd_eq_iff_dvd_mul_of_coprime hab).mpr hd⟩, ?_⟩
+  rintro ⟨x, y⟩ ⟨hx, hy, hxy⟩
+  apply Prod.ext
+  · change x = d.gcd a
+    rw [← hxy, mul_comm x y]
+    exact (Nat.gcd_mul_of_coprime_of_dvd (hab.symm.coprime_dvd_left hy) hx).symm
+  · change y = d.gcd b
+    rw [← hxy]
+    exact (Nat.gcd_mul_of_coprime_of_dvd (hab.coprime_dvd_left hx) hy).symm
 
 
 blueprint_comment /--

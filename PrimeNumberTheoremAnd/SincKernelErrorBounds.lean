@@ -1,6 +1,8 @@
 module
 
-public import PrimeNumberTheoremAnd.LaplaceInversion
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
 /-!
 # Window error bounds for the sin-div sinc kernel
@@ -24,33 +26,25 @@ kernel and a mean-value estimate on `g (x - u) - g x` gives a bound `D / π` tha
 independent of the height `T`. -/
 theorem sin_div_error_pointwise_bound
     {g : ℝ → ℂ} {D x T u : ℝ}
-    (hD : 0 ≤ D) (hgdiff : Differentiable ℝ g)
+    (hgdiff : Differentiable ℝ g)
     (hderiv : ∀ y : ℝ, ‖deriv g y‖ ≤ D) :
     ‖(if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (Real.pi * u) : ℂ)) •
         (g (x - u) - g x)‖ ≤ D / Real.pi := by
+  have hD : 0 ≤ D := (norm_nonneg (deriv g 0)).trans (hderiv 0)
   by_cases hu : u = 0
   · simp [hu, div_nonneg hD Real.pi_pos.le]
   · rw [ite_eq_right hu, norm_smul]
     have hscalar :
         ‖(Real.sin (T * u) / (Real.pi * u) : ℂ)‖ ≤ 1 / (Real.pi * |u|) := by
-      rw [norm_div, norm_mul, Complex.norm_real, Complex.norm_real, Complex.norm_real]
-      simp only [Real.norm_eq_abs]
-      rw [abs_of_pos Real.pi_pos]
-      have hsin : |Real.sin (T * u)| ≤ 1 := Real.abs_sin_le_one _
-      exact div_le_div_of_nonneg_right hsin
-        (mul_nonneg Real.pi_pos.le (abs_nonneg u))
+      simpa only [norm_div, norm_mul, Complex.norm_real, Real.norm_eq_abs,
+        abs_of_pos Real.pi_pos] using
+        div_le_div_of_nonneg_right (Real.abs_sin_le_one (T * u))
+          (mul_nonneg Real.pi_pos.le (abs_nonneg u))
     have hdiff : ‖g (x - u) - g x‖ ≤ D * |u| := by
-      have hmv :=
+      simpa only [sub_sub_cancel_left, norm_neg, Real.norm_eq_abs] using
         (convex_univ : Convex ℝ (Set.univ : Set ℝ)).norm_image_sub_le_of_norm_deriv_le
-          (f := g) (C := D)
-          (fun y _hy => hgdiff y)
-          (fun y _hy => hderiv y)
-          (x := x) (y := x - u) (by simp) (by simp)
-      have hnorm : ‖(x - u) - x‖ = |u| := by
-        rw [Real.norm_eq_abs]
-        have hsub : (x - u) - x = -u := by ring
-        rw [hsub, abs_neg]
-      simpa [hnorm] using hmv
+          (fun y _ ↦ hgdiff y) (fun y _ ↦ hderiv y)
+          (x := x) (y := x - u) (Set.mem_univ _) (Set.mem_univ _)
     have hupper_nonneg : 0 ≤ 1 / (Real.pi * |u|) := by positivity
     calc
       ‖(Real.sin (T * u) / (Real.pi * u) : ℂ)‖ * ‖g (x - u) - g x‖
@@ -63,7 +57,7 @@ theorem sin_div_error_pointwise_bound
 `[-1, 1]` controls the windowed error integral by `(D / π) · vol (Ioc (-1) 1)`. -/
 theorem sin_div_error_interval_bound
     {g : ℝ → ℂ} {D x T : ℝ}
-    (hD : 0 ≤ D) (hgdiff : Differentiable ℝ g)
+    (hgdiff : Differentiable ℝ g)
     (hderiv : ∀ y : ℝ, ‖deriv g y‖ ≤ D) :
     ‖∫ u in (-(1 : ℝ))..(1 : ℝ),
         (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (Real.pi * u) : ℂ)) •
@@ -75,4 +69,4 @@ theorem sin_div_error_interval_bound
   · simp [Real.volume_Ioc]
   · intro u _hu
     exact sin_div_error_pointwise_bound (g := g) (D := D) (x := x) (T := T) (u := u)
-      hD hgdiff hderiv
+      hgdiff hderiv
