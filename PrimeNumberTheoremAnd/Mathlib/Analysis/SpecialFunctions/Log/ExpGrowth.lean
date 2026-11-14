@@ -17,7 +17,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
 Pointwise comparisons between `log (1 + ‖f x‖)`, `‖f x‖`, and `exp (C * r(x)^τ)` for
 `r(x) ≥ 1`. Used in finite-order entire function theory and Hadamard factorization.
 
-Also includes the real floor midpoint lemma used to match Weierstrass genus `⌊ρ⌋`.
+The floor lemma chooses an exponent with the same natural floor, matching Weierstrass genus `⌊ρ⌋`.
 
 ## Main results
 
@@ -27,7 +27,7 @@ Also includes the real floor midpoint lemma used to match Weierstrass genus `⌊
   convert between log-growth and exp bounds
 * `Real.sq_le_exp_const_mul_rpow` : absorb a quadratic factor into any positive exponential
   `rpow` margin
-* `Real.exists_between_self_and_floor_add_one_same_floor` : genus-preserving midpoint exponent
+* `Real.exists_between_self_and_floor_add_one_same_floor` : genus-preserving intermediate exponent
 * `Real.log_norm_le_of_log_one_add_growth_on_sphere` : sphere log-growth bound for Jensen's formula
 
 ## Tags
@@ -129,32 +129,13 @@ theorem exists_norm_le_exp_mul_pow_of_rpow_bound
 /-- A quadratic polynomial factor is absorbed by any positive exponential `rpow` margin. -/
 theorem sq_le_exp_const_mul_rpow {b r : ℝ} (hb : 0 < b) (hr : 1 ≤ r) :
     r ^ 2 ≤ exp ((4 / b) * r ^ b) := by
-  have hrpos : 0 < r := zero_lt_one.trans_le hr
-  have hcoeff2 : 0 ≤ (2 / b : ℝ) := by positivity
-  have hcoeff4 : 0 ≤ (4 / b : ℝ) := by positivity
-  have hlog_le : log r ≤ (2 / b) * r ^ (b / 2) := by
-    have hle_exp : (b / 2) * log r ≤ exp ((b / 2) * log r) := le_exp_self _
-    calc
-      log r = (2 / b) * ((b / 2) * log r) := by
-        field_simp [ne_of_gt hb]
-      _ ≤ (2 / b) * exp ((b / 2) * log r) :=
-        mul_le_mul_of_nonneg_left hle_exp hcoeff2
-      _ = (2 / b) * r ^ (b / 2) := by
-        simp [rpow_def_of_pos hrpos, mul_comm]
-  have hpow_le : r ^ (b / 2) ≤ r ^ b :=
-    rpow_le_rpow_of_exponent_le hr (by linarith)
-  have hlog_sq : log (r ^ 2) ≤ (4 / b) * r ^ b := by
-    calc
-      log (r ^ 2) = 2 * log r := by
-        simp [log_pow]
-      _ ≤ 2 * ((2 / b) * r ^ (b / 2)) :=
-        mul_le_mul_of_nonneg_left hlog_le (by norm_num)
-      _ = (4 / b) * r ^ (b / 2) := by ring
-      _ ≤ (4 / b) * r ^ b :=
-        mul_le_mul_of_nonneg_left hpow_le hcoeff4
-  have hsq_pos : 0 < r ^ 2 := by positivity
-  rw [← exp_log hsq_pos]
-  exact exp_le_exp.2 hlog_sq
+  apply (Real.log_le_iff_le_exp (by positivity : 0 < r ^ 2)).mp
+  rw [Real.log_pow]
+  norm_num only [Nat.cast_ofNat]
+  have h := (le_div_iff₀ hb).mp (Real.log_le_rpow_div (by linarith : 0 ≤ r) hb)
+  rw [div_mul_eq_mul_div]
+  apply (le_div_iff₀ hb).mpr
+  nlinarith only [h, Real.rpow_nonneg (by linarith : 0 ≤ r) b]
 
 /-- If `r ≤ 2 * max x 1`, then `1 + r ≤ 3 * (1 + x)`. -/
 theorem one_add_le_three_mul_one_add_of_le_two_mul_max {x r : ℝ} (hx : 0 ≤ x)
@@ -172,20 +153,13 @@ theorem exp_mul_rpow_le_exp_mul_rpow_of_le_mul
     simpa using (Real.mul_rpow (x := B) (y := y) (z := τ) hB hy)
   simpa [mul_assoc] using mul_le_mul_of_nonneg_left (hpow.trans_eq hsplit) hA
 
-/-- A midpoint between `ρ` and `⌊ρ⌋ + 1` has the same natural floor as `ρ`. -/
+/-- There is an exponent between `ρ` and `⌊ρ⌋ + 1` with the same natural floor as `ρ`. -/
 theorem exists_between_self_and_floor_add_one_same_floor {ρ : ℝ} (hρ : 0 ≤ ρ) :
     ∃ τ : ℝ, ρ < τ ∧ τ < (Nat.floor ρ + 1 : ℝ) ∧ 0 ≤ τ ∧ Nat.floor τ = Nat.floor ρ := by
-  set m : ℕ := Nat.floor ρ
-  set τ : ℝ := (ρ + (m + 1 : ℝ)) / 2
-  have hm : ρ < (m + 1 : ℝ) := by simpa [m] using Nat.lt_floor_add_one (a := ρ)
-  have hτ : ρ < τ := by dsimp [τ]; linarith
-  have hτ_lt : τ < (m + 1 : ℝ) := by dsimp [τ]; linarith
-  have hτ_nonneg : 0 ≤ τ := le_trans hρ (le_of_lt hτ)
-  have hfloorτ : Nat.floor τ = m := by
-    have hm_le_τ : (m : ℝ) ≤ τ := le_trans (Nat.floor_le hρ) (le_of_lt hτ)
-    have hτ_lt_m1 : τ < (m : ℝ) + 1 := by simpa [add_assoc, add_comm, add_left_comm] using hτ_lt
-    exact (Nat.floor_eq_iff hτ_nonneg).2 ⟨hm_le_τ, hτ_lt_m1⟩
-  exact ⟨τ, hτ, by simpa [m] using hτ_lt, hτ_nonneg, by simpa [m] using hfloorτ⟩
+  obtain ⟨τ, hτ, hτ'⟩ := exists_between (Nat.lt_floor_add_one (a := ρ))
+  have hτ0 : 0 ≤ τ := hρ.trans hτ.le
+  exact ⟨τ, hτ, hτ', hτ0,
+    (Nat.floor_eq_iff hτ0).mpr ⟨(Nat.floor_le hρ).trans hτ.le, hτ'⟩⟩
 
 open Metric Complex
 
