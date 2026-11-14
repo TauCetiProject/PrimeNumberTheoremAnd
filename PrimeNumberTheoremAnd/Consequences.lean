@@ -418,28 +418,14 @@ theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) 
   · intro n
     exact (div_mul_cancel₀ _ (hne n)).symm
 
-lemma bound_f_second_term (f : ℝ → ℝ) (hf : Tendsto f atTop (nhds 0)) (δ : ℝ) (hδ : δ > 0) :
-    ∀ᶠ x : ℝ in atTop, (1 + f x) < (1 + δ) := by
-  filter_upwards [hf.eventually (gt_mem_nhds hδ)] with x hx
-  linarith only [hx]
-
-
-lemma bound_f_first_term {ε : ℝ} (hε : 0 < ε) (f : ℝ → ℝ)
-    (hf : Tendsto f atTop (nhds 0)) (δ : ℝ) (hδ : δ > 0) :
-    ∀ᶠ x: ℝ in atTop, (1 + f ((1 + ε) * x)) > (1 - δ)  := by
-  have hscale : Tendsto (fun x : ℝ ↦ (1 + ε) * x) atTop atTop :=
-    tendsto_id.const_mul_atTop (by positivity)
-  filter_upwards [(hf.comp hscale).eventually (lt_mem_nhds (neg_lt_zero.mpr hδ))]
-    with x hx
-  simp only [Function.comp_apply] at hx
-  linarith only [hx]
-
-
 lemma smaller_terms {ε : ℝ} (hε : 0 < ε) (f : ℝ → ℝ) (hf : Tendsto f atTop (nhds 0)) (δ : ℝ)
     (hδ : δ > 0) :
     ∀ᶠ x : ℝ in atTop, (1 - δ) * ((1 + ε) * x / (Real.log ((1 + ε) * x))) <
       (1 + f ((1 + ε) * x)) * ((1 + ε) * x / (Real.log ((1 + ε) * x))) := by
-  filter_upwards [bound_f_first_term hε f hf δ hδ, eventually_ge_atTop (1 : ℝ)] with x hx h1
+  filter_upwards
+    [((hf.comp (tendsto_id.const_mul_atTop
+      (by positivity : (0 : ℝ) < 1 + ε))).const_add 1).eventually_const_lt
+        (show 1 - δ < 1 + 0 by linarith), eventually_ge_atTop (1 : ℝ)] with x hx h1
   apply mul_lt_mul_of_pos_right hx
   exact div_pos (by positivity)
     (log_pos (one_lt_mul_of_lt_of_le (by linarith) h1))
@@ -448,7 +434,8 @@ lemma smaller_terms {ε : ℝ} (hε : 0 < ε) (f : ℝ → ℝ) (hf : Tendsto f 
 lemma second_smaller_terms (f : ℝ → ℝ) (hf : Tendsto f atTop (nhds 0)) (δ : ℝ) (hδ : δ > 0) :
     ∀ᶠ x : ℝ in atTop,
       (1 + δ) * (x / Real.log x) > (1 + f x) * (x / Real.log x) := by
-  filter_upwards [bound_f_second_term f hf δ hδ, eventually_ge_atTop (2 : ℝ)] with x hx h2
+  filter_upwards [(hf.const_add 1).eventually_lt_const (show 1 + 0 < 1 + δ by linarith),
+    eventually_ge_atTop (2 : ℝ)] with x hx h2
   exact mul_lt_mul_of_pos_right hx
     (div_pos (by linarith) (log_pos (by linarith)))
 
