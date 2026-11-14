@@ -33,11 +33,11 @@ Three contributions have landed through Bors and are present in the pinned depen
 | --- | --- | --- |
 | [#39314](https://github.com/TauCetiProject/TauCeti/pull/39314) | Arbitrary-filter, real-scale smooth cutoffs | [Landed](https://github.com/TauCetiProject/TauCeti/pull/39314#issuecomment-6857564850); adopted in the fork |
 | [#39316](https://github.com/TauCetiProject/TauCeti/pull/39316) | Offset logarithmic-integral derivative | [Landed](https://github.com/TauCetiProject/TauCeti/pull/39316#issuecomment-6857576082); retained clients already canonical |
-| [#39319](https://github.com/TauCetiProject/TauCeti/pull/39319) | Reciprocal-log-power derivative and integration by parts | Revised CI/re-review pending |
+| [#39319](https://github.com/TauCetiProject/TauCeti/pull/39319) | Reciprocal-log-power derivative and integration by parts | Current-head CI and all ten review rubrics pass; in Bors staging |
 | [#39323](https://github.com/TauCetiProject/TauCeti/pull/39323) | Canonical circle Fejér kernel | Orientation fix pushed; fresh CI/re-review pending |
 | [#39330](https://github.com/TauCetiProject/TauCeti/pull/39330) | Arbitrary-origin zero-count growth and summability | [Landed](https://github.com/TauCetiProject/TauCeti/commit/0e20b9c39114e5974ba7356bec0ace4820ed7344); adopted through the forward dependency pin |
 | [#39407](https://github.com/TauCetiProject/TauCeti/pull/39407) | Arbitrary-genus elementary factors; all native consumers updated | CI pending |
-| [#39422](https://github.com/TauCetiProject/TauCeti/pull/39422) | Polar-part constructor on arbitrary domains | Current-head sandboxed build passes; canonical review preparation awaits restored GitHub API quota |
+| [#39422](https://github.com/TauCetiProject/TauCeti/pull/39422) | Polar-part constructor on arbitrary domains | Current-head CI and all ten published review rubrics pass; in Bors staging |
 | [#39454](https://github.com/TauCetiProject/TauCeti/pull/39454) | Full-half-plane `τ²` L-series convergence and identity | Review fixes pushed; fresh CI/re-review pending |
 | [#39461](https://github.com/TauCetiProject/TauCeti/pull/39461) | Complex divisor-sum entire dependence and exponent reflection in the canonical `Nat` namespace | Naming fix pushed; fresh CI/re-review pending |
 | [#39465](https://github.com/TauCetiProject/TauCeti/pull/39465) | Ordinary Abel integral and zeta norm bound | CI pending |
@@ -48,7 +48,7 @@ Three contributions have landed through Bors and are present in the pinned depen
 | [#39733](https://github.com/TauCetiProject/TauCeti/pull/39733) | Polynomial rigidity at arbitrary nonnegative exponential order, with exact floor-degree bound; existing affine normalization retained | CI pending |
 | [#39787](https://github.com/TauCetiProject/TauCeti/pull/39787) | Supplied and totalized exponential product bounds for seminormed commutative rings | Reuse/generality fixes pushed; fresh CI/re-review pending |
 | [#39802](https://github.com/TauCetiProject/TauCeti/pull/39802) | Local logarithmic derivative at arbitrary nested radii; shared proofs and public canonical-factor estimates; sharp constants retained | API/proof reuse fixes pushed; fresh CI/re-review pending |
-| [#40057](https://github.com/TauCetiProject/TauCeti/pull/40057) | Weighted good-radius logarithmic estimate with the exact original constant, arbitrary real scales and finite exclusions | API, naming and proof-reuse fixes pushed; full local gates and independent review pass, fresh CI/re-review pending |
+| [#40057](https://github.com/TauCetiProject/TauCeti/pull/40057) | Weighted logarithmic bound with a closed constant, arbitrary real scales and null exclusions; public integral estimates | Full build, scoped lint/tests, global axiom audit and independent review pass; revised head `1c1b20b` awaits CI |
 | [#40135](https://github.com/TauCetiProject/TauCeti/pull/40135) | Normalized finite Selberg weights on Mathlib’s sieve carrier; exact quadratic main term and complete weighted remainder | CI pending |
 | [#40210](https://github.com/TauCetiProject/TauCeti/pull/40210) | Uniform finite-order Mellin decay on arbitrary compact sets of real parts, for complex normed targets | Complete local gates and independent review pass; opened against current main, remote CI pending |
 
