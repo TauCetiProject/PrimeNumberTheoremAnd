@@ -15,7 +15,6 @@ public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
 public import PrimeNumberTheoremAnd.Auxiliary
 public import PrimeNumberTheoremAnd.EulerMaclaurin
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
-public import PrimeNumberTheoremAnd.Fourier
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 

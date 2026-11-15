@@ -4,7 +4,6 @@ import PrimeNumberTheoremAnd.BrunTitchmarsh
 import PrimeNumberTheoremAnd.Consequences
 import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.EulerMaclaurin
-import PrimeNumberTheoremAnd.Fourier
 import PrimeNumberTheoremAnd.GeneralMeromorphic
 import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
@@ -38,7 +37,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.WeierstrassFactor
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.DigammaBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
