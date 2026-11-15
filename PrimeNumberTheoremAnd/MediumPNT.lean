@@ -1628,62 +1628,26 @@ theorem poisson_kernel_integrable (x : ℝ) (hx : x ≠ 0) :
 
 theorem integral_evaluation (x : ℝ) (T : ℝ) (T_large : 3 < T) :
     ∫ (t : ℝ) in Iic (-T), (‖x + t * I‖ ^ 2)⁻¹ ≤ T⁻¹ := by
-  have T00 : ∀ (x t : ℝ), t^2 ≤ ‖x + t * I‖^2 := by
-    intro x t
-    rw [Complex.norm_add_mul_I x t]
-    ring_nf
-    rw [Real.sq_sqrt _]
-    · simp only [le_add_iff_nonneg_right]; positivity
-    · positivity
-
-  have T0 : ∀ (x t : ℝ), t ≠ 0 → (‖x + t * I‖^2)⁻¹ ≤ (t^2)⁻¹ := by
-    intro x t hyp
-    have U0 : 0 < t^2 := by positivity
-    have U1 : 0 < ‖x + t * I‖^2 := by
-      rw [Complex.norm_add_mul_I x t,
-        Real.sq_sqrt _]
-
-      · positivity
-      · positivity
-    rw [inv_le_inv₀ U1 U0]
-    exact (T00 x t)
-
-  have T1 : (fun t : ℝ ↦ (‖x + t * I‖ ^ 2)⁻¹) ≤ᶠ[ae (volume.restrict (Iic (-T)))]
-      (fun t : ℝ ↦ (t ^ 2)⁻¹) := by
-    apply ae_restrict_of_forall_mem measurableSet_Iic
-    intro t ht
-    exact T0 x t (by simp only [mem_Iic] at ht; linarith)
-
-  have T3 : Integrable (fun (t : ℝ) ↦ (t^2)⁻¹) (volume.restrict (Iic (-T))) := by
-    have D3 := integrableOn_Ioi_rpow_of_lt (by norm_num : (-2 : ℝ) < -1)
-      (by linarith : 0 < T) |>.comp_neg
-    simp only [rpow_neg_ofNat, Int.reduceNeg, zpow_neg, neg_Ioi] at D3
-    have D4 :=
-      (integrableOn_Iic_iff_integrableOn_Iio'
-        (by
-          refine EReal.coe_ennreal_ne_coe_ennreal_iff.mp ?_
-          simp_all only [ne_eq, measurableSet_Iic, ae_restrict_eq, measure_singleton,
-            EReal.coe_ennreal_zero, EReal.coe_ennreal_top, EReal.zero_ne_top, not_false_eq_true])).mpr D3
-    simp_all only [ne_eq, measurableSet_Iic, ae_restrict_eq]
-    unfold IntegrableOn at D4
-    have eq_fun : (fun (x : ℝ) ↦ ((-x)^2)⁻¹) = fun x ↦ (x^2)⁻¹ := by
-      funext x
-      simp_all only [even_two, Even.neg_pow]
-    simp_all only [even_two, Even.neg_pow]
-    norm_cast at D4
-    simp_all only [even_two, Even.neg_pow]
-
+  have hT : 0 < T := by linarith
+  rw [← integral_comp_neg_Ioi]
   calc
-    _ ≤ ∫ (t : ℝ) in Iic (-T), (t^2)⁻¹  := by
-      apply MeasureTheory.integral_mono_of_nonneg _ T3 T1
-      filter_upwards [] with x
-      simp
-    _ = _ := by
-      rw [← integral_comp_neg_Ioi]
-      conv => lhs; arg 2; ext x; rw [show ((-x) ^ 2)⁻¹ = x ^ (-2 : ℝ) by simp [zpow_ofNat]]
-      rw[integral_Ioi_rpow_of_lt (by norm_num) (by linarith)]
-      ring_nf
-      rw [rpow_neg_one]
+    _ ≤ ∫ t : ℝ in Ioi T, t ^ (-2 : ℝ) := by
+      apply MeasureTheory.integral_mono_of_nonneg
+      · filter_upwards with t
+        positivity
+      · exact integrableOn_Ioi_rpow_of_lt (by norm_num) hT
+      · apply MeasureTheory.ae_restrict_of_forall_mem measurableSet_Ioi
+        intro t ht
+        dsimp only
+        calc
+          _ ≤ (t ^ 2)⁻¹ := by
+            rw [← Complex.normSq_eq_norm_sq, Complex.normSq_add_mul_I, neg_sq]
+            apply inv_anti₀ (sq_pos_of_pos (hT.trans ht))
+            nlinarith [sq_nonneg x]
+          _ = t ^ (-2 : ℝ) := by simp [Real.rpow_neg_ofNat]
+    _ = T⁻¹ := by
+      rw [integral_Ioi_rpow_of_lt (by norm_num) hT]
+      norm_num [Real.rpow_neg_one]
 
 blueprint_comment /--
 It remains to estimate all of the integrals.

@@ -21,11 +21,6 @@ open Nat ArithmeticFunction Finset
 
 namespace Aux
 
-private theorem sum_over_dvd_ite {α : Type _} [Ring α] {P : ℕ} (hP : P ≠ 0)
-    {n : ℕ} (hn : n ∣ P) {f : ℕ → α} :
-    ∑ d ∈ n.divisors, f d = ∑ d ∈ P.divisors, if d ∣ n then f d else 0 := by
-  rw [← Finset.sum_filter, Nat.divisors_filter_dvd_of_dvd hP hn]
-
 theorem moebius_inv_dvd_lower_bound (l m : ℕ) (hm : Squarefree m) :
     (∑ d ∈ m.divisors, if l ∣ d then (μ d:ℤ) else 0) = if l = m then (μ l:ℤ) else 0 := by
   have hm_pos : 0 < m := Nat.pos_of_ne_zero hm.ne_zero
@@ -52,7 +47,7 @@ theorem moebius_inv_dvd_lower_bound (l m : ℕ) (hm : Squarefree m) :
 theorem moebius_inv_dvd_lower_bound' {P : ℕ} (hP : Squarefree P) (l m : ℕ) (hm : m ∣ P) :
     (∑ d ∈ P.divisors, if l ∣ d ∧ d ∣ m then μ d else 0) = if l = m then μ l else 0 := by
   rw [←moebius_inv_dvd_lower_bound _ _ (Squarefree.squarefree_of_dvd hm hP),
-    sum_over_dvd_ite hP.ne_zero hm]
+    ← Nat.divisors_filter_dvd_of_dvd hP.ne_zero hm, Finset.sum_filter]
   simp_rw[ite_and, ←sum_filter, filter_comm]
 
 theorem moebius_inv_dvd_lower_bound_real {P : ℕ} (hP : Squarefree P) (l m : ℕ) (hm : m ∣ P) :

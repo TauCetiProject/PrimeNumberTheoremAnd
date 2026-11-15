@@ -3,7 +3,7 @@ module
 public import Mathlib.Analysis.Calculus.LogDeriv
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Meromorphic.Divisor
-public import TauCeti.Analysis.Contour.Argument.Principle
+public import TauCeti.Analysis.Contour.Residue.LogDeriv
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 /-!
@@ -18,45 +18,6 @@ open Complex Filter Topology Set BigOperators Asymptotics
 open scoped Interval
 
 public noncomputable section
-
-private lemma tendsto_mul_self_of_sub_principal_isBigO_one
-    {f : ℂ → ℂ} {p c : ℂ}
-    (h : (f - fun z : ℂ => c / (z - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
-    Tendsto (fun z : ℂ => (z - p) * f z) (𝓝[≠] p) (𝓝 c) := by
-  have hp_tendsto :
-      Tendsto (fun z : ℂ => z - p) (𝓝[≠] p) (𝓝 0) :=
-    tendsto_sub_nhds_zero_iff.mpr (tendsto_id.mono_left nhdsWithin_le_nhds)
-  have hp_small :
-      (fun z : ℂ => z - p) =o[𝓝[≠] p] (1 : ℂ → ℂ) :=
-    (isLittleO_one_iff ℂ).2 hp_tendsto
-  have hrem_tendsto :
-      Tendsto
-        (fun z : ℂ => (z - p) * ((f - fun w : ℂ => c / (w - p)) z))
-        (𝓝[≠] p) (𝓝 0) := by
-    simpa using hp_small.mul_isBigO h
-  have hprincipal :
-      (fun z : ℂ => (z - p) * (c / (z - p))) =ᶠ[𝓝[≠] p] fun _ : ℂ => c := by
-    filter_upwards [self_mem_nhdsWithin] with z hz
-    field_simp [sub_ne_zero.mpr hz]
-  have hprincipal_tendsto :
-      Tendsto (fun z : ℂ => (z - p) * (c / (z - p))) (𝓝[≠] p) (𝓝 c) :=
-    tendsto_const_nhds.congr' hprincipal.symm
-  have hsum_tendsto :
-      Tendsto
-        (fun z : ℂ =>
-          (z - p) * (c / (z - p))
-            + (z - p) * ((f - fun w : ℂ => c / (w - p)) z))
-        (𝓝[≠] p) (𝓝 (c + 0)) :=
-    hprincipal_tendsto.add hrem_tendsto
-  have hsum :
-      (fun z : ℂ => (z - p) * f z) =ᶠ[𝓝[≠] p]
-        fun z : ℂ =>
-          (z - p) * (c / (z - p))
-            + (z - p) * ((f - fun w : ℂ => c / (w - p)) z) := by
-    filter_upwards with z
-    simp only [Pi.sub_apply]
-    ring
-  simpa using hsum_tendsto.congr' hsum.symm
 
 lemma logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt
     {f : ℂ → ℂ} {p : ℂ} {n : ℤ}
@@ -74,10 +35,11 @@ theorem logDeriv_residue_eq_meromorphicOrderAt
     {f : ℂ → ℂ} {p : ℂ} {n : ℤ}
     (hf : MeromorphicAt f p)
     (hord : meromorphicOrderAt f p = (n : WithTop ℤ)) :
-    residue (logDeriv f) p = (n : ℂ) :=
-  residue_eq_of_tendsto
-    (tendsto_mul_self_of_sub_principal_isBigO_one
-      (logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt hf hord))
+    residue (logDeriv f) p = (n : ℂ) := by
+  have h := TauCeti.Contour.tendsto_sub_mul_nhds_residue hf.logDeriv
+    (TauCeti.Contour.neg_one_le_meromorphicOrderAt_logDeriv hf)
+  rw [TauCeti.Contour.residue_logDeriv_eq_meromorphicOrderAt hf hord] at h
+  exact residue_eq_of_tendsto h
 
 theorem logDeriv_poles_eq_divisor_support
     {f : ℂ → ℂ} {R : Set ℂ}

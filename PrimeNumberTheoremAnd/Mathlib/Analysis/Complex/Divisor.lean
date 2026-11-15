@@ -106,44 +106,17 @@ If one of the factors is `0` at `z`, then the infinite product is `0`.
 
 theorem divisorCanonicalProduct_eq_zero_of_exists
     (m : ℕ) (f : ℂ → ℂ) (z : ℂ)
-    (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)))
     (h0 : ∃ p : divisorZeroIndex₀ f (Set.univ : Set ℂ),
       weierstrassFactor m (z / divisorZeroIndex₀_val p) = 0) :
     divisorCanonicalProduct m f (Set.univ : Set ℂ) z = 0 := by
-  have hloc :
-      HasProdLocallyUniformlyOn
-        (fun (p : divisorZeroIndex₀ f (Set.univ : Set ℂ)) (w : ℂ) =>
-          weierstrassFactor m (w / divisorZeroIndex₀_val p))
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ))
-        (Set.univ : Set ℂ) :=
-    hasProdLocallyUniformlyOn_divisorCanonicalProduct_univ (m := m) (f := f) h_sum
-  have hprod :
-      HasProd (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-          weierstrassFactor m (z / divisorZeroIndex₀_val p))
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) :=
-    hloc.hasProd (by simp : z ∈ (Set.univ : Set ℂ))
-  have hzero :
-      HasProd (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-          weierstrassFactor m (z / divisorZeroIndex₀_val p))
-        0 := by
-    refine hasProd_zero_of_exists_eq_zero (L := (SummationFilter.unconditional
-      (divisorZeroIndex₀ f (Set.univ : Set ℂ)))) ?_
-    rcases h0 with ⟨p, hp⟩
-    exact ⟨p, hp⟩
-  exact (hprod.unique hzero)
+  exact tprod_of_exists_eq_zero h0
 
 theorem divisorCanonicalProduct_eq_zero_at_index
     (m : ℕ) (f : ℂ → ℂ)
-    (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)))
     (p : divisorZeroIndex₀ f (Set.univ : Set ℂ)) :
     divisorCanonicalProduct m f (Set.univ : Set ℂ) (divisorZeroIndex₀_val p) = 0 := by
-  refine divisorCanonicalProduct_eq_zero_of_exists (m := m) (f := f)
-    (z := divisorZeroIndex₀_val p) h_sum ?_
-  refine ⟨p, ?_⟩
-  have hp0 : divisorZeroIndex₀_val p ≠ 0 := p.property
-  simp [weierstrassFactor_at_one]
+  refine divisorCanonicalProduct_eq_zero_of_exists m f (divisorZeroIndex₀_val p) ⟨p, ?_⟩
+  simp [divisorZeroIndex₀_val_ne_zero p, weierstrassFactor_at_one]
 
 /-!
 ## The fiber finite product has the expected order at `z₀`

@@ -27,17 +27,6 @@ open BoundingSieve SelbergSieve
 @[expose] public noncomputable section
 namespace Sieve
 
-theorem zeta_pos_of_prime : ∀ (p : ℕ), Nat.Prime p → (0:ℝ) < (↑ζ:ArithmeticFunction ℝ) p := by
-  intro p hp
-  rw [ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply, ite_eq_right (Nat.Prime.ne_zero hp)]
-  norm_num
-
-theorem zeta_lt_self_of_prime : ∀ (p : ℕ), Nat.Prime p → (↑ζ:ArithmeticFunction ℝ) p < (p:ℝ) := by
-  intro p hp
-  rw [ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply, ite_eq_right (Nat.Prime.ne_zero hp)]
-  norm_num;
-  exact Nat.succ_le_iff.mp (Nat.Prime.two_le hp)
-
 theorem siftedSum_eq (s : SelbergSieve) (hw : ∀ i ∈ s.support, s.weights i = 1) (z : ℝ)
     (hz : 1 ≤ z) (hP : s.prodPrimes = primorial (Nat.floor z)) :
     siftedSum (s := s.toBoundingSieve) =
