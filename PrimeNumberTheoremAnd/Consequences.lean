@@ -589,32 +589,15 @@ lemma sum_mu_Lambda (x : ℝ) : ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) * log n =
   rfl
 
 lemma M_log_identity (x : ℝ) (hx : 1 ≤ x) : M x * log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (log (x/k) - Chebyshev.psi (x/k)) := by
-  have h_log_identity : ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k) = (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x - ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k := by
-    rw [Finset.sum_mul _ _ _]
-    rw [← Finset.sum_sub_distrib] ; refine Finset.sum_congr rfl fun i hi => ?_ ; by_cases hi' : i = 0 <;> simp +decide [*, Real.log_div, ne_of_gt (zero_lt_one.trans_le hx)] ; ring
-  generalize_proofs at *
-  have h_log_identity' : ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k = -∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k) := by
-    convert sum_mu_Lambda x using 1
-  have h_psi_identity :
-      (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k)) =
-        -∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k := by
-    simpa [neg_neg] using (congrArg Neg.neg h_log_identity').symm
+  have hterm (n : ℕ) : (μ n : ℝ) * log (x / n) =
+      (μ n : ℝ) * log x - (μ n : ℝ) * log n := by
+    by_cases hn : n = 0
+    · simp [hn]
+    · rw [Real.log_div (by linarith : x ≠ 0) (Nat.cast_ne_zero.mpr hn), mul_sub]
   unfold M
-  symm
-  calc
-    (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Chebyshev.psi (x / k))) =
-        (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log (x / k)) -
-          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k) := by
-          simp [mul_sub, Finset.sum_sub_distrib]
-    _ = ((∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x -
-          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k) -
-          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x / k) := by
-          simp [h_log_identity]
-    _ = ((∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x -
-          ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k) -
-          (-∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Real.log k) := by
-          simp [h_psi_identity]
-    _ = (∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ)) * Real.log x := by ring
+  simp_rw [mul_sub, hterm]
+  rw [Finset.sum_sub_distrib, Finset.sum_sub_distrib, ← Finset.sum_mul]
+  linarith [sum_mu_Lambda x]
 
 noncomputable def R (x : ℝ) : ℝ := Chebyshev.psi x - x
 
@@ -1072,14 +1055,10 @@ theorem lambda_pnt : (fun x : ℝ ↦ ∑ n ∈ range ⌊x⌋₊, (-1)^(Ω n)) =
 
 
 lemma sum_mobius_floor (x : ℝ) (hx : 1 ≤ x) : ∑ n ∈ Icc 1 ⌊x⌋₊, (μ n : ℝ) * ⌊x / n⌋ = 1 := by
-  classical
   have h := sum_mobius_mul_floor x hx
-  have h0 : (0 : ℕ) ∈ Iic ⌊x⌋₊ := by simp [Finset.mem_Iic]
-  have hI : (Iic ⌊x⌋₊).erase 0 = Icc 1 ⌊x⌋₊ := by
-    ext n
-    simp [Finset.mem_Iic, Finset.mem_Icc, Nat.one_le_iff_ne_zero, and_comm]
-  rw [← Finset.sum_erase_add (Iic ⌊x⌋₊) (fun n => (μ n : ℝ) * (⌊x / n⌋ : ℝ)) h0] at h
-  simpa [hI] using h
+  rw [Iic_eq_Icc, bot_eq_zero, ← add_sum_Ioc_eq_sum_Icc (Nat.zero_le _)] at h
+  simpa only [ArithmeticFunction.map_zero, Int.cast_zero, zero_mul, zero_add,
+    ← Finset.Icc_succ_left_eq_Ioc, Order.succ_eq_add_one] using h
 
 lemma sum_mobius_floor_tail_isLittleO (K : ℕ) (hK : 0 < K) :
     (fun x : ℝ => ∑ n ∈ Finset.Ioc ⌊x/K⌋₊ ⌊x⌋₊, (μ n : ℝ) * (⌊x / (n : ℝ)⌋ : ℝ)) =o[atTop] fun x => x := by

@@ -383,46 +383,13 @@ lemma divisorPartialProduct_eq_fiber_mul_complement_of_subset
     divisorPartialProduct m f s z =
       divisorPartialProduct m f (divisorZeroIndex₀_fiberFinset (f := f) z₀) z *
         divisorComplementPartialProduct m f z₀ s z := by
-  classical -- needed
-  let fiber : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) :=
-    divisorZeroIndex₀_fiberFinset (f := f) z₀
-  let P : divisorZeroIndex₀ f (Set.univ : Set ℂ) → Prop := fun p => p ∈ fiber
-  let term : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℂ :=
-    fun p => weierstrassFactor m (z / divisorZeroIndex₀_val p)
-  have hfilter : s.filter P = fiber := by
-    ext p
-    constructor
-    · intro hp
-      exact (Finset.mem_filter.mp hp).2
-    · intro hp
-      exact Finset.mem_filter.mpr ⟨hs hp, hp⟩
-  have hsplit :
-      (∏ p ∈ s with P p, term p) * (∏ p ∈ s with ¬ P p, term p) = ∏ p ∈ s, term p := by
-    simpa [term] using
-      (Finset.prod_filter_mul_prod_filter_not (s := s) (p := P) (f := term))
-  have hP : (∏ p ∈ s with P p, term p) = divisorPartialProduct m f fiber z := by
-    have hg : ∀ x ∈ s \ fiber, (if x ∈ fiber then term x else (1 : ℂ)) = 1 := by
-      intro x hx
-      have hxnot : x ∉ fiber := (Finset.mem_sdiff.mp hx).2
-      simp [hxnot]
-    have hfg :
-        ∀ x ∈ fiber, term x = (if x ∈ fiber then term x else (1 : ℂ)) := by
-      intro x hx
-      simp [hx]
-    have hsub := (Finset.prod_subset_one_on_sdiff (s₁ := fiber) (s₂ := s)
-        (f := term) (g := fun x => if x ∈ fiber then term x else (1 : ℂ)) hs hg hfg)
-    simpa [divisorPartialProduct, term, P, fiber, Finset.prod_filter] using hsub.symm
-  have hnotP : (∏ p ∈ s with ¬ P p, term p) = divisorComplementPartialProduct m f z₀ s z := by
-    simp [divisorComplementPartialProduct, divisorComplementFactor, term, P, fiber,
-      Finset.prod_filter, mem_divisorZeroIndex₀_fiberFinset]
-  have hsplit' : ∏ p ∈ s, term p = (∏ p ∈ s with P p, term p) * (∏ p ∈ s with ¬ P p, term p) :=
-    hsplit.symm
-  calc
-    divisorPartialProduct m f s z
-        = ∏ p ∈ s, term p := by simp [divisorPartialProduct, term]
-    _ = (∏ p ∈ s with P p, term p) * (∏ p ∈ s with ¬ P p, term p) := hsplit'
-    _ = divisorPartialProduct m f fiber z * divisorComplementPartialProduct m f z₀ s z := by
-      simp [hP, hnotP, fiber]
+  classical
+  have h := Finset.prod_filter_mul_prod_filter_not (s := s)
+    (p := fun p => p ∈ divisorZeroIndex₀_fiberFinset f z₀)
+    (f := fun p => weierstrassFactor m (z / divisorZeroIndex₀_val p))
+  rw [Finset.filter_mem_eq_of_subset hs] at h
+  simpa only [divisorPartialProduct, divisorComplementPartialProduct, divisorComplementFactor,
+    Finset.prod_filter, ite_not] using h.symm
 
 lemma divisorComplementPartialProduct_ne_zero_on_ball
     (m : ℕ) {f : ℂ → ℂ} {z₀ : ℂ} {ε : ℝ}

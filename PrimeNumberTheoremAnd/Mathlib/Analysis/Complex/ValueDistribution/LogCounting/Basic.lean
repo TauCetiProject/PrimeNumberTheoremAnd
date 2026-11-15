@@ -57,35 +57,15 @@ lemma massClosedBall₀_mono {E : Type*} [NormedAddCommGroup E] [ProperSpace E]
     {D : locallyFinsupp E ℤ} (hD : 0 ≤ D) {R₁ R₂ : ℝ} (hR₁ : 0 ≤ R₁) (hR₁₂ : R₁ ≤ R₂) :
     massClosedBall₀ D R₁ ≤ massClosedBall₀ D R₂ := by
   classical
-  have hR₂ : 0 ≤ R₂ := le_trans hR₁ hR₁₂
-  have habs₁ : |R₁| = R₁ := abs_of_nonneg hR₁
-  have habs₂ : |R₂| = R₂ := abs_of_nonneg hR₂
-  let SR (R : ℝ) : Finset E :=
-    (finiteSupport (toClosedBall R D) (isCompact_closedBall (0 : E) |R|)).toFinset
-  let S (R : ℝ) : Finset E := (SR R).filter fun z : E => z ≠ 0
-  have hsub : S R₁ ⊆ S R₂ := by
-    intro z hz
-    have hzSR₁ : z ∈ SR R₁ := (Finset.mem_filter.1 hz).1
-    have hz0 : z ≠ 0 := (Finset.mem_filter.1 hz).2
-    have hz_sup₁ : z ∈ (toClosedBall R₁ D).support := by
-      exact (finiteSupport (toClosedBall R₁ D) (isCompact_closedBall (0 : E) |R₁|)).mem_toFinset.1
-        hzSR₁
-    have hz_norm₁ : ‖z‖ ≤ R₁ := by
-      have h := (toClosedBall R₁ D).supportWithinDomain hz_sup₁
-      simpa only [mem_closedBall, dist_zero_right, habs₁] using h
-    have hz_norm₂ : ‖z‖ ≤ R₂ := le_trans hz_norm₁ hR₁₂
-    have hz_norm₂_abs : ‖z‖ ≤ |R₂| := by simpa [habs₂] using hz_norm₂
-    have hzD : z ∈ D.support := mem_support_of_mem_toClosedBall_support hz_sup₁
-    have hz_sup₂ : z ∈ (toClosedBall R₂ D).support :=
-      mem_toClosedBall_support_of_mem_support_of_norm_le_abs hzD hz_norm₂_abs
-    have hzSR₂ : z ∈ SR R₂ := by
-      exact (finiteSupport (toClosedBall R₂ D) (isCompact_closedBall (0 : E) |R₂|)).mem_toFinset.2
-        hz_sup₂
-    exact Finset.mem_filter.2 ⟨hzSR₂, hz0⟩
-  have hterm_nonneg : ∀ z ∈ S R₂, 0 ≤ (D z : ℝ) := by
-    intro z _hz
-    exact_mod_cast hD z
-  simpa [massClosedBall₀, SR, S] using
-    Finset.sum_le_sum_of_subset_of_nonneg hsub (fun z hz₂ _hznot => hterm_nonneg z hz₂)
+  unfold massClosedBall₀
+  refine Finset.sum_le_sum_of_subset_of_nonneg ?_ (fun z _ _ => by exact_mod_cast hD z)
+  intro z hz
+  simp only [Finset.mem_filter, Set.Finite.mem_toFinset] at hz ⊢
+  have hz₁ := (toClosedBall R₁ D).supportWithinDomain hz.1
+  have hz₂ : z ∈ closedBall (0 : E) |R₂| := (Metric.closedBall_subset_closedBall
+    (by simpa only [abs_of_nonneg hR₁, abs_of_nonneg (hR₁.trans hR₁₂)] using hR₁₂)) hz₁
+  refine ⟨?_, hz.2⟩
+  rw [Function.mem_support, toClosedBall_eval_within D hz₂]
+  simpa only [Function.mem_support, toClosedBall_eval_within D hz₁] using hz.1
 
 end Function.locallyFinsuppWithin
