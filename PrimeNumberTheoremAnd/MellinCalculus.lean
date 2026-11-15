@@ -23,15 +23,6 @@ open Complex Topology Filter Real MeasureTheory Set
 
 variable {𝕂 : Type*} [RCLike 𝕂]
 
--- TODO: generalize to `RCLike`
-lemma MeasureTheory.integral_comp_rpow_I0i_haar_real (f : ℝ → ℝ) {p : ℝ} (hp : p ≠ 0) :
-    ∫ (y : ℝ) in Ioi 0, |p| * f (y ^ p) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  rw [← integral_comp_rpow_Ioi (fun y ↦ f y / y) hp, setIntegral_congr_fun (by simp)]
-  intro y hy
-  have ypos : 0 < y := mem_Ioi.mp hy
-  simp only [rpow_sub_one ypos.ne', smul_eq_mul]
-  field_simp
-
 lemma MeasureTheory.integral_comp_div_I0i_haar
     (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
     ∫ (y : ℝ) in Ioi 0, f (a / y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
@@ -931,21 +922,6 @@ lemma Smooth1Nonneg {ν : ℝ → ℝ} (νnonneg : ∀ x > 0, 0 ≤ ν x) {ε x 
   · intro y ypos; exact DeltaSpikeNonNeg_of_NonNeg νnonneg ypos εpos
 
 
-lemma Smooth1LeOne_aux {x ε : ℝ} {ν : ℝ → ℝ} (xpos : 0 < x) (εpos : 0 < ε)
-    (mass_one : ∫ x in Ioi 0, ν x / x = 1) :
-    ∫ (y : ℝ) in Ioi 0, ν ((x / y) ^ (1 / ε)) / ε / y = 1 := by
-    calc
-      _ = ∫ (y : ℝ) in Ioi 0, (ν (y ^ (1 / ε)) / ε) / y := ?_
-      _ = ∫ (y : ℝ) in Ioi 0, ν y / y := ?_
-      _ = 1 := mass_one
-    · have := integral_comp_div_I0i_haar (fun y ↦ ν ((x / y) ^ (1 / ε)) / ε) xpos
-      convert! this.symm using 1
-      congr; funext y; congr; field_simp [mul_comm]
-    · have := integral_comp_rpow_I0i_haar_real (fun y ↦ ν y) (one_div_ne_zero εpos.ne')
-      rw [← this, abs_of_pos <| one_div_pos.mpr εpos]
-      field_simp
-
-
 @[blueprint
   (title := "Smooth1LeOne")
   (statement := /--
@@ -975,7 +951,9 @@ lemma Smooth1LeOne {ν : ℝ → ℝ} (νnonneg : ∀ x > 0, 0 ≤ ν x)
     (mass_one : ∫ x in Ioi 0, ν x / x = 1) {ε : ℝ} (εpos : 0 < ε) {x : ℝ} (xpos : 0 < x) :
     Smooth1 ν ε x ≤ 1 := by
   unfold Smooth1 MellinConvolution DeltaSpike
-  have := Smooth1LeOne_aux xpos εpos mass_one
+  have := (MeasureTheory.integral_comp_div_I0i_haar (DeltaSpike ν ε) xpos).trans
+    (DeltaSpikeMass mass_one εpos)
+  simp only [DeltaSpike] at this
   calc
     _ = ∫ (y : ℝ) in Ioi 0,
         (fun y ↦ if y ∈ Ioc 0 1 then 1 else 0) y * (ν ((x / y) ^ (1 / ε)) / ε / y) := ?_
