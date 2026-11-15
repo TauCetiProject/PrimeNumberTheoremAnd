@@ -16,7 +16,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactorBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanMajorantBound
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanProductBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorComplement
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence

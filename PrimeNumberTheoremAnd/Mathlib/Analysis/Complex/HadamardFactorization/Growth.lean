@@ -12,7 +12,8 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactorBound
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanMajorantBound
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanProductBound
+import TauCeti.Analysis.Normed.Ring.InfiniteProd
+import Mathlib.Topology.Algebra.InfiniteSum.Group
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ExpPoly.Growth
 
 /-!
@@ -212,13 +213,9 @@ theorem norm_inv_hadamardDenominator_le_exp_on_cartan_circle
   have hcprod_inv :
       ‖(divisorCanonicalProduct m f (Set.univ : Set ℂ) u)⁻¹‖ ≤
         Real.exp (Cprod * (1 + r) ^ τ) := by
-    refine hasProd_norm_inv_le_exp_of_pointwise_le_exp
-      (α := divisorZeroIndex₀ f (Set.univ : Set ℂ)) (fac := fac)
-      (F := divisorCanonicalProduct m f (Set.univ : Set ℂ) u)
-      hprod (b := b) (B := Cprod * (1 + r) ^ τ) ?_ ?_
-    · exact hterm
-    · intro s
-      exact hb_le s
+    by_cases hzero : divisorCanonicalProduct m f (Set.univ : Set ℂ) u = 0
+    · simpa only [hzero, inv_zero, norm_zero] using Real.exp_nonneg (Cprod * (1 + r) ^ τ)
+    · exact (hprod.inv₀ hzero).norm_le_exp_of_sum_le hterm hb_le
   have hmul :
       ‖(u ^ analyticOrderNatAt f 0 *
           divisorCanonicalProduct m f (Set.univ : Set ℂ) u)⁻¹‖
