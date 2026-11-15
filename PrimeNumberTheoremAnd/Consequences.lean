@@ -546,13 +546,11 @@ theorem sum_mobius_div_self_le (N : ℕ) : |∑ n ∈ range N, μ n / (n : ℚ)|
 
 
 
-lemma sum_mobius_mul_floor (x : ℝ) (hx : 1 ≤ x) :
-  ∑ n ∈ Iic ⌊x⌋₊, (ArithmeticFunction.moebius n : ℝ) * (⌊x/n⌋ : ℝ) = 1 := by
+lemma sum_mobius_floor (x : ℝ) (hx : 1 ≤ x) : ∑ n ∈ Icc 1 ⌊x⌋₊, (μ n : ℝ) * ⌊x / n⌋ = 1 := by
   norm_cast
   convert ArithmeticFunction.sum_Ioc_mul_zeta_eq_sum μ ⌊x⌋₊ |>.symm using 1
-  · rw [Iic_eq_Icc, bot_eq_zero, ← add_sum_Ioc_eq_sum_Icc (by simp)]
-    simp only [ArithmeticFunction.map_zero, CharP.cast_eq_zero, div_zero, Int.floor_zero, mul_zero,
-      zero_add, Int.natCast_ediv]
+  · rw [← Finset.Icc_succ_left_eq_Ioc 0 _]
+    simp only [Order.succ_eq_add_one, zero_add, Int.natCast_ediv]
     refine sum_congr rfl fun n hn ↦ ?_
     congr
     norm_cast
@@ -1054,11 +1052,6 @@ theorem lambda_pnt : (fun x : ℝ ↦ ∑ n ∈ range ⌊x⌋₊, (-1)^(Ω n)) =
     rw [ abs_of_nonneg ( by positivity ) ] ; nlinarith [ Nat.floor_le ( by positivity : 0 ≤ x ) ]
 
 
-lemma sum_mobius_floor (x : ℝ) (hx : 1 ≤ x) : ∑ n ∈ Icc 1 ⌊x⌋₊, (μ n : ℝ) * ⌊x / n⌋ = 1 := by
-  have h := sum_mobius_mul_floor x hx
-  rw [Iic_eq_Icc, bot_eq_zero, ← add_sum_Ioc_eq_sum_Icc (Nat.zero_le _)] at h
-  simpa only [ArithmeticFunction.map_zero, Int.cast_zero, zero_mul, zero_add,
-    ← Finset.Icc_succ_left_eq_Ioc, Order.succ_eq_add_one] using h
 
 lemma sum_mobius_floor_tail_isLittleO (K : ℕ) (hK : 0 < K) :
     (fun x : ℝ => ∑ n ∈ Finset.Ioc ⌊x/K⌋₊ ⌊x⌋₊, (μ n : ℝ) * (⌊x / (n : ℝ)⌋ : ℝ)) =o[atTop] fun x => x := by
