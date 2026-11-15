@@ -505,14 +505,11 @@ theorem sum_mobius_div_self_le (N : ℕ) : |∑ n ∈ range N, μ n / (n : ℚ)|
   /- annoying case -/
   have h_sum : 1 = (∑ d ∈ range (N + 1), (μ d / d : ℚ)) * N - ∑ d ∈ range (N + 1),
       μ d * Int.fract (N / d : ℚ) := calc
-    (1 : ℚ) = ∑ m ∈ Ioc 0 N, ∑ d ∈ m.divisors, μ d := by
-      have (x : ℕ) (hx : x ∈ Ioc 0 N) : ∑ d ∈ divisors x, μ d = if x = 1 then 1 else 0 := by
-        rw [mem_Ioc] at hx
-        rw [← coe_mul_zeta_apply, moebius_mul_coe_zeta, ArithmeticFunction.one_apply]
-      rw [sum_congr rfl this]
-      simp [hN.ne']
-    _ = ∑ d ∈ range (N + 1), μ d * (N / d : ℕ) := by
-      simp_rw [← coe_mul_zeta_apply, ArithmeticFunction.sum_Ioc_mul_zeta_eq_sum]
+    (1 : ℚ) = ∑ d ∈ Ioc 0 N, (μ d : ℚ) * (N / d : ℕ) := by
+      simpa [coe_moebius_mul_coe_zeta, ArithmeticFunction.one_apply,
+        Nat.one_le_iff_ne_zero, hN.ne'] using
+        (ArithmeticFunction.sum_Ioc_mul_zeta_eq_sum (μ : ArithmeticFunction ℚ) N)
+    _ = ∑ d ∈ range (N + 1), (μ d : ℚ) * (N / d : ℕ) := by
       rw [range_eq_Ico, ← Finset.insert_Ico_add_one_left_eq_Ico (add_one_pos _),
         sum_insert (by simp), Ico_add_one_add_one_eq_Ioc]
       simp
@@ -525,9 +522,6 @@ theorem sum_mobius_div_self_le (N : ℕ) : |∑ n ∈ range N, μ n / (n : ℚ)|
   rw [eq_sub_iff_add_eq, eq_comm, ← eq_div_iff (by norm_num [Nat.pos_iff_ne_zero.mp hN])] at h_sum
 
   /- Next, we establish bounds for the error term -/
-  have hf' (d : ℕ) : |Int.fract ((N : ℚ) / d)| < 1 := by
-    rw [abs_of_nonneg (Int.fract_nonneg _)]
-    exact Int.fract_lt_one _
   have h_bound : |∑ d ∈ range (N + 1), μ d * Int.fract ((N : ℚ) / d)| ≤ N - 1 := by
     /- range (N + 1) → Icc 1 N + part that evals to 0 -/
     rw [range_eq_Ico, ← Finset.insert_Ico_add_one_left_eq_Ico (by simp), sum_insert (by simp),
@@ -538,10 +532,9 @@ theorem sum_mobius_div_self_le (N : ℕ) : |∑ n ∈ range N, μ n / (n : ℚ)|
       mul_zero, zero_add]
     /- bound sum -/
     have (d : ℕ) : |μ d * Int.fract ((N : ℚ) / d)| ≤ 1 := by
-      rw [abs_mul, ← one_mul 1]
-      refine mul_le_mul ?_ (hf' _).le (abs_nonneg _) zero_le_one
-      norm_cast
-      exact abs_moebius_le_one
+      rw [abs_mul, abs_of_nonneg (Int.fract_nonneg ((N : ℚ) / d))]
+      exact (mul_le_of_le_one_left (Int.fract_nonneg _)
+        (by exact_mod_cast abs_moebius_le_one (n := d))).trans (Int.fract_lt_one _).le
     apply (abs_sum_le_sum_abs _ _).trans
     apply (sum_le_sum fun d _ ↦ this d).trans
     simp [cast_sub (one_le_iff_ne_zero.mpr hN.ne')]
