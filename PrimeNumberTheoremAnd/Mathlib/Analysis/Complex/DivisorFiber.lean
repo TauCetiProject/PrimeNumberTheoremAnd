@@ -35,17 +35,8 @@ namespace Complex.Hadamard
 
 lemma divisor_univ_eq_analyticOrderNatAt_int {f : ℂ → ℂ} (hf : Differentiable ℂ f) (z : ℂ) :
     MeromorphicOn.divisor f (Set.univ : Set ℂ) z = (analyticOrderNatAt f z : ℤ) := by
-  have hmero : MeromorphicOn f (Set.univ : Set ℂ) := by
-    intro w hw
-    exact (Differentiable.analyticAt (f := f) hf w).meromorphicAt
-  simp only
-    [MeromorphicOn.divisor_apply hmero (by simp : z ∈ (Set.univ : Set ℂ)), analyticOrderNatAt]
-  have han : AnalyticAt ℂ f z := Differentiable.analyticAt (f := f) hf z
-  cases h : analyticOrderAt f z with
-  | top =>
-      simp [han.meromorphicOrderAt_eq, h]
-  | coe n =>
-      simp [han.meromorphicOrderAt_eq, h]
+  exact (show MeromorphicOn f Set.univ from fun w _ ↦ (hf.analyticAt w).meromorphicAt)
+    |>.divisor_eq_analyticOrderNatAt (hf.analyticAt z) (Set.mem_univ z)
 
 /-!
 ## The multiplicity fiber is finite and has the expected cardinality
@@ -87,31 +78,9 @@ lemma divisorZeroIndex₀_fiberFinset_card_eq_toNat_divisor (f : ℂ → ℂ) {z
   have hS : S.Finite := divisorZeroIndex₀_fiber_finite (f := f) z₀
   set n : ℕ := Int.toNat (MeromorphicOn.divisor f (Set.univ : Set ℂ) z₀)
   have hcard : Nat.card S = n := by
-    classical
-    have : Fintype S := hS.fintype
-    -- `S` is the fiber over `z₀`, hence equivalent to `Fin (Int.toNat (divisor z₀))`.
     let e : S ≃ Fin n :=
-      { toFun := by
-          intro x
-          rcases x with ⟨p, hp⟩
-          rcases p with ⟨⟨z, q⟩, hz⟩
-          have hzEq : z = z₀ := by simpa [divisorZeroIndex₀_val] using! hp
-          subst hzEq
-          simpa [n] using q
-        invFun := by
-          intro q
-          refine ⟨⟨⟨z₀, ?_⟩, hz₀⟩, ?_⟩
-          · simpa [n] using q
-          · simp [S, divisorZeroIndex₀_val]
-        left_inv := by
-          rintro ⟨p, hp⟩
-          rcases p with ⟨⟨z, q⟩, hz⟩
-          have hzEq : z = z₀ := by simpa [divisorZeroIndex₀_val] using! hp
-          subst hzEq
-          (ext; rfl)
-        right_inv := by
-          intro q
-          rfl }
+      (Equiv.subtypeSubtypeEquivSubtype (fun {p : divisorZeroIndex f Set.univ} hp ↦
+        hp.symm ▸ hz₀)).trans (Equiv.sigmaSubtype z₀)
     have h := Nat.card_congr (α := S) (β := Fin n) e
     simpa using (h.trans (by simp))
   have hSncard : S.ncard = n := by

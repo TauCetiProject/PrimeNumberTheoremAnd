@@ -11,6 +11,7 @@ public import Mathlib.Topology.MetricSpace.Cauchy
 import Mathlib.MeasureTheory.Group.Integral
 import Mathlib.Topology.Order.Compact
 import TauCeti.Analysis.Asymptotics.Lemmas
+import TauCeti.Analysis.Fourier.Decay
 import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 
 /-!
@@ -260,96 +261,39 @@ theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div_ae
   filter_upwards [show ∀ᵐ u : ℝ, u ≠ 0 by simp [ae_iff, measure_singleton]] with u hu
   rw [ite_eq_right hu, ite_eq_right hu]
 
-/-- Riemann-Lebesgue on the scaled positive-frequency ray. -/
-theorem fourier_tendsto_atTop_scaled (f : ℝ → E) :
-    Filter.Tendsto (fun T : ℝ => 𝓕 f (T / (2 * π))) Filter.atTop (nhds 0) := by
-  refine (Real.zero_at_infty_fourier f).comp ?_
-  exact ((tendsto_div_const_atTop_of_pos (by positivity : 0 < 2 * π)).2
-    tendsto_id).mono_right atTop_le_cocompact
-
-/-- Riemann-Lebesgue on the scaled negative-frequency ray. -/
-theorem fourier_tendsto_atTop_neg_scaled (f : ℝ → E) :
-    Filter.Tendsto (fun T : ℝ => 𝓕 f (-T / (2 * π))) Filter.atTop (nhds 0) := by
-  refine (Real.zero_at_infty_fourier f).comp ?_
-  have h : Tendsto (fun T : ℝ ↦ T / (2 * π)) atTop atTop :=
-    (tendsto_div_const_atTop_of_pos (by positivity)).2 tendsto_id
-  simpa only [neg_div, Function.comp_def] using
-    (tendsto_neg_atTop_atBot.comp h).mono_right atBot_le_cocompact
-
-/-- The negative complex exponential integral tends to zero on the positive height ray. -/
-theorem tendsto_integral_exp_neg_mul_I_smul_atTop (f : ℝ → E) :
-    Filter.Tendsto (fun T : ℝ => ∫ v : ℝ,
-      Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) Filter.atTop (nhds 0) := by
-  have h := fourier_tendsto_atTop_scaled (E := E) f
-  refine h.congr' ?_
-  filter_upwards with T
-  rw [Real.fourier_real_eq_integral_exp_smul]
-  congr with v
-  congr 1
-  push_cast
-  field_simp [Real.pi_ne_zero]
-
-/-- The positive complex exponential integral tends to zero on the positive height ray. -/
-theorem tendsto_integral_exp_pos_mul_I_smul_atTop (f : ℝ → E) :
-    Filter.Tendsto (fun T : ℝ => ∫ v : ℝ,
-      Complex.exp (((T * v : ℝ) : ℂ) * I) • f v) Filter.atTop (nhds 0) := by
-  have h := fourier_tendsto_atTop_neg_scaled (E := E) f
-  refine h.congr' ?_
-  filter_upwards with T
-  rw [Real.fourier_real_eq_integral_exp_smul]
-  congr with v
-  congr 1
-  push_cast
-  field_simp [Real.pi_ne_zero]
-
-/-- Multiplying an integrable function by a negative unit-modulus exponential preserves
-integrability. -/
-lemma integrable_exp_neg_mul_I_smul {f : ℝ → E} (hf : Integrable f) (T : ℝ) :
-    Integrable (fun v : ℝ => Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) := by
-  refine hf.mono ?_ ?_
-  · exact (by fun_prop : Continuous (fun v : ℝ =>
-        Complex.exp (-(((T * v : ℝ) : ℂ) * I))))
-      |>.aestronglyMeasurable.smul hf.aestronglyMeasurable
-  · filter_upwards with v
-    rw [norm_smul]
-    have harg : -(((T * v : ℝ) : ℂ) * I) = (((-(T * v) : ℝ) : ℂ) * I) := by
-      push_cast
-      ring
-    rw [harg, Complex.norm_exp_ofReal_mul_I, one_mul]
-
-/-- Multiplying an integrable function by a positive unit-modulus exponential preserves
-integrability. -/
-lemma integrable_exp_pos_mul_I_smul {f : ℝ → E} (hf : Integrable f) (T : ℝ) :
-    Integrable (fun v : ℝ => Complex.exp (((T * v : ℝ) : ℂ) * I) • f v) := by
-  refine hf.mono ?_ ?_
-  · exact (by fun_prop : Continuous (fun v : ℝ =>
-        Complex.exp (((T * v : ℝ) : ℂ) * I)))
-      |>.aestronglyMeasurable.smul hf.aestronglyMeasurable
-  · filter_upwards with v
-    rw [norm_smul, Complex.norm_exp_ofReal_mul_I, one_mul]
-
 /-- Riemann-Lebesgue in sine-integral form. This is the oscillatory cancellation
 brick used by the non-L1 principal-value Laplace inversion route. -/
 theorem tendsto_integral_sin_mul_smul_atTop {f : ℝ → E} (hf : Integrable f) :
     Filter.Tendsto (fun T : ℝ => ∫ v : ℝ, (Real.sin (T * v) : ℂ) • f v)
       Filter.atTop (nhds 0) := by
   let c : ℂ := (2 : ℂ)⁻¹ * I
-  have hneg := tendsto_integral_exp_neg_mul_I_smul_atTop (E := E) f
-  have hpos := tendsto_integral_exp_pos_mul_I_smul_atTop (E := E) f
-  have hdiff : Filter.Tendsto
-      (fun T : ℝ => (∫ v : ℝ, Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) -
-        ∫ v : ℝ, Complex.exp (((T * v : ℝ) : ℂ) * I) • f v)
-      Filter.atTop (nhds (0 - 0)) := hneg.sub hpos
-  have hscaled : Filter.Tendsto
-      (fun T : ℝ => c • ((∫ v : ℝ,
-          Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) -
-        ∫ v : ℝ, Complex.exp (((T * v : ℝ) : ℂ) * I) • f v))
-      Filter.atTop (nhds 0) := by
-    simpa [c] using hdiff.const_smul c
+  have hfreq : Tendsto (fun T : ℝ ↦ T / (2 * π)) atTop atTop :=
+    (tendsto_div_const_atTop_of_pos (by positivity)).2 tendsto_id
+  have hneg := (Real.zero_at_infty_fourier f).comp (hfreq.mono_right atTop_le_cocompact)
+  have hpos := (Real.zero_at_infty_fourier f).comp
+    ((tendsto_neg_atTop_atBot.comp hfreq).mono_right atBot_le_cocompact)
+  have hphase (T : ℝ) :
+      (∫ v : ℝ, Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) =
+        𝓕 f (T / (2 * π)) := by
+    simpa only [Real.inner_apply, smul_eq_mul, div_eq_inv_mul, mul_comm] using
+      TauCeti.integral_exp_smul_eq_fourier f T
+  change Tendsto (fun T : ℝ ↦ 𝓕 f (T / (2 * π))) atTop (nhds 0) at hneg
+  change Tendsto (fun T : ℝ ↦ 𝓕 f (-(T / (2 * π)))) atTop (nhds 0) at hpos
+  simp_rw [← hphase] at hneg
+  have hpos' : Filter.Tendsto (fun T : ℝ => ∫ v : ℝ,
+      Complex.exp (((T * v : ℝ) : ℂ) * I) • f v) atTop (nhds 0) := by
+    simpa only [← neg_div, ← hphase, neg_mul, ofReal_neg, neg_mul, neg_neg] using hpos
+  have hscaled := (hneg.sub hpos').const_smul c
+  simp only [sub_self, smul_zero] at hscaled
   refine hscaled.congr' ?_
   filter_upwards with T
-  have hneg_int := integrable_exp_neg_mul_I_smul (E := E) hf T
-  have hpos_int := integrable_exp_pos_mul_I_smul (E := E) hf T
+  have hneg_int : Integrable (fun v : ℝ =>
+      Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) := by
+    simpa only [Real.inner_apply, mul_comm] using TauCeti.integrable_exp_neg_inner_smul hf T
+  have hpos_int : Integrable (fun v : ℝ =>
+      Complex.exp (((T * v : ℝ) : ℂ) * I) • f v) := by
+    simpa only [Real.inner_apply, mul_neg, ofReal_neg, neg_mul, neg_neg, mul_comm] using
+      TauCeti.integrable_exp_neg_inner_smul hf (-T)
   rw [← integral_sub hneg_int hpos_int]
   rw [← integral_smul]
   congr with v

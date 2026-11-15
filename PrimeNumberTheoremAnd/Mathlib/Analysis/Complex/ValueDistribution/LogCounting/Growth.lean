@@ -84,101 +84,68 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
     {R : ℝ} (hR : 1 ≤ R) :
     (log 2) * massClosedBall₀ D R ≤ logCounting D (2 * R) := by
   classical
-  have hR0 : 0 < R := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) hR
-  set r : ℝ := 2 * R
-  have hrpos : 0 < r := by dsimp [r]; nlinarith
+  have hR0 : 0 < R := zero_lt_one.trans_le hR
+  let r := 2 * R
+  have hr0 : 0 < r := by dsimp [r]; positivity
   let Dr := toClosedBall r D
-  have hDr_fin : Set.Finite Dr.support := Dr.finiteSupport (isCompact_closedBall (0 : E) |r|)
-  let F : Finset E := hDr_fin.toFinset
-  let SR : Finset E :=
-    (finiteSupport (toClosedBall R D) (isCompact_closedBall (0 : E) |R|)).toFinset
-  let S : Finset E := SR.filter fun z => z ≠ (0 : E)
-  have hS_sub : S ⊆ F := by
-    intro z hzS
-    have hz_mem_SR : z ∈ SR := (Finset.mem_filter.1 hzS).1
-    have hzR : z ∈ (toClosedBall R D).support := by
-      exact (finiteSupport (toClosedBall R D) (isCompact_closedBall (0 : E) |R|)).mem_toFinset.1
-        hz_mem_SR
-    have hz_norm_le_R : ‖z‖ ≤ R := by
-      have := (toClosedBall R D).supportWithinDomain hzR
-      simpa only [mem_closedBall, dist_zero_right, abs_of_pos hR0] using this
-    have hz_norm_le_r : ‖z‖ ≤ |r| := by
-      have : ‖z‖ ≤ r := le_trans hz_norm_le_R (by dsimp [r]; nlinarith)
-      simpa [abs_of_pos hrpos] using this
-    have hzD : z ∈ D.support := mem_support_of_mem_toClosedBall_support hzR
-    have : z ∈ Dr.support := by
-      simpa [Dr] using
-        mem_toClosedBall_support_of_mem_support_of_norm_le_abs (D := D) (r := r) hzD hz_norm_le_r
-    exact hDr_fin.mem_toFinset.2 this
-  have hlogCounting :
-      logCounting D r
-        = (F.sum fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) + (D 0 : ℝ) * log r := by
-    have hsupp : Function.support (fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) ⊆ F := by
+  let S := ((finiteSupport (toClosedBall R D)
+    (isCompact_closedBall (0 : E) |R|)).toFinset).filter fun z => z ≠ (0 : E)
+  let v (z : E) : ℝ := if z ∈ S then log 2 * (D z : ℝ) else 0
+  let w (z : E) : ℝ := (Dr z : ℝ) * log (r * ‖z‖⁻¹)
+  have hvsub : Function.support v ⊆ (S : Set E) := by
+    intro z hz
+    by_contra h
+    exact (Function.mem_support.mp hz) (by change z ∉ S at h; simp only [v, ite_eq_right h])
+  have hvfin : (Function.support v).Finite := S.finite_toSet.subset hvsub
+  have hwfin : (Function.support w).Finite :=
+    (finiteSupport Dr (isCompact_closedBall (0 : E) |r|)).subset (by
       intro z hz
-      have : Dr z ≠ 0 := by
-        by_contra h0
-        simp [Function.mem_support, h0] at hz
-      have : z ∈ Dr.support := by simpa [Function.mem_support] using this
-      exact hDr_fin.mem_toFinset.2 this
-    simp [logCounting, Dr, r,
-      finsum_eq_sum_of_support_subset (f := fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) (s := F) hsupp]
-  have hsum_le :
-      (log 2) * (S.sum fun z => (D z : ℝ))
-        ≤ F.sum (fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) := by
-    have hterm_nonneg : ∀ z ∈ F, 0 ≤ (Dr z : ℝ) * log (r * ‖z‖⁻¹) := by
-      intro z hzF
-      have hz_sup : z ∈ Dr.support := hDr_fin.mem_toFinset.1 hzF
-      have hDz : 0 ≤ Dr z := by
-        have hDz' : 0 ≤ D z := hDnonneg z
-        have hDrz : Dr z = D z :=
-          toClosedBall_eval_within D (Dr.supportWithinDomain hz_sup)
-        simpa [hDrz] using hDz'
-      have hlog : 0 ≤ log (r * ‖z‖⁻¹) := by
-        have hzle : ‖z‖ ≤ r := by
-          have hnorm := Dr.supportWithinDomain hz_sup
-          simpa only [mem_closedBall, dist_zero_right, abs_of_pos hrpos] using hnorm
-        exact log_nonneg_mul_inv_norm_of_norm_le hzle
-      exact mul_nonneg (by exact_mod_cast hDz) hlog
-    have hsumSF :
-        S.sum (fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹))
-          ≤ F.sum (fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) :=
-      Finset.sum_le_sum_of_subset_of_nonneg hS_sub (by
-        intro z hzF _; exact hterm_nonneg z hzF)
-    have hterm_ge : ∀ z ∈ S, (log 2) * (D z : ℝ) ≤ (Dr z : ℝ) * log (r * ‖z‖⁻¹) := by
-      intro z hzS
-      have hz0 : z ≠ (0 : E) := (Finset.mem_filter.1 hzS).2
-      have hz_norm_le_R : ‖z‖ ≤ R := by
-        have hz_mem_SR : z ∈ SR := (Finset.mem_filter.1 hzS).1
-        have hzRsup : z ∈ (toClosedBall R D).support := by
-          exact (finiteSupport (toClosedBall R D) (isCompact_closedBall (0 : E) |R|)).mem_toFinset.1
-            hz_mem_SR
-        have hnorm := (toClosedBall R D).supportWithinDomain hzRsup
-        simpa only [mem_closedBall, dist_zero_right, abs_of_pos hR0] using hnorm
-      have hlog_le : log 2 ≤ log (r * ‖z‖⁻¹) := by
-        simpa [r] using log_two_le_log_two_mul_mul_inv_norm_of_norm_le hz0 hz_norm_le_R
-      have hDz_nonneg : 0 ≤ D z := hDnonneg z
-      have hz_in_ballr : z ∈ closedBall (0 : E) |r| := by
-        have : ‖z‖ ≤ r := le_trans hz_norm_le_R (by dsimp [r]; nlinarith)
-        simpa [mem_closedBall, dist_zero_right, abs_of_pos hrpos] using this
-      have hDrz : Dr z = D z := by
-        exact toClosedBall_eval_within D hz_in_ballr
-      have : (log 2) * (D z : ℝ) ≤ (log (r * ‖z‖⁻¹)) * (D z : ℝ) :=
-        mul_le_mul_of_nonneg_right hlog_le (by exact_mod_cast hDz_nonneg)
-      simpa [hDrz, mul_assoc, mul_left_comm, mul_comm] using this
-    calc
-      (log 2) * (S.sum fun z => (D z : ℝ))
-          = S.sum (fun z => (log 2) * (D z : ℝ)) := by simp [Finset.mul_sum]
-      _ ≤ S.sum (fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) :=
-        Finset.sum_le_sum fun z hz => hterm_ge z hz
-      _ ≤ F.sum (fun z => (Dr z : ℝ) * log (r * ‖z‖⁻¹)) := hsumSF
-  have hcenter_nonneg : 0 ≤ (D 0 : ℝ) * log r := by
-    have hD0 : 0 ≤ D 0 := hDnonneg 0
-    have hlogr : 0 ≤ log r := log_nonneg (by nlinarith [hR])
-    exact mul_nonneg (by exact_mod_cast hD0) hlogr
-  have : (log 2) * (S.sum fun z => (D z : ℝ)) ≤ logCounting D r := by
-    rw [hlogCounting]
-    nlinarith [hsum_le, hcenter_nonneg]
-  simpa [massClosedBall₀, r, S, SR] using this
+      apply Function.mem_support.mpr
+      intro h
+      exact (Function.mem_support.mp hz) (by simp [w, h]))
+  have hw (z : E) : 0 ≤ w z := by
+    by_cases hz : Dr z = 0
+    · simp [w, hz]
+    have hb := Dr.supportWithinDomain (Function.mem_support.mpr hz)
+    have heq : Dr z = D z := toClosedBall_eval_within D hb
+    have hn : ‖z‖ ≤ r := by
+      simpa only [mem_closedBall, dist_zero_right, abs_of_pos hr0] using hb
+    exact mul_nonneg (by exact_mod_cast heq ▸ hDnonneg z)
+      (log_nonneg_mul_inv_norm_of_norm_le hn)
+  have hvw : v ≤ w := by
+    intro z
+    by_cases hz : z ∈ S
+    · have hz0 := (Finset.mem_filter.mp hz).2
+      have hzR := (finiteSupport (toClosedBall R D)
+        (isCompact_closedBall (0 : E) |R|)).mem_toFinset.mp (Finset.mem_filter.mp hz).1
+      have hn : ‖z‖ ≤ R := by
+        simpa only [mem_closedBall, dist_zero_right, abs_of_pos hR0] using
+          (toClosedBall R D).supportWithinDomain hzR
+      have hb : z ∈ closedBall (0 : E) |r| := by
+        simp only [mem_closedBall, dist_zero_right, abs_of_pos hr0]
+        exact hn.trans (by dsimp [r]; linarith)
+      have heq : Dr z = D z := toClosedBall_eval_within D hb
+      change (if z ∈ S then log 2 * (D z : ℝ) else 0) ≤ _
+      rw [ite_eq_left hz]
+      change log 2 * (D z : ℝ) ≤ (Dr z : ℝ) * log (r * ‖z‖⁻¹)
+      rw [heq]
+      simpa only [r, mul_comm] using mul_le_mul_of_nonneg_right
+        (log_two_le_log_two_mul_mul_inv_norm_of_norm_le hz0 hn)
+        (show (0 : ℝ) ≤ (D z : ℝ) by exact_mod_cast hDnonneg z)
+    · simpa only [v, ite_eq_right hz] using hw z
+  have hmass : ∑ᶠ z, v z = log 2 * massClosedBall₀ D R := by
+    rw [finsum_eq_sum_of_support_subset v hvsub]
+    change (∑ z ∈ S, v z) = log 2 * ∑ z ∈ S, (D z : ℝ)
+    rw [Finset.mul_sum]
+    exact Finset.sum_congr rfl fun z hz => by simp only [v, ite_eq_left hz]
+  have hc : 0 ≤ (D 0 : ℝ) * log r :=
+    mul_nonneg (by exact_mod_cast hDnonneg 0) (log_nonneg (by dsimp [r]; linarith))
+  calc
+    log 2 * massClosedBall₀ D R = ∑ᶠ z, v z := hmass.symm
+    _ ≤ ∑ᶠ z, w z := finsum_le_finsum hvfin hwfin hvw
+    _ ≤ (∑ᶠ z, w z) + (D 0 : ℝ) * log r := le_add_of_nonneg_right hc
+    _ = logCounting D (2 * R) := rfl
+
 
 theorem massClosedBall₀_divisor_le_of_log_growth {f : ℂ → ℂ} {ρ C : ℝ}
     (hf : Differentiable ℂ f)
