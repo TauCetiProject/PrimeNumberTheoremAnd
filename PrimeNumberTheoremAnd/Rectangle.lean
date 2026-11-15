@@ -54,15 +54,6 @@ theorem preimage_equivRealProdCLM_reProdIm (s t : Set ℝ) :
     equivRealProdCLM.symm ⁻¹' (s ×ℂ t) = s ×ˢ t :=
   rfl
 
-@[simp]
-theorem ContinuousLinearEquiv.coe_toLinearEquiv_symm {R : Type*} {S : Type*} [Semiring R]
-    [Semiring S] {σ : R →+* S} {σ' : S →+* R} [RingHomInvPair σ σ'] [RingHomInvPair σ' σ]
-    (M : Type*) [TopologicalSpace M]
-    [AddCommMonoid M] {M₂ : Type*} [TopologicalSpace M₂] [AddCommMonoid M₂] [Module R M]
-    [Module S M₂] (e : M ≃SL[σ] M₂) :
-    ⇑e.toLinearEquiv.symm = e.symm :=
-  rfl
-
 lemma mem_Rect {z w : ℂ} (zRe_lt_wRe : z.re ≤ w.re) (zIm_lt_wIm : z.im ≤ w.im) (p : ℂ) :
     p ∈ Rectangle z w ↔
       z.re ≤ p.re ∧ p.re ≤ w.re ∧ z.im ≤ p.im ∧ p.im ≤ w.im := by
@@ -72,18 +63,6 @@ lemma mem_Rect {z w : ℂ} (zRe_lt_wRe : z.re ≤ w.re) (zIm_lt_wIm : z.im ≤ w
 lemma square_neg (p : ℂ) (c : ℝ) : Square p (-c) = Square p c := by
   simpa [Square] using! Rectangle.symm
 
-
-theorem Set.left_not_mem_uIoo {a b : ℝ} : a ∉ Set.uIoo a b :=
-  fun ⟨h1, h2⟩ ↦ (left_lt_sup.mp h2) (le_of_not_ge (inf_lt_left.mp h1))
-
-theorem Set.right_not_mem_uIoo {a b : ℝ} : b ∉ Set.uIoo a b :=
-  fun ⟨h1, h2⟩ ↦ (right_lt_sup.mp h2) (le_of_not_ge (inf_lt_right.mp h1))
-
-theorem Set.ne_left_of_mem_uIoo {a b c : ℝ} (hc : c ∈ Set.uIoo a b) : c ≠ a :=
-  fun h ↦ Set.left_not_mem_uIoo (h ▸ hc)
-
-theorem Set.ne_right_of_mem_uIoo {a b c : ℝ} (hc : c ∈ Set.uIoo a b) : c ≠ b :=
-  fun h ↦ Set.right_not_mem_uIoo (h ▸ hc)
 
 lemma left_mem_rect (z w : ℂ) : z ∈ Rectangle z w := ⟨left_mem_uIcc, left_mem_uIcc⟩
 
@@ -236,8 +215,10 @@ theorem not_mem_rectangleBorder_of_rectangle_mem_nhds {z w p : ℂ}
     p ∉ RectangleBorder z w := by
   refine Set.disjoint_right.mp (rectangleBorder_disjoint_singleton ?_) rfl
   have h1 := rectangle_mem_nhds_iff.mp hp
-  exact ⟨Set.ne_left_of_mem_uIoo h1.1, Set.ne_right_of_mem_uIoo h1.1,
-    Set.ne_left_of_mem_uIoo h1.2, Set.ne_right_of_mem_uIoo h1.2⟩
+  exact ⟨ne_of_mem_of_not_mem h1.1 left_notMem_uIoo,
+    ne_of_mem_of_not_mem h1.1 right_notMem_uIoo,
+    ne_of_mem_of_not_mem h1.2 left_notMem_uIoo,
+    ne_of_mem_of_not_mem h1.2 right_notMem_uIoo⟩
 
 theorem Complex.nhds_hasBasis_square (p : ℂ) : (𝓝 p).HasBasis (0 < ·) (Square p ·) := by
   suffices

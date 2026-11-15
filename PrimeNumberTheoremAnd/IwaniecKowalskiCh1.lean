@@ -1846,29 +1846,16 @@ lemma sum_moebius_sq_divisors_IsMultiplicative : sum_moebius_sq_divisors.IsMulti
   -/)]
 lemma sum_moebius_sq_divisors_apply_prime_pow {p k : ℕ} (hp : Nat.Prime p) :
   sum_moebius_sq_divisors (p ^ k) = (μ (p ^ k)) ^ 2 := by
-  have h_filter : ((Nat.divisors (p ^ k)).filter (fun x => x ^ 2 ∣ p ^ k)) = Finset.image (fun j => p ^ j) (Finset.range (k / 2 + 1)) := by
-    ext; simp only [Nat.divisors_prime_pow hp, mem_filter, mem_map, mem_range, Order.lt_add_one_iff, Function.Embedding.coeFn_mk, mem_image]
-    constructor
-    · rintro ⟨⟨a, ha, rfl⟩, h⟩
-      exact ⟨a, Nat.le_div_iff_mul_le zero_lt_two |>.2 <| by
-        rw [← pow_mul] at h
-        exact Nat.le_of_not_lt fun ha' => absurd (Nat.le_of_dvd (pow_pos hp.pos _) h)
-          (not_le_of_gt (pow_lt_pow_right₀ hp.one_lt ha')), rfl⟩
-    · rintro ⟨a, ha, rfl⟩
-      exact ⟨⟨a, by omega, rfl⟩, by rw [← pow_mul]; exact pow_dvd_pow _ (by omega)⟩
-  simp only [moebius_sq, sum_moebius_sq_divisors_apply, h_filter]
-  rw [Finset.sum_image <| by intros a ha b hb hab; exact Nat.pow_right_injective hp.two_le hab, Finset.sum_range_succ']
-  split_ifs with h
-  · have hk : k / 2 = 0 := by
-      rw [Nat.div_eq_zero_iff, or_iff_right (two_ne_zero)]
-      by_contra hk
-      exact absurd h (by rw [Nat.squarefree_pow_iff hp.ne_one (by omega)]; exact not_and_of_not_right _ (by linarith))
-    simp [hk]
-  · simp only [pow_zero, isUnit_iff_eq_one, IsUnit.squarefree, moebius_apply_of_squarefree, Int.reduceNeg, cardFactors_one]
-    rcases k with _ | _ | _
-    · simp at ⊢ h
-    · simp [hp.squarefree] at ⊢ h
-    · simp_all +decide [ArithmeticFunction.moebius_apply_prime_pow]
+  rw [sum_moebius_sq_divisors_apply, Finset.sum_filter, Nat.sum_divisors_prime_pow hp]
+  rcases k with _ | _ | k
+  · simp
+  · have hsq : ¬ p ^ 2 ∣ p := by
+      simpa only [pow_one] using
+        (not_congr (Nat.pow_dvd_pow_iff_le_right hp.one_lt (k := 2) (l := 1))).mpr (by omega)
+    simp [Finset.sum_range_succ, moebius_apply_prime hp, hsq]
+  · rw [Finset.sum_range_succ', Finset.sum_range_succ']
+    simp [moebius_apply_prime_pow, moebius_apply_prime hp, hp, ← pow_mul,
+      Nat.pow_dvd_pow_iff_le_right hp.one_lt]
 
 /-- I-K (1.33): `μ^2(n) = ∑ d^2|n μ(d)`. -/
 @[blueprint
@@ -1877,14 +1864,15 @@ lemma sum_moebius_sq_divisors_apply_prime_pow {p k : ℕ} (hp : Nat.Prime p) :
   (statement := /-- I-K (1.33): $\mu^2(n) = \sum_{d^2|n} \mu(d)$. -/)
   (proof := /-- Apply the previous two lemmas. -/)]
 lemma moebius_sq_eq (n : ℕ) : (μ n) ^ 2 = ∑ d ∈ n.divisors.filter (fun x => x ^ 2 ∣ n), μ d := by
-  by_cases n_zero : n = 0
-  · simp [n_zero]
-  · rw[← sum_moebius_sq_divisors_apply, IsMultiplicative.multiplicative_factorization sum_moebius_sq_divisors sum_moebius_sq_divisors_IsMultiplicative n_zero]
-    have hpf : ∀ p ∈ n.factorization.support, Nat.Prime p :=
-      fun p hp => Nat.prime_of_mem_primeFactors (Nat.support_factorization n ▸ hp)
-    simp only [Finset.prod_pow, Finsupp.prod, Nat.support_factorization, Finset.prod_congr rfl (fun x hx =>
-      sum_moebius_sq_divisors_apply_prime_pow ((Nat.support_factorization n ▸ hpf) x hx))]
-    congr; exact IsMultiplicative.multiplicative_factorization μ isMultiplicative_moebius n_zero
+  have heq := (IsMultiplicative.eq_iff_eq_on_prime_powers
+    sum_moebius_sq_divisors sum_moebius_sq_divisors_IsMultiplicative
+    ((μ : ArithmeticFunction ℤ).ppow 2) isMultiplicative_moebius.ppow).mpr
+    (fun p k hp => by
+      simpa only [ppow_apply (by decide : 0 < 2)] using
+        sum_moebius_sq_divisors_apply_prime_pow (k := k) hp)
+  simpa only [sum_moebius_sq_divisors_apply, ppow_apply (by decide : 0 < 2)] using
+    congrArg (fun f : ArithmeticFunction ℤ => f n) heq.symm
+
 
 blueprint_comment /--
 The Liouville function is Mathlib's canonical `ArithmeticFunction.liouville`, equal to

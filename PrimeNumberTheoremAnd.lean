@@ -12,7 +12,6 @@ import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
 import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound

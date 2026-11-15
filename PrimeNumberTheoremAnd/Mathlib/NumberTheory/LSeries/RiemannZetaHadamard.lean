@@ -8,7 +8,8 @@ module
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Order
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
@@ -218,7 +219,8 @@ theorem logDeriv_riemannXi_eq_polynomial_derivative_add_tsum
         ∑' p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
           (1 / (z - Complex.Hadamard.divisorZeroIndex₀_val p) +
             1 / Complex.Hadamard.divisorZeroIndex₀_val p) := by
-          rw [Polynomial.logDeriv_exp_eval]
+          rw [logDeriv_apply, (P.hasDerivAt z).cexp.deriv,
+            mul_div_cancel_left₀ _ (Complex.exp_ne_zero _)]
           rw [show logDeriv G z =
               ∑' p : Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ),
                 (1 / (z - Complex.Hadamard.divisorZeroIndex₀_val p) +
