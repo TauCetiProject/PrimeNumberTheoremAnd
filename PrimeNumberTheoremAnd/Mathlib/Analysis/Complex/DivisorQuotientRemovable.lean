@@ -35,24 +35,8 @@ theorem differentiableOn_divisorPartialProduct_div_pow_sub
     (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) :
     DifferentiableOn ℂ (fun z : ℂ => (divisorPartialProduct m f s z) / (z - z₀) ^ k)
       ((Set.univ : Set ℂ) \ {z₀}) := by
-  have hdiff_prod : DifferentiableOn ℂ (divisorPartialProduct m f s) (Set.univ : Set ℂ) := by
-    exact (differentiable_divisorPartialProduct m f s).differentiableOn
-  have hdiff_den : DifferentiableOn ℂ (fun z : ℂ => (z - z₀) ^ k) ((Set.univ : Set ℂ) \ {z₀}) := by
-    have : Differentiable ℂ (fun z : ℂ => (z - z₀) ^ k) := by
-      fun_prop
-    exact this.differentiableOn
-  by_cases hk : k = 0
-  · subst hk
-    simpa [pow_zero] using! (hdiff_prod.mono (by intro z hz; exact hz.1))
-  · have hne : ∀ z ∈ ((Set.univ : Set ℂ) \ {z₀}), (fun z : ℂ => (z - z₀) ^ k) z ≠ 0 := by
-      intro z hz
-      have hz' : z ≠ z₀ := by
-        simpa [Set.mem_sdiff, Set.mem_singleton_iff] using hz.2
-      exact pow_ne_zero _ (sub_ne_zero.mpr hz')
-    have hdiff_inv :
-        DifferentiableOn ℂ (fun z : ℂ => ((z - z₀) ^ k)⁻¹) ((Set.univ : Set ℂ) \ {z₀}) :=
-      hdiff_den.inv hne
-    simpa [div_eq_mul_inv] using! (hdiff_prod.mono (by intro z hz; exact hz.1)).mul hdiff_inv
+  exact (differentiable_divisorPartialProduct m f s).differentiableOn.div
+    (by fun_prop) fun z hz => pow_ne_zero k (sub_ne_zero.mpr (by simpa using hz.2))
 
 theorem differentiableOn_divisorCanonicalProduct_div_pow_sub
     (m : ℕ) (f : ℂ → ℂ) (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
@@ -60,17 +44,9 @@ theorem differentiableOn_divisorCanonicalProduct_div_pow_sub
     (z₀ : ℂ) (k : ℕ) : DifferentiableOn ℂ
       (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k)
       ((Set.univ : Set ℂ) \ {z₀}) := by
-  have hopen : IsOpen ((Set.univ : Set ℂ) \ {z₀}) := by
-    have hset : ((Set.univ : Set ℂ) \ {z₀}) = ({z₀} : Set ℂ)ᶜ := by
-      ext z; simp
-    simp [hset]
-  have hconv :=
-    tendstoLocallyUniformlyOn_divisorPartialProduct_div_pow_sub
-      (m := m) (f := f) h_sum (z₀ := z₀) (k := k)
-  refine hconv.differentiableOn ?_ hopen
-  refine Filter.Eventually.of_forall ?_
-  intro s
-  exact differentiableOn_divisorPartialProduct_div_pow_sub (m := m) (f := f) (z₀ := z₀) (k := k) s
+  exact ((differentiableOn_divisorCanonicalProduct_univ m f h_sum).mono
+    Set.sdiff_subset).div (by fun_prop) fun z hz =>
+      pow_ne_zero k (sub_ne_zero.mpr (by simpa using hz.2))
 
 /-!
 ## Removable singularity for the quotient at `z₀`
@@ -89,29 +65,12 @@ theorem differentiableOn_update_limUnder_divisorCanonicalProduct_div_pow
           (limUnder (𝓝[≠] z₀) (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
                 (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card)))
         (Metric.ball z₀ r) := by
-  rcases bddAbove_norm_divisorCanonicalProduct_div_pow_puncturedBall (m := m) (f := f)
-      (h_sum := h_sum) (z₀ := z₀) with ⟨r, hrpos, hbdd⟩
-  refine ⟨r, hrpos, ?_⟩
-  have hnhds : Metric.ball z₀ r ∈ 𝓝 z₀ := Metric.ball_mem_nhds z₀ hrpos
-  have hdiff : DifferentiableOn ℂ (fun z : ℂ =>
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-          (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card)
-      ((Metric.ball z₀ r) \ {z₀}) := by
-    have hglob :=
-      differentiableOn_divisorCanonicalProduct_div_pow_sub
-        (m := m) (f := f) h_sum (z₀ := z₀)
-        (k := (divisorZeroIndex₀_fiberFinset (f := f) z₀).card)
-    refine hglob.mono ?_
-    intro z hz
-    exact ⟨by simp, hz.2⟩
-  have hb : BddAbove (norm ∘ (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-      (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card) ''
-    ((Metric.ball z₀ r) \ {z₀})) := hbdd
-  simpa using
-    (Complex.differentiableOn_update_limUnder_of_bddAbove (f := fun z : ℂ =>
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-          (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card)
-      (s := Metric.ball z₀ r) (c := z₀) hnhds hdiff hb)
+  obtain ⟨r, hr, hb⟩ :=
+    bddAbove_norm_divisorCanonicalProduct_div_pow_puncturedBall m f h_sum z₀
+  refine ⟨r, hr, Complex.differentiableOn_update_limUnder_of_bddAbove
+    (Metric.ball_mem_nhds z₀ hr) ?_ hb⟩
+  exact (differentiableOn_divisorCanonicalProduct_div_pow_sub m f h_sum z₀ _).mono
+    (Set.sdiff_subset_sdiff_left (Set.subset_univ _))
 
 theorem analyticAt_update_limUnder_divisorCanonicalProduct_div_pow
     (m : ℕ) (f : ℂ → ℂ)

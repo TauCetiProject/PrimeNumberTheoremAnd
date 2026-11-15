@@ -13,6 +13,8 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Log.Summable
 public import TauCeti.Analysis.PSeries
+import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
+import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
 
 /-!
 # Divisor summability from logarithmic growth
@@ -483,42 +485,24 @@ theorem summable_norm_inv_rpow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {
     (hgrowth : ∃ C > 0, ∀ z : ℂ, Real.log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) :
     Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ) := by
-  classical
   obtain ⟨C, hC, hgrowth⟩ := hgrowth
-  let r (p : divisorZeroIndex₀ f Set.univ) : ℝ := max 1 ‖divisorZeroIndex₀_val p‖
-  let K : ℝ := |Real.log ‖meromorphicTrailingCoeffAt f 0‖|
-  have hfinite (R : ℝ) : {p | r p ≤ R}.Finite := by
-    apply (divisorZeroIndex₀_norm_le_finite (f := f) (U := Set.univ) R (by simp)).subset
+  have hord : TauCeti.OrderLE f ρ := by
+    rw [TauCeti.orderLE_def]
     intro p hp
-    exact (le_max_right (1 : ℝ) ‖divisorZeroIndex₀_val p‖).trans hp
-  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
-  have hcount : ∀ᶠ R : ℝ in atTop,
-      (∑' p : {p | r p ≤ R}, (1 : ℝ)) ≤
-        ((C * 3 ^ ρ + K) / Real.log 2) * R ^ ρ := by
-    filter_upwards [eventually_ge_atTop (1 : ℝ)] with R hR
-    let := (hfinite R).fintype
-    have hcard := card_subtype_le_divisorMassClosedBall₀_of_norm_le hf
-      (zero_lt_one.trans_le hR) (fun p : {p | r p ≤ R} ↦ (le_max_right _ _).trans p.property)
-    have hmass := divisorMassClosedBall₀_le_of_growth hf hgrowth hR
-    have hbase : 1 + |2 * R| ≤ 3 * R := by rw [abs_of_nonneg (by positivity)]; linarith
-    have hpow : (1 + |2 * R|) ^ ρ ≤ 3 ^ ρ * R ^ ρ := by
-      simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 3) (by positivity : 0 ≤ R)] using
-        Real.rpow_le_rpow (by positivity) hbase hρ
-    have hK : K ≤ K * R ^ ρ :=
-      le_mul_of_one_le_right (abs_nonneg _) (Real.one_le_rpow hR hρ)
-    have hnum : C * (1 + |2 * R|) ^ ρ + K ≤ (C * 3 ^ ρ + K) * R ^ ρ := by
-      nlinarith [mul_le_mul_of_nonneg_left hpow hC.le]
-    simpa only [tsum_fintype, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one,
-      K, div_mul_eq_mul_div] using
-      hcard.trans (hmass.trans (div_le_div_of_nonneg_right hnum hlog2.le))
-  have hs := TauCeti.summable_mul_rpow_of_count_growth r (fun _ ↦ (1 : ℝ))
-    (fun _ ↦ le_max_left _ _) (fun _ ↦ zero_le_one) hfinite
-    (hρ.trans hτ.le) hτ hcount
-  apply hs.congr_cofinite
-  filter_upwards [(divisorZeroIndex₀_norm_le_finite (f := f) (U := Set.univ) 1
-    (by simp)).eventually_cofinite_notMem] with p hp
-  have hp1 : 1 ≤ ‖divisorZeroIndex₀_val p‖ := le_of_lt (lt_of_not_ge hp)
-  simp only [one_mul, r, max_eq_right hp1, Real.rpow_neg_eq_inv_rpow]
+    refine (Asymptotics.IsBigO.of_bound 1 ?_).trans (TauCeti.isBigO_exp_mul_norm_rpow (C * 2 ^ ρ) hp)
+    filter_upwards [tendsto_norm_cobounded_atTop.eventually (eventually_ge_atTop (1 : ℝ))]
+      with z hz
+    have hpow : (1 + ‖z‖) ^ ρ ≤ 2 ^ ρ * ‖z‖ ^ ρ := by
+      simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2) (norm_nonneg z)] using
+        Real.rpow_le_rpow (by positivity) (by linarith : 1 + ‖z‖ ≤ 2 * ‖z‖) hρ
+    have hnorm : ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ ρ) := by
+      exact (le_add_of_nonneg_left (by norm_num : (0 : ℝ) ≤ 1)).trans
+        (Real.le_exp_of_log_le (hgrowth z))
+    simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
+      hnorm.trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
+  have hs := summable_norm_rpow_divisorZeroIndex₀_of_summable_divisor hf
+    (hord.summable_divisor_mul_norm_rpow hf hτ)
+  simpa only [Real.rpow_neg_eq_inv_rpow] using hs
 
 /-- Natural-power form of the divisor summability theorem. -/
 theorem summable_norm_inv_pow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {ρ : ℝ}

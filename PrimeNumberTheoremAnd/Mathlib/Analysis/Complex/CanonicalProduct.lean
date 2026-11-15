@@ -105,33 +105,19 @@ theorem analyticOnNhd_canonicalProduct {m : ℕ} {a : ℕ → ℂ}
   exact DifferentiableOn.analyticOnNhd
     (differentiableOn_univ.mpr (differentiable_canonicalProduct h_sum h_nonzero)) isOpen_univ
 
-/-- The canonical product vanishes at each prescribed zero `a n`. -/
+/-- The canonical product vanishes at a nonzero prescribed zero, without a summability
+hypothesis. -/
 @[simp]
-theorem canonicalProduct_apply_eq_zero {m : ℕ} {a : ℕ → ℂ}
-    (h_sum : Summable (fun n : ℕ => ‖a n‖⁻¹ ^ (m + 1))) (h_nonzero : ∀ n, a n ≠ 0) (n : ℕ) :
+theorem canonicalProduct_apply_eq_zero {m : ℕ} {a : ℕ → ℂ} (n : ℕ) (hn : a n ≠ 0) :
     canonicalProduct m a (a n) = 0 := by
-  let f : ℕ → ℂ := fun k ↦ weierstrassFactor m (a n / a k)
-  have hmult : Multipliable f :=
-    (multipliableLocallyUniformlyOn_canonicalProduct h_sum h_nonzero).multipliable (by simp)
-  have htend :
-      Tendsto (fun N : ℕ ↦ ∏ k ∈ Finset.range N, f k) Filter.atTop
-        (𝓝 (canonicalProduct m a (a n))) := by
-    simpa [f, canonicalProduct] using hmult.hasProd.tendsto_prod_nat
-  have hzero :
-      (fun N : ℕ ↦ ∏ k ∈ Finset.range N, f k) =ᶠ[Filter.atTop] fun _ ↦ (0 : ℂ) := by
-    refine Filter.eventually_atTop.2 ⟨n + 1, fun N hN ↦ ?_⟩
-    have hnN : n ∈ Finset.range N := Finset.mem_range.mpr <| lt_of_lt_of_le (Nat.lt_succ_self n) hN
-    apply Finset.prod_eq_zero hnN
-    simp [f, h_nonzero n, weierstrassFactor_at_one]
-  exact tendsto_nhds_unique_of_eventuallyEq htend tendsto_const_nhds hzero
+  exact tprod_of_exists_eq_zero ⟨n, by simp [hn, weierstrassFactor_at_one]⟩
 
-/-- The canonical product vanishes at every point in `Set.range a`. -/
-theorem canonicalProduct_eq_zero_of_mem_range {m : ℕ} {a : ℕ → ℂ}
-    (h_sum : Summable (fun n : ℕ => ‖a n‖⁻¹ ^ (m + 1))) (h_nonzero : ∀ n, a n ≠ 0)
-    {z : ℂ} (hz : z ∈ Set.range a) :
-    canonicalProduct m a z = 0 := by
+/-- The canonical product vanishes at every nonzero point in `Set.range a`, without a
+summability hypothesis. -/
+theorem canonicalProduct_eq_zero_of_mem_range {m : ℕ} {a : ℕ → ℂ} {z : ℂ}
+    (hz0 : z ≠ 0) (hz : z ∈ Set.range a) : canonicalProduct m a z = 0 := by
   rcases hz with ⟨n, rfl⟩
-  exact canonicalProduct_apply_eq_zero h_sum h_nonzero n
+  exact canonicalProduct_apply_eq_zero n hz0
 
 /-- Away from the prescribed zero set `Set.range a`, the canonical product is nonzero. -/
 theorem canonicalProduct_ne_zero {m : ℕ} {a : ℕ → ℂ}
@@ -186,7 +172,8 @@ theorem canonicalProduct_eq_zero_iff {m : ℕ} {a : ℕ → ℂ}
   · intro hz0
     by_contra hzrange
     exact (canonicalProduct_ne_zero h_sum h_nonzero hzrange) hz0
-  · exact canonicalProduct_eq_zero_of_mem_range h_sum h_nonzero
+  · rintro ⟨n, rfl⟩
+    exact canonicalProduct_eq_zero_of_mem_range (h_nonzero n) ⟨n, rfl⟩
 
 /-- Away from `Set.range a`, the canonical product is nonzero, expressed as an iff. -/
 theorem canonicalProduct_ne_zero_iff {m : ℕ} {a : ℕ → ℂ}
