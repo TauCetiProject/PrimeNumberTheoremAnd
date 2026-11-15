@@ -9,6 +9,7 @@ public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.Topology.MetricSpace.Cauchy
 import Mathlib.MeasureTheory.Group.Integral
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.MeanValue
 import Mathlib.Topology.Order.Compact
 import TauCeti.Analysis.Asymptotics.Lemmas
 import TauCeti.Analysis.Fourier.Decay
@@ -1112,141 +1113,30 @@ theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_real_sinc_integra
   simpa [Function.comp_def, intervalIntegral.integral_ofReal] using
     (Complex.continuous_ofReal.tendsto (π / 2 : ℝ)).comp hsinc
 
-/-- Integration by parts for the positive sinc tail on a finite interval. -/
-theorem intervalIntegral_sinc_tail_eq_ibp {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
-    ∫ x in a..b, Real.sinc x =
-      (-Real.cos b / b + Real.cos a / a) -
-        ∫ x in a..b, Real.cos x / x ^ 2 := by
-  have hpos_uIcc : ∀ x ∈ Set.uIcc a b, 0 < x := by
-    intro x hx
-    rw [Set.uIcc_of_le hab] at hx
-    exact ha.trans_le hx.1
-  have hsinc :
-      (∫ x in a..b, Real.sinc x) = ∫ x in a..b, x⁻¹ * Real.sin x := by
-    refine intervalIntegral.integral_congr ?_
-    intro x hx
-    have hx0 : x ≠ 0 := (hpos_uIcc x hx).ne'
-    rw [Real.sinc_of_ne_zero hx0]
-    ring
-  have hu : ∀ x ∈ Set.uIcc a b,
-      HasDerivAt (fun y : ℝ => y⁻¹) (-(x ^ 2)⁻¹) x := by
-    intro x hx
-    exact hasDerivAt_inv (hpos_uIcc x hx).ne'
-  have hv : ∀ x ∈ Set.uIcc a b,
-      HasDerivAt (fun y : ℝ => -Real.cos y) (Real.sin x) x := by
-    intro x _hx
-    have h : HasDerivAt (fun y : ℝ => -Real.cos y) (-(-Real.sin x)) x :=
-      (Real.hasDerivAt_cos x).neg
-    rwa [neg_neg] at h
-  have hu' : IntervalIntegrable (fun x : ℝ => -(x ^ 2)⁻¹) volume a b := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hab
-    exact ((continuousOn_pow 2).inv₀ fun x hx => by
-      exact pow_ne_zero 2 (hpos_uIcc x (by simpa [Set.uIcc_of_le hab] using hx)).ne').neg
-  have hv' : IntervalIntegrable (fun x : ℝ => Real.sin x) volume a b :=
-    Real.continuous_sin.intervalIntegrable a b
-  have hIBP := intervalIntegral.integral_mul_deriv_eq_deriv_mul
-    (u := fun x : ℝ => x⁻¹) (v := fun x : ℝ => -Real.cos x)
-    (u' := fun x : ℝ => -(x ^ 2)⁻¹) (v' := fun x : ℝ => Real.sin x)
-    hu hv hu' hv'
-  have hint :
-      (∫ x in a..b, (-(x ^ 2)⁻¹) * -Real.cos x) =
-        ∫ x in a..b, Real.cos x / x ^ 2 := by
-    apply intervalIntegral.integral_congr
-    intro x _hx
-    field_simp [sq]
-  rw [hsinc, hIBP, hint]
-  ring_nf
-
-/-- The finite inverse-square integral on a positive interval. -/
-theorem intervalIntegral_inv_sq_of_pos {a b : ℝ} (ha : 0 < a) (hab : a ≤ b) :
-    ∫ x in a..b, (x ^ 2)⁻¹ = a⁻¹ - b⁻¹ := by
-  have hz : (0 : ℝ) ∉ Set.uIcc a b := by
-    rw [Set.uIcc_of_le hab]
-    exact fun h => (not_le_of_gt ha) h.1
-  have h := integral_zpow (a := a) (b := b) (n := (-2 : ℤ))
-    (Or.inr ⟨by norm_num, hz⟩)
-  norm_num at h
-  simpa only [zpow_neg, zpow_natCast, pow_one, div_neg, div_one, neg_sub] using h
-
 /-- Uniform finite-tail control for the one-sided sinc integral. -/
 theorem norm_intervalIntegral_sinc_tail_le {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     ‖∫ x in a..b, Real.sinc x‖ ≤ 3 * a⁻¹ := by
   have ha_pos : 0 < a := zero_lt_one.trans_le ha
-  have hb_pos : 0 < b := ha_pos.trans_le hab
-  have hpos_uIcc : ∀ x ∈ Set.Icc a b, 0 < x := by
+  have hpos (t : ℝ) (ht : t ∈ Set.Icc a b) : 0 < t := ha_pos.trans_le ht.1
+  obtain ⟨c, _hc, hmean⟩ :=
+    exists_eq_const_mul_intervalIntegral_of_nonneg_of_antitoneOn
+      (f := fun t : ℝ => t⁻¹) (g := Real.sin) hab
+      (inv_nonneg.mpr (ha_pos.trans_le hab).le)
+      (fun x hx y _hy hxy => inv_anti₀ (hpos x hx) hxy)
+      (Real.continuous_sin.intervalIntegrable a b)
+  have heq : (∫ x in a..b, Real.sinc x) = ∫ x in a..b, x⁻¹ * Real.sin x := by
+    apply intervalIntegral.integral_congr
     intro x hx
-    exact ha_pos.trans_le hx.1
-  have hboundary : ‖-Real.cos b / b + Real.cos a / a‖ ≤ 2 * a⁻¹ := by
-    calc
-      ‖-Real.cos b / b + Real.cos a / a‖
-          = |(-Real.cos b / b) + (Real.cos a / a)| := by rw [Real.norm_eq_abs]
-      _ ≤ |-Real.cos b / b| + |Real.cos a / a| := abs_add_le _ _
-      _ ≤ b⁻¹ + a⁻¹ := by
-            refine add_le_add ?_ ?_
-            · calc
-                |-Real.cos b / b| = |Real.cos b| / b := by
-                  rw [abs_div, abs_neg, abs_of_pos hb_pos]
-                _ ≤ 1 / b := div_le_div_of_nonneg_right (Real.abs_cos_le_one b) hb_pos.le
-                _ = b⁻¹ := by rw [one_div]
-            · calc
-                |Real.cos a / a| = |Real.cos a| / a := by
-                  rw [abs_div, abs_of_pos ha_pos]
-                _ ≤ 1 / a := div_le_div_of_nonneg_right (Real.abs_cos_le_one a) ha_pos.le
-                _ = a⁻¹ := by rw [one_div]
-      _ ≤ a⁻¹ + a⁻¹ := by
-            exact add_le_add (by
-              simpa [one_div] using one_div_le_one_div_of_le ha_pos hab) le_rfl
-      _ = 2 * a⁻¹ := by ring
-  have hnormInt : IntervalIntegrable (fun x : ℝ => ‖Real.cos x / x ^ 2‖) volume a b := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hab
-    exact ((Real.continuous_cos.continuousOn).div (continuousOn_pow 2) fun x hx => by
-      exact pow_ne_zero 2 (hpos_uIcc x hx).ne').norm
-  have hinvInt : IntervalIntegrable (fun x : ℝ => (x ^ 2)⁻¹) volume a b := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hab
-    exact (continuousOn_pow 2).inv₀ fun x hx => by
-      exact pow_ne_zero 2 (hpos_uIcc x hx).ne'
-  have hJ : ‖∫ x in a..b, Real.cos x / x ^ 2‖ ≤ a⁻¹ := by
-    calc
-      ‖∫ x in a..b, Real.cos x / x ^ 2‖
-          ≤ ∫ x in a..b, ‖Real.cos x / x ^ 2‖ :=
-            intervalIntegral.norm_integral_le_integral_norm hab
-      _ ≤ ∫ x in a..b, (x ^ 2)⁻¹ := by
-            refine intervalIntegral.integral_mono_on hab hnormInt hinvInt ?_
-            intro x hx
-            have hx_pos : 0 < x := hpos_uIcc x hx
-            calc
-              ‖Real.cos x / x ^ 2‖ = |Real.cos x| / x ^ 2 := by
-                rw [Real.norm_eq_abs, abs_div, abs_of_pos (pow_pos hx_pos 2)]
-              _ ≤ 1 / x ^ 2 :=
-                div_le_div_of_nonneg_right (Real.abs_cos_le_one x) (sq_nonneg x)
-              _ = (x ^ 2)⁻¹ := by rw [one_div]
-      _ = a⁻¹ - b⁻¹ := intervalIntegral_inv_sq_of_pos ha_pos hab
-      _ ≤ a⁻¹ := sub_le_self _ (inv_nonneg.mpr hb_pos.le)
-  rw [intervalIntegral_sinc_tail_eq_ibp ha_pos hab]
-  calc
-    ‖(-Real.cos b / b + Real.cos a / a) - ∫ x in a..b, Real.cos x / x ^ 2‖
-        ≤ ‖-Real.cos b / b + Real.cos a / a‖ +
-            ‖∫ x in a..b, Real.cos x / x ^ 2‖ := norm_sub_le _ _
-    _ ≤ 2 * a⁻¹ + a⁻¹ := add_le_add hboundary hJ
-    _ = 3 * a⁻¹ := by ring
-
-/-- Exact integral of the derivative of `-exp (-a * x)` on a finite interval. -/
-theorem intervalIntegral_exp_neg_mul_const_mul_self (a R B : ℝ) :
-    ∫ x in R..B, a * Real.exp (-a * x) =
-      Real.exp (-a * R) - Real.exp (-a * B) := by
-  have hderiv : ∀ x ∈ Set.uIcc R B,
-      HasDerivAt (fun y : ℝ => -Real.exp (-a * y)) (a * Real.exp (-a * x)) x := by
-    intro x _hx
-    have hlin : HasDerivAt (fun y : ℝ => -a * y) (-a) x := by
-      simpa using (hasDerivAt_id x).const_mul (-a)
-    have h := (Real.hasDerivAt_exp (-a * x)).comp x hlin
-    rw [show a * Real.exp (-a * x) = -(Real.exp (-a * x) * -a) from by ring]
-    exact h.neg
-  have hint : IntervalIntegrable (fun x : ℝ => a * Real.exp (-a * x)) volume R B := by
-    apply Continuous.intervalIntegrable
-    fun_prop
-  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint]
-  ring
+    rw [Real.sinc_of_ne_zero (hpos x ((Set.uIcc_of_le hab) ▸ hx)).ne']
+    ring
+  have hsin : ‖∫ x in a..c, Real.sin x‖ ≤ 2 := by
+    rw [integral_sin]
+    refine (norm_sub_le _ _).trans ?_
+    simpa only [Real.norm_eq_abs, one_add_one_eq_two] using
+      add_le_add (Real.abs_cos_le_one a) (Real.abs_cos_le_one c)
+  rw [heq, hmean, norm_mul, Real.norm_eq_abs, abs_of_pos (inv_pos.mpr ha_pos)]
+  exact (mul_le_mul_of_nonneg_left hsin (inv_nonneg.mpr ha_pos.le)).trans
+    (by nlinarith [inv_nonneg.mpr ha_pos.le])
 
 /-- Uniform finite-tail control for the damped one-sided sinc integral. -/
 theorem norm_intervalIntegral_exp_neg_mul_sinc_tail_le
@@ -1254,217 +1144,38 @@ theorem norm_intervalIntegral_exp_neg_mul_sinc_tail_le
     ‖∫ x in R..B, Real.exp (-a * x) * Real.sinc x‖ ≤ 4 * R⁻¹ := by
   have hR_pos : 0 < R := zero_lt_one.trans_le hR
   have hB_pos : 0 < B := hR_pos.trans_le hRB
-  have hpos_uIcc : ∀ x ∈ Set.uIcc R B, 0 < x := by
-    intro x hx
-    rw [Set.uIcc_of_le hRB] at hx
-    exact hR_pos.trans_le hx.1
-  have hpos_Icc : ∀ x ∈ Set.Icc R B, 0 < x := by
-    intro x hx
-    exact hR_pos.trans_le hx.1
-  have hsinc :
-      (∫ x in R..B, Real.exp (-a * x) * Real.sinc x) =
-        ∫ x in R..B, (Real.exp (-a * x) * x⁻¹) * Real.sin x := by
-    refine intervalIntegral.integral_congr ?_
-    intro x hx
-    have hx0 : x ≠ 0 := (hpos_uIcc x hx).ne'
-    simp only [Real.sinc_of_ne_zero hx0]
-    ring
-  have hu : ∀ x ∈ Set.uIcc R B,
-      HasDerivAt (fun y : ℝ => Real.exp (-a * y) * y⁻¹)
-        (-(a * Real.exp (-a * x) * x⁻¹) - Real.exp (-a * x) * (x ^ 2)⁻¹) x := by
-    intro x hx
-    have hx0 : x ≠ 0 := (hpos_uIcc x hx).ne'
-    have hlin : HasDerivAt (fun y : ℝ => -a * y) (-a) x := by
-      simpa using (hasDerivAt_id x).const_mul (-a)
-    have hexp := (Real.hasDerivAt_exp (-a * x)).comp x hlin
-    have hinv := hasDerivAt_inv hx0
-    have hmul := hexp.mul hinv
-    rw [show -(a * Real.exp (-a * x) * x⁻¹) - Real.exp (-a * x) * (x ^ 2)⁻¹
-        = Real.exp (-a * x) * -a * x⁻¹ + Real.exp (-a * x) * -(x ^ 2)⁻¹ from by ring]
-    exact hmul
-  have hv : ∀ x ∈ Set.uIcc R B,
-      HasDerivAt (fun y : ℝ => -Real.cos y) (Real.sin x) x := by
-    intro x _hx
-    have h : HasDerivAt (fun y : ℝ => -Real.cos y) (-(-Real.sin x)) x :=
-      (Real.hasDerivAt_cos x).neg
-    rwa [neg_neg] at h
-  have hu' : IntervalIntegrable
-      (fun x : ℝ => -(a * Real.exp (-a * x) * x⁻¹) -
-        Real.exp (-a * x) * (x ^ 2)⁻¹) volume R B := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hRB
-    have hcont_exp : ContinuousOn (fun x : ℝ => Real.exp (-a * x)) (Set.Icc R B) := by
-      fun_prop
-    have hcont_inv : ContinuousOn (fun x : ℝ => x⁻¹) (Set.Icc R B) :=
-      continuousOn_id.inv₀ fun x hx => (hpos_Icc x hx).ne'
-    have hcont_inv_sq : ContinuousOn (fun x : ℝ => (x ^ 2)⁻¹) (Set.Icc R B) :=
-      (continuousOn_pow 2).inv₀ fun x hx => pow_ne_zero 2 (hpos_Icc x hx).ne'
-    exact (((continuousOn_const.mul hcont_exp).mul hcont_inv).neg.sub
-      (hcont_exp.mul hcont_inv_sq))
-  have hv' : IntervalIntegrable (fun x : ℝ => Real.sin x) volume R B :=
-    Real.continuous_sin.intervalIntegrable R B
-  have hIBP := intervalIntegral.integral_mul_deriv_eq_deriv_mul
-    (u := fun x : ℝ => Real.exp (-a * x) * x⁻¹) (v := fun x : ℝ => -Real.cos x)
-    (u' := fun x : ℝ => -(a * Real.exp (-a * x) * x⁻¹) -
-      Real.exp (-a * x) * (x ^ 2)⁻¹)
-    (v' := fun x : ℝ => Real.sin x) hu hv hu' hv'
-  have hint :
-      (∫ x in R..B,
-        (-(a * Real.exp (-a * x) * x⁻¹) - Real.exp (-a * x) * (x ^ 2)⁻¹) *
-          -Real.cos x) =
-        ∫ x in R..B,
-          (a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-            Real.cos x := by
+  have hpos (t : ℝ) (ht : t ∈ Set.Icc R B) : 0 < t := hR_pos.trans_le ht.1
+  have hanti : AntitoneOn (fun t : ℝ => Real.exp (-a * t) * t⁻¹) (Set.Icc R B) := by
+    intro x hx y hy hxy
+    exact mul_le_mul
+      (Real.exp_le_exp.mpr (by nlinarith [mul_nonneg ha.le (sub_nonneg.mpr hxy)]))
+      (inv_anti₀ (hpos x hx) hxy) (inv_nonneg.mpr (hpos y hy).le) (Real.exp_pos _).le
+  obtain ⟨c, _hc, hmean⟩ :=
+    exists_eq_const_mul_intervalIntegral_of_nonneg_of_antitoneOn
+      (f := fun t : ℝ => Real.exp (-a * t) * t⁻¹) (g := Real.sin) hRB
+      (mul_nonneg (Real.exp_pos _).le (inv_nonneg.mpr hB_pos.le)) hanti
+      (Real.continuous_sin.intervalIntegrable R B)
+  have heq : (∫ x in R..B, Real.exp (-a * x) * Real.sinc x) =
+      ∫ x in R..B, (Real.exp (-a * x) * x⁻¹) * Real.sin x := by
     apply intervalIntegral.integral_congr
-    intro x _hx
+    intro x hx
+    dsimp only
+    rw [Real.sinc_of_ne_zero (hpos x ((Set.uIcc_of_le hRB) ▸ hx)).ne']
     ring
-  have hrepr :
-      ∫ x in R..B, Real.exp (-a * x) * Real.sinc x =
-        (-Real.exp (-a * B) * B⁻¹ * Real.cos B +
-            Real.exp (-a * R) * R⁻¹ * Real.cos R) -
-          ∫ x in R..B,
-            (a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-              Real.cos x := by
-    rw [hsinc, hIBP, hint]
-    ring
-  have hboundary :
-      ‖-Real.exp (-a * B) * B⁻¹ * Real.cos B +
-          Real.exp (-a * R) * R⁻¹ * Real.cos R‖ ≤ 2 * R⁻¹ := by
-    calc
-      ‖-Real.exp (-a * B) * B⁻¹ * Real.cos B +
-          Real.exp (-a * R) * R⁻¹ * Real.cos R‖
-          = |(-Real.exp (-a * B) * B⁻¹ * Real.cos B) +
-              (Real.exp (-a * R) * R⁻¹ * Real.cos R)| := by rw [Real.norm_eq_abs]
-      _ ≤ |-Real.exp (-a * B) * B⁻¹ * Real.cos B| +
-            |Real.exp (-a * R) * R⁻¹ * Real.cos R| := abs_add_le _ _
-      _ ≤ B⁻¹ + R⁻¹ := by
-            refine add_le_add ?_ ?_
-            · calc
-                |-Real.exp (-a * B) * B⁻¹ * Real.cos B|
-                    = Real.exp (-a * B) * B⁻¹ * |Real.cos B| := by
-                      rw [abs_mul, abs_mul, abs_neg, abs_of_pos (Real.exp_pos _),
-                        abs_of_pos (inv_pos.mpr hB_pos)]
-                  _ ≤ 1 * B⁻¹ * 1 := by
-                      gcongr
-                      · exact Real.exp_le_one_iff.mpr (by
-                          have hmul : 0 ≤ a * B := mul_nonneg ha.le hB_pos.le
-                          nlinarith)
-                      · exact Real.abs_cos_le_one B
-                  _ = B⁻¹ := by ring
-            · calc
-                |Real.exp (-a * R) * R⁻¹ * Real.cos R|
-                    = Real.exp (-a * R) * R⁻¹ * |Real.cos R| := by
-                      rw [abs_mul, abs_mul, abs_of_pos (Real.exp_pos _),
-                        abs_of_pos (inv_pos.mpr hR_pos)]
-                  _ ≤ 1 * R⁻¹ * 1 := by
-                      gcongr
-                      · exact Real.exp_le_one_iff.mpr (by
-                          have hmul : 0 ≤ a * R := mul_nonneg ha.le hR_pos.le
-                          nlinarith)
-                      · exact Real.abs_cos_le_one R
-                  _ = R⁻¹ := by ring
-      _ ≤ R⁻¹ + R⁻¹ := by
-            exact add_le_add (by
-              simpa [one_div] using one_div_le_one_div_of_le hR_pos hRB) le_rfl
-      _ = 2 * R⁻¹ := by ring
-  have hnormInt : IntervalIntegrable
-      (fun x : ℝ =>
-        ‖(a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-          Real.cos x‖) volume R B := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hRB
-    have hcont_exp : ContinuousOn (fun x : ℝ => Real.exp (-a * x)) (Set.Icc R B) := by
-      fun_prop
-    have hcont_inv : ContinuousOn (fun x : ℝ => x⁻¹) (Set.Icc R B) :=
-      continuousOn_id.inv₀ fun x hx => (hpos_Icc x hx).ne'
-    have hcont_inv_sq : ContinuousOn (fun x : ℝ => (x ^ 2)⁻¹) (Set.Icc R B) :=
-      (continuousOn_pow 2).inv₀ fun x hx => pow_ne_zero 2 (hpos_Icc x hx).ne'
-    exact ((((continuousOn_const.mul hcont_exp).mul hcont_inv).add
-      (hcont_exp.mul hcont_inv_sq)).mul Real.continuous_cos.continuousOn).norm
-  have hboundInt : IntervalIntegrable
-      (fun x : ℝ => R⁻¹ * (a * Real.exp (-a * x)) + (x ^ 2)⁻¹) volume R B := by
-    apply ContinuousOn.intervalIntegrable_of_Icc hRB
-    have hcont_exp : ContinuousOn (fun x : ℝ => Real.exp (-a * x)) (Set.Icc R B) := by
-      fun_prop
-    have hcont_inv_sq : ContinuousOn (fun x : ℝ => (x ^ 2)⁻¹) (Set.Icc R B) :=
-      (continuousOn_pow 2).inv₀ fun x hx => pow_ne_zero 2 (hpos_Icc x hx).ne'
-    exact ((continuousOn_const.mul (continuousOn_const.mul hcont_exp)).add hcont_inv_sq)
-  have hJ :
-      ‖∫ x in R..B,
-        (a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-          Real.cos x‖ ≤ 2 * R⁻¹ := by
-    calc
-      ‖∫ x in R..B,
-        (a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-          Real.cos x‖
-          ≤ ∫ x in R..B,
-              ‖(a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-                Real.cos x‖ :=
-            intervalIntegral.norm_integral_le_integral_norm hRB
-      _ ≤ ∫ x in R..B, R⁻¹ * (a * Real.exp (-a * x)) + (x ^ 2)⁻¹ := by
-            refine intervalIntegral.integral_mono_on hRB hnormInt hboundInt ?_
-            intro x hx
-            have hx_pos : 0 < x := hpos_Icc x hx
-            have hR_inv : x⁻¹ ≤ R⁻¹ := by
-              simpa [one_div] using one_div_le_one_div_of_le hR_pos hx.1
-            calc
-              ‖(a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-                Real.cos x‖
-                  ≤ |a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹| := by
-                    rw [Real.norm_eq_abs, abs_mul]
-                    exact mul_le_of_le_one_right (abs_nonneg _) (Real.abs_cos_le_one x)
-              _ = a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹ := by
-                    rw [abs_of_nonneg]
-                    positivity
-              _ ≤ R⁻¹ * (a * Real.exp (-a * x)) + (x ^ 2)⁻¹ := by
-                    refine add_le_add ?_ ?_
-                    · calc
-                        a * Real.exp (-a * x) * x⁻¹
-                            = (a * Real.exp (-a * x)) * x⁻¹ := by ring
-                        _ ≤ (a * Real.exp (-a * x)) * R⁻¹ :=
-                            mul_le_mul_of_nonneg_left hR_inv
-                              (mul_nonneg ha.le (Real.exp_pos _).le)
-                        _ = R⁻¹ * (a * Real.exp (-a * x)) := by ring
-                    · calc
-                        Real.exp (-a * x) * (x ^ 2)⁻¹
-                            ≤ 1 * (x ^ 2)⁻¹ := by
-                              exact mul_le_mul_of_nonneg_right
-                                (Real.exp_le_one_iff.mpr (by
-                                  have hmul : 0 ≤ a * x := mul_nonneg ha.le hx_pos.le
-                                  nlinarith))
-                                (inv_nonneg.mpr (sq_nonneg x))
-                        _ = (x ^ 2)⁻¹ := by ring
-      _ = R⁻¹ * (∫ x in R..B, a * Real.exp (-a * x)) +
-            ∫ x in R..B, (x ^ 2)⁻¹ := by
-            rw [intervalIntegral.integral_add]
-            · rw [intervalIntegral.integral_const_mul]
-            · exact (Continuous.intervalIntegrable (by fun_prop) R B).const_mul _
-            · apply ContinuousOn.intervalIntegrable_of_Icc hRB
-              exact (continuousOn_pow 2).inv₀ fun x hx =>
-                pow_ne_zero 2 (hpos_Icc x hx).ne'
-      _ = R⁻¹ * (Real.exp (-a * R) - Real.exp (-a * B)) + (R⁻¹ - B⁻¹) := by
-            rw [intervalIntegral_exp_neg_mul_const_mul_self a R B,
-              intervalIntegral_inv_sq_of_pos hR_pos hRB]
-      _ ≤ R⁻¹ * 1 + R⁻¹ := by
-            gcongr
-            · exact (sub_le_self _ (Real.exp_pos _).le).trans
-                (Real.exp_le_one_iff.mpr (by
-                  have hmul : 0 ≤ a * R := mul_nonneg ha.le hR_pos.le
-                  nlinarith))
-            · exact sub_le_self _ (inv_nonneg.mpr hB_pos.le)
-      _ = 2 * R⁻¹ := by ring
-  rw [hrepr]
+  have hsin : ‖∫ x in R..c, Real.sin x‖ ≤ 2 := by
+    rw [integral_sin]
+    refine (norm_sub_le _ _).trans ?_
+    simpa only [Real.norm_eq_abs, one_add_one_eq_two] using
+      add_le_add (Real.abs_cos_le_one R) (Real.abs_cos_le_one c)
+  have hamp : 0 ≤ Real.exp (-a * R) * R⁻¹ := by positivity
+  have hexp : Real.exp (-a * R) ≤ 1 :=
+    Real.exp_le_one_iff.mpr (by nlinarith [mul_nonneg ha.le hR_pos.le])
+  rw [heq, hmean, norm_mul, Real.norm_eq_abs, abs_of_nonneg hamp]
   calc
-    ‖(-Real.exp (-a * B) * B⁻¹ * Real.cos B +
-        Real.exp (-a * R) * R⁻¹ * Real.cos R) -
-        ∫ x in R..B,
-          (a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-            Real.cos x‖
-        ≤ ‖-Real.exp (-a * B) * B⁻¹ * Real.cos B +
-            Real.exp (-a * R) * R⁻¹ * Real.cos R‖ +
-            ‖∫ x in R..B,
-              (a * Real.exp (-a * x) * x⁻¹ + Real.exp (-a * x) * (x ^ 2)⁻¹) *
-                Real.cos x‖ := norm_sub_le _ _
-    _ ≤ 2 * R⁻¹ + 2 * R⁻¹ := add_le_add hboundary hJ
-    _ = 4 * R⁻¹ := by ring
+    _ ≤ (Real.exp (-a * R) * R⁻¹) * 2 := mul_le_mul_of_nonneg_left hsin hamp
+    _ ≤ R⁻¹ * 2 := mul_le_mul_of_nonneg_right
+      (mul_le_of_le_one_left (inv_nonneg.mpr hR_pos.le) hexp) (by norm_num)
+    _ ≤ 4 * R⁻¹ := by nlinarith [inv_nonneg.mpr hR_pos.le]
 
 theorem integral_Ioi_exp_neg_mul_sin (a : ℝ) (ha : 0 < a) :
     ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sin x = 1 / (a ^ 2 + 1) := by
