@@ -3,6 +3,7 @@ module
 public import Architect
 public import Batteries.Tactic.Lemma
 public import Mathlib.Geometry.Manifold.PartitionOfUnity
+public import Mathlib.Analysis.Calculus.BumpFunction.Normed
 public import Mathlib.Tactic.Bound
 public import Mathlib.Algebra.Notation.Support
 
@@ -52,48 +53,33 @@ Let $\nu$ be a bumpfunction.
 lemma SmoothExistence :
     ∃ (ν : ℝ → ℝ), (ContDiff ℝ ∞ ν) ∧ (∀ x, 0 ≤ ν x) ∧
     ν.support ⊆ Icc (1 / 2) 2 ∧ ∫ x in Ici 0, ν x / x = 1 := by
-  suffices h : ∃ (ν : ℝ → ℝ), (ContDiff ℝ ∞ ν) ∧ (∀ x, 0 ≤ ν x) ∧
-      ν.support ⊆ Set.Icc (1 / 2) 2 ∧ 0 < ∫ x in Set.Ici 0, ν x / x by
-    obtain ⟨ν, hν, hνnonneg, hνsupp, hνpos⟩ := h
-    let c := (∫ x in Ici 0, ν x / x)
-    use fun y ↦ ν y / c
-    refine ⟨hν.div_const c, fun y ↦ div_nonneg (hνnonneg y) (le_of_lt hνpos), ?_, ?_⟩
-    · rw [Function.support_div, Function.support_const (ne_of_lt hνpos).symm, inter_univ]
-      convert hνsupp
-    · simp only [div_right_comm _ c _, integral_div c, div_self <| ne_of_gt hνpos, c]
-  have := smooth_urysohn_support_Ioo (a := 1 / 2) (b := 1) (c := 3 / 2) (d := 2)
-    (by linarith) (by linarith)
-  obtain ⟨ν, hνContDiff, _, hν0, hν1, hνSupport⟩ := this
-  use ν, hνContDiff
-  unfold indicator at hν0 hν1
-  simp only [mem_Icc, Pi.one_apply, Pi.le_def, mem_Ioo] at hν0 hν1
-  simp only [hνSupport, subset_def, mem_Ioo, mem_Icc, and_imp]
-  split_ands
-  · exact fun x ↦ le_trans (by simp [apply_ite]) (hν0 x)
-  · exact fun y hy hy' ↦ ⟨by linarith, by linarith⟩
-  · rw [integral_pos_iff_support_of_nonneg]
-    · simp only [Function.support_div, measurableSet_Ici, Measure.restrict_apply',
-        hνSupport]
-      simp only [Function.support_eq_preimage, Set.preimage_id']
-      have : (Ioo (1 / 2 : ℝ) 2 ∩ {0}ᶜ ∩ Ici 0) = Ioo (1 / 2) 2 := by
-        ext x
-        simp only [one_div, mem_inter_iff, mem_Ioo, mem_compl_iff, mem_singleton_iff, mem_Ici]
-        bound
-      simp only [this, volume_Ioo, ENNReal.ofReal_pos, sub_pos, gt_iff_lt]
-      linarith
-    · simp_rw [Pi.le_def, Pi.zero_apply]
-      intro y
-      by_cases h : y ∈ Function.support ν
-      · apply div_nonneg <| le_trans (by simp [apply_ite]) (hν0 y)
-        rw [hνSupport, mem_Ioo] at h
-        linarith [h.left]
-      · simp only [Function.mem_support, ne_eq, not_not] at h
-        simp [h]
-    · have : (fun x ↦ ν x / x).support ⊆ Icc (1 / 2) 2 := by
-        rw [Function.support_div, hνSupport]
-        exact (inter_subset_left).trans Ioo_subset_Icc_self
-      apply (integrableOn_iff_integrable_of_support_subset this).mp
-      apply ContinuousOn.integrableOn_compact isCompact_Icc
-      apply hνContDiff.continuous.continuousOn.div continuousOn_id ?_
-      simp only [mem_Icc, ne_eq, and_imp, id_eq]
-      intros; linarith
+  let f : ContDiffBump (1 : ℝ) := ⟨1 / 4, 1 / 2, by norm_num, by norm_num⟩
+  let ψ := f.normed volume
+  have hψsupp : Function.support ψ ⊆ Icc (1 / 2) 2 := by
+    rw [show Function.support ψ = Metric.ball 1 f.rOut from f.support_normed_eq]
+    intro x hx
+    change dist x 1 < 1 / 2 at hx
+    rw [Real.dist_eq, abs_lt] at hx
+    constructor <;> linarith
+  refine ⟨fun x ↦ x * ψ x, contDiff_id.mul f.contDiff_normed, ?_, ?_, ?_⟩
+  · intro x
+    by_cases hx : ψ x = 0
+    · simp [hx]
+    · exact mul_nonneg (le_trans (by norm_num) (hψsupp hx).1) (f.nonneg_normed x)
+  · intro x hx
+    exact hψsupp (mul_ne_zero_iff.mp hx).2
+  · have hquot : (fun x ↦ x * ψ x / x) = ψ := by
+      funext x
+      by_cases hx : x = 0
+      · subst x
+        have hzero : ψ 0 = 0 := by
+          by_contra h
+          have := (hψsupp h).1
+          norm_num at this
+        simp [hzero]
+      · exact mul_div_cancel_left₀ (ψ x) hx
+    rw [hquot, setIntegral_eq_integral_of_forall_compl_eq_zero]
+    · exact f.integral_normed
+    · intro x hx
+      by_contra h
+      exact hx (le_trans (by norm_num) (hψsupp h).1)

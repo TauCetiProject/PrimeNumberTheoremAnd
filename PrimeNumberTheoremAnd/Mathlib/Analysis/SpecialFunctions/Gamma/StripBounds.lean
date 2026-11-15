@@ -10,8 +10,9 @@ public import TauCeti.Analysis.SpecialFunctions.Gamma.Growth
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.Analysis.SpecialFunctions.Stirling
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.IntegralBounds
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.GammaBounds
+import TauCeti.Analysis.SpecialFunctions.Gamma.Vertical
+import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
+import Mathlib.Analysis.Real.Pi.Bounds
 
 
 
@@ -184,16 +185,16 @@ lemma norm_Gamma_le_two_mul_norm_Gamma_add_one {z : ℂ} (hz_lb : (1 / 2 : ℝ) 
 lemma norm_le_four_of_re_half_to_one {w : ℂ}
     (hw_lo : (1 / 2 : ℝ) ≤ w.re) (hw_hi : w.re ≤ 1) :
     ‖Gamma w‖ ≤ 4 := by
-  have h := Complex.Gamma.norm_le_one_div_add_sqrt_pi_of_re_ge_of_re_le
-    (w := w) (a := (1 / 2 : ℝ)) (by norm_num) hw_lo hw_hi
-  calc ‖Gamma w‖ ≤ 1 / (1 / 2 : ℝ) + Real.sqrt Real.pi := h
-    _ = 2 + Real.sqrt Real.pi := by norm_num
-    _ ≤ 2 + 2 := by
-      have hpi : Real.sqrt Real.pi < 2 := by
-        rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 2)]
-        nlinarith [Real.pi_lt_four]
-      linarith
-    _ = 4 := by norm_num
+  have hw_pos : 0 < w.re := by linarith
+  have hreal : Real.Gamma w.re ≤ Real.Gamma (1 / 2) :=
+    Real.Gamma_strictAntiOn_Ioc.antitoneOn (by norm_num) ⟨hw_pos, hw_hi⟩ hw_lo
+  have hpi : Real.sqrt Real.pi < 2 := by
+    rw [Real.sqrt_lt' (by norm_num : (0 : ℝ) < 2)]
+    nlinarith [Real.pi_lt_four]
+  calc
+    ‖Gamma w‖ ≤ Real.Gamma w.re := Complex.norm_Gamma_le_Gamma_re hw_pos
+    _ ≤ Real.Gamma (1 / 2) := hreal
+    _ ≤ 4 := by rw [Real.Gamma_one_half_eq]; linarith
 
 /-- For `re s ≥ 1`, the real Gamma bound controls `‖Γ(s)‖` in terms of `‖s‖`. -/
 theorem norm_bound_re_ge_one :
@@ -211,7 +212,13 @@ theorem norm_bound_re_ge_one :
         Real.rpow_le_rpow (by linarith) (by linarith) (by linarith)
       _ ≤ (1 + ‖s‖) ^ (‖s‖ + 1) :=
         Real.rpow_le_rpow_of_exponent_le (by linarith [norm_nonneg s]) (by linarith)
-  · exact (Complex.Gamma.norm_le_one hs (by linarith)).trans
+  · have hsegment : s.re ∈ segment ℝ (1 : ℝ) 2 := by
+      simpa only [segment_eq_Icc (by norm_num : (1 : ℝ) ≤ 2)] using
+        (show s.re ∈ Icc 1 2 from ⟨hs, (lt_of_not_ge hs2).le⟩)
+    have hreal : Real.Gamma s.re ≤ 1 := by
+      simpa only [Real.Gamma_one, Real.Gamma_two, max_self] using
+        Real.convexOn_Gamma.le_on_segment (by norm_num) (by norm_num) hsegment
+    exact ((Complex.norm_Gamma_le_Gamma_re (by linarith)).trans hreal).trans
       (Real.one_le_rpow (by linarith [norm_nonneg s]) (by linarith [norm_nonneg s]))
 
 /-- **Main Stirling bound** for `Re(s) ≥ 0`.
