@@ -158,15 +158,13 @@ def sub (f g : W1 n E) : W1 n E where
 
 instance : Sub (W1 n E) where sub := sub
 
-lemma integrable_iteratedDeriv_Schwarz {f : 𝓢(ℝ, ℂ)} : Integrable (iteratedDeriv n f) := by
-  induction n generalizing f with
-  | zero => exact f.integrable
-  | succ n ih => simpa [iteratedDeriv_succ'] using! ih (f := SchwartzMap.derivCLM ℝ ℂ f)
-
 noncomputable def of_Schwartz (f : 𝓢(ℝ, ℂ)) : W1 n ℂ where
   toFun := f
   smooth := f.smooth n
-  integrable _ _ := integrable_iteratedDeriv_Schwarz
+  integrable k _ := by
+    refine (integrable_norm_iff (f.smooth k).continuous_iteratedDeriv'.aestronglyMeasurable).mp ?_
+    simpa only [pow_zero, one_mul, norm_iteratedFDeriv_eq_norm_iteratedDeriv] using
+      f.integrable_pow_mul_iteratedFDeriv volume 0 k
 
 end W1
 
