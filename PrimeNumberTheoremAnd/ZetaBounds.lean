@@ -13,7 +13,7 @@ public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
 public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
 public import Mathlib.Analysis.Complex.RealDeriv
-public import PrimeNumberTheoremAnd.EulerMaclaurin
+public import TauCeti.Analysis.Asymptotics.Sum.EulerMaclaurin
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
@@ -349,20 +349,27 @@ lemma sum_eq_int_deriv {φ : ℝ → ℂ} {a b : ℝ} (apos : 0 ≤ a) (a_lt_b :
     ∑ n ∈ Finset.Ioc ⌊a⌋₊ ⌊b⌋₊, φ n =
       (∫ x in a..b, φ x) + (⌊b⌋₊ + 1 / 2 - b) * φ b - (⌊a⌋₊ + 1 / 2 - a) * φ a
         - ∫ x in a..b, (⌊x⌋ + 1 / 2 - x) * deriv φ x := by
-  rw [uIcc_of_le a_lt_b.le] at φDiff
-  convert sum_eq_integral_add_integral_deriv apos a_lt_b.le (fun t ht ↦ (φDiff t ht).differentiableAt) derivφCont using 1
-  unfold B1
-  push_cast
-  suffices ∫ (x : ℝ) in a..b, (↑⌊x⌋ + 1 / 2 - ↑x) * deriv φ x = -∫ (t : ℝ) in a..b, deriv φ t * (↑t - ↑⌊t⌋₊ - 1 / 2) by
-    rw [this]
-    ring_nf!
-  rw [← intervalIntegral.integral_neg]
-  refine intervalIntegral.integral_congr fun x hx ↦ ?_
-  rw [uIcc_of_le a_lt_b.le, mem_Icc] at hx
-  rw [← Int.natCast_floor_eq_floor (by linarith)]
-  norm_cast
-  push_cast
-  ring
+  rw [Set.uIcc_of_le a_lt_b.le] at φDiff
+  have h := TauCeti.sum_Ioc_floor_eq_eulerMaclaurin_one apos a_lt_b.le
+    (fun t ht => (φDiff t ht).differentiableAt) derivφCont.intervalIntegrable
+  have hperiod (t : ℝ) : (bernoulliFun 1 (Int.fract t) : ℂ) = t - ⌊t⌋ - 1 / 2 := by
+    simp only [bernoulliFun_one, Int.fract]
+    push_cast
+    ring
+  have hI : (∫ t in a..b, bernoulliFun 1 (Int.fract t) • deriv φ t) =
+      -(∫ t in a..b, (⌊t⌋ + 1 / 2 - t) * deriv φ t) := by
+    rw [← intervalIntegral.integral_neg]
+    apply intervalIntegral.integral_congr
+    intro t _
+    dsimp only
+    rw [RCLike.real_smul_eq_coe_mul, RCLike.ofReal_eq_complex_ofReal, hperiod]
+    ring
+  rw [hI] at h
+  simp only [RCLike.real_smul_eq_coe_mul, RCLike.ofReal_eq_complex_ofReal, hperiod] at h
+  rw [← Int.natCast_floor_eq_floor apos,
+    ← Int.natCast_floor_eq_floor (apos.trans a_lt_b.le)] at h
+  push_cast at h
+  linear_combination h
 
 
 lemma xpos_of_uIcc {a b : ℕ} (ha : a ∈ Ioo 0 b) {x : ℝ} (x_in : x ∈ [[(a : ℝ), b]]) :
