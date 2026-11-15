@@ -6,6 +6,7 @@ public import Mathlib.Analysis.Calculus.ContDiff.Basic
 public import Mathlib.MeasureTheory.Integral.Asymptotics
 public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
+public import TauCeti.Analysis.MellinInversion
 
 
 @[expose] public section
@@ -590,35 +591,12 @@ lemma isTheta (xpos : 0 < x) :
     (isTheta_uniformlyOn_uIcc xpos σ σ).fiberwise_right) σ left_mem_uIcc
 
 
-@[blueprint "isIntegrable"
-  (title := "isIntegrable")
-  (statement := /--
+blueprint_comment /--
+\label{isIntegrable}
   Let $x>0$ and $\sigma\in\R$. Then
   $$\int_{\R}\frac{x^{\sigma+it}}{(\sigma+it)(1+\sigma + it)}dt$$
   is integrable.
-  -/)
-  (latexEnv := "lemma")]
-lemma isIntegrable (xpos : 0 < x) (σ_ne_zero : σ ≠ 0) (σ_ne_neg_one : σ ≠ -1) :
-    Integrable fun (t : ℝ) ↦ f x (σ + t * I) := by
-  /-- By \ref{isHolomorphicOn}, $f$ is continuous, so it is integrable on any interval. -/
-  have : Continuous (fun (y : ℝ) ↦ f x (σ + y * I)) := by
-    refine (isHolomorphicOn xpos).continuousOn.comp_continuous (by continuity) fun x ↦
-      not_or.mpr ?_
-    simp [Complex.ext_iff, σ_ne_zero, σ_ne_neg_one]
-  /-- Also, $|f(x)| = \Theta(x^{-2})$ as $x\to\infty$, -/
-  refine this.locallyIntegrable.integrable_of_isBigO_atTop_of_norm_isNegInvariant
-    (univ_mem' fun y ↦ ?_) (isTheta xpos).2.isBigO ⟨Ioi 1, Ioi_mem_atTop 1, ?_⟩
-  · /-- and $|f(-x)| = \Theta(x^{-2})$ as $x\to\infty$. -/
-    change ‖f x (↑σ + ↑y * I)‖ = ‖f x (↑σ + ↑(-y) * I)‖
-    have : (↑σ + ↑(-y) * I) = conj (↑σ + ↑y * I) := Complex.ext (by simp) (by simp)
-    simp_rw [this, map_conj xpos.le, norm_conj]
-  · /-- Since $g(x) = x^{-2}$ is integrable on $[a,\infty)$ for any $a>0$, we conclude. -/
-    refine integrableOn_Ioi_rpow_of_lt (show (-2 : ℝ) < -1 by norm_num)
-      (show (0 : ℝ) < 1 by norm_num) |>.congr_fun (fun y hy ↦ ?_) measurableSet_Ioi
-    have hy0 : (0 : ℝ) < y := (show (0 : ℝ) < 1 by norm_num).trans hy
-    change (y : ℝ) ^ (-2 : ℝ) = 1 / y ^ 2
-    rw [eq_div_iff (pow_ne_zero 2 hy0.ne'), ← rpow_natCast y 2, ← rpow_add hy0]
-    norm_num
+  -/
 
 theorem horizontal_integral_isBigO {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) (μ : Measure ℝ)
     [IsLocallyFiniteMeasure μ] :
@@ -678,59 +656,23 @@ lemma contourPull {σ' σ'' : ℝ} (xpos : 0 < x) (hσ0 : 0 ∉ [[σ', σ'']])
     VerticalIntegral (f x) σ' = VerticalIntegral (f x) σ'' := by
   refine verticalIntegral_eq_verticalIntegral ((isHolomorphicOn xpos).mono ?_)
     (tendsto_zero_Lower xpos σ' σ'') (tendsto_zero_Upper xpos σ' σ'')
-    (isIntegrable xpos (fun h ↦ hσ0 (h ▸ left_mem_uIcc))
-      (fun h ↦ hσ1 (h ▸ left_mem_uIcc)))
-    (isIntegrable xpos (fun h ↦ hσ0 (h ▸ right_mem_uIcc))
-      (fun h ↦ hσ1 (h ▸ right_mem_uIcc)))
+    (TauCeti.integrable_cpow_div_mul_add_one
+      (fun h ↦ hσ0 (h ▸ left_mem_uIcc)) (fun h ↦ hσ1 (h ▸ left_mem_uIcc)) xpos.le)
+    (TauCeti.integrable_cpow_div_mul_add_one
+      (fun h ↦ hσ0 (h ▸ right_mem_uIcc)) (fun h ↦ hσ1 (h ▸ right_mem_uIcc)) xpos.le)
   rintro ⟨x, y⟩ ⟨hx, hy⟩ ⟨hc | hc⟩ <;> simp_all [Complex.ext_iff]
 
 blueprint_comment /--
 We are ready for the first case of the Perron formula, namely when $x<1$:
 -/
-@[blueprint
-  "formulaLtOne"
-  (title := "formulaLtOne")
-  (statement := /--
+blueprint_comment /--
+\label{formulaLtOne}
   For $x>0$, $\sigma>0$, and $x<1$, we have
   $$
   \frac1{2\pi i}
   \int_{(\sigma)}\frac{x^s}{s(s+1)}ds =0.
   $$
-  -/)
-  (latexEnv := "lemma")]
-lemma formulaLtOne (xpos : 0 < x) (x_lt_one : x < 1) (σ_pos : 0 < σ)
-    : VerticalIntegral (f x) σ = 0 := by
-  /--
-  Let $f(s) = x^s/(s(s+1))$. Then $f$ is holomorphic on the half-plane
-  $\{s\in\mathbb{C}:\Re(s)>0\}$. The rectangle integral of $f$ with corners $\sigma-iT$ and
-  $\sigma+iT$ is zero. The limit of this rectangle integral as $T\to\infty$ is
-  $\int_{(\sigma')}-\int_{(\sigma)}$. Therefore, $\int_{(\sigma')}=\int_{(\sigma)}$.
   -/
-  have h_contourPull (σ' σ'' : ℝ) (σ'pos : 0 < σ') (σ''pos : 0 < σ'') :
-      VerticalIntegral (f x) σ' = VerticalIntegral (f x) σ'' :=
-    contourPull xpos (notMem_uIcc_of_lt σ'pos σ''pos)
-      (notMem_uIcc_of_lt (by linarith) (by linarith))
-  /--
-  But we also have the bound $\int_{(\sigma')} \leq x^{\sigma'} * C$, where
-  $C=\int_\R\frac{1}{|(1+t)(1+t+1)|}dt$.
-  -/
-  have VertIntBound : ∃ C > 0, ∀ σ' > 1, ‖VerticalIntegral (f x) σ'‖ ≤ x^σ' * C := by
-    let C := ∫ (t : ℝ), 1 / ((1 + t ^ 2).sqrt * (2 + t ^ 2).sqrt)
-    exact ⟨C, integralPosAux, fun _ ↦ vertIntBound xpos⟩
-  /-- Therefore $\int_{(\sigma')}\to 0$ as $\sigma'\to\infty$. -/
-  have AbsVertIntTendsto :
-      Tendsto ((‖·‖ : ℂ → ℝ) ∘ (VerticalIntegral (f x))) atTop (𝓝 0) := by
-    obtain ⟨C, _, hC⟩ := VertIntBound
-    have : Tendsto (fun σ : ℝ ↦ x ^ σ * C) atTop (𝓝 0) := by
-      simpa only [zero_mul] using
-        (tendsto_rpow_atTop_of_base_lt_one x (by linarith) x_lt_one).mul_const C
-    apply tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds this
-    · filter_upwards; exact fun _ ↦ norm_nonneg _
-    · filter_upwards [eventually_gt_atTop 1]; exact hC
-  have VertIntTendsto : Tendsto (VerticalIntegral (f x)) atTop (𝓝 0) :=
-    tendsto_zero_iff_norm_tendsto_zero.mpr AbsVertIntTendsto
-  /-- So pulling contours gives $\int_{(\sigma)}=0$. -/
-  exact limitOfConstant σ_pos h_contourPull VertIntTendsto
 
 blueprint_comment /--
 The second case is when $x>1$.
@@ -1000,8 +942,8 @@ lemma residuePull1 (x_gt_one : 1 < x) (σ_pos : 0 < σ) :
   have := (residueAtZero xpos).and <| verticalIntegral_sub_verticalIntegral_eq_squareIntegral
     (by simpa using ⟨by linarith, by linarith⟩) hf
     (tendsto_zero_Lower xpos _ _) (tendsto_zero_Upper xpos _ _)
-    (isIntegrable xpos (by norm_num) (by norm_num))
-    (isIntegrable xpos (by linarith) (by linarith))
+    (TauCeti.integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
+    (TauCeti.integrable_cpow_div_mul_add_one (by linarith) (by linarith) xpos.le)
   obtain ⟨c, hcf, hc⟩ := this.exists_mem
   obtain ⟨ε, hε, hεc⟩ := Metric.mem_nhdsWithin_iff.mp hcf
   obtain hε := hc (ε/2)
@@ -1034,8 +976,8 @@ lemma residuePull2 (x_gt_one : 1 < x) :
   have := (residueAtNegOne xpos).and <| verticalIntegral_sub_verticalIntegral_eq_squareIntegral
     (by simpa using ⟨by linarith, by linarith⟩) hf
     (tendsto_zero_Lower xpos _ _) (tendsto_zero_Upper xpos _ _)
-    (isIntegrable xpos (by norm_num) (by norm_num))
-    (isIntegrable xpos (by norm_num) (by norm_num))
+    (TauCeti.integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
+    (TauCeti.integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
   obtain ⟨c, hcf, hc⟩ := this.exists_mem
   obtain ⟨ε, hε, hεc⟩ := Metric.mem_nhdsWithin_iff.mp hcf
   replace hε := hc (ε/2)
@@ -1069,50 +1011,14 @@ lemma contourPull3 (x_gt_one : 1 < x) (σ'le : σ' ≤ -3 / 2) (σ''le : σ'' �
     (notMem_uIcc_of_gt (by linarith) (by linarith))
 
 
-@[blueprint
-  "formulaGtOne"
-  (title := "formulaGtOne")
-  (statement := /--
+blueprint_comment /--
+\label{formulaGtOne}
   For $x>1$ and $\sigma>0$, we have
   $$
   \frac1{2\pi i}
   \int_{(\sigma)}\frac{x^s}{s(s+1)}ds =1-1/x.
   $$
-  -/)
-  (latexEnv := "lemma")]
-lemma formulaGtOne (x_gt_one : 1 < x) (σ_pos : 0 < σ) :
-    VerticalIntegral' (fun s ↦ x^s / (s * (s + 1))) σ = 1 - 1 / x := by
-  /-- Let $f(s) = x^s/(s(s+1))$. Then $f$ is holomorphic on $\C \setminus {0,-1}$. -/
-  set f : ℂ → ℂ := (fun s ↦ x^s / (s * (s + 1)))
-  /-- First pull the contour from $(\sigma)$ to $(-1/2)$, picking up a residue $1$ at $s=0$. -/
-  rw [residuePull1 x_gt_one σ_pos]
-  /-- Next pull the contour from $(-1/2)$ to $(-3/2)$, picking up a residue $-1/x$ at
-  $s=-1$. -/
-  rw [residuePull2 x_gt_one]
-  /-- Then pull the contour all the way to $(\sigma')$ with $\sigma'<-3/2$. -/
-  have contourPull₃ (σ' σ'' : ℝ) (hσ' : σ' ≤ -3/2) (hσ'' : σ'' ≤ -3/2) :
-      VerticalIntegral' f σ' = VerticalIntegral' f σ'' :=
-    contourPull3 x_gt_one hσ' hσ''
-  /-- For $\sigma' < -3/2$, the integral is bounded by
-  $x^{\sigma'}\int_\R\frac{1}{|(1+t ^ 2)(2+t ^ 2)|^{1/2}}dt$. -/
-  have VertIntBound : ∃ C, ∀ σ' < -3/2, ‖VerticalIntegral' f σ'‖ ≤ C * x ^ σ' :=
-    vertIntBoundLeft (by linarith : 0 < x)
-  /-- Therefore $\int_{(\sigma')}\to 0$ as $\sigma'\to\infty$. -/
-  have AbsVertIntTendsto :
-      Tendsto ((‖·‖ : ℂ → ℝ) ∘ (VerticalIntegral' f)) atBot (𝓝 0) := by
-    obtain ⟨C, hC⟩ := VertIntBound
-    have : Tendsto (fun σ : ℝ ↦ x ^ σ * C) atBot (𝓝 0) := by
-      simpa only [zero_mul] using
-        (tendsto_rpow_atBot_of_base_gt_one x x_gt_one).mul_const C
-    apply tendsto_of_tendsto_of_tendsto_of_le_of_le' tendsto_const_nhds this
-    · filter_upwards using fun _ ↦ norm_nonneg _
-    · filter_upwards [eventually_lt_atBot (-3/2)]
-      (conv at hC => intro σ hσ; rw [mul_comm]); exact fun _ ↦ hC _
-  /-- So pulling contours gives $\int_{(-3/2)}=0$. -/
-  rw [limitOfConstantLeft (σ := -3/2) (Eq.le rfl) contourPull₃ ?_]
-  · ring
-  · exact tendsto_zero_iff_norm_tendsto_zero.mpr AbsVertIntTendsto
-
+  -/
 
 blueprint_comment /--
 The two together give the Perron formula. (Which doesn't need to be a separate lemma.)

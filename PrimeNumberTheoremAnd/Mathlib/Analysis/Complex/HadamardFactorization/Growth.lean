@@ -14,8 +14,6 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactor
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanMajorantBound
 import TauCeti.Analysis.Normed.Ring.InfiniteProd
 import Mathlib.Topology.Algebra.InfiniteSum.Group
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Analysis.Polynomial.Basic
 public import TauCeti.Analysis.Complex.GrowthOrder.Exponential
 
 /-!
@@ -488,67 +486,5 @@ theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
   · intro z
     have hH' : H z = Complex.exp (Polynomial.eval z P) := by simpa using (hHP z)
     simpa [hH', mul_assoc, mul_left_comm, mul_comm, m] using (hfactor z)
-
-section QuantitativePolynomial
-
-open Complex Real BigOperators Finset Set Filter Topology Metric Polynomial
-
-/- The following two private estimates are retained verbatim from Matteo Cipollina's
-original ExpPoly/Growth.lean; their full every-radius quantitative claims remain in scope. -/
-
-private lemma mul_conj_div_norm (a : ℂ) (ha : a ≠ 0) :
-    a * ((starRingEnd ℂ) a / (‖a‖ : ℂ)) = (‖a‖ : ℂ) := by
-  rw [← mul_div_assoc, Complex.mul_conj, Complex.normSq_eq_norm_sq]
-  push_cast
-  field_simp [Complex.ofReal_ne_zero.mpr (norm_ne_zero_iff.mpr ha)]
-
-private lemma exists_z_norm_eq_re_eval_ge
-    (P : Polynomial ℂ) (hn : 0 < P.natDegree) :
-    ∃ R0 : ℝ, 0 < R0 ∧
-      ∀ R : ℝ, R0 ≤ R →
-        ∃ z : ℂ, ‖z‖ = R ∧
-          (‖P.leadingCoeff‖ / 2) * R ^ P.natDegree ≤ (P.eval z).re := by
-  have hP : P ≠ 0 := by
-    intro h
-    simp [h] at hn
-  have ha : P.leadingCoeff ≠ 0 := Polynomial.leadingCoeff_ne_zero.mpr hP
-  let a := P.leadingCoeff
-  let wtarget : ℂ := (starRingEnd ℂ) a / (‖a‖ : ℂ)
-  have hwtarget : ‖wtarget‖ = 1 := by
-    simp [wtarget, a, ha]
-  obtain ⟨w, hw⟩ := IsAlgClosed.exists_pow_nat_eq wtarget hn
-  have hw_norm : ‖w‖ = 1 := by
-    apply (pow_eq_one_iff_of_nonneg (norm_nonneg w) hn.ne').mp
-    simpa only [norm_pow, hwtarget] using congrArg norm hw
-  have he := (Polynomial.isEquivalent_cobounded_leading_monomial (P := P)).isLittleO.bound
-    (by norm_num : (0 : ℝ) < 1 / 2)
-  obtain ⟨B, _, hB⟩ := Filter.hasBasis_cobounded_norm.mem_iff.mp he
-  refine ⟨max B 1, lt_of_lt_of_le zero_lt_one (le_max_right _ _), ?_⟩
-  intro R hR
-  have hR1 : 1 ≤ R := (le_max_right _ _).trans hR
-  have hR0 : 0 ≤ R := zero_le_one.trans hR1
-  let z : ℂ := (R : ℂ) * w
-  have hz : ‖z‖ = R := by simp [z, hw_norm, abs_of_nonneg hR0]
-  have hlead : P.leadingCoeff * z ^ P.natDegree = ((‖a‖ * R ^ P.natDegree : ℝ) : ℂ) := by
-    have hamul : a * w ^ P.natDegree = (‖a‖ : ℂ) := by
-      rw [hw]
-      exact mul_conj_div_norm a ha
-    calc
-      P.leadingCoeff * z ^ P.natDegree = (R : ℂ) ^ P.natDegree * (a * w ^ P.natDegree) := by
-        dsimp [z, a]
-        ring
-      _ = ((‖a‖ * R ^ P.natDegree : ℝ) : ℂ) := by rw [hamul]; push_cast; ring
-  have herror := hB (show B ≤ ‖z‖ by rw [hz]; exact (le_max_left _ _).trans hR)
-  change ‖P.eval z - P.leadingCoeff * z ^ P.natDegree‖ ≤
-    (1 / 2 : ℝ) * ‖P.leadingCoeff * z ^ P.natDegree‖ at herror
-  have hreal := neg_le_of_abs_le (Complex.abs_re_le_norm (P.eval z - P.leadingCoeff * z ^ P.natDegree))
-  rw [hlead] at herror hreal
-  simp only [Complex.sub_re, Complex.ofReal_re] at hreal
-  rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (norm_nonneg a) (pow_nonneg hR0 _))] at herror
-  refine ⟨z, hz, ?_⟩
-  change (‖a‖ / 2) * R ^ P.natDegree ≤ (P.eval z).re
-  nlinarith
-
-end QuantitativePolynomial
 
 end Complex.Hadamard

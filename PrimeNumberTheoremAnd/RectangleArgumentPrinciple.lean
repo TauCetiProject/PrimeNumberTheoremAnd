@@ -65,7 +65,7 @@ lemma logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt
     (logDeriv f - fun s : ℂ => (n : ℂ) / (s - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
   obtain ⟨g, hg, hg0, heq⟩ := TauCeti.Contour.logDeriv_eventuallyEq_principalPart hf hord
   have hbounded : logDeriv g =O[𝓝 p] (1 : ℂ → ℂ) :=
-    (TauCeti.Contour.analyticAt_logDeriv_of_analyticAt hg hg0).continuousAt.norm.isBoundedUnder_le.isBigO_one ℂ
+    (hg.logDeriv hg0).continuousAt.norm.isBoundedUnder_le.isBigO_one ℂ
   refine (hbounded.mono nhdsWithin_le_nhds).congr' ?_ .rfl
   filter_upwards [heq] with z hz
   simp only [Pi.sub_apply, hz, div_eq_mul_inv, add_sub_cancel_left]

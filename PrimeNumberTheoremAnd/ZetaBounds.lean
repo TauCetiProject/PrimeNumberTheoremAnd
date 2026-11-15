@@ -187,7 +187,7 @@ theorem logDerivResidue {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     simpa only [zpow_neg_one, smul_eq_mul] using hz
   obtain ⟨v, hv, hv0, hlog⟩ := TauCeti.Contour.logDeriv_eventuallyEq_principalPart hm hord
   have hb : logDeriv v =O[𝓝[≠] p] (1 : ℂ → ℂ) :=
-    ((TauCeti.Contour.analyticAt_logDeriv_of_analyticAt hv hv0).continuousAt.tendsto.isBigO_one ℂ).mono
+    ((hv.logDeriv hv0).continuousAt.tendsto.isBigO_one ℂ).mono
       nhdsWithin_le_nhds
   have he : (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =ᶠ[𝓝[≠] p] logDeriv v := by
     filter_upwards [hlog] with z hz
