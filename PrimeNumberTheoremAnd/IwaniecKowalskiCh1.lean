@@ -947,26 +947,20 @@ theorem zeta_mul_zeta_mul_zeta_mul_zeta_eq (α β s : ℂ) (h1 : 1 < s.re) (h2 :
     simpa only [hfactor] using (riemannZeta_eulerProduct_hasProd h5).mul Hprod
   exact Hfour.unique Hfinal
 
-/-- Corollary:  `ζ(s)^4=ζ(2s) ∑ τ(n)^2 n^(-s)` -/
-@[blueprint
-  "zeta_pow_four_eq"
-  (title := "zeta pow four eq")
-  (statement := /-- Corollary: $\zeta(s)^4 = \zeta(2s) \sum_{n=1}^{\infty} \tau(n)^2 n^{-s}$ for $\Re(s) > 1$.
+blueprint_comment /--
+\label{zeta_pow_four_eq}
+\textbf{zeta pow four eq}
+Corollary: $\zeta(s)^4 = \zeta(2s) \sum_{n=1}^{\infty} \tau(n)^2 n^{-s}$ for $\Re(s) > 1$.
   \begin{verbatim}
   This is IK (1.29).
   \end{verbatim}
-  -/)
-  (proof := /--
-  This is a special case of the previous theorem where we set $\alpha = \beta = 0$.
-  -/)]
-theorem zeta_pow_four_eq (s : ℂ) (hs : 1 < s.re) :
-    riemannZeta s ^ 4 = riemannZeta (2 * s) * LSeries (fun n ↦ (τ n) ^ 2) s := by
-  convert (zeta_mul_zeta_mul_zeta_mul_zeta_eq 0 0 s hs (by simpa using hs) (by simpa using hs)
-      (by simpa using hs)) using 1
-  · ring_nf
-  · congr
-    · ring_nf
-    · simp [tau, sigma, sigmaR, pow_two]
+
+Proof.
+This is a special case of the previous theorem where we set $\alpha = \beta = 0$.
+
+Formal theorem: `TauCeti.riemannZeta_pow_four_eq_mul_LSeries_divisor_sq`,
+in `TauCeti.NumberTheory.LSeries.Divisor`.
+-/
 
 class IsCoprimePreserving (f : ℕ → ℕ) : Prop where
   map_coprime : ∀ {m n : ℕ}, Nat.Coprime m n → Nat.Coprime (f m) (f n)
