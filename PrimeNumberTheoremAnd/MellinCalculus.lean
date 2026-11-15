@@ -23,23 +23,6 @@ open Complex Topology Filter Real MeasureTheory Set
 
 variable {𝕂 : Type*} [RCLike 𝕂]
 
-lemma MeasureTheory.integral_comp_mul_right_I0i_haar
-    (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
-    ∫ (y : ℝ) in Ioi 0, f (y * a) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  have := integral_comp_mul_right_Ioi (fun y ↦ f y / y) 0 ha
-  simp only [RCLike.ofReal_mul, zero_mul, eq_inv_smul_iff₀ (ne_of_gt ha)] at this
-  rw [← integral_smul] at this
-  rw [← this, setIntegral_congr_fun (by simp)]
-  intro _ _
-  simp only [RCLike.real_smul_eq_coe_mul]
-  rw [mul_comm (a : 𝕂), div_mul, mul_div_assoc, div_self ?_, mul_one]
-  exact (RCLike.ofReal_ne_zero).mpr <| ne_of_gt ha
-
-lemma MeasureTheory.integral_comp_mul_left_I0i_haar
-    (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
-    ∫ (y : ℝ) in Ioi 0, f (a * y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  convert integral_comp_mul_right_I0i_haar f ha using 5; ring
-
 -- TODO: generalize to `RCLike`
 lemma MeasureTheory.integral_comp_rpow_I0i_haar_real (f : ℝ → ℝ) {p : ℝ} (hp : p ≠ 0) :
     ∫ (y : ℝ) in Ioi 0, |p| * f (y ^ p) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
@@ -49,26 +32,22 @@ lemma MeasureTheory.integral_comp_rpow_I0i_haar_real (f : ℝ → ℝ) {p : ℝ}
   simp only [rpow_sub_one ypos.ne', smul_eq_mul]
   field_simp
 
-lemma MeasureTheory.integral_comp_inv_I0i_haar (f : ℝ → 𝕂) :
-    ∫ (y : ℝ) in Ioi 0, f (1 / y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  have := integral_comp_rpow_Ioi (fun y ↦ f y / y) (p := -1) (by simp)
-  rw [← this, setIntegral_congr_fun (by simp)]
-  intro y hy
-  have : (y : 𝕂) ≠ 0 := (RCLike.ofReal_ne_zero).mpr <| LT.lt.ne' hy
-  simp only [abs_neg, abs_one, rpow_neg_one, map_inv₀, div_inv_eq_mul,
-    RCLike.real_smul_eq_coe_mul, RCLike.algebraMap_eq_ofReal]
-  ring_nf
-  simp [field]
-
 lemma MeasureTheory.integral_comp_div_I0i_haar
     (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
     ∫ (y : ℝ) in Ioi 0, f (a / y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  calc
-    _ = ∫ (y : ℝ) in Ioi 0, f (a * y) / y := ?_
-    _ = _ := integral_comp_mul_left_I0i_haar f ha
-  convert (integral_comp_inv_I0i_haar fun y ↦ f (a * (1 / y))).symm using 4
-  · rw [mul_one_div]
-  · rw [one_div_one_div]
+  have hlog (h : ℝ → 𝕂) : (∫ y : ℝ in Ioi 0, h y / y) = ∫ v : ℝ, h (Real.exp (-v)) := by
+    simpa only [convolution, ContinuousLinearMap.mul_apply', mul_one, one_mul,
+      RCLike.real_smul_eq_coe_mul, RCLike.ofReal_inv, div_eq_mul_inv, mul_comm] using
+      ContinuousLinearMap.integral_inv_smul_bilinear_eq_convolution
+        (ContinuousLinearMap.mul ℝ 𝕂) h (fun _ : ℝ => (1 : 𝕂)) 0
+  rw [hlog (fun y => f (a / y)), hlog f]
+  have harg (v : ℝ) : a / Real.exp (-v) = Real.exp (-(-Real.log a - v)) := by
+    calc
+      _ = Real.exp (Real.log a) / Real.exp (-v) := by rw [Real.exp_log ha]
+      _ = Real.exp (Real.log a - -v) := (Real.exp_sub _ _).symm
+      _ = _ := by congr 1; ring
+  simp_rw [harg]
+  exact integral_sub_left_eq_self (fun v : ℝ => f (Real.exp (-v))) volume (-Real.log a)
 
 @[simp]
 lemma Function.support_abs {α : Type*} (f : α → 𝕂) :
@@ -271,14 +250,24 @@ Let us start with a simple property of the Mellin convolution.
   (latexEnv := "lemma")]
 lemma MellinConvolutionSymmetric (f g : ℝ → 𝕂) {x : ℝ} (xpos : 0 < x) :
     MellinConvolution f g x = MellinConvolution g f x := by
-  unfold MellinConvolution
+  have hchart (f g : ℝ → 𝕂) (u : ℝ) :
+      MellinConvolution f g (Real.exp (-u)) =
+        convolution (fun v : ℝ => f (Real.exp (-v)))
+          (fun v : ℝ => g (Real.exp (-v))) (ContinuousLinearMap.mul ℝ 𝕂) volume u := by
+    simpa only [MellinConvolution, convolution, ContinuousLinearMap.mul_apply',
+      RCLike.real_smul_eq_coe_mul, RCLike.ofReal_inv, div_eq_mul_inv, mul_comm] using
+      ContinuousLinearMap.integral_inv_smul_bilinear_eq_convolution (ContinuousLinearMap.mul ℝ 𝕂) f g u
+  have hflip : (ContinuousLinearMap.mul ℝ 𝕂).flip = ContinuousLinearMap.mul ℝ 𝕂 := by
+    ext a b
+    simp
   calc
-    _ = ∫ y in Ioi 0, f (y * x) * g (1 / y) / y := ?_
-    _ = _ := ?_
-  · rw [← integral_comp_mul_right_I0i_haar (fun y ↦ f y * g (x / y)) xpos]
-    simp [div_mul_cancel_right₀ <| ne_of_gt xpos]
-  · convert (integral_comp_inv_I0i_haar fun y ↦ f (y * x) * g (1 / y)).symm using 3
-    rw [one_div_one_div, mul_comm, mul_comm_div, one_mul]
+    _ = convolution (fun v : ℝ => f (Real.exp (-v)))
+        (fun v : ℝ => g (Real.exp (-v))) (ContinuousLinearMap.mul ℝ 𝕂) volume
+        (-Real.log x) := by simpa only [neg_neg, Real.exp_log xpos] using hchart f g (-Real.log x)
+    _ = convolution (fun v : ℝ => g (Real.exp (-v)))
+        (fun v : ℝ => f (Real.exp (-v))) (ContinuousLinearMap.mul ℝ 𝕂) volume
+        (-Real.log x) := congrFun (convolution_symm _ hflip) _
+    _ = _ := by simpa only [neg_neg, Real.exp_log xpos] using (hchart g f (-Real.log x)).symm
 
 open Pointwise in
 lemma support_MellinConvolution_subsets {f g : ℝ → 𝕂} {A B : Set ℝ} (hf : f.support ⊆ A)

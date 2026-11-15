@@ -12,6 +12,7 @@ public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.NumberTheory.ArithmeticFunction.Liouville
 public import Mathlib.Data.Finset.NatDivisors
 public import TauCeti.NumberTheory.LSeries.EulerProduct
+import TauCeti.NumberTheory.ArithmeticFunction.Zeta
 
 
 @[expose] public section
@@ -229,58 +230,42 @@ theorem LSeries_tau_eq_riemannZeta_sq {s : ℂ} (hs : 1 < s.re) :
     LSeries_mul' (LSeriesSummable_zeta_iff.mpr hs) (LSeriesSummable_zeta_iff.mpr hs)
   rw [← zeta_mul_zeta, h1, h2, LSeries_zeta_eq_riemannZeta hs, pow_two]
 
-/-- `d k` is the k-fold divisor function: the number of ways to write n as an ordered
-    product of k natural numbers. Equivalently, the Dirichlet convolution of ζ with
-    itself k times. We have `d 0 = 1` (identity), `d 1 = ζ`, `d 2 = σ 0`. -/
-@[blueprint
-  "d"
-  (title := "d")
-  (statement := /-- $d_k$ is the $k$-fold divisor function: the number of ways to write $n$ as an ordered
+blueprint_comment /--
+\label{d}
+\paragraph{d}
+ $d_k$ is the $k$-fold divisor function: the number of ways to write $n$ as an ordered
     product of $k$ natural numbers. Equivalently, the Dirichlet convolution of $\zeta$ with
-    itself $k$ times.-/)]
-def d (k : ℕ) : ArithmeticFunction ℕ := zeta ^ k
+    itself $k$ times.-/
 
-/-- `d 0` is the multiplicative identity (indicator at 1). -/
-@[blueprint
-  "d_zero"
-  (title := "d zero")
-  (statement := /-- $d_0$ is the multiplicative identity (indicator at 1). -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_zero}
+\paragraph{d zero}
+ $d_0$ is the multiplicative identity (indicator at 1). \paragraph{Proof}
   By definition, $d_k$ is the $k$-fold Dirichlet convolution of $\zeta$. When $k = 0$, this corresponds to the empty convolution, which is defined to be the multiplicative identity in the algebra of arithmetic functions. The multiplicative identity is the function that takes the value $1$ at $n=1$ and $0$ elsewhere, which can be expressed as $\zeta^0$.
-  -/)]
-theorem d_zero : d 0 = 1 := pow_zero zeta
+  -/
 
-/-- `d 1` is `ζ`. -/
-@[blueprint
-  "d_one"
-  (title := "d one")
-  (statement := /-- $d_1$ is $\zeta$. -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_one}
+\paragraph{d one}
+ $d_1$ is $\zeta$. \paragraph{Proof}
   By definition, $d_k$ is the $k$-fold Dirichlet convolution of $\zeta$. When $k = 1$, this means we are taking the convolution of $\zeta$ with itself once, which simply gives us $\zeta$. Therefore, $d_1 = \zeta^1 = \zeta$.
-  -/)]
-theorem d_one : d 1 = zeta := pow_one zeta
+  -/
 
-/-- `d 2` is the classical divisor count function `τ`. -/
-@[blueprint
-  "d_two"
-  (title := "d two")
-  (statement := /-- $d_2$ is the classical divisor count function $\tau$. -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_two}
+\paragraph{d two}
+ $d_2$ is the classical divisor count function $\tau$. \paragraph{Proof}
   By definition, $d_k$ is the $k$-fold Dirichlet convolution of $\zeta$. When $k = 2$, this means we are taking the convolution of $\zeta$ with itself twice, which gives us $\zeta * \zeta$. From the earlier theorem, we know that $\zeta * \zeta = \tau$, where $\tau$ is the divisor count function. Therefore, $d_2 = \zeta^2 = \tau$.
-  -/)]
-theorem d_two : d 2 = τ := by simp [d, sq, zeta_mul_zeta]
+  -/
 
-/-- Recurrence: `d_(k+1) = d_k * ζ`. -/
-@[blueprint
-  "d_succ"
-  (title := "d succ")
-  (statement := /-- Recurrence: $d_{k+1} = d_k * \zeta$. -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_succ}
+\paragraph{d succ}
+ Recurrence: $d_{k+1} = d_k * \zeta$. \paragraph{Proof}
   By definition, $d_k$ is the $k$-fold Dirichlet convolution of $\zeta$. Therefore, $d_{k + 1}$ is the $(k + 1)$-fold convolution of $\zeta$, which can be expressed as the convolution of $d_k$ (the $k$-fold convolution) with $\zeta$. Thus, we have $d_{k + 1} = d_k * \zeta$.
-  -/)]
-theorem d_succ (k : ℕ) : d (k + 1) = d k * zeta := pow_succ zeta k
+  -/
 
-/-- The L-series for `d k` is summable -/
+/-- The L-series of every convolution power of zeta converges for `Re(s) > 1`. -/
 @[blueprint
   "LSeries_d_summable"
   (title := "LSeries d summable")
@@ -288,18 +273,20 @@ theorem d_succ (k : ℕ) : d (k + 1) = d k * zeta := pow_succ zeta k
   (proof := /--
   Since $d_k$ is defined as the $k$-fold Dirichlet convolution of $\zeta$, and we know that the L-series of $\zeta$ converges for $\Re(s) > 1$, it follows that the L-series of $d_k$ also converges for $\Re(s) > 1$. This is because the convolution of functions with convergent L-series will also have a convergent L-series in the same region. Therefore, we can conclude that $L(d_k, s)$ is summable for $\Re(s) > 1$.
   -/)]
-theorem LSeries_d_summable (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
-      LSeriesSummable (↗(d k : ArithmeticFunction ℂ)) s := by
+theorem LSeriesSummable_zeta_pow (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
+      LSeriesSummable (↗((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ)) s := by
   induction k with
   | zero =>
-    simp only [d_zero, natCoe_one, one_eq_delta]
+    simp only [pow_zero, natCoe_one, one_eq_delta]
     exact (hasSum_single 1 fun n hn => by simp [LSeries.term_delta, hn]).summable
   | succ k ih =>
-    rw [(LSeriesSummable_congr s (fun {n} _ => show (d (k + 1) : ArithmeticFunction ℂ) n =
-      ((d k : ArithmeticFunction ℂ) * ζ) n by rw [d_succ, natCoe_mul]))]
+    rw [(LSeriesSummable_congr s (fun {n} _ =>
+      show ((ζ ^ (k + 1) : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) n =
+        (((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) * ζ) n by
+        rw [pow_succ, natCoe_mul]))]
     exact LSeriesSummable_mul ih (LSeriesSummable_zeta_iff.mpr hs)
 
-/-- The L-series of `d k` equals `ζ(s)^k` for `Re(s) > 1`. -/
+/-- The L-series of a convolution power of zeta equals the corresponding power of Riemann zeta. -/
 @[blueprint
   "LSeries_d_eq_riemannZeta_pow"
   (title := "LSeries d eq riemannZeta pow")
@@ -307,78 +294,44 @@ theorem LSeries_d_summable (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
   (proof := /--
   From the definition of $d_k$ as the $k$-fold Dirichlet convolution of $\zeta$, we can express $d_k$ as $\zeta^k$. The L-series of a Dirichlet convolution corresponds to the product of the L-series of the individual functions. Since $L(\zeta, s)$ is the Riemann zeta function $\zeta(s)$, it follows that $L(d_k, s) = L(\zeta^k, s) = (L(\zeta, s))^k = \zeta(s)^k$ for $\Re(s) > 1$ where the series converges.
   -/)]
-theorem LSeries_d_eq_riemannZeta_pow (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
-    LSeries (↗(d k)) s = riemannZeta s ^ k := by
-  change LSeries (↗(d k : ArithmeticFunction ℂ)) s = riemannZeta s ^ k
+theorem LSeries_zeta_pow_eq_riemannZeta_pow (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
+    LSeries (↗(ζ ^ k : ArithmeticFunction ℕ)) s = riemannZeta s ^ k := by
+  change LSeries (↗((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ)) s = riemannZeta s ^ k
   induction k with
   | zero =>
-    simp only [d_zero, natCoe_one, pow_zero, one_eq_delta]
+    simp only [pow_zero, natCoe_one, one_eq_delta]
     exact congr_fun LSeries_delta s
   | succ j ih =>
     have hζ : LSeriesSummable (↗(ζ : ArithmeticFunction ℂ)) s :=
       LSeriesSummable_zeta_iff.mpr hs
-    rw [pow_succ, LSeries_congr (fun {n} _ => show (d (j + 1) : ArithmeticFunction ℂ) n =
-        ((d j : ArithmeticFunction ℂ) * ζ) n by rw [d_succ, natCoe_mul]) s,
-        LSeries_mul' (LSeries_d_summable j hs) hζ, ih]
+    rw [show riemannZeta s ^ (j + 1) = riemannZeta s ^ j * riemannZeta s from pow_succ _ _,
+      LSeries_congr (fun {n} _ =>
+        show ((ζ ^ (j + 1) : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) n =
+          (((ζ ^ j : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) * ζ) n by
+          rw [pow_succ, natCoe_mul]) s,
+        LSeries_mul' (LSeriesSummable_zeta_pow j hs) hζ, ih]
     congr 1
     exact LSeries_zeta_eq_riemannZeta hs
 
 
-/-- `d k` is multiplicative for all `k`. -/
-@[blueprint
-  "d_isMultiplicative"
-  (title := "d isMultiplicative")
-  (statement := /-- $d_k$ is multiplicative for all $k$. -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_isMultiplicative}
+\paragraph{d isMultiplicative}
+ $d_k$ is multiplicative for all $k$. \paragraph{Proof}
   The function $d_k$ is defined as the $k$-fold Dirichlet convolution of $\zeta$. Since $\zeta$ is a multiplicative function, and the Dirichlet convolution of multiplicative functions is also multiplicative, it follows that $d_k$ is multiplicative for all $k$. This can be shown by induction on $k$, using the fact that the convolution of a multiplicative function with another multiplicative function remains multiplicative.
-  -/)]
-theorem d_isMultiplicative (k : ℕ) : (d k).IsMultiplicative := by
-  induction k with
-  | zero => rw [d_zero]; exact isMultiplicative_one
-  | succ k ih =>
-      rw [d_succ]
-      exact ih.mul isMultiplicative_zeta
+  -/
 
-/- MOVE HELPER LEMMA ELSEWHERE?? Not used in this file, but seems potentially useful? -/
-/-- Proof route (#1686): `sum_divisorsAntidiagonal`, then `sum_divisors_prime_pow`, then `Nat.pow_div`. -/
-theorem Nat.sum_divisorsAntidiagonal_prime_pow {α : Type u_1} [AddCommMonoid α] [HMul α α α] {k p : ℕ} {f : ℕ × ℕ → α} (h : Nat.Prime p) :
-∑ x ∈ (p ^ k).divisorsAntidiagonal, f x = ∑ n ∈ Finset.range (k + 1), f (p ^ n, p ^ (k - n)) := by
-  calc ∑ x ∈ (p ^ k).divisorsAntidiagonal, f x
-      = ∑ x ∈ (p ^ k).divisorsAntidiagonal, (fun a b => f (a, b)) x.1 x.2 := rfl
-    _ = ∑ d ∈ (p ^ k).divisors, (fun a b => f (a, b)) d (p ^ k / d) :=
-          sum_divisorsAntidiagonal (fun a b => f (a, b))
-    _ = ∑ i ∈ Finset.range (k + 1), (fun a b => f (a, b)) (p ^ i) (p ^ k / p ^ i) := by
-          rw [sum_divisors_prime_pow h]
-    _ = ∑ n ∈ Finset.range (k + 1), f (p ^ n, p ^ (k - n)) := by
-          apply Finset.sum_congr rfl
-          intro i hi
-          congr 1
-          exact Nat.pow_div (Nat.lt_succ_iff.mp (Finset.mem_range.mp hi)) h.pos
-
-/-- Explicit formula: `d k (p^a) = (a + k - 1).choose (k - 1) for prime p` for `k ≥ 1`. -/
-@[blueprint
-  "d_apply_prime_pow"
-  (title := "d apply prime pow")
-  (statement := /-- Explicit formula: $d_k (p^a) = (a + k - 1).choose (k - 1)$ for prime $p$ and $k \geq 1$. -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_apply_prime_pow}
+\paragraph{d apply prime pow}
+ Explicit formula: $d_k (p^a) = (a + k - 1).choose (k - 1)$ for prime $p$ and $k \geq 1$. \paragraph{Proof}
   The function $d_k$ counts the number of ways to write a natural number as an ordered product of $k$ natural numbers. For a prime power $p^a$, the number of ways to factor it into $k$ factors corresponds to the number of non-negative integer solutions to the equation $x_1 + x_2 + ... + x_k = a$, where each $x_i$ represents the exponent of $p$ in the factorization of the corresponding factor. This is a classic combinatorial problem, and the number of solutions is given by the formula $(a + k - 1).choose (k - 1)$, which counts the ways to distribute $a$ indistinguishable items (the prime factors) into $k$ distinguishable boxes (the factors).
-  -/)]
-theorem d_apply_prime_pow {k : ℕ} (hk : 0 < k) {p : ℕ} (hp : p.Prime) (a : ℕ) :
-    d k (p ^ a) = (a + k - 1).choose (k - 1) := by
-  obtain ⟨k', rfl⟩ := exists_eq_succ_of_ne_zero (Nat.ne_of_gt hk)
-  induction k' generalizing a with
-  | zero => simp [d_one, hp.ne_zero]
-  | succ k' ih =>
-      rw [d_succ, mul_zeta_apply, sum_divisors_prime_pow hp]
-      simp_rw [fun i ↦ ih i (succ_pos _)]
-      simpa [add_assoc, add_left_comm, add_comm] using sum_range_add_choose a k'
+  -/
 
-/-- (1.25) in Iwaniec-Kowalski: a formula for `d_k` for all `n`. -/
-@[blueprint
-  "d_apply"
-  (title := "d apply")
-  (statement := /-- (1.25) in Iwaniec-Kowalski: a formula for $d_k$ for all $n$. -/)
-  (proof := /--
+blueprint_comment /--
+\label{d_apply}
+\paragraph{d apply}
+ (1.25) in Iwaniec-Kowalski: a formula for $d_k$ for all $n$. \paragraph{Proof}
   The function $d_k$ is multiplicative, so to compute $d_k(n)$ for a general natural number $n$, we can factor $n$ into its prime power decomposition: $n = p_1^{a_1} p_2^{a_2} ... p_m^{a_m}$. Since $d_k$ is multiplicative, we have:
 
   \[
@@ -392,13 +345,7 @@ theorem d_apply_prime_pow {k : ℕ} (hk : 0 < k) {p : ℕ} (hp : p.Prime) (a : �
   \]
 
   This gives us a complete formula for $d_k(n)$ in terms of the prime factorization of $n$.
-  -/)]
-lemma d_apply {k n : ℕ} (hk : 0 < k) (hn : n ≠ 0) :
-    d k n = ∏ p ∈ n.primeFactors, (n.factorization p + k - 1).choose (k - 1) := by
-  have hmult : (d k).IsMultiplicative := d_isMultiplicative k
-  rw [hmult.multiplicative_factorization (d k) hn, prod_factorization_eq_prod_primeFactors]
-  apply prod_congr rfl (fun p hp => ?_)
-  simpa using d_apply_prime_pow hk (prime_of_mem_primeFactors hp) _
+  -/
 
 /-- Divisor power sum with exponents in an arbitrary semiring `R`. -/
 @[blueprint
@@ -687,14 +634,15 @@ private lemma ramanujan_square_le_choose (k : ℕ) : (k + 1) ^ 2 ≤ (k + 3).cho
     rw [show k + 1 + 3 = (k + 3) + 1 by omega, Nat.choose_succ_succ]
     nlinarith
 
-private lemma ramanujan_tau_sq_le_d_four (n : ℕ) : (tau n)^2 ≤ d 4 n := by
+private lemma ramanujan_tau_sq_le_zeta_pow_four (n : ℕ) :
+    (tau n)^2 ≤ (ζ ^ 4 : ArithmeticFunction ℕ) n := by
   rcases eq_or_ne n 0 with rfl | hn
   · simp
   have ht : (tau.pmul tau).IsMultiplicative :=
     (isMultiplicative_sigma (k := 0)).pmul (isMultiplicative_sigma (k := 0))
   rw [← show tau.pmul tau n = (tau n)^2 from (pow_two _).symm,
     ht.multiplicative_factorization _ hn,
-    (d_isMultiplicative 4).multiplicative_factorization _ hn,
+    (isMultiplicative_zeta.pow (k := 4)).multiplicative_factorization _ hn,
     prod_factorization_eq_prod_primeFactors, prod_factorization_eq_prod_primeFactors]
   apply Finset.prod_le_prod
   intro p hp
@@ -702,7 +650,7 @@ private lemma ramanujan_tau_sq_le_d_four (n : ℕ) : (tau n)^2 ≤ d 4 n := by
   simp only [ArithmeticFunction.pmul_apply]
   rw [← pow_two]
   change (tau (p ^ (n.factorization p))) ^ 2 ≤ _
-  rw [sigma_zero_apply_prime_pow hpp, d_apply_prime_pow (by norm_num) hpp]
+  rw [sigma_zero_apply_prime_pow hpp, zeta_pow_succ_apply_prime_pow 3 _ hpp]
   exact ramanujan_square_le_choose _
 
 private lemma ramanujan_norm_sigmaR_le (α : ℂ) {n : ℕ} (hn : n ≠ 0) :
@@ -723,7 +671,7 @@ private lemma ramanujan_norm_sigmaR_le (α : ℂ) {n : ℕ} (hn : n ≠ 0) :
   simp [tau, sigma_zero_apply]
 
 private lemma ramanujan_norm_sigma_product_le (α β : ℂ) {n : ℕ} (hn : n ≠ 0) :
-    ‖sigmaR α n * sigmaR β n‖ ≤ (d 4 n : ℝ) *
+    ‖sigmaR α n * sigmaR β n‖ ≤ ((ζ ^ 4 : ArithmeticFunction ℕ) n : ℝ) *
       (n : ℝ) ^ (max α.re 0 + max β.re 0) := by
   rw [norm_mul]
   apply ((mul_le_mul (ramanujan_norm_sigmaR_le α hn) (ramanujan_norm_sigmaR_le β hn)
@@ -734,7 +682,7 @@ private lemma ramanujan_norm_sigma_product_le (α β : ℂ) {n : ℕ} (hn : n �
         (tau n : ℝ)^2 * (n : ℝ) ^ (max α.re 0 + max β.re 0) := by
       rw [Real.rpow_add (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn))]
       ring
-    _ ≤ _ := mul_le_mul_of_nonneg_right (by exact_mod_cast ramanujan_tau_sq_le_d_four n)
+    _ ≤ _ := mul_le_mul_of_nonneg_right (by exact_mod_cast ramanujan_tau_sq_le_zeta_pow_four n)
       (Real.rpow_nonneg (by positivity) _)
 
 /-- The four original half-plane hypotheses give absolute convergence for complex parameters. -/
@@ -752,7 +700,7 @@ private lemma ramanujan_product_sigma_summable (α β s : ℂ)
     · simpa only [max_eq_left ha, max_eq_right hb, add_zero] using h2
     · rw [max_eq_left ha, max_eq_left hb]
       linarith
-  refine Summable.of_norm_bounded (LSeries_d_summable 4 hr).norm ?_
+  refine Summable.of_norm_bounded (LSeriesSummable_zeta_pow 4 hr).norm ?_
   intro n
   rcases eq_or_ne n 0 with rfl | hn
   · simp only [LSeries.term_zero, norm_zero, le_refl]
@@ -762,7 +710,7 @@ private lemma ramanujan_product_sigma_summable (α β s : ℂ)
   rw [Real.rpow_sub hnpos]
   calc
     ‖sigmaR α n * sigmaR β n‖ / (n : ℝ) ^ s.re ≤
-        ((d 4 n : ℝ) * (n : ℝ) ^ ρ) / (n : ℝ) ^ s.re :=
+        (((ζ ^ 4 : ArithmeticFunction ℕ) n : ℝ) * (n : ℝ) ^ ρ) / (n : ℝ) ^ s.re :=
       div_le_div_of_nonneg_right (ramanujan_norm_sigma_product_le α β hn) (Real.rpow_nonneg hnpos.le _)
     _ = _ := by rw [div_div_eq_mul_div]
 
@@ -1021,20 +969,20 @@ lemma isMultiplicative_sqTau : sqTau.IsMultiplicative :=
   IsMultiplicative.of_map_mulHom (isMultiplicative_sigma (k := 0)) (powMonoidHom 2) (fun _ ↦ rfl)
 
 /-- `τ(n²) ≤ d_3(n)` pointwise.  Used for L-series summability of `n ↦ τ(n²)`. -/
-lemma tau_sq_le_d_three (n : ℕ) : tauSq n ≤ d 3 n := by
+lemma tau_sq_le_zeta_pow_three (n : ℕ) : tauSq n ≤ (ζ ^ 3 : ArithmeticFunction ℕ) n := by
   rcases eq_or_ne n 0 with rfl | hn
   · change τ ((0 : ℕ) ^ 2) ≤ _
     simp
   rw [isMultiplicative_tauSq.multiplicative_factorization _ hn,
       prod_factorization_eq_prod_primeFactors,
-      (d_isMultiplicative 3).multiplicative_factorization _ hn,
+      (isMultiplicative_zeta.pow (k := 3)).multiplicative_factorization _ hn,
       prod_factorization_eq_prod_primeFactors]
   refine Finset.prod_le_prod₀ (fun _ _ ↦ Nat.zero_le _) fun p hp ↦ ?_
   have hp' := Nat.prime_of_mem_primeFactors hp
   set k := n.factorization p
-  change τ ((p ^ k) ^ 2) ≤ d 3 (p ^ k)
+  change τ ((p ^ k) ^ 2) ≤ (ζ ^ 3 : ArithmeticFunction ℕ) (p ^ k)
   rw [← pow_mul, mul_comm k 2, sigma_zero_apply_prime_pow hp',
-      d_apply_prime_pow (by norm_num) hp']
+      zeta_pow_succ_apply_prime_pow 2 _ hp']
   change 2 * k + 1 ≤ Nat.choose (k + 2) 2
   rw [Nat.choose_two_right, show k + 2 - 1 = k + 1 from rfl,
       Nat.le_div_iff_mul_le (by norm_num : (0:ℕ) < 2)]
@@ -1080,18 +1028,18 @@ lemma zeta_mul_tau_square_eq (s : ℂ) (hs : 1 < s.re) :
     rw [Finset.sum_congr rfl key, sum_two_mul_add_one]
     change (k + 1) ^ 2 = τ (p ^ k) ^ 2
     rw [sigma_zero_apply_prime_pow hp']
-  -- (b) Summability of  ↗tauSq  at  s  via domination by  ↗(d 3).
+  -- (b) Summability of  ↗tauSq  at  s  via domination by  ↗((ζ ^ 3 : ArithmeticFunction ℕ)).
   have hsumm : LSeriesSummable (↗(tauSq : ArithmeticFunction ℂ)) s := by
-    refine Summable.of_norm_bounded ((LSeries_d_summable 3 hs).norm) ?_
+    refine Summable.of_norm_bounded ((LSeriesSummable_zeta_pow 3 hs).norm) ?_
     intro n
     by_cases hn : n = 0
     · simp [hn, LSeries.term]
     rw [LSeries.term_of_ne_zero hn, LSeries.term_of_ne_zero hn,
         norm_div, norm_div]
     gcongr
-    change ‖((tauSq n : ℕ) : ℂ)‖ ≤ ‖((d 3 n : ℕ) : ℂ)‖
+    change ‖((tauSq n : ℕ) : ℂ)‖ ≤ ‖(((ζ ^ 3 : ArithmeticFunction ℕ) n : ℕ) : ℂ)‖
     simp only [Complex.norm_natCast, Nat.cast_le]
-    exact tau_sq_le_d_three n
+    exact tau_sq_le_zeta_pow_three n
   -- (c) Lift to L-series.
   have h1 : LSeries (↗((ζ : ArithmeticFunction ℂ) * (tauSq : ArithmeticFunction ℂ))) s
           = LSeries (↗(ζ : ArithmeticFunction ℂ)) s
@@ -1180,8 +1128,8 @@ lemma LSeriesSummable_two_pow_omega {s : ℂ} (hs : 1 < s.re) :
       exact div_le_div_of_nonneg_right (by exact_mod_cast two_pow_omega_le_sigma_zero hn) (norm_nonneg _)
   apply Summable.of_norm_bounded ?_ hgf
   rw [summable_norm_iff, ← LSeriesSummable]
-  convert LSeries_d_summable 2 hs using 1;
-  exact funext fun n => by rw [d_two]; rfl
+  convert LSeriesSummable_zeta_pow 2 hs using 1;
+  exact funext fun n => by rw [pow_two, zeta_mul_zeta]; rfl
 
 blueprint_comment /--
 Dirichlet-series terms preserve multiplicativity on coprime inputs, using
@@ -1397,15 +1345,15 @@ private lemma tau_sq_apply_prime_pow {p e : ℕ} (hp : p.Prime) :
 private lemma LSeriesSummable_tau_sq {s : ℂ} (hs : 1 < s.re) :
     LSeriesSummable (fun n ↦ (τ (n ^ 2) : ℂ)) s := by
   have hgf : ∀ n, ‖LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s n‖ ≤
-      ‖LSeries.term (fun n ↦ (d 3 n : ℂ)) s n‖ := by
+      ‖LSeries.term (fun n ↦ ((ζ ^ 3 : ArithmeticFunction ℕ) n : ℂ)) s n‖ := by
     intro n
     by_cases hn : n = 0
     · simp [LSeries.term, hn]
     · simp only [LSeries.term, hn, ↓reduceIte, Complex.norm_div, RCLike.norm_natCast]
-      exact div_le_div_of_nonneg_right (by exact_mod_cast tau_sq_le_d_three n) (norm_nonneg _)
+      exact div_le_div_of_nonneg_right (by exact_mod_cast tau_sq_le_zeta_pow_three n) (norm_nonneg _)
   apply Summable.of_norm_bounded ?_ hgf
   rw [summable_norm_iff, ← LSeriesSummable]
-  exact LSeries_d_summable 3 hs
+  exact LSeriesSummable_zeta_pow 3 hs
 
 /-- Local Euler factor: $\sum_e \tau((p^e)^2)\,p^{-es}=(1+p^{-s})/(1-p^{-s})^2$. -/
 private lemma tau_sq_tsum_prime_pow {s : ℂ} (hs : 1 < s.re) (p : Primes) :

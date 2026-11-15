@@ -14,7 +14,9 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactor
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanMajorantBound
 import TauCeti.Analysis.Normed.Ring.InfiniteProd
 import Mathlib.Topology.Algebra.InfiniteSum.Group
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ExpPoly.Growth
+import Mathlib.Analysis.Complex.Polynomial.Basic
+import Mathlib.Analysis.Polynomial.Basic
+public import TauCeti.Analysis.Complex.GrowthOrder.Exponential
 
 /-!
 # Hadamard factorization from a logarithmic growth bound
@@ -24,7 +26,7 @@ growth into `hadamard_factorization_of_growth`. The pipeline is:
 
 1. `Summability` — Jensen / `logCounting` bounds imply divisor-indexed product convergence
 2. `HadamardFactorization` — entire zero-free Hadamard quotient `H = f / (z^k · ∏ E_m)`
-3. This file — Cartan circle bounds on `H`, then `zero_free_polynomial_growth_is_exp_poly`
+3. This file — Cartan circle bounds on `H`, then native exponential-order polynomial rigidity
 4. `Order` — upgrade to `EntireOfOrderAtMost` and genus `⌊ρ⌋`
 
 All products use `divisorCanonicalProduct` centered at `0` with multiplicities from
@@ -42,7 +44,8 @@ Hadamard (Theorem 22).
 
 * `hadamard_factorization_of_growth` : entire `f` with log-growth of order `ρ` is a Weierstrass
   product times `exp(P)`
-* `zero_free_polynomial_growth_is_exp_poly` (in `ExpPoly`) : the Hadamard quotient is `exp(P)`
+* `TauCeti.OrderLE.exists_eq_cexp_polynomial_eval_of_forall_ne_zero` : its zero-free quotient
+  is a polynomial exponential
 * Cartan bounds use Mathlib’s `Complex.norm_le_of_forall_mem_frontier_norm_le`
 
 ## References
@@ -457,10 +460,6 @@ theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
     ⟨τ, hτ, hτ_lt, hτ_nonneg, hfloorτ'⟩
   have hfloorτ : Nat.floor τ = m := by
     simpa [m] using hfloorτ'
-  have hτ_lt_m : τ < (m + 1 : ℝ) := by
-    simpa [m] using hτ_lt
-  have hτ_lt_nat : τ < ((m + 1 : ℕ) : ℝ) := by
-    simpa [Nat.cast_add, Nat.cast_one] using hτ_lt_m
   have hmρ : (m : ℝ) ≤ ρ := by
     have := Nat.floor_le hρ
     simpa [m] using this
@@ -468,27 +467,88 @@ theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
       ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ τ) :=
     hadamardQuotient_norm_le_exp_rpow_of_growth (f := f) (H := H) (ρ := ρ) (τ := τ)
       (m := m) hρ hmρ hτ hτ_lt hτ_nonneg hentire hH_entire hnot h_sum hgrowth hfactor
-  have hH_growth_nat :
-      ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ (m + 1)) := by
-    exact Real.exists_norm_le_exp_mul_pow_of_rpow_bound
-      (f := H) (r := fun z : ℂ => 1 + ‖z‖)
-      (fun z => by linarith [norm_nonneg z]) hτ_lt_nat hH_bound_rpow
-  rcases zero_free_polynomial_growth_is_exp_poly (H := H) (n := m + 1)
-      hH_entire hH_ne hH_growth_nat with
-    ⟨P, hPn, hHP⟩
-  have hPnat : P.natDegree ≤ m := by
-    have hbound :
-        ∃ C > 0, ∀ z : ℂ,
-          ‖Complex.exp (Polynomial.eval z P)‖ ≤ Real.exp (C * (1 + ‖z‖) ^ τ) := by
-      rcases hH_bound_rpow with ⟨C, hCpos, hC⟩
-      exact ⟨C, hCpos, fun z => by simpa [hHP z] using (hC z)⟩
-    have := natDegree_le_floor_of_exp_eval_norm_bound hτ_nonneg P hbound
-    simpa [hfloorτ] using this
+  obtain ⟨C, hC, hbound⟩ := hH_bound_rpow
+  have horder : TauCeti.OrderLE H τ := by
+    apply TauCeti.orderLE_def.mpr
+    intro p hp
+    refine (IsBigO.of_bound 1 ?_).trans
+      (TauCeti.isBigO_exp_mul_norm_rpow (C * 2 ^ τ) hp)
+    filter_upwards [eventually_cobounded_le_norm (1 : ℝ)] with z hz
+    have hpow : (1 + ‖z‖) ^ τ ≤ 2 ^ τ * ‖z‖ ^ τ := by
+      simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2) (norm_nonneg z)] using
+        Real.rpow_le_rpow (by positivity) (by linarith : 1 + ‖z‖ ≤ 2 * ‖z‖) hτ_nonneg
+    simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
+      (hbound z).trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
+  obtain ⟨P, hP, hHP⟩ :=
+    horder.exists_eq_cexp_polynomial_eval_of_forall_ne_zero hH_entire hH_ne
+  have hPnat : P.natDegree ≤ m := by simpa only [hfloorτ] using hP
   refine ⟨P, ?_, ?_⟩
   · have : P.degree ≤ m := Polynomial.degree_le_of_natDegree_le hPnat
     simpa [m] using this
   · intro z
     have hH' : H z = Complex.exp (Polynomial.eval z P) := by simpa using (hHP z)
     simpa [hH', mul_assoc, mul_left_comm, mul_comm, m] using (hfactor z)
+
+section QuantitativePolynomial
+
+open Complex Real BigOperators Finset Set Filter Topology Metric Polynomial
+
+/- The following two private estimates are retained verbatim from Matteo Cipollina's
+original ExpPoly/Growth.lean; their full every-radius quantitative claims remain in scope. -/
+
+private lemma mul_conj_div_norm (a : ℂ) (ha : a ≠ 0) :
+    a * ((starRingEnd ℂ) a / (‖a‖ : ℂ)) = (‖a‖ : ℂ) := by
+  rw [← mul_div_assoc, Complex.mul_conj, Complex.normSq_eq_norm_sq]
+  push_cast
+  field_simp [Complex.ofReal_ne_zero.mpr (norm_ne_zero_iff.mpr ha)]
+
+private lemma exists_z_norm_eq_re_eval_ge
+    (P : Polynomial ℂ) (hn : 0 < P.natDegree) :
+    ∃ R0 : ℝ, 0 < R0 ∧
+      ∀ R : ℝ, R0 ≤ R →
+        ∃ z : ℂ, ‖z‖ = R ∧
+          (‖P.leadingCoeff‖ / 2) * R ^ P.natDegree ≤ (P.eval z).re := by
+  have hP : P ≠ 0 := by
+    intro h
+    simp [h] at hn
+  have ha : P.leadingCoeff ≠ 0 := Polynomial.leadingCoeff_ne_zero.mpr hP
+  let a := P.leadingCoeff
+  let wtarget : ℂ := (starRingEnd ℂ) a / (‖a‖ : ℂ)
+  have hwtarget : ‖wtarget‖ = 1 := by
+    simp [wtarget, a, ha]
+  obtain ⟨w, hw⟩ := IsAlgClosed.exists_pow_nat_eq wtarget hn
+  have hw_norm : ‖w‖ = 1 := by
+    apply (pow_eq_one_iff_of_nonneg (norm_nonneg w) hn.ne').mp
+    simpa only [norm_pow, hwtarget] using congrArg norm hw
+  have he := (Polynomial.isEquivalent_cobounded_leading_monomial (P := P)).isLittleO.bound
+    (by norm_num : (0 : ℝ) < 1 / 2)
+  obtain ⟨B, _, hB⟩ := Filter.hasBasis_cobounded_norm.mem_iff.mp he
+  refine ⟨max B 1, lt_of_lt_of_le zero_lt_one (le_max_right _ _), ?_⟩
+  intro R hR
+  have hR1 : 1 ≤ R := (le_max_right _ _).trans hR
+  have hR0 : 0 ≤ R := zero_le_one.trans hR1
+  let z : ℂ := (R : ℂ) * w
+  have hz : ‖z‖ = R := by simp [z, hw_norm, abs_of_nonneg hR0]
+  have hlead : P.leadingCoeff * z ^ P.natDegree = ((‖a‖ * R ^ P.natDegree : ℝ) : ℂ) := by
+    have hamul : a * w ^ P.natDegree = (‖a‖ : ℂ) := by
+      rw [hw]
+      exact mul_conj_div_norm a ha
+    calc
+      P.leadingCoeff * z ^ P.natDegree = (R : ℂ) ^ P.natDegree * (a * w ^ P.natDegree) := by
+        dsimp [z, a]
+        ring
+      _ = ((‖a‖ * R ^ P.natDegree : ℝ) : ℂ) := by rw [hamul]; push_cast; ring
+  have herror := hB (show B ≤ ‖z‖ by rw [hz]; exact (le_max_left _ _).trans hR)
+  change ‖P.eval z - P.leadingCoeff * z ^ P.natDegree‖ ≤
+    (1 / 2 : ℝ) * ‖P.leadingCoeff * z ^ P.natDegree‖ at herror
+  have hreal := neg_le_of_abs_le (Complex.abs_re_le_norm (P.eval z - P.leadingCoeff * z ^ P.natDegree))
+  rw [hlead] at herror hreal
+  simp only [Complex.sub_re, Complex.ofReal_re] at hreal
+  rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (norm_nonneg a) (pow_nonneg hR0 _))] at herror
+  refine ⟨z, hz, ?_⟩
+  change (‖a‖ / 2) * R ^ P.natDegree ≤ (P.eval z).re
+  nlinarith
+
+end QuantitativePolynomial
 
 end Complex.Hadamard
