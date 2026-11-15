@@ -1,5 +1,4 @@
 
-import PrimeNumberTheoremAnd.Auxiliary
 import PrimeNumberTheoremAnd.BrunTitchmarsh
 import PrimeNumberTheoremAnd.Consequences
 import PrimeNumberTheoremAnd.Defs

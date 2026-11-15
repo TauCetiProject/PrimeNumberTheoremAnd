@@ -1,3 +1,9 @@
+/-
+Real/complex derivative coercion arguments below are based on the former Auxiliary module.
+Copyright (c) 2024 Michael Stoll. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Michael Stoll
+-/
 module
 
 public import Architect
@@ -8,7 +14,8 @@ public import TauCeti.Analysis.MellinTransform.Convolution
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
 public import Mathlib.Tactic.Bound
 public import Mathlib.Tactic.GCongr
-public import PrimeNumberTheoremAnd.Auxiliary
+public import Mathlib.Analysis.Complex.RealDeriv
+import TauCeti.Analysis.Calculus.FDeriv.OfReal
 
 
 @[expose] public section
@@ -40,16 +47,6 @@ lemma MeasureTheory.integral_comp_div_I0i_haar
   simp_rw [harg]
   exact integral_sub_left_eq_self (fun v : ℝ => f (Real.exp (-v))) volume (-Real.log a)
 
-@[simp]
-lemma Function.support_abs {α : Type*} (f : α → 𝕂) :
-    (fun x ↦ ‖f x‖).support = f.support := by
-  simp only [support, ne_eq]; simp_rw [norm_ne_zero_iff]
-
-@[simp]
-lemma Function.support_ofReal {f : ℝ → ℝ} :
-    (fun x ↦ ((f x) : ℂ)).support = f.support := by
-  apply Function.support_comp_eq (g := ofReal); simp
-
 lemma Function.support_of_along_fiber_subset_subset {α β M : Type*} [Zero M]
     {f : α × β → M} {s : Set α} {t : Set β}
     (hx : ∀ (y : β), (fun x ↦ f (x, y)).support ⊆ s)
@@ -59,14 +56,6 @@ lemma Function.support_of_along_fiber_subset_subset {α β M : Type*} [Zero M]
   constructor
   · exact hx y (by simp only [Function.mem_support, ne_eq] at hxy ⊢; exact hxy)
   · exact hy x (by simp only [Function.mem_support, ne_eq] at hxy ⊢; exact hxy)
-
-lemma Function.support_deriv_subset_Icc {a b : ℝ} {f : ℝ → 𝕂}
-    (fSupp : f.support ⊆ Set.Icc a b) :
-    (deriv f).support ⊆ Set.Icc a b := by
-    have := support_deriv_subset (f := fun x ↦ f x)
-    dsimp [tsupport] at this
-    have := subset_trans this <| closure_mono fSupp
-    rwa [closure_Icc] at this
 
 lemma IntervalIntegral.integral_eq_integral_of_support_subset_Icc {a b : ℝ} {μ : Measure ℝ}
     [NullSingletonClass μ] {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
@@ -84,26 +73,6 @@ lemma IntervalIntegral.integral_eq_integral_of_support_subset_Icc {a b : ℝ} {�
       rw [this, integral_singleton]; simp [Measure.real]
     · rw [Icc_eq_empty_iff.mpr <| by exact fun x ↦ hab2 <| le_antisymm hab x, subset_empty_iff,
           Function.support_eq_empty_iff] at h; simp [h]
-
-lemma SetIntegral.integral_eq_integral_inter_of_support_subset {μ : Measure ℝ}
-    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
-    {s t : Set ℝ} {f : ℝ → E} (h : f.support ⊆ t) (ht : MeasurableSet t) :
-    ∫ x in s, f x ∂μ = ∫ x in s ∩ t, f x ∂μ := by
-  rw [← setIntegral_indicator ht, indicator_eq_self.2 h]
-
-lemma SetIntegral.integral_eq_integral_inter_of_support_subset_Icc {a b} {μ : Measure ℝ}
-    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
-    {s : Set ℝ} {f : ℝ → E} (h : f.support ⊆ Icc a b) (hs : Icc a b ⊆ s) :
-    ∫ x in s, f x ∂μ = ∫ x in Icc a b, f x ∂μ := by
-  rw [SetIntegral.integral_eq_integral_inter_of_support_subset h measurableSet_Icc,
-      inter_eq_self_of_subset_right hs]
-
-lemma intervalIntegral.norm_integral_le_of_norm_le_const' {a b C : ℝ}
-    {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
-    {f : ℝ → E} (hab : a ≤ b) (h : ∀ x ∈ (Icc a b), ‖f x‖ ≤ C) :
-    ‖∫ x in a..b, f x‖ ≤ C * |b - a| := by
-  apply intervalIntegral.norm_integral_le_of_norm_le_const
-  exact fun x hx ↦ h x <| mem_Icc_of_Ioc <| uIoc_of_le hab ▸ hx
 
 blueprint_comment /--
 \label{PartialIntegration}
@@ -127,7 +96,8 @@ lemma PartialIntegration_of_support_in_Icc {a b : ℝ} (f g : ℝ → ℂ) (ha :
     (gderivCont : ContinuousOn (deriv g) (Ioi 0)) :
     ∫ x in Ioi 0, f x * deriv g x = -∫ x in Ioi 0, deriv f x * g x := by
   have Icc_sub : Icc a b ⊆ Ioi 0 := (Icc_subset_Ioi_iff h).mpr ha
-  have fderivSupp := Function.support_deriv_subset_Icc fSupp
+  have fderivSupp := (support_deriv_subset (f := f)).trans
+    (closure_minimal fSupp isClosed_Icc)
   have fgSupp : (f * g).support ⊆ Icc a b := (Function.support_mul_subset_left _ _).trans fSupp
   have fDerivgInt : IntegrableOn (f * deriv g) (Ioi 0) := by
     apply (integrableOn_iff_integrable_of_support_subset <|
@@ -277,12 +247,11 @@ lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
   · apply PartialIntegration_of_support_in_Icc (ν ·) (g s)
       (a := 1 / 2) (b := 2) (by norm_num) (by norm_num)
     · simpa only [Function.support_subset_iff, ne_eq, ofReal_eq_zero]
-    · exact (Differentiable.ofReal_comp_iff.mpr
-        (diffν.differentiable (by norm_num))).differentiableOn
+    · exact fun x _ ↦ ((diffν.differentiable (by norm_num) x).ofReal_comp).differentiableWithinAt
     · exact fun a ha ↦ (gHasDeriv hs ha).differentiableAt.differentiableWithinAt
     · refine (continuous_ofReal.comp (diffν.continuous_deriv (by norm_num))).continuousOn.congr ?_
       intro x _hx
-      exact deriv.ofReal_comp
+      exact TauCeti.fderiv_ofReal_comp_apply ν x 1
     · apply ContinuousOn.congr (f := fun (x : ℝ) ↦ (x : ℂ) ^ (s - 1)) ?_
         fun x hx ↦ (gHasDeriv hs hx).deriv
       exact Continuous.continuousOn (by continuity) |>.cpow continuousOn_const (by simp)
@@ -345,16 +314,22 @@ lemma MellinOfPsi {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
           le_abs_self _
       _ ≤ _ := ?_
     · simp_rw [norm_integral_le_integral_norm]
-    · apply SetIntegral.integral_eq_integral_inter_of_support_subset_Icc
-      · simp only [Function.support_abs, Function.support_mul, Function.support_ofReal]
-        apply subset_trans (by apply inter_subset_left) <| Function.support_deriv_subset_Icc suppν
-      · exact (Icc_subset_Ioi_iff (by norm_num)).mpr (by norm_num)
-    · have := intervalIntegral.norm_integral_le_of_norm_le_const' (C := f a * 2 ^ σ₂)
-        (f := fun x ↦ f x * ‖(x : ℂ) ^ s‖) (a := (1 / 2 : ℝ)) ( b := 2) (by norm_num) ?_
+    · apply setIntegral_eq_of_subset_of_forall_sdiff_eq_zero measurableSet_Ioi
+        ((Icc_subset_Ioi_iff (by norm_num)).mpr (by norm_num))
+      intro x hx
+      have hderiv := (support_deriv_subset (f := ν)).trans
+        (closure_minimal suppν isClosed_Icc)
+      have hzero : deriv ν x = 0 := Function.notMem_support.mp
+        (fun h ↦ hx.2 (hderiv h))
+      simp only [hzero, Complex.ofReal_zero, zero_mul, norm_zero]
+    · have := intervalIntegral.norm_integral_le_of_norm_le_const (C := f a * 2 ^ σ₂)
+        (f := fun x ↦ f x * ‖(x : ℂ) ^ s‖) (a := (1 / 2 : ℝ)) (b := 2) ?_
       · simp only [Real.norm_eq_abs, norm_real, norm_mul] at this ⊢
         rwa [(by norm_num: |(2 : ℝ) - 1 / 2| = 3 / 2),
             intervalIntegral.integral_of_le (by norm_num), ← integral_Icc_eq_integral_Ioc] at this
-      · intro x hx;
+      · intro x hx
+        have hx : x ∈ Icc (1 / 2 : ℝ) 2 :=
+          mem_Icc_of_Ioc ((uIoc_of_le (by norm_num : (1 / 2 : ℝ) ≤ 2)) ▸ hx)
         have f_bound := isMaxOn_iff.mp max x hx
         have pow_bound : ‖(x : ℂ) ^ s‖ ≤ 2 ^ σ₂ := by
           rw [norm_cpow_eq_rpow_re_of_pos (by linarith [mem_Icc.mp hx])]
@@ -547,7 +522,8 @@ lemma MellinOfDeltaSpikeAt1_asymp {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν
     (mass_one : ∫ x in Set.Ioi 0, ν x / x = 1) :
     (fun (ε : ℝ) ↦ (𝓜 (fun x ↦ (ν x : ℂ)) ε) - 1) =O[𝓝[>]0] id := by
   have hsupport : (fun x ↦ (ν x : ℂ)).support ⊆ Icc (1 / 2 : ℝ) 2 := by
-    rwa [ν.support_ofReal]
+    rwa [show (fun x ↦ (ν x : ℂ)).support = ν.support from
+      Function.support_comp_eq Complex.ofReal (by simp) ν]
   have hzero : (fun x ↦ (ν x : ℂ)) =ᶠ[𝓝 0] 0 := by
     apply notMem_tsupport_iff_eventuallyEq.mp
     intro h0

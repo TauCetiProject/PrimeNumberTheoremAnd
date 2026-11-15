@@ -12,7 +12,7 @@ public import Mathlib.NumberTheory.Harmonic.Bounds
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
 public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
-public import PrimeNumberTheoremAnd.Auxiliary
+public import Mathlib.Analysis.Complex.RealDeriv
 public import PrimeNumberTheoremAnd.EulerMaclaurin
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
