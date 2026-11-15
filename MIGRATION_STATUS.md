@@ -2,6 +2,24 @@
 
 Verified 15 November 2026. [ROADMAPS.md](ROADMAPS.md) is the concise report for human roadmap review.
 
+The fork uses stock Lean `v4.36.0-rc2`, Mathlib [`e8ba86f`](https://github.com/leanprover-community/mathlib4/tree/e8ba86fa9744dd8d90f48c1752bc735f61a4ca81) and Tau Ceti [`7b3aaab`](https://github.com/TauCetiProject/TauCeti/tree/7b3aaabdeaef0c48b006d1ff4aa81e1f83ba020e). The 70 tracked Lean files total **33,349 lines**, including comments and blanks. Four `Unused/` files total 2,728 lines and stay outside the migration; excluding them leaves **30,621 lines**. IEANTN remains excluded.
+
+The latest update removes **448 lines**. The Abel-integral proofs now use the merged upper Mellin-tail API from [#39465](https://github.com/TauCetiProject/TauCeti/pull/39465), and two obsolete helper modules are deleted. Brun–Titchmarsh uses the merged Selberg normalizer bound from [#41963](https://github.com/TauCetiProject/TauCeti/pull/41963), replacing five duplicate product and normalizer bounds. The explicit cubic-logarithmic remainder estimate is unchanged. A finite-Sigma surjection simplifies the bounded divisor-index proof, and the divisor-sum reindexing proof uses native and Mathlib formulas; its codomain generalizes from real numbers to any additive commutative monoid.
+
+The original claims still follow with their original assumptions, including arbitrary monoid homomorphisms, zero exponents, negative or zero radii and the zeta endpoint conventions. Existing blueprint statements and proofs and source credits are preserved. Seven independent proof modules compile with empty logs, and 79 focused axiom queries use only the permitted axioms. Fresh baseline and changed Brun–Titchmarsh builds have the same inherited warning. No compatibility aliases or forwarding modules are added.
+
+The full fork build, blueprint indexing, global axiom/ownership audit and rectangle example pass. The audit covers **2,955 declarations**, using only `propext`, `Classical.choice` and `Quot.sound`, with no duplicate owners. All 70 source hashes and 21 root/nested dependency pins pass their guards; obsolete compiled modules are absent. The dependency pin already contains both merged providers, so no pin update or unmerged API is needed. Tau Ceti main was separately checked at `02e6785`; it contains no further provider needed by the pending adoption packets.
+
+The preceding update removed 308 lines using the merged divisor-function, polynomial-exponential and Mellin APIs from [#39482](https://github.com/TauCetiProject/TauCeti/pull/39482), [#39733](https://github.com/TauCetiProject/TauCeti/pull/39733) and [#41720](https://github.com/TauCetiProject/TauCeti/pull/41720). The quantitative private polynomial proofs remain in the Hadamard growth module until [#41962](https://github.com/TauCetiProject/TauCeti/pull/41962) actually lands. The Mathlib reuse pass and the full migration remain in progress.
+
+## Earlier implementation snapshots
+
+The notes below record earlier revisions. Their dependency pins, line counts, approval counts and PR states are historical; the verified current fork snapshot is above.
+
+# Migration implementation status
+
+Verified 15 November 2026. [ROADMAPS.md](ROADMAPS.md) is the concise report for human roadmap review.
+
 The fork uses stock Lean `v4.36.0-rc2`, Mathlib [`e8ba86f`](https://github.com/leanprover-community/mathlib4/tree/e8ba86fa9744dd8d90f48c1752bc735f61a4ca81) and Tau Ceti [`7b3aaab`](https://github.com/TauCetiProject/TauCeti/tree/7b3aaabdeaef0c48b006d1ff4aa81e1f83ba020e). The 72 tracked Lean files total **33,797 lines**, including comments and blanks. Four `Unused/` files total 2,728 lines and stay outside the migration; excluding them leaves **31,069 lines**. IEANTN remains excluded.
 
 The latest update adopts the merged divisor-function, polynomial-exponential and Mellin APIs from [#39482](https://github.com/TauCetiProject/TauCeti/pull/39482), [#39733](https://github.com/TauCetiProject/TauCeti/pull/39733) and [#41720](https://github.com/TauCetiProject/TauCeti/pull/41720), removing **308 lines**. Divisor functions use canonical convolution powers of zeta; Hadamard factorization uses the native growth-order classifier; Mellin symmetry uses the native bilinear logarithmic-coordinate formula. The generic prime-power divisor-sum helper is replaced by Mathlib composition. Both obsolete polynomial-exponential modules are removed. Their two quantitative private proofs remain unchanged in the existing Hadamard growth module until [#41962](https://github.com/TauCetiProject/TauCeti/pull/41962) lands.
@@ -14,7 +32,6 @@ The preceding changes removed **75 lines** by using Mathlib’s analytic-order f
 
 Upstream work includes the [real-endpoint Euler–Maclaurin](https://github.com/TauCetiProject/TauCeti/pull/42490), [additive arithmetic-function](https://github.com/TauCetiProject/TauCeti/pull/42380), [primary-factor](https://github.com/TauCetiProject/TauCeti/pull/39407), [local logarithmic-derivative](https://github.com/TauCetiProject/TauCeti/pull/39802), [Selberg-weight](https://github.com/TauCetiProject/TauCeti/pull/40135), [Mellin-decay](https://github.com/TauCetiProject/TauCeti/pull/40210) and [Dini-inversion](https://github.com/TauCetiProject/TauCeti/pull/41073) PRs. The fork adopts contributions after they merge. The Mathlib reuse pass and the full migration remain in progress.
 
-## Earlier implementation snapshots
 
 The notes below record earlier revisions. Their dependency pins, line counts, approval counts and PR states are historical; the verified current fork snapshot is above.
 

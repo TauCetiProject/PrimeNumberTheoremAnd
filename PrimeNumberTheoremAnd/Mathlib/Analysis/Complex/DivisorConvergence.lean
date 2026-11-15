@@ -37,47 +37,23 @@ namespace Complex.Hadamard
 lemma finite_divisorZeroIndex₀_subtype_norm_le {f : ℂ → ℂ} {U : Set ℂ} (B : ℝ)
     (hBU : Metric.closedBall (0 : ℂ) B ⊆ U) :
     Finite {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ B} := by
-  set D : Function.locallyFinsuppWithin U ℤ := MeromorphicOn.divisor f U
-  have hK : IsCompact (Metric.closedBall (0 : ℂ) B) := isCompact_closedBall _ _
-  have hpts0 : ((Metric.closedBall (0 : ℂ) B) ∩ D.support).Finite :=
-    MeromorphicOn.divisor_finite_inter_support_of_isCompact (f := f) (U := U)
-      hK hBU subset_rfl
-  set pts : Set ℂ := ((Metric.closedBall (0 : ℂ) B) ∩ D.support) \ {0}
-  have hpts : pts.Finite := hpts0.sdiff
+  let D := MeromorphicOn.divisor f U
+  have hpts : (((Metric.closedBall (0 : ℂ) B) ∩ D.support) \ {0}).Finite :=
+    (MeromorphicOn.divisor_finite_inter_support_of_isCompact
+      (isCompact_closedBall _ _) hBU subset_rfl).sdiff
+  let pts : Set ℂ := ((Metric.closedBall (0 : ℂ) B) ∩ D.support) \ {0}
   let : Fintype pts := hpts.fintype
-  let T : Type := Σ z : pts, Fin (Int.toNat (D z.1))
-  have : Finite T := by infer_instance
-  let F :
-      {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ B} → T := fun p =>
-    ⟨⟨divisorZeroIndex₀_val p.1, by
-        have hball : divisorZeroIndex₀_val p.1 ∈ Metric.closedBall (0 : ℂ) B := by
-          simpa [Metric.mem_closedBall, dist_zero_right] using p.2
-        have hsupport : divisorZeroIndex₀_val p.1 ∈ D.support := by
-          have hne_toNat :
-              Int.toNat (MeromorphicOn.divisor f U (divisorZeroIndex₀_val p.1)) ≠ 0 := by
-            intro h0
-            have hpfin :
-                Fin (Int.toNat (MeromorphicOn.divisor f U (divisorZeroIndex₀_val p.1))) := by
-              simpa [D] using p.1.1.2
-            have : Fin 0 := by simpa [h0] using hpfin
-            exact Fin.elim0 this
-          have hne_D : D (divisorZeroIndex₀_val p.1) ≠ 0 := by
-            intro hD0
-            apply hne_toNat
-            simp [D, hD0]
-          simp [D, Function.locallyFinsuppWithin.support, Function.support]
-        have hne0 : divisorZeroIndex₀_val p.1 ≠ 0 := divisorZeroIndex₀_val_ne_zero p.1
-        exact ⟨⟨hball, hsupport⟩, by simp [Set.mem_singleton_iff]⟩⟩,
-      p.1.1.2⟩
-  refine Finite.of_injective F ?_
-  intro p q hpq
-  apply Subtype.ext
-  apply Subtype.ext
-  have h' := (Sigma.mk.inj_iff.1 hpq)
-  have hz : divisorZeroIndex₀_val p.1 = divisorZeroIndex₀_val q.1 := congrArg Subtype.val h'.1
-  apply (Sigma.mk.inj_iff).2
-  refine ⟨hz, ?_⟩
-  exact h'.2
+  let T := Σ z : pts, Fin (Int.toNat (D z.1))
+  refine Finite.of_surjective (fun p : T ↦
+    (⟨⟨⟨p.1.1, p.2⟩, by simpa using p.1.2.2⟩,
+      by simpa [Metric.mem_closedBall, dist_zero_right] using p.1.2.1.1⟩ :
+        {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ B})) ?_
+  intro p
+  refine ⟨⟨⟨divisorZeroIndex₀_val p.1, ?_⟩, p.1.1.2⟩, ?_⟩
+  · exact ⟨⟨by simpa [Metric.mem_closedBall, dist_zero_right] using p.2,
+      divisorZeroIndex₀_val_mem_divisor_support' p.1⟩,
+      by simp⟩
+  · rfl
 
 lemma divisorZeroIndex₀_norm_le_finite {f : ℂ → ℂ} {U : Set ℂ} (B : ℝ)
     (hBU : Metric.closedBall (0 : ℂ) B ⊆ U) :

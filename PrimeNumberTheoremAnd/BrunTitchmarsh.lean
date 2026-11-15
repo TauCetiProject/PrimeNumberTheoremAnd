@@ -13,6 +13,7 @@ public import Mathlib.Analysis.SpecialFunctions.Log.Base
 public import Mathlib.NumberTheory.Primorial
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
+import TauCeti.NumberTheory.SelbergSieve.Bounds
 
 open Sieve SelbergSieve BoundingSieve
 open Filter Asymptotics
@@ -210,10 +211,32 @@ theorem abs_rem_le {d : ℕ} (hd : d ≠ 0) :
 end Remainder
 
 theorem boudingSum_ge : (primeInterSieve x y z hz).selbergBoundingSum ≥ Real.log z / 2 := by
-  apply boundingSum_ge_log
-  · exact rfl
-  · intro p hpp hp
-    exact hpp.dvd_primorial_iff.mpr (Nat.le_floor hp)
+  rw [ge_iff_le]
+  have hz0 : 0 ≤ z := zero_le_one.trans hz
+  have hsqrt : Real.sqrt z ≤ z := Real.sqrt_le_self_iff.mpr (Or.inr hz)
+  have h := BoundingSieve.log_le_sum_selbergTerms
+    (primeInterSieve x y z hz).toBoundingSieve (Real.sqrt z) (Real.sqrt_nonneg z)
+    (by
+      intro p hp hpz
+      exact hp.dvd_primorial_iff.mpr (Nat.le_floor (hpz.trans hsqrt)))
+    (by
+      intro p hp _
+      simp only [primeInterSieve, ArithmeticFunction.pdiv_apply,
+        ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply_ne hp.ne_zero,
+        ArithmeticFunction.id_apply, Nat.cast_one, one_div, le_refl])
+  have hsum (s : SelbergSieve) :
+      (∑ d ∈ s.prodPrimes.divisors,
+        if (d : ℝ) ≤ Real.sqrt s.level then s.toBoundingSieve.selbergTerms d else 0) =
+        s.selbergBoundingSum := by
+    unfold SelbergSieve.selbergBoundingSum
+    apply Finset.sum_congr rfl
+    intro d _
+    simp only [Real.le_sqrt (Nat.cast_nonneg d) (zero_le_one.trans s.one_le_level)]
+  have hlevel : (primeInterSieve x y z hz).level = z := rfl
+  have heq := hsum (primeInterSieve x y z hz)
+  rw [hlevel] at heq
+  rw [heq, Real.log_sqrt hz0] at h
+  exact h
 
 include hx hy in
 theorem primeSieve_rem_sum_le :

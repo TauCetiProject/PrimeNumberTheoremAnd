@@ -6,16 +6,14 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Algebra.Order.Floor.Ring
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
-public import Mathlib.Analysis.Calculus.ParametricIntegral
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.MeasureTheory.Function.Floor
-public import Mathlib.Topology.MetricSpace.Basic
 
 /-!
 # Fractional-part kernel for the Abel zeta formula
@@ -26,9 +24,11 @@ public import Mathlib.Topology.MetricSpace.Basic
 ## Main results
 
 * `zetaAbelFractKernel`, `norm_zetaAbelFractKernel_le`
-* `ZetaAbelFractKernel.intervalIntegrable`, `integrableOn_Ioi`, `tendsto_integral_Ioi`
+* `ZetaAbelFractKernel.intervalIntegrable`
 * `ZetaAbelFractKernel.hasDerivAt_in_param`, `kernel_deriv_norm_bound_on_ball`
-* `ZetaAbelFractKernel.integral_analytic`
+
+The positive-half-plane integral regularity and convergence are supplied directly by the
+generic APIs in `TauCeti.Analysis.MellinTransform.UpperTail`.
 -/
 
 @[expose] public section
@@ -94,28 +94,6 @@ lemma intervalIntegrable (s : ℂ) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     integrable_of_norm_sub_le hmeas hf0 hg
       (hbound_ae.mono fun u hu => by simpa [sub_eq_add_neg, μ, g] using hu)
 
-theorem tendsto_integral_Ioi (s : ℂ) (hs : 1 < s.re) :
-    Tendsto (fun N : ℕ => ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u) atTop
-      (𝓝 (∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u)) :=
-  intervalIntegral_tendsto_integral_Ioi 1
-    (Integrable.mono' (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos)
-      (aestronglyMeasurable s (Ioi (1 : ℝ)) measurableSet_Ioi) (ae_bound_Ioi s))
-    tendsto_natCast_atTop_atTop
-
-theorem integrableOn_Ioi (s : ℂ) (hs : 0 < s.re) :
-    Integrable (fun u => zetaAbelFractKernel s u) (volume.restrict (Ioi (1 : ℝ))) := by
-  set ε : ℝ := s.re / 2
-  set g : ℝ → ℝ := fun u => u ^ (-1 - ε)
-  have hfm := aestronglyMeasurable s (Ioi (1 : ℝ)) measurableSet_Ioi
-  have hε : 0 < ε := half_pos hs
-  have hεle : ε ≤ s.re := half_le_self (le_of_lt hs)
-  have hbound : ∀ᵐ u ∂(volume.restrict (Ioi (1 : ℝ))), ‖zetaAbelFractKernel s u‖ ≤ g u :=
-    ae_restrict_iff' measurableSet_Ioi |>.2 <| ae_of_all _ fun u hu =>
-      (norm_zetaAbelFractKernel_le u (le_of_lt hu) s).trans
-        (Real.rpow_le_rpow_of_exponent_le (le_of_lt hu) (by linarith [hεle]))
-  simpa [IntegrableOn] using
-    Integrable.mono' (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos) hfm hbound
-
 lemma aestronglyMeasurable_param_deriv (z : ℂ) :
     AEStronglyMeasurable (fun u : ℝ => -((Real.log u) : ℂ) * zetaAbelFractKernel z u)
       (volume.restrict (Ioi (1 : ℝ))) := by
@@ -154,39 +132,5 @@ theorem kernel_deriv_norm_bound_on_ball (ε : ℝ) (u : ℝ) (hu : 1 < u) (x : �
         = Real.log u * ‖zetaAbelFractKernel x u‖ := by rw [norm_mul, hlognorm]
     _ ≤ Real.log u * u ^ (-1 - ε) := mul_le_mul_of_nonneg_left hinner (le_of_lt (Real.log_pos hu))
 
-/-- `∫_{(1,∞)} K_z` is analytic in `z` for `re z > 0`. -/
-theorem integral_analytic (s : ℂ) (hs : 0 < s.re) :
-    AnalyticAt ℂ (fun z => ∫ u in Ioi (1 : ℝ), zetaAbelFractKernel z u) s := by
-  set ε : ℝ := s.re / 2
-  have hεpos : 0 < ε := half_pos hs
-  obtain ⟨δ, hδpos, hδprop⟩ :=
-    Complex.exists_pos_radius_forall_mem_ball_re_ge (z₀ := s) (a := ε) (half_lt_self hs)
-  set F : ℂ → ℝ → ℂ := zetaAbelFractKernel
-  set F' : ℂ → ℝ → ℂ := fun z u => -((Real.log u) : ℂ) * F z u
-  set bound : ℝ → ℝ := fun u => (2 / ε) * u ^ (-1 - ε / 2)
-  have hbound_int : Integrable bound (volume.restrict (Ioi (1 : ℝ))) := by
-    simpa [bound, IntegrableOn] using
-      (integrableOn_Ioi_rpow_of_lt (by linarith [half_pos hεpos]) one_pos).const_mul (2 / ε)
-  have hDiff : ∀ᶠ z in 𝓝 s, DifferentiableAt ℂ (fun z0 => ∫ u in Ioi (1 : ℝ), F z0 u) z := by
-    refine Filter.eventually_of_mem (Metric.ball_mem_nhds s (half_pos hδpos)) ?_
-    intro z hz
-    set δ' : ℝ := δ / 2
-    have hz_lt : dist z s < δ := Metric.mem_ball.mp (Metric.ball_subset_ball (half_le_self hδpos.le) hz)
-    have hRe : ∀ y ∈ Metric.ball z δ', ε ≤ y.re := fun y hy =>
-      hδprop z y hz_lt (Metric.mem_ball.mp (Metric.ball_subset_ball (half_le_self hδpos.le) hy))
-    have hzRe : ε ≤ z.re := hδprop s z (by simpa [dist_self] using hδpos) hz_lt
-    exact (hasDerivAt_integral_of_dominated_loc_of_deriv_le
-      (μ := volume.restrict (Ioi (1 : ℝ))) (F := F) (F' := F') (bound := bound)
-      (Metric.ball_mem_nhds z (half_pos hδpos))
-      (eventually_aestronglyMeasurable_param z)
-      (by simpa using integrableOn_Ioi z (lt_of_lt_of_le hεpos hzRe))
-      (by simpa [F, F'] using aestronglyMeasurable_param_deriv z)
-      (ae_restrict_of_forall_mem measurableSet_Ioi fun u hu w hw =>
-        (kernel_deriv_norm_bound_on_ball ε u hu w (hRe w hw)).trans
-          (by simpa [bound] using Real.log_mul_rpow_neg_le_two_div_mul_rpow_neg hεpos hu))
-      hbound_int
-      (ae_restrict_of_forall_mem measurableSet_Ioi fun u hu w hw => by simpa [F, F'] using hasDerivAt_in_param u hu w)).2.differentiableAt
-  exact (Complex.analyticAt_iff_eventually_differentiableAt
-    (f := fun z => ∫ u in Ioi (1 : ℝ), zetaAbelFractKernel z u)).2 hDiff
 
 end ZetaAbelFractKernel

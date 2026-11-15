@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.Analysis.Complex.Convex
 public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
 public import TauCeti.Topology.Homotopy.PuncturedStarConvex
@@ -14,6 +14,7 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
+import TauCeti.Analysis.MellinTransform.UpperTail
 
 /-!
 # Abel-summation continuation of the Riemann zeta function
@@ -106,7 +107,21 @@ theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
           (by rw [Complex.sub_re, Complex.one_re]; linarith)))
   have hK : Tendsto (fun _ : ℕ => (1 + 1 / (s - 1) : ℂ)) atTop
       (𝓝 (1 + 1 / (s - 1))) := tendsto_const_nhds
-  have hIntMul := (tendsto_integral_Ioi s hs).const_mul s
+  have hfract (u : ℝ) : ‖((Int.fract u : ℝ) : ℂ)‖ ≤ 1 := by
+    simpa only [norm_real, Real.norm_eq_abs, Int.abs_fract] using (Int.fract_lt_one u).le
+  have hL : LocallyIntegrableOn (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) (Ici 1) :=
+    (locallyIntegrableOn_const (1 : ℝ)).mono
+      measurable_fract.complex_ofReal.aestronglyMeasurable
+      (Eventually.of_forall fun u ↦ by simpa only [norm_one] using hfract u)
+  have hO : (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) =O[atTop] fun u ↦ u ^ (0 : ℝ) :=
+    .of_bound 1 (Eventually.of_forall fun u ↦ by
+      simpa only [Real.rpow_zero, norm_one, one_mul] using hfract u)
+  have hKint : IntegrableOn (zetaAbelFractKernel s) (Ioi 1) := by
+    change IntegrableOn (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ) * (u : ℂ) ^ (-s - 1)) (Ioi 1)
+    simpa only [neg_add', sub_eq_add_neg] using
+      TauCeti.integrableOn_mul_cpow_of_isBigO hL hO (zero_lt_one.trans hs)
+  have hIntMul := (intervalIntegral_tendsto_integral_Ioi 1 hKint
+    tendsto_natCast_atTop_atTop).const_mul s
   set Aseq : ℕ → ℂ := fun N => (N : ℂ) ^ (1 - s) / (1 - s)
   set Kseq : ℕ → ℂ := fun _ => (1 + 1 / (s - 1) : ℂ)
   set Iseq : ℕ → ℂ := fun N => s * ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u
@@ -128,25 +143,13 @@ theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
 /-- The Abel formula satisfies its standard norm bound whenever the real part is positive. -/
 theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs_re : 0 < s.re) :
     ‖zetaAbelContinuationFormula s‖ ≤ 1 + ‖1 / (s - 1)‖ + ‖s‖ / s.re := by
-  set g : ℝ → ℝ := fun u => u ^ (-s.re - 1)
-  let μ := (volume : Measure ℝ).restrict (Ioi (1 : ℝ))
-  have hint :
-      ‖s‖ * ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ ≤ ‖s‖ / s.re :=
-    mul_le_mul_of_nonneg_left
-      ((MeasureTheory.norm_integral_le_of_norm_le (μ := μ)
-        (f := fun u => zetaAbelFractKernel s u) (g := g)
-        (by
-          simpa [μ, g, IntegrableOn] using
-            (integrableOn_Ioi_rpow_of_lt (by linarith) one_pos))
-        (by
-          refine (ae_restrict_iff' measurableSet_Ioi).2 (MeasureTheory.ae_of_all _ ?_)
-          intro u hu
-          simpa [g] using norm_zetaAbelFractKernel_le u (le_of_lt hu) s)).trans
-        (by simpa [μ, g, one_div] using
-          (le_of_eq (by
-            simpa only [sub_add_cancel, Real.one_rpow, neg_div_neg_eq, one_div] using
-              integral_Ioi_rpow_of_lt (by linarith : -s.re - 1 < -1) one_pos))))
-      (norm_nonneg s)
+  have hI : ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ ≤ 1 / s.re := by
+    have h := TauCeti.norm_integral_mul_cpow_le_of_bound
+      (g := fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) (C := 1) (fun u _ ↦ ?_) hs_re
+    · simpa only [zetaAbelFractKernel, neg_add', sub_eq_add_neg] using h
+    · simpa only [norm_real, Real.norm_eq_abs, Int.abs_fract] using (Int.fract_lt_one u).le
+  have hint : ‖s‖ * ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ ≤ ‖s‖ / s.re := by
+    simpa only [mul_one_div] using mul_le_mul_of_nonneg_left hI (norm_nonneg s)
   have hsplit :
       ‖zetaAbelContinuationFormula s‖ ≤
         1 + ‖(s - 1)⁻¹‖ + ‖s‖ * ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ := by
@@ -173,9 +176,16 @@ theorem analyticOn_zetaAbelContinuationFormula :
   simp only [AnalyticOn, Set.mem_ofPred_eq]
   intro s ⟨hs_ne, hs_re⟩
   apply AnalyticAt.analyticWithinAt
+  have hO : (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) =O[atTop] fun u ↦ u ^ (0 : ℝ) := by
+    refine .of_bound 1 (Eventually.of_forall fun u ↦ ?_)
+    simpa only [Real.rpow_zero, norm_one, one_mul, norm_real, Real.norm_eq_abs,
+      Int.abs_fract] using (Int.fract_lt_one u).le
+  have hI := (TauCeti.differentiableOn_integral_mul_cpow_of_isBigO hO).analyticAt
+    ((isOpen_lt continuous_const Complex.continuous_re).mem_nhds hs_re)
   refine analyticAt_const.add (analyticAt_const.div (analyticAt_id.sub analyticAt_const) ?_) |>.sub
-    (analyticAt_id.mul (integral_analytic s hs_re))
-  exact sub_ne_zero.mpr hs_ne
+    (analyticAt_id.mul ?_)
+  · exact sub_ne_zero.mpr hs_ne
+  · simpa only [zetaAbelFractKernel, neg_add', sub_eq_add_neg] using hI
 
 /-- The Abel integral formula agrees with `ζ` throughout the punctured right half-plane. -/
 theorem riemannZeta_eq_zetaAbelContinuationFormula (s : ℂ) (hs_re : 0 < s.re) (hs_ne : s ≠ 1) :

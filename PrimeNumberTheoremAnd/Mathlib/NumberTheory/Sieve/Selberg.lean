@@ -8,6 +8,7 @@ Author: Arend Mellendijk
 module
 
 public import Batteries.Tactic.Lemma
+import TauCeti.NumberTheory.Divisors
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.LambdaSquared
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.AuxResults
 
@@ -115,45 +116,29 @@ theorem selbergWeights_mul_mu_nonneg (d : ℕ) (hdP : d ∣ P) :
   · exact le_of_lt <| @BoundingSieve.selbergTerms_pos _ m (dvd_of_mem_divisors hm)
   · rfl
 
-lemma sum_mul_subst (k n : ℕ) {f : ℕ → ℝ} (h : ∀ l, l ∣ n → ¬ k ∣ l → f l = 0) :
+lemma sum_mul_subst {α : Type*} [AddCommMonoid α] (k n : ℕ) {f : ℕ → α} (h : ∀ l, l ∣ n → ¬ k ∣ l → f l = 0) :
       ∑ l ∈ n.divisors, f l
     = ∑ m ∈ n.divisors, if k*m ∣ n then f (k*m) else 0 := by
-  by_cases hn: n = 0
+  by_cases hn : n = 0
   · simp [hn]
   by_cases hkn : k ∣ n
-  swap
-  · rw [sum_eq_zero, sum_eq_zero]
-    · rintro m _
-      rw [ite_eq_right]
-      rintro h
-      apply hkn
-      exact (Nat.dvd_mul_right k m).trans h
-    · intro l hl; apply h l (dvd_of_mem_divisors hl)
-      apply fun hkl => hkn <| hkl.trans (dvd_of_mem_divisors hl)
-  trans (∑ l ∈ n.divisors, ∑ m ∈ n.divisors, if l=k*m then f l else 0)
-  · rw [sum_congr rfl]; intro l hl
-    by_cases hkl : k ∣ l
-    swap
-    · rw [h l (dvd_of_mem_divisors hl) hkl, sum_eq_zero];
-      intro m _; rw [ite_id]
-    rw [sum_eq_single (l/k)]
-    · rw[ite_eq_left]; rw [Nat.mul_div_cancel' hkl]
-    · intro m _ hmlk
-      apply ite_eq_right; revert hmlk; contrapose!; intro hlkm
-      rw [hlkm, mul_comm, Nat.mul_div_cancel];
-      apply Nat.pos_of_dvd_of_pos hkn (Nat.pos_of_ne_zero hn)
-    · contrapose!; intro _
-      rw [mem_divisors]
-      exact ⟨Trans.trans (Nat.div_dvd_of_dvd hkl) (dvd_of_mem_divisors hl), hn⟩
-  · rw [sum_comm, sum_congr rfl]; intro m _
-    split_ifs with hdvd
-    · rw [sum_ite_eq_of_mem']
-      simp only [mem_divisors, hdvd, ne_eq, hn, not_false_eq_true, and_self]
-    · apply sum_eq_zero; intro l hl
-      apply ite_eq_right;
-      rintro rfl
-      simp only [mem_divisors, ne_eq] at hl
-      exact hdvd hl.1
+  · have hs : n.divisors.filter (fun m => k * m ∣ n) = (n / k).divisors := by
+      simpa only [Nat.dvd_div_iff_mul_dvd hkn] using
+        (Nat.divisors_filter_dvd_of_dvd hn (Nat.div_dvd_of_dvd hkn))
+    calc
+      _ = ∑ l ∈ n.divisors with k ∣ l, f l := by
+        rw [Finset.sum_filter]
+        exact Finset.sum_congr rfl fun l hl => by
+          by_cases hkl : k ∣ l
+          · simp [hkl]
+          · simp [hkl, h l (Nat.dvd_of_mem_divisors hl) hkl]
+      _ = ∑ m ∈ (n / k).divisors, f (k * m) := Nat.sum_divisors_filter_dvd hkn f
+      _ = _ := by rw [← Finset.sum_filter, hs]
+  · rw [Finset.sum_eq_zero (fun l hl => h l (Nat.dvd_of_mem_divisors hl)
+      (fun hkl => hkn (hkl.trans (Nat.dvd_of_mem_divisors hl))))]
+    symm
+    exact Finset.sum_eq_zero fun m _ =>
+      ite_eq_right (fun hkm => hkn ((Nat.dvd_mul_right k m).trans hkm))
 
 --Important facts about the selberg weights
 theorem selbergWeights_eq_dvds_sum (d : ℕ) :
