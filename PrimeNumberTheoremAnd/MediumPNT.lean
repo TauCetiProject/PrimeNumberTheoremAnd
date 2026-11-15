@@ -11,6 +11,7 @@ public import PrimeNumberTheoremAnd.MellinCalculus
 public import PrimeNumberTheoremAnd.SmoothExistence
 public import PrimeNumberTheoremAnd.ZetaBounds
 public import TauCeti.Analysis.Complex.Conformal.Reflection.LogDeriv
+import TauCeti.Analysis.Asymptotics.Lemmas
 
 
 @[expose] public section
@@ -1671,37 +1672,24 @@ This auxiliary lemma is useful for what follows.
   (latexEnv := "lemma")]
 lemma IBound_aux1 (X₀ : ℝ) (X₀pos : X₀ > 0) {k : ℝ} (k_pos : 0 < k) : ∃ C ≥ 1, ∀ X ≥ X₀, Real.log X ^ k ≤ C * X := by
   -- When X is large, the ratio goes to 0.
-  have ⟨M, hM⟩ := Filter.eventually_atTop.mp (isLittleO_log_rpow_rpow_atTop k zero_lt_one).eventuallyLE
+  have hO : (fun X : ℝ ↦ Real.log X ^ k) =O[atTop] (fun X : ℝ ↦ X) := by
+    simpa only [Real.rpow_one] using
+      (isLittleO_log_rpow_rpow_atTop k zero_lt_one).isBigO
+  have hf : ContinuousOn (fun X : ℝ ↦ Real.log X ^ k) (Ici X₀) := by
+    apply ContinuousOn.rpow (continuousOn_log.mono ?_) continuousOn_const
+      (fun _ _ ↦ Or.inr k_pos)
+    intro X hX
+    exact ne_of_gt (X₀pos.trans_le hX)
   -- When X is small, use the extreme value theorem.
-  let f := fun X ↦ Real.log X ^ k / X
-  set I := Icc X₀ M with defI
-  have : 0 ∉ I := notMem_Icc_of_lt X₀pos
-  have f_cont : ContinuousOn f (Icc X₀ M) := by
-    unfold f
-    refine ContinuousOn.div₀ (ContinuousOn.rpow (continuousOn_log.mono ?_) continuousOn_const (fun _ _ ↦ Or.inr k_pos)) (continuousOn_id' _) (fun x hx h ↦ ?_)
-    · simp only [subset_compl_singleton_iff, ← defI, this, not_false_eq_true]
-    · rw [← defI, h] at hx
-      exact this hx
-  have ⟨C₁, hC₁⟩ := isCompact_Icc.exists_bound_of_continuousOn f_cont
-  use max C₁ 1, le_max_right C₁ 1
-  intro X hX
-  have Xpos : X > 0 := lt_of_lt_of_le X₀pos hX
-  by_cases hXM : X ≤ M
-  · rw[← div_le_iff₀ Xpos]
-    calc
-      f X ≤ ‖f X‖ := le_norm_self _
-      _ ≤ C₁ := hC₁ X ⟨hX, hXM⟩
-      _ ≤ max C₁ 1 := le_max_left C₁ 1
-  · calc
-      Real.log X ^ k ≤ ‖Real.log X ^ k‖ := le_norm_self _
-      _ ≤ ‖X ^ 1‖ := by exact_mod_cast hM X (by linarith[hXM])
-      _ = 1 * X := by
-        rw[pow_one, one_mul]
-        apply norm_of_nonneg
-        exact Xpos.le
-      _ ≤ max C₁ 1 * X := by
-        rw[mul_le_mul_iff_left₀ Xpos]
-        exact le_max_right C₁ 1
+  obtain ⟨C, hC⟩ := Asymptotics.isBigO_principal.mp
+    (hO.isBigO_principal_Ici_of_continuousOn hf continuousOn_id
+      (fun X hX ↦ ne_of_gt (X₀pos.trans_le hX)))
+  refine ⟨max C 1, le_max_right _ _, fun X hX ↦ ?_⟩
+  have hX0 : 0 < X := X₀pos.trans_le hX
+  have hb := hC X hX
+  rw [Real.norm_of_nonneg hX0.le] at hb
+  exact (le_norm_self _).trans
+    (hb.trans (mul_le_mul_of_nonneg_right (le_max_left _ _) hX0.le))
 
 def I1BoundGenProp (SmoothingF : ℝ → ℝ) : Prop := ∃ C > 0, ∀(ε : ℝ) (_ : 0 < ε)
     (_ : ε < 1)
