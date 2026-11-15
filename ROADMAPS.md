@@ -1,4 +1,4 @@
-We need approval of §§11.3 and 11.4 of [AnalyticNumberTheoryPartIII (#2008)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/2008) before we can migrate Ramanujan’s identity and the Dirichlet-series identities for `2^ω`, `μ²`, Liouville and totient from PNT+ into Tau Ceti.
+We need approval of §§11.3 and 11.4 of [AnalyticNumberTheoryPartIII (#2008)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/2008) before we can migrate Ramanujan’s identity and the Dirichlet-series identities for `2^ω`, Liouville and totient from PNT+ into Tau Ceti.
 
 We need §10.2 of #2008 extended to explicitly cover the Möbius and Liouville forms of the PNT, including ∑μ(n)/n → 0, before we can migrate those from PNT+.
 
