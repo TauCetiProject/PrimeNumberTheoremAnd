@@ -7,7 +7,8 @@ Author: Arend Mellendijk
 module
 
 public import Mathlib.NumberTheory.Primorial
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
+public import Mathlib.NumberTheory.ArithmeticFunction.Misc
+import Mathlib.Algebra.GroupWithZero.Units.Lemmas
 public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
@@ -78,16 +79,14 @@ theorem siftedSum_eq (s : SelbergSieve) (hw : ∀ i ∈ s.support, s.weights i =
 
 
 
-theorem prod_factors_one_div_compMult_ge (M : ℕ) (f : ArithmeticFunction ℝ)
-    (hf : ArithmeticFunction.IsCompletelyMultiplicative f) (hf_nonneg : ∀ n, 0 ≤ f n) (d : ℕ) (hd : Squarefree d)
+theorem prod_factors_one_div_compMult_ge (M : ℕ) (f : ℕ →* ℝ) (hf_nonneg : ∀ n, 0 ≤ f n) (d : ℕ) (hd : Squarefree d)
     (hf_size : ∀ n, n.Prime → n ∣ d → f n < 1) :
     f d * ∏ p ∈ d.primeFactors, 1 / (1 - f p)
     ≥ ∏ p ∈ d.primeFactors, ∑ n ∈ Finset.Icc 1 M, f (p^n) := by
   calc f d * ∏ p ∈ d.primeFactors, 1 / (1 - f p)
     = ∏ p ∈ d.primeFactors, f p / (1 - f p)                 := by
         conv => { lhs; congr; rw [←Nat.prod_primeFactors_of_squarefree hd] }
-        rw [hf.isMultiplicative.map_prod_of_subset_primeFactors _ _ subset_rfl,
-          ←Finset.prod_mul_distrib]
+        rw [map_prod, ←Finset.prod_mul_distrib]
         simp_rw[one_div, div_eq_mul_inv]
   _ ≥ ∏ p ∈ d.primeFactors, ∑ n ∈ Finset.Icc 1 M, (f p)^n  := by
     gcongr with p hp
@@ -109,10 +108,9 @@ theorem prod_factors_one_div_compMult_ge (M : ℕ) (f : ArithmeticFunction ℝ)
     · apply Nat.succ_le_iff.mpr (Nat.succ_pos _)
 
   _ = ∏ p ∈ d.primeFactors, ∑ n ∈ Finset.Icc 1 M, f (p^n)  := by
-     simp_rw [hf.apply_pow]
+     simp_rw [map_pow]
 
-theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ArithmeticFunction ℝ)
-    (hf : ArithmeticFunction.IsCompletelyMultiplicative f) (d : ℕ) (hd : Squarefree d) :
+theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ℕ →* ℝ) (d : ℕ) (hd : Squarefree d) :
     ∏ p ∈ d.primeFactors, ∑ n ∈ Finset.Icc 1 M, f (p^n)
     = ∑ m ∈ (d^M).divisors.filter (d ∣ ·), f m := by
   rw [Finset.prod_sum]
@@ -195,16 +193,7 @@ theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ArithmeticFu
       ∏ p ∈ d.primeFactors.attach, f (p.1 ^ (a p p.2)) = f (i a ha) := by
     intro a ha
     apply symm
-    apply hf.isMultiplicative.map_prod
-    intro x _ y _ hxy
-    simp_rw [Finset.mem_pi, Finset.mem_Icc, Nat.succ_le_iff] at ha
-    apply (Nat.coprime_pow_left_iff (ha x x.2).1 ..).mpr
-    apply (Nat.coprime_pow_right_iff (ha y y.2).1 ..).mpr
-    have hxp := Nat.prime_of_mem_primeFactorsList (List.mem_toFinset.mp x.2)
-    rw [Nat.Prime.coprime_iff_not_dvd hxp]
-    rw [Nat.prime_dvd_prime_iff_eq hxp <| Nat.prime_of_mem_primeFactorsList
-      (List.mem_toFinset.mp y.2)]
-    exact fun hc => hxy (Subtype.ext hc)
+    exact map_prod f _ _
 
   have i_inj : ∀ a ha b hb, i a ha = i b hb → a = b := by
     intro a ha b hb hiab
@@ -255,20 +244,11 @@ theorem prod_factors_sum_pow_compMult (M : ℕ) (hM : M ≠ 0) (f : ArithmeticFu
 
   exact Finset.sum_bij i hi i_inj i_surj h
 
-/-
-Proposed generalisation :
-
-theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve)
-    (hnu : ArithmeticFunction.IsCompletelyMultiplicative s.nuDivSelf) (hnu_nonneg : ∀ n, 0 ≤ s.nuDivSelf n)
-    (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nuDivSelf p < 1):
-    s.selbergBoundingSum ≥ ∑ m in
-      (Finset.Icc 1 (Nat.floor <| Real.sqrt s.level)).filter (fun m => ∀ p, p.Prime → p ∣ m → p ∣ s.prodPrimes),
-      s.nu m
--/
 
 theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prime → (p:ℝ) ≤ s.level → p ∣ s.prodPrimes)
-  (hnu : ArithmeticFunction.IsCompletelyMultiplicative s.nu) (hnu_nonneg : ∀ n, 0 ≤ s.nu n) (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nu p < 1):
+  (hnu : ∀ a b, s.nu (a * b) = s.nu a * s.nu b) (hnu_nonneg : ∀ n, 0 ≤ s.nu n) (hnu_lt : ∀ p, p.Prime → p ∣ s.prodPrimes → s.nu p < 1):
     s.selbergBoundingSum ≥ ∑ m ∈ Finset.Icc 1 (Nat.floor <| Real.sqrt s.level), s.nu m := by
+  let F : ℕ →* ℝ := { toFun := s.nu, map_one' := s.nu_mult.1, map_mul' := hnu }
   unfold selbergBoundingSum
   calc ∑ l ∈ s.prodPrimes.divisors, (if l ^ 2 ≤ s.level then (@BoundingSieve.selbergTerms _) l else 0)
      ≥ ∑ l ∈ s.prodPrimes.divisors.filter (fun (l:ℕ) => l^2 ≤ s.level),
@@ -278,14 +258,16 @@ theorem selbergBoundingSum_ge_sum_div (s : SelbergSieve) (hP : ∀ p:ℕ, p.Prim
     rw [Finset.mem_filter, Nat.mem_divisors] at hl
     have hlsq : Squarefree l := Squarefree.squarefree_of_dvd hl.1.1 s.prodPrimes_squarefree
     trans (∏ p ∈ l.primeFactors, ∑ n ∈ Finset.Icc 1 (Nat.floor s.level), s.nu (p^n))
-    · rw [prod_factors_sum_pow_compMult (Nat.floor s.level) _ s.nu]
-      · exact hnu
-      · exact hlsq
-      · rw [ne_eq, Nat.floor_eq_zero, not_lt]
+    · have hM : Nat.floor s.level ≠ 0 := by
+        rw [ne_eq, Nat.floor_eq_zero, not_lt]
         exact s.one_le_level
+      have hprod : (∏ p ∈ l.primeFactors, ∑ n ∈ Finset.Icc 1 (Nat.floor s.level), s.nu (p ^ n)) =
+          ∑ m ∈ (l ^ Nat.floor s.level).divisors.filter (l ∣ ·), s.nu m :=
+        prod_factors_sum_pow_compMult (Nat.floor s.level) hM F l hlsq
+      rw [hprod]
     rw [@BoundingSieve.selbergTerms_apply _ l]
     simp only [← one_div]
-    apply prod_factors_one_div_compMult_ge _ _ hnu _ _ hlsq
+    apply prod_factors_one_div_compMult_ge _ F _ _ hlsq
     · intro p hpp hpl
       apply hnu_lt p hpp (Trans.trans hpl hl.1.1)
     · exact hnu_nonneg
@@ -375,8 +357,15 @@ theorem boundingSum_ge_sum (s : SelbergSieve) (hnu : s.nu = (ζ : ArithmeticFunc
     apply selbergBoundingSum_ge_sum_div
     · intro p hpp hple
       apply hP p hpp hple
-    · rw[hnu]
-      exact ArithmeticFunction.IsCompletelyMultiplicative.zeta.pdiv ArithmeticFunction.IsCompletelyMultiplicative.id
+    · intro a b
+      rw [hnu]
+      let F : ℕ →*₀ ℝ := invMonoidWithZeroHom.comp (Nat.castRingHom ℝ).toMonoidWithZeroHom
+      have hF (n : ℕ) : (ζ : ArithmeticFunction ℝ).pdiv .id n = F n := by
+        by_cases hn : n = 0
+        · simp [hn, F]
+        · simp [ArithmeticFunction.pdiv_apply, ArithmeticFunction.natCoe_apply,
+            ArithmeticFunction.zeta_apply, hn, F, invMonoidWithZeroHom]
+      simpa only [hF] using F.map_mul a b
     · intro n
       rw[hnu]
       apply div_nonneg

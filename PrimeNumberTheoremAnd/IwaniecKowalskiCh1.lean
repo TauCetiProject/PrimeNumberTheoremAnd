@@ -1,7 +1,12 @@
+/-
+Copyright (c) 2023 Arend Mellendijk. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Author: Arend Mellendijk
+-/
 module
 
 public import Architect
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
+public import Mathlib.NumberTheory.ArithmeticFunction.Misc
 public import Mathlib.NumberTheory.LSeries.Dirichlet
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.NumberTheory.ArithmeticFunction.Liouville
@@ -10,6 +15,20 @@ public import TauCeti.NumberTheory.LSeries.EulerProduct
 
 
 @[expose] public section
+
+blueprint_comment /--
+\label{IsCompletelyMultiplicative}
+\paragraph{IsCompletelyMultiplicative}
+Define Complete Multiplicativity for an arithmetic function.
+-/
+
+blueprint_comment /--
+\label{IsCompletelyMultiplicative.isMultiplicative}
+\paragraph{IsCompletelyMultiplicative.isMultiplicative}
+A function that is completely multiplicative is also multiplicative.
+
+Let $f$ be a completely multiplicative function. To show that $f$ is multiplicative, we need to verify that $f(1) = 1$ and that $f(ab) = f(a)f(b)$ for all coprime natural numbers $a$ and $b$. Since $f$ is completely multiplicative, we have $f(1) = 1$ by definition. For coprime $a$ and $b$, we can write $ab$ as a product of prime factors, and since $f$ is completely multiplicative, it will factor as the product of the values of $f$ at those prime factors. This means that $f(ab) = f(a)f(b)$ for coprime $a$ and $b$, which shows that $f$ is multiplicative.
+-/
 
 blueprint_comment /--
 \label{sum_divisors_mul_of_coprime}
@@ -1873,21 +1892,15 @@ The Liouville function is Mathlib's canonical `ArithmeticFunction.liouville`, eq
 `(-1)^Ω(n)` away from zero and zero at zero.
 -/
 
-/--
+/-
 The Liouville function is completely multiplicative. -/
-@[blueprint
-  "isCompletelyMultiplicative_liouville"
-  (title := "isCompletelyMultiplicative liouville")
-  (statement := /-- The Liouville function is completely multiplicative. -/)
-  (proof := /--
-  The Liouville function $\lambda(n)$ is defined as $(-1)^{\Omega(n)}$, where $\Omega(n)$ counts the total number of prime factors of $n$ with multiplicity. To show that $\lambda$ is completely multiplicative, we need to verify that $\lambda(1) = 1$ and that $\lambda(ab) = \lambda(a)\lambda(b)$ for all natural numbers $a$ and $b$.
-  -/)]
-lemma isCompletelyMultiplicative_liouville : IsCompletelyMultiplicative (liouville : ArithmeticFunction ℝ) := by
-  constructor
-  · simp [intCoe_apply, liouville_apply_one]
-  · intro a b
-    simpa only [intCoe_apply, Int.cast_mul] using
-      congrArg (fun x : ℤ => (x : ℝ)) (liouville_apply_mul a b)
+blueprint_comment /--
+\label{isCompletelyMultiplicative_liouville}
+\paragraph{isCompletelyMultiplicative liouville}
+The Liouville function is completely multiplicative.
+
+The Liouville function $\lambda(n)$ is defined as $(-1)^{\Omega(n)}$, where $\Omega(n)$ counts the total number of prime factors of $n$ with multiplicity. To show that $\lambda$ is completely multiplicative, we need to verify that $\lambda(1) = 1$ and that $\lambda(ab) = \lambda(a)\lambda(b)$ for all natural numbers $a$ and $b$.
+-/
 
 /--
 The Dirichlet series of the Liouville function is `ζ(2s)/ζ(s)`. -/

@@ -9,7 +9,6 @@ import PrimeNumberTheoremAnd.GeneralMeromorphic
 import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyMultiplicative
 import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
