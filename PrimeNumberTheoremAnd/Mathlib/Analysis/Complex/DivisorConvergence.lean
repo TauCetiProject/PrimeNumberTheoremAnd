@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorIndex
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.LocallyUniformLimit
+public import Mathlib.Analysis.Complex.LocallyUniformLimit
 public import TauCeti.Analysis.Complex.CanonicalProduct.LogDeriv
 public import Mathlib.Analysis.Calculus.LogDerivUniformlyOn
 public import Mathlib.Analysis.Normed.Module.MultipliableUniformlyOn
