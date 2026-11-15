@@ -1,4 +1,4 @@
-We need approval of §§1.1, 1.3 and 1.6 of [SieveMethodsAndPrimePatterns (#1495)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1495) before we can migrate the sieve normalizer bounds, Selberg-weight estimates and interval-prime bound from PNT+ into Tau Ceti.
+We need [SieveMethodsAndPrimePatterns (#1495)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1495) reviewed and merged before #2008 under the current draft dependency chain.
 
 We also need approval of §§11.3 and 11.4 of [AnalyticNumberTheoryPartIII (#2008)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/2008) before we can migrate Ramanujan’s identity and the Dirichlet-series identities for `2^ω`, `μ²`, Liouville and totient from PNT+ into Tau Ceti.
 
@@ -11,4 +11,4 @@ Currently, the way these draft roadmaps are written, after #1495 we need to revi
 3. [ProbabilisticAndMetricNumberTheory (#1421)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1421).
 4. [ExplicitPrimeCounting (#1945)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1945). We also need §0.3b before we can migrate the nth-prime asymptotic from PNT+ into Tau Ceti.
 
-Alternatively, we could write a fresh roadmap covering just these sieve, Möbius/Liouville PNT, nth-prime asymptotics, Ramanujan and Dirichlet-series results. That could potentially be reviewed and merged sooner, and we could rewrite the larger draft roadmaps to depend on it.
+Alternatively, we could write a fresh roadmap covering just these Möbius/Liouville PNT, nth-prime asymptotics, Ramanujan and Dirichlet-series results. That could potentially be reviewed and merged sooner, and we could rewrite the larger draft roadmaps to depend on it.
