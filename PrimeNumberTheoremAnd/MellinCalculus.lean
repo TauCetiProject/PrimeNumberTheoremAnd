@@ -114,38 +114,6 @@ lemma intervalIntegral.norm_integral_le_of_norm_le_const' {a b C : ℝ}
   apply intervalIntegral.norm_integral_le_of_norm_le_const
   exact fun x hx ↦ h x <| mem_Icc_of_Ioc <| uIoc_of_le hab ▸ hx
 
-lemma Filter.TendstoAtZero_of_support_in_Icc {a b : ℝ} (f : ℝ → 𝕂) (ha : 0 < a)
-    (fSupp : f.support ⊆ Set.Icc a b) :
-    Tendsto f (𝓝[>]0) (𝓝 0) := by
-  apply Tendsto.comp (tendsto_nhds_of_eventually_eq ?_) tendsto_id
-  filter_upwards [Ioo_mem_nhdsGT ha] with c hc; replace hc := (mem_Ioo.mp hc).2
-  have h : c ∉ Icc a b := fun h ↦ by linarith [mem_Icc.mp h]
-  convert mt (Function.support_subset_iff.mp fSupp c) h; simp
-
-lemma Filter.TendstoAtTop_of_support_in_Icc {a b : ℝ} (f : ℝ → 𝕂)
-    (fSupp : f.support ⊆ Set.Icc a b) :
-    Tendsto f atTop (𝓝 0) := by
-  apply Tendsto.comp (tendsto_nhds_of_eventually_eq ?_) tendsto_id
-  filter_upwards [Ioi_mem_atTop b] with c hc; rw [mem_Ioi] at hc
-  have h : c ∉ Icc a b := fun h ↦ by linarith [mem_Icc.mp h]
-  convert mt (Function.support_subset_iff.mp fSupp c) h; simp
-
-lemma Filter.BigO_zero_atZero_of_support_in_Icc {a b : ℝ} (f : ℝ → 𝕂) (ha : 0 < a)
-    (fSupp : f.support ⊆ Set.Icc a b) :
-    f =O[𝓝[>] 0] fun _ ↦ (0 : ℝ) := by
-  refine Eventually.isBigO ?_
-  filter_upwards [Ioo_mem_nhdsGT (by linarith : (0 : ℝ) < a)] with c hc
-  refine norm_le_zero_iff.mpr <| Function.support_subset_iff'.mp fSupp c ?_
-  exact fun h ↦ by linarith [mem_Icc.mp h, (mem_Ioo.mp hc).2]
-
-lemma Filter.BigO_zero_atTop_of_support_in_Icc {a b : ℝ} (f : ℝ → 𝕂)
-    (fSupp : f.support ⊆ Set.Icc a b) :
-    f =O[atTop] fun _ ↦ (0 : ℝ) := by
-  refine Eventually.isBigO ?_
-  filter_upwards [Ioi_mem_atTop b] with c hc; replace hc := mem_Ioi.mp hc
-  refine norm_le_zero_iff.mpr <| Function.support_subset_iff'.mp fSupp c ?_
-  exact fun h ↦ by linarith [mem_Icc.mp h]
-
 blueprint_comment /--
 \label{PartialIntegration}
 
@@ -178,9 +146,18 @@ lemma PartialIntegration_of_support_in_Icc {a b : ℝ} (f g : ℝ → ℂ) (ha :
     apply (integrableOn_iff_integrable_of_support_subset <|
            (Function.support_mul_subset_left _ _).trans fderivSupp).mp
     exact fderivCont.mono Icc_sub |>.mul (gDiff.continuousOn.mono Icc_sub) |>.integrableOn_Icc
+  have hzero : f * g =ᶠ[𝓝 0] 0 := by
+    apply notMem_tsupport_iff_eventuallyEq.mp
+    intro h0
+    exact (not_le.mpr ha) ((closure_minimal fgSupp isClosed_Icc) h0).1
+  have htop : f * g =ᶠ[atTop] 0 :=
+    (hasCompactSupport_iff_eventuallyEq.mp
+      (HasCompactSupport.of_support_subset_isCompact isCompact_Icc fgSupp)).filter_mono
+        (atTop_le_cocompact.trans cocompact_le_coclosedCompact)
   have lim_at_zero : Tendsto (f * g) (𝓝[>]0) (𝓝 0) :=
-    TendstoAtZero_of_support_in_Icc (f * g) ha fgSupp
-  have lim_at_inf : Tendsto (f * g) atTop (𝓝 0) := TendstoAtTop_of_support_in_Icc (f * g) fgSupp
+    tendsto_const_nhds.congr' (hzero.filter_mono nhdsWithin_le_nhds).symm
+  have lim_at_inf : Tendsto (f * g) atTop (𝓝 0) :=
+    tendsto_const_nhds.congr' htop.symm
   simpa using integral_Ioi_mul_deriv_eq_deriv_mul
     (fun x hx ↦ fDiff.hasDerivAt (Ioi_mem_nhds hx))
     (fun x hx ↦ gDiff.hasDerivAt (Ioi_mem_nhds hx))
@@ -292,11 +269,11 @@ lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     ∫ (x : ℝ) in Ioi 0, (ν x) * (x : ℂ) ^ (s - 1) =
     - (1 / s) * ∫ (x : ℝ) in Ioi 0, (deriv ν x) * (x : ℂ) ^ s := by
   let g (s : ℂ) := fun (x : ℝ)  ↦ x ^ s / s
-  have gderiv {s : ℂ} (hs : s ≠ 0) {x: ℝ} (hx : x ∈ Ioi 0) :
-      deriv (g s) x = x ^ (s - 1) := by
-    have := HasDerivAt.cpow_const (c := s) (hasDerivAt_id (x : ℂ)) (Or.inl hx)
-    simp_rw [mul_one, id_eq] at this
-    rw [deriv_div_const, this.comp_ofReal.deriv, mul_div_right_comm, div_self hs, one_mul]
+  have gHasDeriv {s : ℂ} (hs : s ≠ 0) {x : ℝ} (hx : x ∈ Ioi 0) :
+      HasDerivAt (g s) ((x : ℂ) ^ (s - 1)) x := by
+    simpa only [g, sub_add_cancel] using
+      (hasDerivAt_ofReal_cpow_const' (r := s - 1) (ne_of_gt hx)
+        (by simpa only [ne_eq, sub_eq_neg_self] using hs))
   calc
     _ =  ∫ (x : ℝ) in Ioi 0, ↑(ν x) * deriv (@g s) x := ?_
     _ = -∫ (x : ℝ) in Ioi 0, deriv (fun x ↦ ↑(ν x)) x * @g s x := ?_
@@ -305,22 +282,18 @@ lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     _ = _ := ?_
   · rw [setIntegral_congr_fun (by simp)]
     intro _ hx
-    simp only [gderiv hs hx]
+    simp only [(gHasDeriv hs hx).deriv]
   · apply PartialIntegration_of_support_in_Icc (ν ·) (g s)
       (a := 1 / 2) (b := 2) (by norm_num) (by norm_num)
     · simpa only [Function.support_subset_iff, ne_eq, ofReal_eq_zero]
     · exact (Differentiable.ofReal_comp_iff.mpr
         (diffν.differentiable (by norm_num))).differentiableOn
-    · refine DifferentiableOn.div_const ?_ s
-      intro a ha
-      refine (HasDerivAt.comp_ofReal (e := fun z : ℂ ↦ z ^ s)
-        (DifferentiableAt.hasDerivAt ?_)).differentiableAt.differentiableWithinAt
-      apply differentiableAt_fun_id.cpow (differentiableAt_const s) <| by exact Or.inl ha
+    · exact fun a ha ↦ (gHasDeriv hs ha).differentiableAt.differentiableWithinAt
     · refine (continuous_ofReal.comp (diffν.continuous_deriv (by norm_num))).continuousOn.congr ?_
       intro x _hx
       exact deriv.ofReal_comp
     · apply ContinuousOn.congr (f := fun (x : ℝ) ↦ (x : ℂ) ^ (s - 1)) ?_
-        fun x hx ↦ gderiv hs hx
+        fun x hx ↦ (gHasDeriv hs hx).deriv
       exact Continuous.continuousOn (by continuity) |>.cpow continuousOn_const (by simp)
   · congr; funext; congr
     apply (hasDerivAt_deriv_iff.mpr ?_).ofReal_comp.deriv
@@ -582,6 +555,17 @@ lemma MellinOfDeltaSpikeAt1_asymp {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν
     (suppν : ν.support ⊆ Set.Icc (1 / 2) 2)
     (mass_one : ∫ x in Set.Ioi 0, ν x / x = 1) :
     (fun (ε : ℝ) ↦ (𝓜 (fun x ↦ (ν x : ℂ)) ε) - 1) =O[𝓝[>]0] id := by
+  have hsupport : (fun x ↦ (ν x : ℂ)).support ⊆ Icc (1 / 2 : ℝ) 2 := by
+    rwa [ν.support_ofReal]
+  have hzero : (fun x ↦ (ν x : ℂ)) =ᶠ[𝓝 0] 0 := by
+    apply notMem_tsupport_iff_eventuallyEq.mp
+    intro h0
+    have := ((closure_minimal hsupport isClosed_Icc) h0).1
+    norm_num at this
+  have htop : (fun x ↦ (ν x : ℂ)) =ᶠ[atTop] 0 :=
+    (hasCompactSupport_iff_eventuallyEq.mp
+      (HasCompactSupport.of_support_subset_isCompact isCompact_Icc hsupport)).filter_mono
+        (atTop_le_cocompact.trans cocompact_le_coclosedCompact)
   have diff : DifferentiableWithinAt ℝ
       (fun (ε : ℝ) ↦ 𝓜 (fun x ↦ (ν x : ℂ)) ε - 1) (Ioi 0) 0 := by
     apply DifferentiableAt.differentiableWithinAt
@@ -591,11 +575,9 @@ lemma MellinOfDeltaSpikeAt1_asymp {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν
     · apply (Continuous.continuousOn ?_).locallyIntegrableOn (by simp)
       have := diffν.continuous; continuity
     · apply Asymptotics.IsBigO.trans_le (g' := fun _ ↦ (0 : ℝ)) ?_ (by simp)
-      apply BigO_zero_atTop_of_support_in_Icc (a := 1 / 2) (b := 2)
-      rwa [ν.support_ofReal]
+      exact Asymptotics.isBigO_zero_right_iff.mpr htop
     · apply Asymptotics.IsBigO.trans_le (g' := fun _ ↦ (0 : ℝ)) ?_ (by simp)
-      apply BigO_zero_atZero_of_support_in_Icc (a := 1 / 2) (b := 2) (ha := (by norm_num))
-      rwa [ν.support_ofReal]
+      exact Asymptotics.isBigO_zero_right_iff.mpr (hzero.filter_mono nhdsWithin_le_nhds)
   have := ofReal_zero ▸ diff.isBigO_sub
   simp only [sub_sub_sub_cancel_right, sub_zero] at this
   convert! this using 1
