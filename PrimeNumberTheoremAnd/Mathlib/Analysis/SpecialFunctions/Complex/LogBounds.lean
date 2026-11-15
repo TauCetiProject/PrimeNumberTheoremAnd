@@ -84,26 +84,8 @@ def logTail (m : ℕ) (z : ℂ) : ℂ :=
 
 lemma summable_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
     Summable (fun k => z ^ (m + 1 + k) / ((m + 1 + k) : ℂ)) := by
-  have h_geom : Summable (fun k : ℕ => ‖z‖ ^ k) :=
-    summable_geometric_of_lt_one (norm_nonneg z) hz
-  refine Summable.of_norm_bounded (g := fun k => ‖z‖ ^ k) h_geom ?_
-  intro k
-  rw [norm_div, norm_pow]
-  have h1 : (1 : ℝ) ≤ (m + 1 + k : ℝ) := by
-    have : (0 : ℝ) ≤ (m + k : ℝ) := by positivity
-    nlinarith
-  have hnorm : ‖(↑m + 1 + ↑k : ℂ)‖ = (m + 1 + k : ℝ) := by
-    simpa [Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
-      (Complex.norm_natCast (m + 1 + k))
-  rw [hnorm]
-  calc
-    ‖z‖ ^ (m + 1 + k) / (m + 1 + k : ℝ) ≤ ‖z‖ ^ (m + 1 + k) := by
-      exact div_le_self (pow_nonneg (norm_nonneg z) _) h1
-    _ = ‖z‖ ^ (m + 1) * ‖z‖ ^ k := by rw [pow_add]
-    _ ≤ 1 * ‖z‖ ^ k := by
-          refine mul_le_mul_of_nonneg_right ?_ (pow_nonneg (norm_nonneg z) k)
-          exact pow_le_one₀ (norm_nonneg z) (le_of_lt hz)
-    _ = ‖z‖ ^ k := one_mul _
+  simpa [Nat.cast_add, Nat.cast_one, add_comm, add_left_comm, add_assoc] using
+    (summable_nat_add_iff (m + 1)).2 (hasSum_taylorSeries_neg_log hz).summable
 
 /-- Decompose the logarithm series into its first `m` terms and the remaining tail. -/
 lemma neg_log_one_sub_eq_neg_logTaylor_neg_add_logTail {z : ℂ} (hz : ‖z‖ < 1) (m : ℕ) :
@@ -143,40 +125,23 @@ lemma norm_logTail_le_two_mul_norm_pow {z : ℂ} (hz : ‖z‖ < 1) (hzhalf : �
 
 lemma norm_logTaylor_neg_le_nat_mul_max_one_norm_pow (m : ℕ) (z : ℂ) :
     ‖logTaylor (m + 1) (-z)‖ ≤ (m : ℝ) * max 1 (‖z‖ ^ m) := by
-  have hsum :
-      ‖logTaylor (m + 1) (-z)‖ ≤ ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ := by
-    rw [logTaylor_neg_eq_neg_sum, norm_neg]
-    exact norm_sum_le _ _
-  have hterm : ∀ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ ≤ max 1 (‖z‖ ^ m) := by
-    intro k hk
-    rw [norm_div, norm_pow]
-    have hk1 : (1 : ℝ) ≤ (k : ℝ) + 1 := by
-      have hk1_nat : (1 : ℕ) ≤ k + 1 := Nat.succ_le_succ (Nat.zero_le k)
-      exact_mod_cast hk1_nat
-    have hdenom : ‖((k : ℂ) + 1)‖ = (k : ℝ) + 1 := by
-      simpa [Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
-        (Complex.norm_natCast (k + 1))
-    have hk_le : k + 1 ≤ m := Nat.succ_le_iff.2 (Finset.mem_range.1 hk)
-    have hpow_le : ‖z‖ ^ (k + 1) ≤ max 1 (‖z‖ ^ m) := by
-      have hz0 : 0 ≤ ‖z‖ := norm_nonneg z
-      by_cases hz1 : ‖z‖ ≤ (1 : ℝ)
-      · have : ‖z‖ ^ (k + 1) ≤ 1 := by exact pow_le_one₀ hz0 hz1
-        exact this.trans (le_max_left _ _)
-      · have hz1' : (1 : ℝ) ≤ ‖z‖ := le_of_lt (lt_of_not_ge hz1)
-        have : ‖z‖ ^ (k + 1) ≤ ‖z‖ ^ m := pow_le_pow_right₀ hz1' hk_le
-        exact this.trans (le_max_right _ _)
-    calc
-      ‖z‖ ^ (k + 1) / ‖((k : ℂ) + 1)‖ = ‖z‖ ^ (k + 1) / ((k : ℝ) + 1) := by simp [hdenom]
-      _ ≤ ‖z‖ ^ (k + 1) := by
-            exact div_le_self (pow_nonneg (norm_nonneg z) _) hk1
-      _ ≤ max 1 (‖z‖ ^ m) := hpow_le
-  have hsum_le :
-      (∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖) ≤
-        ∑ _k ∈ Finset.range m, max 1 (‖z‖ ^ m) :=
-    Finset.sum_le_sum (fun k hk => hterm k hk)
-  have hcard : ∑ _k ∈ Finset.range m, max 1 (‖z‖ ^ m) = (m : ℝ) * max 1 (‖z‖ ^ m) := by
-    simp [Finset.sum_const]
-  exact hsum.trans (hsum_le.trans_eq hcard)
+  rw [logTaylor_neg_eq_neg_sum, norm_neg]
+  calc
+    ‖∑ k ∈ Finset.range m, z ^ (k + 1) / (k + 1)‖ ≤
+        ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ := norm_sum_le _ _
+    _ ≤ ∑ _k ∈ Finset.range m, max 1 (‖z‖ ^ m) := by
+      refine Finset.sum_le_sum fun k hk => ?_
+      rw [norm_div, norm_pow, ← Nat.cast_add_one, norm_natCast, Nat.cast_add_one]
+      refine (div_le_self (by positivity) (le_add_of_nonneg_left (Nat.cast_nonneg k))).trans ?_
+      calc
+        ‖z‖ ^ (k + 1) ≤ max 1 ‖z‖ ^ (k + 1) :=
+          pow_le_pow_left₀ (norm_nonneg _) (le_max_right _ _) _
+        _ ≤ max 1 ‖z‖ ^ m :=
+          pow_le_pow_right₀ (le_max_left _ _) (Nat.succ_le_iff.mpr (Finset.mem_range.mp hk))
+        _ = max 1 (‖z‖ ^ m) := by
+          rw [max_pow_of_nonneg zero_le_one (norm_nonneg _)]; simp
+    _ = (m : ℝ) * max 1 (‖z‖ ^ m) := by simp
+
 
 
 end Complex

@@ -1,10 +1,10 @@
 module
 
 public import Architect
+public import Mathlib.Analysis.Asymptotics.Theta
 public import Mathlib.Analysis.Calculus.ContDiff.Basic
 public import Mathlib.MeasureTheory.Integral.Asymptotics
 public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Uniformly
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
 
@@ -563,9 +563,11 @@ theorem isTheta_uniformlyOn_uIcc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
       (hcont.isBigO_rev_principal isCompact_uIcc
         (fun i _ ↦ ne_of_gt <| rpow_pos_of_pos (abs_pos_of_pos xpos) _) (1 : ℝ)).comp_tendsto
           tendsto_fst⟩
+  -- The uniform little-o helpers previously used here were written by Lawrence Wu.
   · have h_c {c : ℂ} : (fun (_ : ℝ × ℝ) ↦ c) =o[l] Prod.snd := by
       rewrite [hl, Filter.prod_sup, isLittleO_sup]
-      exact ⟨isLittleO_const_snd_atBot c _, isLittleO_const_snd_atTop c _⟩
+      exact ⟨(isLittleO_const_id_atBot c).comp_tendsto tendsto_snd,
+        (isLittleO_const_id_atTop c).comp_tendsto tendsto_snd⟩
     have h_yI : (fun ((_σ, y) : ℝ × ℝ) ↦ y * I) =Θ[l] Prod.snd :=
       IsTheta.of_norm_eventuallyEq_norm (by simp)
     have h_σ_yI : (fun (σy : ℝ × ℝ) ↦ σy.1 + σy.2 * I) =Θ[l] Prod.snd := by

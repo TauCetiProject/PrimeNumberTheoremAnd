@@ -11,7 +11,6 @@ public import PrimeNumberTheoremAnd.Defs
 public import TauCeti.Analysis.Asymptotics.Lemmas
 public import TauCeti.Analysis.SpecialFunctions.LogIntegral
 public import TauCeti.NumberTheory.PrimeCounting
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
 
 
 

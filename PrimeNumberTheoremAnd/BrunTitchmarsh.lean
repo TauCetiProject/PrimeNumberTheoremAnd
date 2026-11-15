@@ -11,7 +11,6 @@ public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import Mathlib.Analysis.SpecialFunctions.Log.Base
 public import Mathlib.NumberTheory.Primorial
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
 

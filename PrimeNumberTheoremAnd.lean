@@ -13,8 +13,6 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.ArithmeticFunction.CompletelyM
 import PrimeNumberTheoremAnd.LaplaceInversion
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Calculus.Deriv.Polynomial
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Asymptotics
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Asymptotics.Uniformly
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Basic
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
