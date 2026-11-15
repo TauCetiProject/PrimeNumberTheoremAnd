@@ -283,24 +283,13 @@ lemma MellinConvolutionSymmetric (f g : ℝ → 𝕂) {x : ℝ} (xpos : 0 < x) :
 open Pointwise in
 lemma support_MellinConvolution_subsets {f g : ℝ → 𝕂} {A B : Set ℝ} (hf : f.support ⊆ A)
     (hg : g.support ⊆ B) : (MellinConvolution f g).support ⊆ A * B := by
-  rw [Function.support_subset_iff'] at hf hg ⊢
   intro x hx
-  unfold MellinConvolution
-  simp only [Set.mem_mul, not_exists, not_and] at hx
-  apply MeasureTheory.integral_eq_zero_of_ae
-  filter_upwards [ae_restrict_mem (by measurability)]
-  intro y hy
-  simp only [mem_Ioi] at hy
-  simp only [Pi.zero_apply, div_eq_zero_iff, mul_eq_zero, map_eq_zero]
-  left
-  by_cases hyA : y ∈ A
-  · right
-    apply hg
-    intro hxyB
-    apply hx _ hyA _ hxyB
-    field_simp
-  · left
-    apply hf _ hyA
+  change (∫ y in Ioi 0, f y * g (x / y) / y) ≠ 0 at hx
+  obtain ⟨y, hne, hy⟩ :=
+    ((MeasureTheory.frequently_ae_ne_zero_of_integral_ne_zero hx).and_eventually
+      (ae_restrict_mem measurableSet_Ioi)).exists
+  have hfg := mul_ne_zero_iff.mp (div_ne_zero_iff.mp hne).1
+  exact Set.mem_mul.mpr ⟨y, hf hfg.1, x / y, hg hfg.2, by field_simp [hy.ne']⟩
 
 open Pointwise in
 lemma support_MellinConvolution (f g : ℝ → 𝕂) :
