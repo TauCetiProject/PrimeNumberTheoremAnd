@@ -631,18 +631,15 @@ lemma sigmaR_eq_prod_primeFactors_sum_range_factorization_pow_mul {n : ℕ} {s :
   -/)]
 lemma LSeries_powR_eq (ν : ℂ) {s : ℂ} (hs : 1 < (s - ν).re) :
     LSeries (powR ν) s = riemannZeta (s - ν) := by
-  convert ( LSeries_congr _ _ ) using 1;
-  · rw [ zeta_eq_tsum_one_div_nat_cpow hs ];
-    · refine tsum_congr fun n => ?_;
-      by_cases hn : n = 0
-      · simp only [LSeries.term, hn, one_div, CharP.cast_eq_zero, ↓reduceIte, inv_eq_zero, Complex.cpow_eq_zero_iff,
-          ne_eq, true_and]
-        exact sub_ne_zero_of_ne (by rintro rfl; norm_num at hs)
-      · simp only [one_div];
-        rw [← Complex.cpow_neg, neg_sub, Complex.cpow_sub];
-        · exact Eq.symm (LSeries.term_of_ne_zero hn (fun n ↦ ↑n ^ ν) s)
-        · exact cast_ne_zero.mpr hn
-  · unfold ArithmeticFunction.powR; aesop;
+  rw [← ArithmeticFunction.LSeries_zeta_eq_riemannZeta hs]
+  unfold LSeries
+  apply tsum_congr
+  intro n
+  by_cases hn : n = 0
+  · simp [hn]
+  · simp only [LSeries.term_of_ne_zero hn, powR, coe_mk, ↓reduceIte,
+      zeta_apply, hn, Nat.cast_one]
+    rw [Complex.cpow_sub _ _ (Nat.cast_ne_zero.mpr hn), one_div_div]
 
 @[blueprint
   "abscissa_powR_le"
@@ -652,12 +649,10 @@ lemma LSeries_powR_eq (ν : ℂ) {s : ℂ} (hs : 1 < (s - ν).re) :
   We apply \ref{LSeries.abscissaOfAbsConv_le_of_le_const_mul_rpow} which states that if there exists a constant $C$ such that $\|f(n)\| \leq C \cdot n^r$ for all $n$ sufficiently large, then the abscissa of absolute convergence of $L(f, s)$ is at most $r + 1$. In our case, we can take $f(n) = n^\nu$ and observe that $\|n^\nu\| = n^{\Re(\nu)}$. Thus, we can choose $C = 1$ and $r = \Re(\nu)$, which gives us the desired result that the abscissa of absolute convergence of $L(\text{pow}^R(\nu), s)$ is at most $\Re(\nu) + 1$.
   -/)]
 lemma abscissa_powR_le (ν : ℂ) : LSeries.abscissaOfAbsConv (powR ν) ≤ ν.re + 1 := by
-  have h_abs_le : ∀ n : ℕ, n ≠ 0 → ‖(powR ν n : ℂ)‖ ≤ (n : ℝ) ^ ν.re := by
-    intros n hn_nonzero
-    simp only [ArithmeticFunction.powR, hn_nonzero, coe_mk, ↓reduceIte];
-    rw [ ← Complex.ofReal_natCast, Complex.norm_cpow_eq_rpow_re_of_pos ( Nat.cast_pos.mpr <| Nat.pos_of_ne_zero hn_nonzero ) ]
-  apply_rules [ LSeries.abscissaOfAbsConv_le_of_le_const_mul_rpow ];
-  exact ⟨ 1, fun n hn => by simpa using h_abs_le n hn ⟩
+  apply LSeries.abscissaOfAbsConv_le_of_le_const_mul_rpow
+  refine ⟨1, fun n hn ↦ ?_⟩
+  simp only [powR, coe_mk, hn, ↓reduceIte, one_mul]
+  exact le_of_eq (Complex.norm_natCast_cpow_of_pos (Nat.pos_of_ne_zero hn) ν)
 
 /-- `ζ(s)ζ(s - ν) = Σ σ_ν(n) n^(-s)` for `Re(s) > 1` and `Re(s - ν) > 1`. -/
 @[blueprint
