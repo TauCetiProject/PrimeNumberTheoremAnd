@@ -7,8 +7,6 @@ We need §10.2 of #2008 extended to explicitly cover the Möbius and Liouville f
 Currently, the way these draft roadmaps are written, after #1495 we need to review and merge the following prerequisites before #2008, in this order:
 
 1. [ExplicitZetaBounds (#1954)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1954).
-2. [ArithmeticDirichletSeriesPartII (#1415)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1415).
-3. [ProbabilisticAndMetricNumberTheory (#1421)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1421).
-4. [ExplicitPrimeCounting (#1945)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1945). We also need §0.3b before we can migrate the nth-prime asymptotic from PNT+ into Tau Ceti.
+2. [ExplicitPrimeCounting (#1945)](https://github.com/TauCetiProject/TauCetiRoadmap/pull/1945). We also need §0.3b before we can migrate the nth-prime asymptotic from PNT+ into Tau Ceti.
 
 Alternatively, we could write a fresh roadmap covering just these Möbius/Liouville PNT, nth-prime asymptotics, Ramanujan and Dirichlet-series results. That could potentially be reviewed and merged sooner, and we could rewrite the larger draft roadmaps to depend on it.
