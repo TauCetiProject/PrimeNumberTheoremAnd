@@ -7,7 +7,7 @@ module
 
 public import Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Trigonometric
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Exp
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
@@ -173,22 +173,26 @@ lemma norm_mul_riemannZeta_le_exp_of_reflected {z w : ℂ} {A CΓ C : ℝ}
             ‖Complex.cos (π * w / 2)‖ * ‖riemannZeta w‖ := by
           ring
   have hw2 : ‖w‖ * 2 ≤ rexp (2 * A ^ (2 : ℝ)) := by
-    simpa [Real.rpow_two, sq] using Real.two_mul_le_exp_two_mul_sq hw_norm_le hA1
+    have hA : A ≤ 2 * A ^ (2 : ℝ) := by
+      rw [Real.rpow_two]
+      nlinarith [sq_nonneg (A - 1)]
+    calc
+      ‖w‖ * 2 ≤ 2 * A := by linarith
+      _ ≤ rexp A := Real.two_mul_le_exp
+      _ ≤ rexp (2 * A ^ (2 : ℝ)) := Real.exp_le_exp.mpr hA
   have hmul_exp :
       (‖w‖ * 2) * ‖Complex.Gamma w‖ * ‖Complex.cos (π * w / 2)‖ *
           ‖riemannZeta w‖ ≤
         rexp ((2 + CΓ + 2 + 40) * A ^ (2 : ℝ)) := by
-    have h := Real.mul_four_le_exp_add (a := ‖w‖ * 2) (b := ‖Complex.Gamma w‖)
-      (c := ‖Complex.cos (π * w / 2)‖) (d := ‖riemannZeta w‖)
-      (A := 2 * A ^ (2 : ℝ)) (B := CΓ * A ^ (2 : ℝ))
-      (C := 2 * A ^ (2 : ℝ)) (D := 40 * A ^ (2 : ℝ))
-      (norm_nonneg _) (norm_nonneg _) (norm_nonneg _) hw2 hΓw hcosw hζw
-    have hsum :
-        2 * A ^ (2 : ℝ) + CΓ * A ^ (2 : ℝ) +
-            2 * A ^ (2 : ℝ) + 40 * A ^ (2 : ℝ) =
-          (2 + CΓ + 2 + 40) * A ^ (2 : ℝ) := by
-      ring
-    exact h.trans_eq (congrArg rexp hsum)
+    calc
+      (‖w‖ * 2) * ‖Complex.Gamma w‖ * ‖Complex.cos (π * w / 2)‖ * ‖riemannZeta w‖ ≤
+          rexp (2 * A ^ (2 : ℝ)) * rexp (CΓ * A ^ (2 : ℝ)) *
+            rexp (2 * A ^ (2 : ℝ)) * rexp (40 * A ^ (2 : ℝ)) := by
+        gcongr
+      _ = rexp ((2 + CΓ + 2 + 40) * A ^ (2 : ℝ)) := by
+        rw [← Real.exp_add, ← Real.exp_add, ← Real.exp_add]
+        congr 1
+        ring
   have hdom :
       rexp ((2 + CΓ + 2 + 40) * A ^ (2 : ℝ)) ≤ rexp (C * A ^ (2 : ℝ)) := by
     refine (Real.exp_le_exp).2 ?_
@@ -305,7 +309,7 @@ theorem zeta_minus_pole_entire_growth :
           have hle : (40 : ℝ) * A ^ (2 : ℝ) ≤ C * A ^ (2 : ℝ) := by
             simpa [mul_assoc] using (mul_le_mul_of_nonneg_right hC_ge hA2_nonneg)
           have : ‖(z - 1) * riemannZeta z‖ ≤ Real.exp (C * A ^ (2 : ℝ)) :=
-            le_trans (le_trans hpoly hle) (Real.le_exp_self _)
+            (le_trans hpoly hle).trans (by linarith [Real.add_one_le_exp (C * A ^ (2 : ℝ))])
           simpa [hzeta_def] using this
         · have hz_re_le : z.re ≤ zetaAbelContinuationReLower := le_of_not_gt hz_re
           let w : ℂ := 1 - z
@@ -405,7 +409,7 @@ theorem zeta_minus_pole_entire_growth :
                 _ ≤ (40 : ℝ) * A ^ (2 : ℝ) := by
                       simp [pow_two]
                       nlinarith [hA1]
-            exact le_trans hpoly (Real.le_exp_self _)
+            exact hpoly.trans (by linarith [Real.add_one_le_exp ((40 : ℝ) * A ^ (2 : ℝ))])
           have hcoef : (2 + CΓ + 2 + 40 : ℝ) ≤ C := by
             exact reflected_zeta_coefficient_le hCΓ_pos.le (le_max_right _ _)
           have : ‖(z - 1) * riemannZeta z‖ ≤ rexp (C * A ^ (2 : ℝ)) :=

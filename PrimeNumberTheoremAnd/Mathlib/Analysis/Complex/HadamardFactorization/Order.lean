@@ -105,7 +105,8 @@ theorem of_orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
   calc
     ‖f z‖ ≤ C * g z := hfz
     _ ≤ Real.exp C * Real.exp ((1 + ‖z‖) ^ τ) :=
-      mul_le_mul (Real.le_exp_self C) (Real.exp_le_exp.mpr hp) (by positivity) (by positivity)
+      mul_le_mul (by linarith [Real.add_one_le_exp C])
+        (Real.exp_le_exp.mpr hp) (by positivity) (by positivity)
     _ = Real.exp (C + (1 + ‖z‖) ^ τ) := (Real.exp_add _ _).symm
     _ ≤ Real.exp ((C + 1) * (1 + ‖z‖) ^ τ) := by
       apply Real.exp_le_exp.mpr

@@ -9,7 +9,6 @@ public import Mathlib.Algebra.Order.Floor.Semiring
 public import Mathlib.Analysis.Complex.Basic
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Exp
 
 /-!
 # Exponential bounds from logarithmic growth
