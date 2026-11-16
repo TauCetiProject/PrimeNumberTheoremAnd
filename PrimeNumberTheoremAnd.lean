@@ -45,7 +45,6 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValues
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.AuxResults
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.LambdaSquared
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
 import PrimeNumberTheoremAnd.MediumPNT

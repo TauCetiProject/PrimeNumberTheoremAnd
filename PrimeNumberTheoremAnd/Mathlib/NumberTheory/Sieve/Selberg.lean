@@ -9,7 +9,7 @@ module
 
 public import Batteries.Tactic.Lemma
 import TauCeti.NumberTheory.Divisors
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.LambdaSquared
+public import TauCeti.NumberTheory.SelbergSieve.LambdaSquared
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.AuxResults
 
 /-!
@@ -232,10 +232,6 @@ theorem weight_one_of_selberg : γ 1 = 1 := by
   rw [inv_mul_cancel₀]
   convert! s.selbergBoundingSum_ne_zero
 
-theorem selbergμPlus_eq_zero (d : ℕ) (hd : ¬d ≤ y) : μ⁺ d = 0 := by
-  apply lambdaSquared_eq_zero_of_support _ y _ d hd
-  apply s.selbergWeights_eq_zero
-
 -- proved for general lambda squared sieves
 theorem selberg_bound_simple_mainSum :
     mainSum (s := s.toBoundingSieve) μ⁺ = S⁻¹ := by
@@ -363,46 +359,6 @@ theorem selberg_bound_weights (d : ℕ) : |γ d| ≤ 1 := by
     (s.prodPrimes_squarefree.squarefree_of_dvd hdP), Int.cast_one, mul_one]
 
 
-theorem selberg_bound_muPlus (n : ℕ) (hn : n ∈ divisors P) :
-    |μ⁺ n| ≤ (3:ℝ) ^ ω n := by
-  let f : ℕ → ℕ → ℝ := fun x z : ℕ => if n = x.lcm z then 1 else 0
-  dsimp only [selbergMuPlus, lambdaSquared]
-  calc
-    |∑ d1 ∈ n.divisors, ∑ d2 ∈ n.divisors, if n = d1.lcm d2 then γ d1 * γ d2 else 0| ≤
-        ∑ d1 ∈ n.divisors, |∑ d2 ∈ n.divisors, if n = d1.lcm d2 then γ d1 * γ d2 else 0| := ?_
-    _ ≤ ∑ d1 ∈ n.divisors, ∑ d2 ∈ n.divisors, |if n = d1.lcm d2 then γ d1 * γ d2 else 0| := ?_
-    _ ≤ ∑ d1 ∈ n.divisors, ∑ d2 ∈ n.divisors, f d1 d2 := ?_
-    _ = (n.divisors ×ˢ n.divisors).sum fun p => f p.fst p.snd := ?_
-    _ = Finset.card ((n.divisors ×ˢ n.divisors).filter fun p : ℕ × ℕ => n = p.fst.lcm p.snd) := ?_
-    _ = (3:ℕ) ^ ω n := ?_
-    _ = (3:ℝ) ^ ω n := ?_
-  · apply abs_sum_le_sum_abs
-  · gcongr; apply abs_sum_le_sum_abs
-  · gcongr with d1 _ d2
-    rw [apply_ite abs, abs_zero, abs_mul]
-    simp only [f]
-    by_cases h : n = d1.lcm d2
-    · rw [ite_eq_left h, ite_eq_left h]
-      exact (mul_le_of_le_one_left (abs_nonneg <| γ d2) (s.selberg_bound_weights d1)).trans
-        (s.selberg_bound_weights d2)
-    rw [ite_eq_right h, ite_eq_right h]
-  · rw [← Finset.sum_product']
-  · rw [← sum_filter, Finset.sum_const, smul_one_eq_cast]
-  · norm_cast
-    simp [← card_pair_lcm_eq (squarefree_of_mem_divisors_prodPrimes hn), eq_comm]
-  norm_num
-
-theorem selberg_bound_simple_errSum :
-    errSum (s := s.toBoundingSieve) μ⁺ ≤
-      ∑ d ∈ divisors P, if (d : ℝ) ≤ y then (3:ℝ) ^ ω d * |R d| else 0 := by
-  dsimp only [errSum]
-  gcongr with d hd
-  split_ifs with h
-  · apply mul_le_mul _ le_rfl (abs_nonneg <| R d) (pow_nonneg _ <| ω d)
-    · apply s.selberg_bound_muPlus d hd
-    · norm_num
-  · rw [s.selbergμPlus_eq_zero d h, abs_zero, zero_mul]
-
 theorem selberg_bound_simple :
     siftedSum (s := s.toBoundingSieve) ≤
       X / S +
@@ -415,6 +371,7 @@ theorem selberg_bound_simple :
     _ ≤ _ := ?_
   gcongr
   · erw [s.selberg_bound_simple_mainSum, div_eq_mul_inv]
-  · apply s.selberg_bound_simple_errSum
+  · exact errSum_lambdaSquared_le_sum_three_pow_cardDistinctFactors _ γ y
+      (fun d _ => s.selberg_bound_weights d) (fun d _ hd => s.selbergWeights_eq_zero d hd)
 
 end SelbergSieve
