@@ -12,7 +12,7 @@ import Mathlib.MeasureTheory.Group.Integral
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.MeanValue
 import Mathlib.Topology.Order.Compact
 import TauCeti.Analysis.Asymptotics.Lemmas
-import TauCeti.Analysis.Fourier.Decay
+import TauCeti.Analysis.Fourier.RiemannLebesgue
 import TauCeti.Analysis.Contour.WorkedExamples.HalfDisc.SineIntegral
 
 /-!
@@ -267,48 +267,11 @@ brick used by the non-L1 principal-value Laplace inversion route. -/
 theorem tendsto_integral_sin_mul_smul_atTop {f : ℝ → E} (hf : Integrable f) :
     Filter.Tendsto (fun T : ℝ => ∫ v : ℝ, (Real.sin (T * v) : ℂ) • f v)
       Filter.atTop (nhds 0) := by
-  let c : ℂ := (2 : ℂ)⁻¹ * I
-  have hfreq : Tendsto (fun T : ℝ ↦ T / (2 * π)) atTop atTop :=
-    (tendsto_div_const_atTop_of_pos (by positivity)).2 tendsto_id
-  have hneg := (Real.zero_at_infty_fourier f).comp (hfreq.mono_right atTop_le_cocompact)
-  have hpos := (Real.zero_at_infty_fourier f).comp
-    ((tendsto_neg_atTop_atBot.comp hfreq).mono_right atBot_le_cocompact)
-  have hphase (T : ℝ) :
-      (∫ v : ℝ, Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) =
-        𝓕 f (T / (2 * π)) := by
-    simpa only [Real.inner_apply, smul_eq_mul, div_eq_inv_mul, mul_comm] using
-      TauCeti.integral_exp_smul_eq_fourier f T
-  change Tendsto (fun T : ℝ ↦ 𝓕 f (T / (2 * π))) atTop (nhds 0) at hneg
-  change Tendsto (fun T : ℝ ↦ 𝓕 f (-(T / (2 * π)))) atTop (nhds 0) at hpos
-  simp_rw [← hphase] at hneg
-  have hpos' : Filter.Tendsto (fun T : ℝ => ∫ v : ℝ,
-      Complex.exp (((T * v : ℝ) : ℂ) * I) • f v) atTop (nhds 0) := by
-    simpa only [← neg_div, ← hphase, neg_mul, ofReal_neg, neg_mul, neg_neg] using hpos
-  have hscaled := (hneg.sub hpos').const_smul c
-  simp only [sub_self, smul_zero] at hscaled
-  refine hscaled.congr' ?_
-  filter_upwards with T
-  have hneg_int : Integrable (fun v : ℝ =>
-      Complex.exp (-(((T * v : ℝ) : ℂ) * I)) • f v) := by
-    simpa only [Real.inner_apply, mul_comm] using TauCeti.integrable_exp_neg_inner_smul hf T
-  have hpos_int : Integrable (fun v : ℝ =>
-      Complex.exp (((T * v : ℝ) : ℂ) * I) • f v) := by
-    simpa only [Real.inner_apply, mul_neg, ofReal_neg, neg_mul, neg_neg, mul_comm] using
-      TauCeti.integrable_exp_neg_inner_smul hf (-T)
-  rw [← integral_sub hneg_int hpos_int]
-  rw [← integral_smul]
-  congr with v
-  rw [← sub_smul]
-  rw [← smul_assoc]
-  congr 1
-  dsimp [c]
-  change ((2 : ℂ)⁻¹ * I) *
-      (Complex.exp (-(((T * v : ℝ) : ℂ) * I)) - Complex.exp (((T * v : ℝ) : ℂ) * I)) =
-    (Real.sin (T * v) : ℂ)
-  symm
-  rw [show (Real.sin (T * v) : ℂ) = Complex.sin ((T * v : ℝ) : ℂ) by simp]
-  field_simp
-  simpa [mul_comm, mul_left_comm, mul_assoc] using (Complex.two_sin ((T * v : ℝ) : ℂ))
+  refine (hf.tendsto_integral_sin_smul_atTop.comp
+    ((tendsto_div_const_atTop_of_pos (by positivity : (0 : ℝ) < 2 * π)).2 tendsto_id)).congr
+    fun T ↦ ?_
+  have hT : 2 * π * (T / (2 * π)) = T := by field_simp
+  simp only [Function.comp_apply, id, hT]
 
 theorem sin_div_kernel_sub_eq_sin_smul_quotient
     (f : ℝ → E) (x T u : ℝ) :
