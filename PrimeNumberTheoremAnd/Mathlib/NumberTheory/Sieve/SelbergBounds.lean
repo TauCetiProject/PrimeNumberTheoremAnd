@@ -11,6 +11,7 @@ public import Mathlib.NumberTheory.ArithmeticFunction.Misc
 public import Mathlib.Analysis.Asymptotics.Lemmas
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
+import TauCeti.NumberTheory.ArithmeticFunction.DivisorBounds
 /-!
 # Prime sifting counts and explicit remainder estimates
 
@@ -80,9 +81,16 @@ theorem rem_sum_le_of_const (s : SelbergSieve) (C : ℝ) (hrem : ∀ d > 0, |rem
   rw [←Finset.sum_mul, mul_comm, mul_assoc]
   gcongr
   · linarith [abs_nonneg <| rem (s := s.toBoundingSieve) 1, hrem 1 (by norm_num)]
-  rw [Finset.sum_filter]
-  apply Aux.sum_pow_cardDistinctFactors_le_self_mul_log_pow (hx := s.one_le_level)
-  apply prodPrimes_squarefree
+  have hy := s.one_le_level
+  calc ∑ d ∈ Finset.filter (fun d : ℕ => (d : ℝ) ≤ s.level) s.prodPrimes.divisors, (3 : ℝ) ^ ω d
+      ≤ ∑ n ∈ Finset.Ioc 0 ⌊s.level⌋₊, (3 : ℝ) ^ ω n := by
+        refine Finset.sum_le_sum_of_subset_of_nonneg (fun d hd ↦ ?_) fun _ _ _ ↦ by positivity
+        obtain ⟨hd, hdy⟩ := Finset.mem_filter.mp hd
+        exact Finset.mem_Ioc.mpr ⟨Nat.pos_of_mem_divisors hd, Nat.le_floor hdy⟩
+    _ ≤ s.level * (1 + Real.log s.level) ^ 2 :=
+      sum_Ioc_three_pow_cardDistinctFactors_le_mul_one_add_log_sq hy
+    _ ≤ _ := mul_le_mul_of_nonneg_left
+      (pow_le_pow_right₀ (by linarith [Real.log_nonneg hy]) (by norm_num : 2 ≤ 3)) (by linarith)
 
 end Sieve
 end
