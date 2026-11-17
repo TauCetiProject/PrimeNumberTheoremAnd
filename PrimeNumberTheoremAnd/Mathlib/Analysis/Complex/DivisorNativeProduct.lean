@@ -112,6 +112,6 @@ theorem divisorCanonicalProduct_one_eq_native {f : ℂ → ℂ}
       rw [TauCeti.divisorProductOne_eq_tprod]
       apply tprod_congr
       intro w
-      rw [weierstrassFactor_one, div_eq_mul_inv, mul_comm]
+      rw [div_eq_mul_inv, mul_comm]
 
 end Complex.Hadamard

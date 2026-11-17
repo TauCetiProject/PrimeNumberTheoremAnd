@@ -251,7 +251,8 @@ theorem hasProdUniformlyOn_divisorComplementCanonicalProduct_univ
         exact le_of_lt hzlt
       have hE : ‖weierstrassFactor m (z / divisorZeroIndex₀_val p) - 1‖ ≤
             4 * ‖z / divisorZeroIndex₀_val p‖ ^ (m + 1) :=
-        weierstrassFactor_sub_one_pow_bound (m := m) (z := z / divisorZeroIndex₀_val p) hz_div
+        (norm_weierstrassFactor_sub_one_le m (hz_div.trans (by norm_num))).trans
+          (le_mul_of_one_le_left (by positivity) (by norm_num))
       have hz_pow : ‖z / divisorZeroIndex₀_val p‖ ^ (m + 1) ≤
             (R ^ (m + 1)) * (‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)) := by
         have : ‖z / divisorZeroIndex₀_val p‖ = ‖z‖ * ‖divisorZeroIndex₀_val p‖⁻¹ := by

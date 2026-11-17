@@ -97,7 +97,7 @@ lemma norm_inv_weierstrassFactor_le_exp_near
   have hpos : 0 < ‖weierstrassFactor m (u / a)‖ := by
     have : weierstrassFactor m (u / a) ≠ 0 := by
       intro h0
-      have : u / a = (1 : ℂ) := (weierstrassFactor_eq_zero_iff m (u / a)).1 h0
+      have : u / a = (1 : ℂ) := (weierstrassFactor_eq_zero_iff m).1 h0
       have : u = a := (div_eq_one_iff_eq ha).1 this
       have : r = ‖a‖ := by simpa [this] using hur.symm
       exact (hr this).elim
@@ -153,7 +153,7 @@ lemma norm_inv_weierstrassFactor_le_exp_far
   have hpos : 0 < ‖weierstrassFactor m (u / a)‖ := by
     have : weierstrassFactor m (u / a) ≠ 0 := by
       intro h0
-      have : u / a = (1 : ℂ) := (weierstrassFactor_eq_zero_iff m (u / a)).1 h0
+      have : u / a = (1 : ℂ) := (weierstrassFactor_eq_zero_iff m).1 h0
       have : u = a := (div_eq_one_iff_eq ha).1 this
       have : (‖u / a‖ : ℝ) = 1 := by simpa [this] using (by simp [ha])
       linarith [hz, this]

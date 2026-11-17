@@ -6,6 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
+public import TauCeti.Analysis.SpecialFunctions.Complex.Log.Taylor
 
 /-!
 # Logarithm estimates for Weierstrass products
@@ -43,40 +44,6 @@ lemma neg_log_one_sub_eq_tsum {z : ℂ} (hz : ‖z‖ < 1) :
   rw [← h.tsum_eq, h.summable.tsum_eq_zero_add]
   simp only [pow_zero, Nat.cast_zero, div_zero, zero_add, Nat.cast_add, Nat.cast_one]
 
-lemma logTaylor_succ_neg (n : ℕ) (z : ℂ) :
-    logTaylor (n + 1) (-z) = logTaylor n (-z) - z ^ n / n := by
-  rw [logTaylor_succ, Pi.add_apply]
-  have hsign : (-1 : ℂ) ^ (n + 1) * (-z) ^ n = -z ^ n := by
-    have hzpow : (-z) ^ n = (((-1 : ℂ) * z) ^ n) := by simp
-    rw [hzpow, mul_pow, ← mul_assoc, ← pow_add]
-    have hpow : (-1 : ℂ) ^ (n + 1 + n) = (-1 : ℂ) := by
-      rw [show n + 1 + n = 2 * n + 1 by omega, pow_add, pow_mul]
-      norm_num
-    rw [hpow]
-    ring
-  rw [show (-1 : ℂ) ^ (n + 1) * (-z) ^ n / n = -(z ^ n / n) by
-    rw [hsign]
-    ring]
-  abel
-
-/-- Evaluate `logTaylor` at `-z` as a finite positive-coefficient logarithm sum. -/
-lemma logTaylor_neg_eq_neg_sum (m : ℕ) (z : ℂ) :
-    logTaylor (m + 1) (-z) = -∑ k ∈ Finset.range m, z ^ (k + 1) / (k + 1) := by
-  induction m with
-  | zero =>
-      simp [logTaylor_succ, logTaylor_zero]
-  | succ m hm =>
-      rw [logTaylor_succ_neg, hm, Finset.sum_range_succ]
-      have hcast : ((m + 1 : ℕ) : ℂ) = (1 + (m : ℂ)) := by
-        simp [Nat.cast_add, Nat.cast_one, add_comm]
-      rw [hcast]
-      ring_nf
-
-lemma hasDerivAt_neg_logTaylor_neg (m : ℕ) (z : ℂ) :
-    HasDerivAt (fun z : ℂ ↦ -logTaylor (m + 1) (-z)) (∑ j ∈ Finset.range m, z ^ j) z := by
-  have h := (((hasDerivAt_logTaylor m (-z)).comp z (hasDerivAt_neg z)).neg)
-  simpa only [mul_neg_one, neg_neg, ← mul_pow, neg_one_mul] using! h
-
 /-- The tail `∑_{k>m} z^k / k`, as `∑' k, z^(m+1+k)/(m+1+k)`. -/
 noncomputable
 def logTail (m : ℕ) (z : ℂ) : ℂ :=
@@ -95,7 +62,7 @@ lemma neg_log_one_sub_eq_neg_logTaylor_neg_add_logTail {z : ℂ} (hz : ‖z‖ <
     simpa [f, Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using
       (summable_logTail hz 0)
   have h_decomp := h_summable.sum_add_tsum_nat_add m
-  rw [neg_log_one_sub_eq_tsum hz, logTaylor_neg_eq_neg_sum, neg_neg, ← h_decomp]
+  rw [neg_log_one_sub_eq_tsum hz, neg_logTaylor_succ_neg_eq_sum, ← h_decomp]
   congr 1
   dsimp only [logTail]
   refine tsum_congr fun k ↦ ?_
@@ -125,7 +92,7 @@ lemma norm_logTail_le_two_mul_norm_pow {z : ℂ} (hz : ‖z‖ < 1) (hzhalf : �
 
 lemma norm_logTaylor_neg_le_nat_mul_max_one_norm_pow (m : ℕ) (z : ℂ) :
     ‖logTaylor (m + 1) (-z)‖ ≤ (m : ℝ) * max 1 (‖z‖ ^ m) := by
-  rw [logTaylor_neg_eq_neg_sum, norm_neg]
+  rw [← norm_neg, neg_logTaylor_succ_neg_eq_sum]
   calc
     ‖∑ k ∈ Finset.range m, z ^ (k + 1) / (k + 1)‖ ≤
         ∑ k ∈ Finset.range m, ‖z ^ (k + 1) / (k + 1)‖ := norm_sum_le _ _

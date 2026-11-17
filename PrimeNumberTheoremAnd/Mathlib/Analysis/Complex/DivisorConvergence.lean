@@ -127,7 +127,8 @@ theorem hasProdUniformlyOn_divisorCanonicalProduct_univ
     have hE :
         ‖weierstrassFactor m (z / divisorZeroIndex₀_val p) - 1‖ ≤
           4 * ‖z / divisorZeroIndex₀_val p‖ ^ (m + 1) :=
-      weierstrassFactor_sub_one_pow_bound (m := m) (z := z / divisorZeroIndex₀_val p) hz_div
+      (norm_weierstrassFactor_sub_one_le m (hz_div.trans (by norm_num))).trans
+        (le_mul_of_one_le_left (by positivity) (by norm_num))
     have hz_pow :
         ‖z / divisorZeroIndex₀_val p‖ ^ (m + 1) ≤
           (R ^ (m + 1)) * (‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)) := by
@@ -220,12 +221,11 @@ theorem logDeriv_divisorCanonicalProduct_one_eq_tsum
   have hm : Summable (fun p ↦ ((1 : ℕ) : ℝ) * ‖a p‖ ^ 2) := by
     simpa only [a, Nat.cast_one, one_mul, norm_inv] using h_sum
   have hfun : divisorCanonicalProduct 1 f Set.univ =
-      (fun w ↦ ∏' p, Complex.weierstrassFactorOne (a p * w) ^ (1 : ℕ)) := by
+      (fun w ↦ ∏' p, Complex.weierstrassFactor 1 (a p * w) ^ (1 : ℕ)) := by
     ext w
-    simp only [divisorCanonicalProduct, weierstrassFactor_one, pow_one, a, div_eq_mul_inv,
-      mul_comm]
+    simp only [divisorCanonicalProduct, pow_one, a, div_eq_mul_inv, mul_comm]
   rw [hfun]
-  have h := Complex.logDeriv_tprod_weierstrassFactorOne_pow a (fun _ ↦ 1) hm
+  have h := Complex.logDeriv_tprod_weierstrassFactor_one_pow a (fun _ ↦ 1) hm
     (z := z) (fun p _ ↦ by
       dsimp only [a]
       intro hp

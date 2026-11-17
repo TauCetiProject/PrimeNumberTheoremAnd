@@ -54,11 +54,11 @@ theorem analyticOrderAt_finset_prod_weierstrassFactor_divisorZeroIndex₀
     _ = ∑ p ∈ s, if divisorZeroIndex₀_val p = z₀ then (1 : ℕ∞) else 0 := by
       refine Finset.sum_congr rfl fun p _ ↦ ?_
       split_ifs with hp
-      · simpa only [hp] using
-          (analyticOrderAt_weierstrassFactor_div_self m (divisorZeroIndex₀_val_ne_zero p))
+      · simpa only [hp, div_eq_inv_mul] using analyticOrderAt_weierstrassFactor_mul m
+          (inv_mul_cancel₀ (divisorZeroIndex₀_val_ne_zero p))
       · have han := (differentiable_weierstrassFactor_divisorZeroIndex₀ m p).analyticAt z₀
         apply han.analyticOrderAt_eq_zero.mpr
-        apply (weierstrassFactor_ne_zero_iff m _).mpr
+        apply (weierstrassFactor_eq_zero_iff m).not.mpr
         exact mt (div_eq_one_iff_eq (divisorZeroIndex₀_val_ne_zero p)).mp (Ne.symm hp)
     _ = _ := by simp
 

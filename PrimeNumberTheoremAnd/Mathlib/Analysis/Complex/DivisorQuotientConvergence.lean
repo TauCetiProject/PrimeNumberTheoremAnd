@@ -258,8 +258,8 @@ theorem divisorComplementCanonicalProduct_ne_zero_at
     by_cases hp : divisorZeroIndex₀_val p = z₀
     · simp [hp]
     · simpa only [divisorComplementFactor_def, ite_eq_right hp] using
-        (weierstrassFactor_div_ne_zero_iff (m := m)
-          (divisorZeroIndex₀_val_ne_zero p)).mpr (Ne.symm hp)
+        (weierstrassFactor_eq_zero_iff m).not.mpr
+          (mt (div_eq_one_iff_eq (divisorZeroIndex₀_val_ne_zero p)).mp (Ne.symm hp))
   have hs : Summable (fun p : divisorZeroIndex₀ f Set.univ ↦
       ‖z₀ / divisorZeroIndex₀_val p‖ ^ (m + 1)) := by
     simpa only [div_eq_mul_inv, norm_mul, norm_inv, mul_pow] using h_sum.mul_left (‖z₀‖ ^ (m + 1))
@@ -273,8 +273,9 @@ theorem divisorComplementCanonicalProduct_ne_zero_at
       positivity
     · dsimp only [a]
       rw [divisorComplementFactor_def, ite_eq_right hval]
-      exact weierstrassFactor_sub_one_pow_bound
-        ((pow_le_pow_iff_left₀ (norm_nonneg _) (by norm_num) (by omega : m + 1 ≠ 0)).mp hp)
+      exact (norm_weierstrassFactor_sub_one_le m (((pow_le_pow_iff_left₀ (norm_nonneg _)
+        (by norm_num) (by omega : m + 1 ≠ 0)).mp hp).trans (by norm_num))).trans
+        (le_mul_of_one_le_left (by positivity) (by norm_num))
   have hprod := tprod_one_add_ne_zero_of_summable (R := ℂ) (f := a)
     (fun p ↦ by simpa only [a, ← add_sub_assoc, add_sub_cancel_left] using hfactor p) hnorm
   simpa only [a, ← add_sub_assoc, add_sub_cancel_left, divisorComplementCanonicalProduct]

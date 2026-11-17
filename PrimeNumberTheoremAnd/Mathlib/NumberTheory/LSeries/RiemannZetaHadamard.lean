@@ -309,9 +309,9 @@ theorem riemannXi_hadamard_factorization_reindex
     {ι : Type*} (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt riemannXi 0) *
-      (∏' i : ι, Complex.weierstrassFactorOne
+      (∏' i : ι, Complex.weierstrassFactor 1
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
-  simpa [Complex.weierstrassFactor_one] using
+  simpa using
     (Complex.Hadamard.hadamard_factorization_of_order_reindex
       (f := riemannXi) (ρ := (1 : ℝ))
       (by norm_num) riemannXi_nontrivial
@@ -322,7 +322,7 @@ theorem riemannXi_hadamard_factorization_reindex_no_monomial
     {ι : Type*} (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ riemannXi (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, riemannXi z =
         Complex.exp (Polynomial.eval z P) *
-      (∏' i : ι, Complex.weierstrassFactorOne
+      (∏' i : ι, Complex.weierstrassFactor 1
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
   rcases riemannXi_hadamard_factorization_reindex e with ⟨P, hdeg, hfac⟩
   refine ⟨P, hdeg, ?_⟩
@@ -398,9 +398,9 @@ theorem completedRiemannZeta₀_hadamard_factorization_reindex
     (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
         Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt completedRiemannZeta₀ 0) *
-      (∏' i : ι, Complex.weierstrassFactorOne
+      (∏' i : ι, Complex.weierstrassFactor 1
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
-  simpa [Complex.weierstrassFactor_one] using
+  simpa using
     (Complex.Hadamard.hadamard_factorization_of_order_reindex
       (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
       (by norm_num) completedRiemannZeta₀_nontrivial
@@ -412,7 +412,7 @@ theorem completedRiemannZeta₀_hadamard_factorization_reindex_no_monomial
     (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
     ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
         Complex.exp (Polynomial.eval z P) *
-      (∏' i : ι, Complex.weierstrassFactorOne
+      (∏' i : ι, Complex.weierstrassFactor 1
         (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
   rcases completedRiemannZeta₀_hadamard_factorization_reindex e with ⟨P, hdeg, hfac⟩
   refine ⟨P, hdeg, ?_⟩

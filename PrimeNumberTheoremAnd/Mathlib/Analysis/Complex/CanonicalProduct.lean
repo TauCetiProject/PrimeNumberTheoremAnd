@@ -72,7 +72,7 @@ hypothesis. -/
 @[simp]
 theorem canonicalProduct_apply_eq_zero {m : ℕ} {a : ℕ → ℂ} (n : ℕ) (hn : a n ≠ 0) :
     canonicalProduct m a (a n) = 0 := by
-  exact tprod_of_exists_eq_zero ⟨n, by simp [hn, weierstrassFactor_at_one]⟩
+  exact tprod_of_exists_eq_zero ⟨n, by simp [hn]⟩
 
 /-- The canonical product vanishes at every nonzero point in `Set.range a`, without a
 summability hypothesis. -/
@@ -92,8 +92,8 @@ theorem canonicalProduct_ne_zero {m : ℕ} {a : ℕ → ℂ}
     have hza : z ≠ a n := by
       intro hza
       exact hz ⟨n, hza.symm⟩
-    simpa [f] using (weierstrassFactor_div_ne_zero_iff (m := m) (a := a n) (z := z)
-      (h_nonzero n)).2 hza
+    simpa [f] using (weierstrassFactor_eq_zero_iff m).not.mpr
+      (mt (div_eq_one_iff_eq (h_nonzero n)).mp hza)
   have hnormsumm :
       Summable (fun n : ℕ ↦ ‖weierstrassFactor m (z / a n) - 1‖) :=
     summable_norm_weierstrassFactor_div_sub_one_of_summable_inv_pow
@@ -124,11 +124,11 @@ theorem logDeriv_canonicalProduct_one_eq_tsum {a : ℕ → ℂ}
   have hm : Summable (fun n ↦ ((1 : ℕ) : ℝ) * ‖b n‖ ^ 2) := by
     simpa only [b, Nat.cast_one, one_mul, norm_inv] using h_sum
   have hfun : canonicalProduct 1 a =
-      (fun w ↦ ∏' n, weierstrassFactorOne (b n * w) ^ (1 : ℕ)) := by
+      (fun w ↦ ∏' n, weierstrassFactor 1 (b n * w) ^ (1 : ℕ)) := by
     ext w
-    simp only [canonicalProduct, weierstrassFactor_one, pow_one, b, div_eq_mul_inv, mul_comm]
+    simp only [canonicalProduct, pow_one, b, div_eq_mul_inv, mul_comm]
   rw [hfun]
-  have h := logDeriv_tprod_weierstrassFactorOne_pow b (fun _ ↦ 1) hm
+  have h := logDeriv_tprod_weierstrassFactor_one_pow b (fun _ ↦ 1) hm
     (z := z) (fun n _ ↦ by
       intro hn
       apply hz

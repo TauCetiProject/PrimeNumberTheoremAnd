@@ -43,7 +43,7 @@ lemma weierstrassFactor_div_ne_zero_on_ball_of_val_ne
   intro z hzball h0
   have hz_eq : z = divisorZeroIndex₀_val p := by
     have hdiv1 : z / divisorZeroIndex₀_val p = 1 := by
-      simpa [weierstrassFactor_eq_zero_iff (m := m)] using h0
+      simpa using h0
     have ha : divisorZeroIndex₀_val p ≠ 0 := divisorZeroIndex₀_val_ne_zero p
     exact (div_eq_one_iff_eq ha).1 hdiv1
   have hz_support : z ∈ (MeromorphicOn.divisor f (Set.univ : Set ℂ)).support := by
@@ -70,7 +70,7 @@ lemma weierstrassFactor_div_ne_zero_on_ball_punctured
   · have hz1 : z / divisorZeroIndex₀_val p ≠ (1 : ℂ) := by
       have ha : divisorZeroIndex₀_val p ≠ 0 := divisorZeroIndex₀_val_ne_zero p
       simpa [hp] using (mt (div_eq_one_iff_eq ha).1 (by simpa [hp] using hz0))
-    exact _root_.Complex.weierstrassFactor_ne_zero_of_ne_one (m := m) hz1
+    exact (_root_.Complex.weierstrassFactor_eq_zero_iff m).not.mpr hz1
   · exact weierstrassFactor_div_ne_zero_on_ball_of_val_ne (m := m) (f := f) (z₀ := z₀)
         (ε := ε) hball p (by simpa using hp) z hz
 
