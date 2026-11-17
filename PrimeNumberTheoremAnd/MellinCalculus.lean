@@ -16,6 +16,7 @@ public import Mathlib.Tactic.Bound
 public import Mathlib.Tactic.GCongr
 public import Mathlib.Analysis.Complex.RealDeriv
 import TauCeti.Analysis.Calculus.FDeriv.OfReal
+import TauCeti.Analysis.MellinTransform.Decay
 import TauCeti.MeasureTheory.Measure.Haar.MultHaar
 
 
@@ -264,56 +265,22 @@ lemma MellinOfPsi {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     (suppν : ν.support ⊆ Set.Icc (1 / 2) 2) :
     ∃ C > 0, ∀ (σ₁ : ℝ) (_ : 0 < σ₁) (s : ℂ) (_ : σ₁ ≤ s.re) (_ : s.re ≤ 2),
     ‖𝓜 (fun x ↦ (ν x : ℂ)) s‖ ≤ C * ‖s‖⁻¹ := by
-  let f := fun (x : ℝ) ↦ ‖deriv ν x‖
-  have cont : ContinuousOn f (Icc (1 / 2) 2) :=
-    (Continuous.comp (by continuity) <| diffν.continuous_deriv (by norm_num)).continuousOn
-  obtain ⟨a, _, max⟩ := isCompact_Icc.exists_isMaxOn (f := f) (by norm_num) cont
-  let σ₂ : ℝ := 2
-  let C : ℝ := f a * 2 ^ σ₂ * (3 / 2)
-  have mainBnd : ∀ (σ₁ : ℝ), 0 < σ₁ → ∀ (s : ℂ), σ₁ ≤ s.re → s.re ≤ 2 →
-      ‖𝓜 (fun x ↦ (ν x : ℂ)) s‖ ≤ C * ‖s‖⁻¹ := by
-    intro σ₁ σ₁pos s hs₁ hs₂
-    have s_ne_zero: s ≠ 0 := fun h ↦ by linarith [zero_re ▸ h ▸ hs₁]
-    simp only [mellin, f, MellinOfPsi_aux diffν suppν s_ne_zero, norm_mul, smul_eq_mul, mul_comm]
-    gcongr
-    · simp
-    calc
-      _ ≤ ∫ (x : ℝ) in Ioi 0, ‖(deriv ν x * (x : ℂ) ^ s)‖ := ?_
-      _ = ∫ (x : ℝ) in Icc (1 / 2) 2, ‖(deriv ν x * (x : ℂ) ^ s)‖ := ?_
-      _ ≤ ‖∫ (x : ℝ) in Icc (1 / 2) 2, ‖(deriv ν x * (x : ℂ) ^ s)‖‖ :=
-          le_abs_self _
-      _ ≤ _ := ?_
-    · simp_rw [norm_integral_le_integral_norm]
-    · apply setIntegral_eq_of_subset_of_forall_sdiff_eq_zero measurableSet_Ioi
-        ((Icc_subset_Ioi_iff (by norm_num)).mpr (by norm_num))
-      intro x hx
-      have hderiv := (support_deriv_subset (f := ν)).trans
-        (closure_minimal suppν isClosed_Icc)
-      have hzero : deriv ν x = 0 := Function.notMem_support.mp
-        (fun h ↦ hx.2 (hderiv h))
-      simp only [hzero, Complex.ofReal_zero, zero_mul, norm_zero]
-    · have := intervalIntegral.norm_integral_le_of_norm_le_const (C := f a * 2 ^ σ₂)
-        (f := fun x ↦ f x * ‖(x : ℂ) ^ s‖) (a := (1 / 2 : ℝ)) (b := 2) ?_
-      · simp only [Real.norm_eq_abs, norm_real, norm_mul] at this ⊢
-        rwa [(by norm_num: |(2 : ℝ) - 1 / 2| = 3 / 2),
-            intervalIntegral.integral_of_le (by norm_num), ← integral_Icc_eq_integral_Ioc] at this
-      · intro x hx
-        have hx : x ∈ Icc (1 / 2 : ℝ) 2 :=
-          mem_Icc_of_Ioc ((uIoc_of_le (by norm_num : (1 / 2 : ℝ) ≤ 2)) ▸ hx)
-        have f_bound := isMaxOn_iff.mp max x hx
-        have pow_bound : ‖(x : ℂ) ^ s‖ ≤ 2 ^ σ₂ := by
-          rw [norm_cpow_eq_rpow_re_of_pos (by linarith [mem_Icc.mp hx])]
-          have xpos : 0 ≤ x := by linarith [(mem_Icc.mp hx).1]
-          have h := rpow_le_rpow xpos (mem_Icc.mp hx).2 (by linarith : 0 ≤ s.re)
-          exact le_trans h <| rpow_le_rpow_of_exponent_le (by norm_num) hs₂
-        convert! mul_le_mul f_bound pow_bound (norm_nonneg _) ?_ using 1 <;> simp [f]
-  have Cnonneg : 0 ≤ C := by positivity
-  rcases Cnonneg.eq_or_lt with CeqZero | Cpos
-  · refine ⟨1, one_pos, fun ε εpos s hs₁ hs₂ ↦ ?_⟩
-    have := mainBnd ε εpos s hs₁ hs₂
-    rw [← CeqZero, zero_mul] at this
-    exact this.trans (by positivity)
-  · exact ⟨C, Cpos, mainBnd⟩
+  have hts : tsupport (fun x ↦ (ν x : ℂ)) ⊆ Icc (1 / 2) 2 :=
+    closure_minimal (by simpa [Function.support_comp_eq] using suppν) isClosed_Icc
+  have hc : IsCompact (tsupport (fun x ↦ (ν x : ℂ)) ∩ Ioi 0) := by
+    rw [inter_eq_left.mpr (hts.trans fun x hx ↦ (by norm_num : (0 : ℝ) < 1 / 2).trans_le hx.1)]
+    exact isCompact_Icc.of_isClosed_subset (isClosed_tsupport _) hts
+  obtain ⟨C, hC, hbound⟩ := TauCeti.exists_one_add_abs_im_pow_mul_norm_mellin_le (N := 1)
+    (ofRealCLM.contDiff.comp diffν).contDiffOn hc (isCompact_Icc (a := 0) (b := 2))
+  refine ⟨2 * C, by positivity, fun σ₁ hσ₁ s hs₁ hs₂ ↦ ?_⟩
+  have hs : 0 < ‖s‖ := norm_pos_iff.mpr fun h ↦ by simp [h] at hs₁; linarith
+  have hns : ‖s‖ ≤ 2 * (1 + |s.im|) := (norm_le_abs_re_add_abs_im s).trans <| by
+    rw [abs_of_pos (by linarith)]; linarith [abs_nonneg s.im]
+  rw [← div_eq_mul_inv, le_div_iff₀ hs]
+  calc ‖𝓜 (fun x ↦ (ν x : ℂ)) s‖ * ‖s‖ ≤ ‖𝓜 (fun x ↦ (ν x : ℂ)) s‖ * (2 * (1 + |s.im|)) := by
+        gcongr
+    _ = 2 * ((1 + |s.im|) ^ 1 * ‖mellin (fun x ↦ (ν x : ℂ)) s‖) := by ring
+    _ ≤ 2 * C := by gcongr; exact hbound s ⟨by linarith, hs₂⟩
 
 
 
