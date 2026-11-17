@@ -339,40 +339,6 @@ theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) 
   · intro n
     exact (div_mul_cancel₀ _ (hne n)).symm
 
-lemma tendsto_by_squeeze (ε : ℝ) (hε : ε > 0) :
-    Tendsto (fun (x : ℝ) => (Nat.primeCounting ⌊(1 + ε) * x⌋₊ : ℝ) -
-      (Nat.primeCounting ⌊x⌋₊ : ℝ)) atTop atTop := by
-  let c := 1 + ε
-  have hc : 0 < c := by dsimp [c]; linarith
-  have hlognorm : Tendsto (norm ∘ log) atTop atTop := by
-    simpa only [Function.comp_def, Real.norm_eq_abs] using
-      tendsto_abs_atTop_atTop.comp tendsto_log_atTop
-  have hlog : (fun x : ℝ ↦ log (c * x)) ~[atTop] log := by
-    refine (IsEquivalent.refl.const_add_of_norm_tendsto_atTop (c := log c) hlognorm).congr_left ?_
-    filter_upwards [eventually_gt_atTop (0 : ℝ)] with x hx
-    exact (log_mul hc.ne' hx.ne').symm
-  have hscale : (fun x : ℝ ↦ c * x / log (c * x)) ~[atTop]
-      (fun x : ℝ ↦ c * (x / log x)) := by
-    convert ((IsEquivalent.refl : (fun x : ℝ ↦ c * x) ~[atTop] (fun x : ℝ ↦ c * x)).div hlog) using 1
-    ext x
-    simp only [Pi.div_apply, mul_div_assoc]
-  have hpi := (Nat.isEquivalent_primeCounting.comp_tendsto (tendsto_id.const_mul_atTop hc)).trans hscale
-  have hden : ∀ᶠ x : ℝ in atTop, x / log x ≠ 0 := by
-    filter_upwards [eventually_gt_atTop (1 : ℝ)] with x hx
-    exact (div_pos (by linarith) (log_pos hx)).ne'
-  have herror : (fun x : ℝ ↦ (Nat.primeCounting ⌊c * x⌋₊ : ℝ) - c * (x / log x)) =o[atTop]
-      (fun x : ℝ ↦ x / log x) := by
-    exact hpi.isLittleO.trans_isBigO (isBigO_const_mul_self c _ _)
-  have hscaled := (isLittleO_sub_mul_iff_tendsto_div hden).mp herror
-  have hbase := (isEquivalent_iff_tendsto_one hden).mp Nat.isEquivalent_primeCounting
-  have hratio : Tendsto (fun x : ℝ ↦ ((Nat.primeCounting ⌊c * x⌋₊ : ℝ) -
-      (Nat.primeCounting ⌊x⌋₊ : ℝ)) / (x / log x)) atTop (nhds ε) := by
-    simpa only [Pi.div_apply, sub_div, show c - 1 = ε by dsimp [c]; ring] using hscaled.sub hbase
-  apply (hratio.pos_mul_atTop hε TauCeti.Real.tendsto_div_log_atTop).congr'
-  filter_upwards [hden] with x hx
-  dsimp only [c]
-  exact div_mul_cancel₀ _ hx
-
 @[blueprint
   (title := "prime-between")
   (statement := /-- For every $\eps>0$, there is a prime between $x$ and $(1+\eps)x$ for
