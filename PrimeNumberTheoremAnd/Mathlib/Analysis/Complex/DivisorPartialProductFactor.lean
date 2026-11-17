@@ -62,18 +62,6 @@ theorem analyticOrderAt_finset_prod_weierstrassFactor_divisorZeroIndex₀
         exact mt (div_eq_one_iff_eq (divisorZeroIndex₀_val_ne_zero p)).mp (Ne.symm hp)
     _ = _ := by simp
 
-
-theorem analyticOrderNatAt_finset_prod_weierstrassFactor_divisorZeroIndex₀
-    (m : ℕ) (f : ℂ → ℂ)
-    (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) (z₀ : ℂ) :
-    analyticOrderNatAt
-        (fun z : ℂ => ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p)) z₀ =
-      (s.filter (fun p => divisorZeroIndex₀_val p = z₀)).card := by
-  simpa [analyticOrderNatAt] using
-    (congrArg ENat.toNat
-      (analyticOrderAt_finset_prod_weierstrassFactor_divisorZeroIndex₀ (m := m) (f := f) (s := s)
-      (z₀ := z₀)))
-
 theorem analyticOrderAt_partialProduct_eq_fiberCard_of_subset
     (m : ℕ) (f : ℂ → ℂ) (z₀ : ℂ)
     (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)))

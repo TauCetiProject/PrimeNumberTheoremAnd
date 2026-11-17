@@ -72,18 +72,6 @@ lemma divisorZeroIndex₀_val_mem_divisor_support' {f : ℂ → ℂ} {U : Set �
     divisorZeroIndex₀_val p ∈ (MeromorphicOn.divisor f U).support := by
   simp [Function.mem_support]
 
-lemma exists_ball_inter_divisor_support_eq_singleton_of_index
-    {f : ℂ → ℂ} (p : divisorZeroIndex₀ f (Set.univ : Set ℂ)) :
-    ∃ ε > 0,
-      Metric.ball (divisorZeroIndex₀_val p) ε ∩
-          (MeromorphicOn.divisor f (Set.univ : Set ℂ)).support =
-        {divisorZeroIndex₀_val p} := by
-  simpa using
-    Metric.exists_ball_inter_eq_singleton_of_mem_discrete
-      (hs := Function.locallyFinsuppWithin.discreteSupport
-        (D := MeromorphicOn.divisor f (Set.univ : Set ℂ)))
-      (divisorZeroIndex₀_val_mem_divisor_support' (p := p))
-
 /-- The canonical product attached to the (nonzero) divisor of `f` on `U`. -/
 noncomputable def divisorCanonicalProduct (m : ℕ) (f : ℂ → ℂ) (U : Set ℂ) (z : ℂ) : ℂ :=
   ∏' p : divisorZeroIndex₀ f U, weierstrassFactor m (z / divisorZeroIndex₀_val p)
@@ -98,22 +86,9 @@ theorem divisorCanonicalProduct_eq_tprod_of_equiv
     (e.tprod_eq (fun p : divisorZeroIndex₀ f U =>
       weierstrassFactor m (z / divisorZeroIndex₀_val p))).symm
 
-/-- If a sequence enumerates the nonzero divisor indices, the divisor-indexed product is the
-corresponding canonical product. -/
-theorem divisorCanonicalProduct_eq_canonicalProduct_of_equiv
-    (m : ℕ) (f : ℂ → ℂ) (U : Set ℂ) (e : ℕ ≃ divisorZeroIndex₀ f U) (z : ℂ) :
-    divisorCanonicalProduct m f U z =
-      Complex.canonicalProduct m (fun n : ℕ => divisorZeroIndex₀_val (e n)) z := by
-  simpa [Complex.canonicalProduct_def] using
-    divisorCanonicalProduct_eq_tprod_of_equiv (m := m) (f := f) (U := U) e z
-
 @[simp]
 lemma divisorCanonicalProduct_zero (m : ℕ) (f : ℂ → ℂ) (U : Set ℂ) :
     divisorCanonicalProduct m f U 0 = 1 := by
   simp [divisorCanonicalProduct]
-
-lemma divisorCanonicalProduct_ne_zero_at_zero (m : ℕ) (f : ℂ → ℂ) (U : Set ℂ) :
-    divisorCanonicalProduct m f U 0 ≠ 0 := by
-  simp [divisorCanonicalProduct_zero]
 
 end Complex.Hadamard

@@ -30,14 +30,6 @@ namespace Complex.Hadamard
 The quotient of the infinite product by `(z - z₀)^k` is holomorphic on the punctured plane.
 -/
 
-theorem differentiableOn_divisorPartialProduct_div_pow_sub
-    (m : ℕ) (f : ℂ → ℂ) (z₀ : ℂ) (k : ℕ)
-    (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) :
-    DifferentiableOn ℂ (fun z : ℂ => (divisorPartialProduct m f s z) / (z - z₀) ^ k)
-      ((Set.univ : Set ℂ) \ {z₀}) := by
-  exact (differentiable_divisorPartialProduct m f s).differentiableOn.div
-    (by fun_prop) fun z hz => pow_ne_zero k (sub_ne_zero.mpr (by simpa using hz.2))
-
 theorem differentiableOn_divisorCanonicalProduct_div_pow_sub
     (m : ℕ) (f : ℂ → ℂ) (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)))
@@ -85,41 +77,6 @@ theorem analyticAt_update_limUnder_divisorCanonicalProduct_div_pow
   obtain ⟨r, hr, hdiff⟩ := differentiableOn_update_limUnder_divisorCanonicalProduct_div_pow
     m f h_sum z₀
   exact hdiff.analyticOnNhd Metric.isOpen_ball z₀ (Metric.mem_ball_self hr)
-
-/-- A removable analytic quotient for
-`divisorCanonicalProduct m f univ z / (z - z₀)^k`, where `k` is the divisor fiber cardinality at
-`z₀`. -/
-theorem exists_analyticAt_divisorCanonicalProduct_quotient
-    (m : ℕ) (f : ℂ → ℂ)
-    (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)))
-    (z₀ : ℂ) :
-    ∃ q : ℂ → ℂ,
-      AnalyticAt ℂ q z₀ ∧
-        q z₀ =
-          limUnder (𝓝[≠] z₀) (fun z : ℂ =>
-            (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-              (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card) ∧
-        ∀ z : ℂ, z ≠ z₀ →
-          q z =
-            (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-              (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card := by
-  let q : ℂ → ℂ :=
-    Function.update
-      (fun z : ℂ =>
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-          (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card)
-      z₀
-      (limUnder (𝓝[≠] z₀) fun z : ℂ =>
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) /
-          (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card)
-  refine ⟨q, ?_, ?_, ?_⟩
-  · simpa [q] using
-      analyticAt_update_limUnder_divisorCanonicalProduct_div_pow
-        (m := m) (f := f) (h_sum := h_sum) (z₀ := z₀)
-  · simp [q]
-  · intro z hz
-    simp [q, Function.update_of_ne hz]
 
 /-!
 ## Exact multiplicity of the divisor canonical product

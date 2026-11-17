@@ -280,29 +280,6 @@ theorem divisorComplementCanonicalProduct_ne_zero_at
   simpa only [a, ← add_sub_assoc, add_sub_cancel_left, divisorComplementCanonicalProduct]
     using hprod
 
-theorem exists_ball_divisorComplementCanonicalProduct_ne_zero
-    (m : ℕ) (f : ℂ → ℂ) (z₀ : ℂ)
-    (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) :
-    ∃ r > 0, ∀ z ∈ Metric.ball z₀ r, divisorComplementCanonicalProduct m f z₀ z ≠ 0 := by
-  have hdiff :
-      DifferentiableOn ℂ (divisorComplementCanonicalProduct m f z₀) (Set.univ : Set ℂ) :=
-    differentiableOn_divisorComplementCanonicalProduct_univ (m := m) (f := f) (z₀ := z₀) h_sum
-  have hdiffAt : DifferentiableAt ℂ (divisorComplementCanonicalProduct m f z₀) z₀ := by
-    exact (hdiff z₀ (by simp)).differentiableAt (by simp)
-  have hcont : ContinuousAt (divisorComplementCanonicalProduct m f z₀) z₀ :=
-    hdiffAt.continuousAt
-  have h0 : divisorComplementCanonicalProduct m f z₀ z₀ ≠ 0 :=
-    divisorComplementCanonicalProduct_ne_zero_at (m := m) (f := f) (z₀ := z₀) h_sum
-  have hopen : IsOpen (({0} : Set ℂ)ᶜ) := isClosed_singleton.isOpen_compl
-  have hmem : divisorComplementCanonicalProduct m f z₀ z₀ ∈ (({0} : Set ℂ)ᶜ) := by
-    simp [h0]
-  rcases (Metric.mem_nhds_iff.1 (hcont (hopen.mem_nhds hmem))) with ⟨r, hrpos, hr⟩
-  refine ⟨r, hrpos, ?_⟩
-  intro z hz
-  have : divisorComplementCanonicalProduct m f z₀ z ∈ ({0} : Set ℂ)ᶜ := hr hz
-  simpa using this
-
 /-!
 ## Eventually: partial products factor at `z₀` with the fiber multiplicity
 
@@ -357,22 +334,5 @@ theorem eventually_eq_punctured_quotient_of_factorization
     rw [hz]
     simpa [smul_eq_mul] using (mul_div_cancel_left₀ (g z) hz0)
   simpa [divisorPartialProduct] using this
-
-theorem eventually_exists_ball_eq_punctured_quotient_of_factorization
-    (m : ℕ) (f : ℂ → ℂ) (z₀ : ℂ) :
-    ∀ᶠ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) in (Filter.atTop : Filter _),
-      ∃ ε > 0, ∃ g : ℂ → ℂ, AnalyticAt ℂ g z₀ ∧
-        ∀ z : ℂ, z ∈ Metric.ball z₀ ε → z ≠ z₀ → (divisorPartialProduct m f s z) /
-              (z - z₀) ^ (divisorZeroIndex₀_fiberFinset (f := f) z₀).card
-            = g z := by
-  refine (eventually_eq_punctured_quotient_of_factorization (m := m) (f := f) z₀).mono ?_
-  intro s hs
-  rcases hs with ⟨g, hg, hEq⟩
-  rcases (Metric.nhdsWithin_basis_ball (x := z₀) (s := {z : ℂ | z ≠ z₀})).mem_iff.1 hEq with
-    ⟨ε, hε, hball⟩
-  refine ⟨ε, hε, g, hg, ?_⟩
-  intro z hz hz0
-  have hz' : z ∈ Metric.ball z₀ ε ∩ {z : ℂ | z ≠ z₀} := ⟨hz, hz0⟩
-  exact hball hz'
 
 end Complex.Hadamard

@@ -58,10 +58,6 @@ noncomputable def centeredHadamardDenom (m : ℕ) (c : ℂ) (f : ℂ → ℂ) (z
   (z - c) ^ (analyticOrderNatAt f c) *
     divisorCanonicalProduct m (fun w : ℂ => f (w + c)) (Set.univ : Set ℂ) (z - c)
 
-/-- The Hadamard quotient construction, centered at `c`. -/
-noncomputable def centeredHadamardQuotient (m : ℕ) (c : ℂ) (f : ℂ → ℂ) (z : ℂ) : ℂ :=
-  f z / centeredHadamardDenom m c f z
-
 @[simp]
 theorem centeredHadamardDenom_center_eq_one {m : ℕ} {c : ℂ} {f : ℂ → ℂ}
     (h : analyticOrderNatAt f c = 0) :
@@ -78,12 +74,8 @@ theorem centeredHadamardDenom_center_eq_zero {m : ℕ} {c : ℂ} {f : ℂ → �
 theorem differentiable_divisorCanonicalProduct_univ (m : ℕ) (f : ℂ → ℂ)
     (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) :
-    Differentiable ℂ (divisorCanonicalProduct m f (Set.univ : Set ℂ)) := by
-  intro z
-  have hdiffOn :
-      DifferentiableOn ℂ (divisorCanonicalProduct m f (Set.univ : Set ℂ)) (Set.univ : Set ℂ) :=
-    differentiableOn_divisorCanonicalProduct_univ (m := m) (f := f) h_sum
-  exact (hdiffOn z (by simp)).differentiableAt (by simp)
+    Differentiable ℂ (divisorCanonicalProduct m f (Set.univ : Set ℂ)) :=
+  differentiableOn_univ.mp (differentiableOn_divisorCanonicalProduct_univ m f h_sum)
 
 theorem analyticAt_divisorCanonicalProduct_univ (m : ℕ) (f : ℂ → ℂ)
     (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
@@ -217,51 +209,5 @@ theorem exists_entire_nonzero_hadamardQuotient
   refine ⟨fun z ↦ exp (L z), (differentiableOn_univ.mp hL).cexp,
     fun z ↦ exp_ne_zero _, fun z ↦ ?_⟩
   simpa only [hadamardDenom, mul_assoc, mul_comm, mul_left_comm] using heq (Set.mem_univ z)
-
-
-/-!
-## Boundedness on compact annuli (away from `z₀`)
-
-On any compact set separated from `z₀`, the quotient by `(z - z₀)^k` is bounded.
--/
-
-theorem bddAbove_norm_divisorCanonicalProduct_div_pow_closedBall_diff_ball
-    (m : ℕ) (f : ℂ → ℂ)
-    (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)))
-    (z₀ : ℂ) (k : ℕ) {r₁ r₂ : ℝ} (hr₁ : 0 < r₁) :
-    BddAbove
-      (norm ∘
-        (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k) ''
-          (Metric.closedBall z₀ r₂ \ Metric.ball z₀ r₁)) := by
-  set K : Set ℂ := Metric.closedBall z₀ r₂ \ Metric.ball z₀ r₁
-  have hK : IsCompact K := by
-    have hclosed : IsClosed (Metric.ball z₀ r₁)ᶜ := Metric.isOpen_ball.isClosed_compl
-    simpa [K, Set.sdiff_eq] using (isCompact_closedBall z₀ r₂).inter_right hclosed
-  have hKz : ∀ z ∈ K, z ≠ z₀ := by
-    intro z hz hzz
-    have hzBall : z ∈ Metric.ball z₀ r₁ := by
-      simpa [hzz] using (Metric.mem_ball_self hr₁ : z₀ ∈ Metric.ball z₀ r₁)
-    have hz' : z ∈ Metric.closedBall z₀ r₂ ∧ z ∉ Metric.ball z₀ r₁ := by
-      simpa [K, Set.sdiff_eq] using hz
-    exact hz'.2 hzBall
-  have hdiff : DifferentiableOn ℂ
-        (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k)
-        ((Set.univ : Set ℂ) \ {z₀}) :=
-    differentiableOn_divisorCanonicalProduct_div_pow_sub (m := m) (f := f) h_sum (z₀ := z₀) (k := k)
-  have hcont : ContinuousOn
-      (fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k) K := by
-    refine (hdiff.mono ?_).continuousOn
-    intro z hz
-    refine ⟨by simp, ?_⟩
-    exact hKz z hz
-  have hKimg :
-      IsCompact
-        ((fun z : ℂ => (divisorCanonicalProduct m f (Set.univ : Set ℂ) z) / (z - z₀) ^ k) '' K) :=
-    hK.image_of_continuousOn hcont
-  rcases (isBounded_iff_forall_norm_le.1 hKimg.isBounded) with ⟨C, hC⟩
-  refine ⟨C, ?_⟩
-  rintro _ ⟨w, hwK, rfl⟩
-  exact hC _ ⟨w, hwK, rfl⟩
 
 end Complex.Hadamard

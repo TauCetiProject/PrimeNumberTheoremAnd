@@ -37,13 +37,6 @@ lemma mem_toClosedBall_support_of_mem_support_of_norm_le_abs
   rw [toClosedBall_eval_within D (by simpa only [mem_closedBall, dist_zero_right] using hzR)]
   rwa [Function.mem_support] at hzD
 
-/-- Support points of `toClosedBall r D` lie in the support of `D`. -/
-lemma mem_support_of_mem_toClosedBall_support {D : locallyFinsupp E ℤ} {r : ℝ} {z : E}
-    (hz : z ∈ (toClosedBall r D).support) : z ∈ D.support := by
-  rw [Function.mem_support] at hz ⊢
-  rw [toClosedBall_eval_within D ((toClosedBall r D).supportWithinDomain hz)] at hz
-  exact hz
-
 /-- Total multiplicity of nonzero support points inside the closed ball of radius `|R|`. -/
 noncomputable def massClosedBall₀ {E : Type*} [NormedAddCommGroup E] [ProperSpace E]
     (D : locallyFinsupp E ℤ) (R : ℝ) : ℝ := by

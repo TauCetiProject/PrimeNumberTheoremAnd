@@ -133,16 +133,6 @@ lemma not_mem_divisorZeroIndex₀_fiberFinset_iff_val_ne
     p ∉ divisorZeroIndex₀_fiberFinset (f := f) z₀ ↔ divisorZeroIndex₀_val p ≠ z₀ := by
   simp [mem_divisorZeroIndex₀_fiberFinset]
 
-lemma val_not_mem_ball_of_not_mem_fiberFinset
-    {f : ℂ → ℂ} {z₀ : ℂ} {ε : ℝ} (hε : 0 < ε) (hball :
-      Metric.ball z₀ ε ∩ (MeromorphicOn.divisor f (Set.univ : Set ℂ)).support = {z₀})
-    (p : divisorZeroIndex₀ f (Set.univ : Set ℂ))
-    (hp : p ∉ divisorZeroIndex₀_fiberFinset (f := f) z₀) :
-    divisorZeroIndex₀_val p ∉ Metric.ball z₀ ε := by
-  intro hpball
-  exact hp ((mem_divisorZeroIndex₀_fiberFinset_iff_val_mem_ball (f := f)
-    (z₀ := z₀) (ε := ε) hε hball p).2 hpball)
-
 lemma weierstrassFactor_div_ne_zero_on_ball_of_not_mem_fiberFinset
     (m : ℕ) {f : ℂ → ℂ} {z₀ : ℂ} {ε : ℝ}
     (hball :

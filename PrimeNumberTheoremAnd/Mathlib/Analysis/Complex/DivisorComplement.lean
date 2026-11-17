@@ -87,10 +87,6 @@ noncomputable def divisorPartialProduct (m : ℕ) (f : ℂ → ℂ)
   ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p)
 
 @[simp]
-lemma divisorPartialProduct_def (m : ℕ) (f : ℂ → ℂ)
-    (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) (z : ℂ) :
-    divisorPartialProduct m f s z = ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p) :=
-  rfl
 
 theorem differentiable_weierstrassFactor_divisorZeroIndex₀ (m : ℕ) {f : ℂ → ℂ}
     (p : divisorZeroIndex₀ f (Set.univ : Set ℂ)) :
@@ -390,38 +386,5 @@ lemma divisorPartialProduct_eq_fiber_mul_complement_of_subset
   rw [Finset.filter_mem_eq_of_subset hs] at h
   simpa only [divisorPartialProduct, divisorComplementPartialProduct, divisorComplementFactor,
     Finset.prod_filter, ite_not] using h.symm
-
-lemma divisorComplementPartialProduct_ne_zero_on_ball
-    (m : ℕ) {f : ℂ → ℂ} {z₀ : ℂ} {ε : ℝ}
-    (hball :
-      Metric.ball z₀ ε ∩ (MeromorphicOn.divisor f (Set.univ : Set ℂ)).support = {z₀})
-    (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) :
-    ∀ z ∈ Metric.ball z₀ ε,
-      divisorComplementPartialProduct m f z₀ s z ≠ 0 := by
-  intro z hz
-  have hfac :
-      ∀ p ∈ s, divisorComplementFactor m f z₀ p z ≠ 0 := by
-    intro p hp
-    by_cases hpF : p ∈ divisorZeroIndex₀_fiberFinset (f := f) z₀
-    · simp only [divisorComplementFactor_eq_one_of_mem m f z₀ p z hpF]
-      exact one_ne_zero
-    · have hne : weierstrassFactor m (z / divisorZeroIndex₀_val p) ≠ 0 :=
-        weierstrassFactor_div_ne_zero_on_ball_of_not_mem_fiberFinset
-          (m := m) (f := f) (z₀ := z₀) (ε := ε) hball p hpF z hz
-      rw [divisorComplementFactor_eq_weierstrassFactor_of_not_mem m f z₀ p z hpF]
-      exact hne
-  simpa [divisorComplementPartialProduct, Finset.prod_ne_zero_iff] using hfac
-
-theorem eventually_eq_fiber_mul_divisorComplementPartialProduct
-    (m : ℕ) (f : ℂ → ℂ) (z₀ : ℂ) :
-    ∀ᶠ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) in (Filter.atTop : Filter _),
-      ∀ z : ℂ, divisorPartialProduct m f s z = divisorPartialProduct m f
-        (divisorZeroIndex₀_fiberFinset (f := f) z₀) z *
-          divisorComplementPartialProduct m f z₀ s z := by
-  refine (Filter.eventually_ge_atTop (divisorZeroIndex₀_fiberFinset f z₀)).mono ?_
-  intro s hs z
-  simpa using
-    (divisorPartialProduct_eq_fiber_mul_complement_of_subset (m := m) (f := f) (z₀ := z₀)
-      (z := z) (s := s) hs)
 
 end Complex.Hadamard

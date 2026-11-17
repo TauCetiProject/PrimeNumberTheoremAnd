@@ -70,25 +70,8 @@ lemma divisorZeroIndex₀_norm_le_finite {f : ℂ → ℂ} {U : Set ℂ} (B : �
 lemma norm_div_le_half_of_norm_le_of_two_mul_lt {z a : ℂ} {R : ℝ}
     (hR : 0 < R) (hz : ‖z‖ ≤ R) (ha : (2 * R : ℝ) < ‖a‖) :
     ‖z / a‖ ≤ (1 / 2 : ℝ) := by
-  have h2R_pos : 0 < (2 * R : ℝ) := by nlinarith [hR]
-  have hinv : ‖a‖⁻¹ < (2 * R)⁻¹ := by
-    simpa [one_div] using one_div_lt_one_div_of_lt h2R_pos ha
-  have hmul_le : ‖z‖ * ‖a‖⁻¹ ≤ R * ‖a‖⁻¹ :=
-    mul_le_mul_of_nonneg_right hz (inv_nonneg.2 (norm_nonneg a))
-  have hmul_lt : R * ‖a‖⁻¹ < R * (2 * R)⁻¹ :=
-    mul_lt_mul_of_pos_left hinv hR
-  have hRhalf : R * (2 * R)⁻¹ = (1 / 2 : ℝ) := by
-    have hRne : (R : ℝ) ≠ 0 := hR.ne'
-    rw [show R * (2 * R)⁻¹ = R / (2 * R) by simp [div_eq_mul_inv]]
-    field_simp [hRne]
-  have hnorm : ‖z / a‖ = ‖z‖ * ‖a‖⁻¹ := by
-    simp [div_eq_mul_inv]
-  exact le_of_lt <| by
-    calc
-      ‖z / a‖ = ‖z‖ * ‖a‖⁻¹ := hnorm
-      _ ≤ R * ‖a‖⁻¹ := hmul_le
-      _ < R * (2 * R)⁻¹ := hmul_lt
-      _ = (1 / 2 : ℝ) := hRhalf
+  rw [norm_div, div_le_iff₀ (by linarith [norm_nonneg z])]
+  linarith
 
 /-- The genus-one logarithmic-derivative zero terms are summable away from the zero set whenever
 the genus-one divisor product is summable. -/
@@ -202,39 +185,11 @@ theorem differentiableOn_divisorCanonicalProduct_univ
     (h_sum : Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) :
     DifferentiableOn ℂ (divisorCanonicalProduct m f (Set.univ : Set ℂ)) (Set.univ : Set ℂ) := by
-  have hloc :
-      TendstoLocallyUniformlyOn
-        (fun (s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ))) (z : ℂ) =>
-          ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p))
-        (divisorCanonicalProduct m f (Set.univ : Set ℂ))
-        Filter.atTop (Set.univ : Set ℂ) := by
-    simpa [HasProdLocallyUniformlyOn] using
-      (hasProdLocallyUniformlyOn_divisorCanonicalProduct_univ (m := m) (f := f) h_sum)
-  have hF :
-      ∀ᶠ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)) in Filter.atTop,
-        DifferentiableOn ℂ
-          (fun z : ℂ => ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p))
-          (Set.univ : Set ℂ) := by
-    refine Filter.Eventually.of_forall ?_
-    intro s
-    have hdiff :
-        Differentiable ℂ
-          (fun z : ℂ => ∏ p ∈ s, weierstrassFactor m (z / divisorZeroIndex₀_val p)) := by
-      let F : divisorZeroIndex₀ f (Set.univ : Set ℂ) → ℂ → ℂ :=
-        fun p z => weierstrassFactor m (z / divisorZeroIndex₀_val p)
-      have hF' : ∀ p ∈ s, Differentiable ℂ (F p) := by
-        intro p hp
-        have hdiv : Differentiable ℂ (fun z : ℂ => z / divisorZeroIndex₀_val p) := by
-          have : Differentiable ℂ (fun z : ℂ => z * ((divisorZeroIndex₀_val p)⁻¹)) :=
-            (differentiable_id : Differentiable ℂ (fun z : ℂ => z)).mul_const
-              ((divisorZeroIndex₀_val p)⁻¹)
-          simp [div_eq_mul_inv]
-        exact (differentiable_weierstrassFactor m).comp hdiv
-      simpa [F] using (Differentiable.fun_finsetProd (𝕜 := ℂ) (f := F) (u := s) hF')
-    simpa using hdiff.differentiableOn
-  have : (Filter.atTop : Filter (Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)))).NeBot :=
-    Filter.atTop_neBot
-  exact hloc.differentiableOn hF isOpen_univ
+  refine TendstoLocallyUniformlyOn.differentiableOn
+    (hasProdLocallyUniformlyOn_divisorCanonicalProduct_univ m f h_sum)
+    (Eventually.of_forall fun s ↦ ?_) isOpen_univ
+  exact (Differentiable.fun_finsetProd fun p _ ↦ (differentiable_weierstrassFactor m).comp
+    (differentiable_id.div_const _)).differentiableOn
 
 /-- Pointwise differentiability of the divisor-indexed canonical product under the standard
 summability hypothesis. -/

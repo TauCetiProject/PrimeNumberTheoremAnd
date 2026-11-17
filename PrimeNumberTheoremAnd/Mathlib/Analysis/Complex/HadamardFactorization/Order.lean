@@ -134,19 +134,6 @@ theorem orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
   simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
     (hbound' z).trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
 
-/-- A single exponential bound of order `ρ` implies the `ε`-family bound defining
-`EntireOfOrderAtMost`. -/
-theorem of_norm_le_exp {ρ : ℝ} {f : ℂ → ℂ} (hf : Differentiable ℂ f)
-    (hbound : ∃ C > 0, ∀ z : ℂ, ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ ρ)) :
-    EntireOfOrderAtMost ρ f := by
-  refine ⟨hf, ?_⟩
-  rintro ε hε
-  rcases hbound with ⟨C, hC, hCbound⟩
-  refine ⟨C, hC, ?_⟩
-  exact Real.norm_le_exp_mul_rpow_of_exponent_le (f := f)
-    (r := fun z : ℂ => 1 + ‖z‖) hC.le
-    (fun z => by linarith [norm_nonneg z]) (by linarith : ρ ≤ ρ + ε) hCbound
-
 /-- A finite-order bound gives a logarithmic growth bound at any larger exponent. -/
 theorem exists_log_growth {ρ τ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)
     (hτ : ρ < τ) (hτ_nonneg : 0 ≤ τ) :
@@ -166,12 +153,6 @@ theorem comp_add_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ 
   apply of_orderLE (f := fun z : ℂ ↦ f (z + c)) hρ
   · exact h.differentiable.comp (differentiable_id.add (differentiable_const c))
   · simpa only [one_mul] using (h.orderLE hρ).comp_mul_add 1 c
-
-/-- Finite order is invariant under subtracting a constant from the input. -/
-theorem comp_sub_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)
-    (hρ : 0 ≤ ρ) (c : ℂ) :
-    EntireOfOrderAtMost ρ (fun z : ℂ => f (z - c)) := by
-  simpa [sub_eq_add_neg] using h.comp_add_const hρ (-c)
 
 /-- A finite-order entire function has the summability needed for the genus
 `⌊ρ⌋` divisor canonical product. -/
