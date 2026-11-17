@@ -11,6 +11,8 @@ public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 public import Mathlib.Analysis.Calculus.Deriv.MeanValue
 public import Mathlib.Analysis.SpecialFunctions.Integrability.Basic
 import Mathlib.Analysis.SpecialFunctions.Integrability.PosLog
+import TauCeti.Analysis.SpecialFunctions.Integrals.PosLog
+import TauCeti.Analysis.SpecialFunctions.Log.Bounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 
 
@@ -18,7 +20,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
 # Cartan bounds for Hadamard factorization
 
 Probabilistic-radius and averaging lemmas for the minimum-modulus step in the intrinsic Hadamard
-pipeline. The basic pointwise input is
+pipeline. The basic pointwise input is Tau Ceti's `log⁺ x ≤ √(2 |x|)`, giving
 
 `log⁺ (1 / |1 - t|) ≤ √(2 / |1 - t|)`,
 
@@ -39,58 +41,6 @@ namespace CartanBound
 
 open Real MeasureTheory intervalIntegral
 open scoped Topology ENNReal
-
-/-!
-### Pointwise bound for the logarithmic singularity
-
-Used as an integrable majorant when averaging `log⁺ (1 / |1 - t|)` on dyadic intervals.
--/
-
-private lemma neg_log_le_sqrt_two_div {x : ℝ} (hx : 0 < x) (hxle : x ≤ 1) :
-    -Real.log x ≤ Real.sqrt (2 / x) := by
-  have hx0 : 0 ≤ x := le_of_lt hx
-  have ht : 0 ≤ -Real.log x := by
-    have : Real.log x ≤ 0 := Real.log_nonpos hx0 hxle
-    linarith
-  have hmain : (-Real.log x) ^ 2 / 2 ≤ Real.exp (-Real.log x) := by
-    simpa using Real.pow_div_factorial_le_exp (-Real.log x) ht 2
-  have hexp : Real.exp (-Real.log x) = x⁻¹ := by simp [Real.exp_neg, Real.exp_log hx]
-  have hsq2 : (-Real.log x) ^ 2 ≤ 2 * Real.exp (-Real.log x) := by nlinarith [hmain]
-  have hsq' : (-Real.log x) ^ 2 ≤ 2 / x := by simpa [hexp, div_eq_mul_inv, mul_assoc] using hsq2
-  have hy : 0 ≤ 2 / x := div_nonneg (by norm_num) (le_of_lt hx)
-  exact (Real.le_sqrt ht hy).2 hsq'
-
-lemma posLog_log_one_div_abs_one_sub_le_sqrt {t : ℝ} :
-    Real.posLog (1 / |1 - t|) ≤ Real.sqrt (2 / |1 - t|) := by
-  by_cases ht : |1 - t| ≤ 1
-  · by_cases h0 : |1 - t| = 0
-    · have : t = 1 := by
-        have : 1 - t = 0 := by simpa [abs_eq_zero] using h0
-        linarith
-      subst this
-      simp
-    · have hpos : 0 < |1 - t| := lt_of_le_of_ne (abs_nonneg _) (Ne.symm h0)
-      have hle : -Real.log |1 - t| ≤ Real.sqrt (2 / |1 - t|) :=
-        neg_log_le_sqrt_two_div (x := |1 - t|) hpos ht
-      have hlog : Real.log (1 / |1 - t|) = -Real.log |1 - t| := by simp [Real.log_inv]
-      have hnonneg : 0 ≤ Real.log (1 / |1 - t|) := by
-        exact Real.log_nonneg ((one_le_div hpos).2 ht)
-      have hmax : Real.posLog (1 / |1 - t|) = Real.log (1 / |1 - t|) :=
-        max_eq_right hnonneg
-      calc
-        Real.posLog (1 / |1 - t|) = Real.log (1 / |1 - t|) := hmax
-        _ = -Real.log |1 - t| := hlog
-        _ ≤ Real.sqrt (2 / |1 - t|) := hle
-  · have hlt : 1 < |1 - t| := lt_of_not_ge ht
-    have hle0 : Real.log (1 / |1 - t|) ≤ 0 := by
-      have hpos : 0 < |1 - t| := lt_trans (by norm_num) hlt
-      have : (1 / |1 - t| : ℝ) ≤ 1 := (div_le_one hpos).2 (le_of_lt hlt)
-      exact le_trans (Real.log_le_log (by positivity) this) (by simp)
-    have hmax : Real.posLog (1 / |1 - t|) = 0 := max_eq_left hle0
-    have hrhs : 0 ≤ Real.sqrt (2 / |1 - t|) := by
-      exact Real.sqrt_nonneg _
-    rw [hmax]
-    exact hrhs
 
 /-! ### A radial majorant for the logarithmic singularity on a circle -/
 
@@ -160,8 +110,7 @@ lemma φ_nonneg (t : ℝ) : 0 ≤ φ t := by
   simpa [φ] using (Real.posLog_nonneg (x := (1 / |1 - t|)))
 
 lemma φ_le_sqrt (t : ℝ) : φ t ≤ Real.sqrt (2 / |1 - t|) := by
-  simpa [φ, Real.posLog] using
-    posLog_log_one_div_abs_one_sub_le_sqrt (t := t)
+  simpa [φ, abs_div, div_eq_mul_inv] using Real.posLog_le_sqrt_two_mul_abs (1 / |1 - t|)
 
 lemma ae_restrict_norm_phi_le_of_forall_mem {A B : ℝ} (hAB : A ≤ B) {g : ℝ → ℝ}
     (hg : ∀ t, 0 ≤ g t) (h : ∀ t ∈ Set.Icc A B, φ t ≤ g t) :
@@ -296,14 +245,6 @@ lemma phi_eq_zero_of_two_le {t : ℝ} (ht : (2 : ℝ) ≤ t) : φ t = 0 := by
     simpa [abs_sub_comm] using this
   exact phi_eq_zero_of_one_le_abs_one_sub hden
 
-private lemma intervalIntegrable_phi_comp_div (a A B : ℝ) :
-    IntervalIntegrable (fun r : ℝ ↦ φ (r / a)) volume A B := by
-  have hm : MeromorphicOn (fun r : ℝ ↦ 1 / (1 - r / a)) (Set.uIcc A B) := by
-    intro t _
-    fun_prop
-  simpa only [φ, Real.norm_eq_abs, abs_div, abs_one, one_div, abs_inv] using
-    hm.intervalIntegrable_posLog_norm
-
 lemma intervalIntegrable_sqrt_two_div_abs_one_sub_dyadic_middle {A : ℝ}
     (hA_lower : (1 / 4 : ℝ) ≤ A) (hA_upper : A ≤ (2 : ℝ)) :
     IntervalIntegrable (fun t : ℝ => Real.sqrt (2 / |1 - t|)) volume A (2 * A) := by
@@ -330,7 +271,8 @@ lemma integral_phi_le_Cφ_mul_small {A : ℝ} (hA0 : 0 ≤ A) (hA : A ≤ (1 / 4
     (∫ (t : ℝ) in A..(2 * A), φ t ∂volume) ≤ Cφ * A := by
   have hA_le : A ≤ 2 * A := by nlinarith
   have hφ_int : IntervalIntegrable φ volume A (2 * A) := by
-    simpa only [div_one] using intervalIntegrable_phi_comp_div 1 A (2 * A)
+    exact (TauCeti.intervalIntegrable_posLog_one_div_abs_one_sub_div 1 A (2 * A)).congr
+      fun t _ ↦ by simp [φ]
   have hconst : IntervalIntegrable (fun _ : ℝ => (Real.log 2 : ℝ)) volume A (2 * A) :=
     intervalIntegrable_const
   have hle_int :
@@ -390,7 +332,8 @@ lemma integral_phi_le_Cφ_mul_middle {A : ℝ}
   let s (t : ℝ) : ℝ := Real.sqrt (2 / |1 - t|)
   have hA_le : A ≤ 2 * A := by nlinarith [hA_lower]
   have hφ_int : IntervalIntegrable φ volume A (2 * A) := by
-    simpa only [div_one] using intervalIntegrable_phi_comp_div 1 A (2 * A)
+    exact (TauCeti.intervalIntegrable_posLog_one_div_abs_one_sub_div 1 A (2 * A)).congr
+      fun t _ ↦ by simp [φ]
   have hsqrt : IntervalIntegrable s volume A (2 * A) := by
     simpa [s] using
       intervalIntegrable_sqrt_two_div_abs_one_sub_dyadic_middle hA_lower hA_upper
@@ -494,7 +437,7 @@ lemma intervalIntegrable_sum_mul_phi_div
     (s := s) (f := fun i : ι => fun r : ℝ => w i * φ (r / a i)) ?_
   intro i _
   have hφi : IntervalIntegrable (fun r : ℝ => φ (r / a i)) volume R (2 * R) :=
-    intervalIntegrable_phi_comp_div (a i) R (2 * R)
+    TauCeti.intervalIntegrable_posLog_one_div_abs_one_sub_div (a i) R (2 * R)
   simpa [mul_assoc] using hφi.const_mul (w i)
 
 lemma integral_sum_mul_phi_div_le_Cφ_mul_sum
@@ -506,7 +449,7 @@ lemma integral_sum_mul_phi_div_le_Cφ_mul_sum
       volume R (2 * R) := by
     intro i _
     have hφi : IntervalIntegrable (fun r : ℝ => φ (r / a i)) volume R (2 * R) :=
-      intervalIntegrable_phi_comp_div (a i) R (2 * R)
+      TauCeti.intervalIntegrable_posLog_one_div_abs_one_sub_div (a i) R (2 * R)
     simpa [mul_assoc] using hφi.const_mul (w i)
   have hsum_int :
       (∫ r in R..(2 * R), (∑ i ∈ s, fun r : ℝ => w i * φ (r / a i)) r ∂volume)
