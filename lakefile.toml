@@ -27,12 +27,12 @@ git = "https://github.com/PatrickMassot/checkdecls.git"
 [[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
-rev = "e8ba86fa9744dd8d90f48c1752bc735f61a4ca81"
+rev = "048fffa1dbcd080d3058fab41d8c188168595c22"
 
 [[require]]
 name = "TauCeti"
 git = "https://github.com/TauCetiProject/TauCeti.git"
-rev = "086028a6d8d186715b52fac7f3e7b23175ed2dc9"
+rev = "7b4d5f7042c90b82d76446b6c62c94bbda739af2"
 
 [[lean_lib]]
 name = "PrimeNumberTheoremAnd"

@@ -854,7 +854,7 @@ private lemma VIntegral_congr_codiscreteWithin {f g : ℂ → ℂ} {R : Set ℂ}
 
 -- At the boundary, `f` and its normal-form representative differ only at a discrete set
 -- of poles, so their boundary integrals coincide.
-private lemma rectangleIntegral'_toMeromorphicNFOn_eq {f : ℂ → ℂ} {z w : ℂ}
+lemma rectangleIntegral'_toMeromorphicNFOn_eq {f : ℂ → ℂ} {z w : ℂ}
     (f_mero : MeromorphicOn f (Rectangle z w)) :
     RectangleIntegral' f z w = RectangleIntegral' (toMeromorphicNFOn f (Rectangle z w)) z w := by
   classical

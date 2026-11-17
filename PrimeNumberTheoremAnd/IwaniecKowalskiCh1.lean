@@ -11,6 +11,7 @@ public import Mathlib.NumberTheory.LSeries.Dirichlet
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.NumberTheory.ArithmeticFunction.Liouville
 public import Mathlib.Data.Finset.NatDivisors
+public import TauCeti.NumberTheory.ArithmeticFunction.Additive
 public import TauCeti.NumberTheory.LSeries.EulerProduct
 import TauCeti.NumberTheory.ArithmeticFunction.Zeta
 
@@ -138,15 +139,11 @@ scoped notation "τ" => tau
 
 variable {R : Type*}
 
-/--
-An arithmetic function `IsAdditive` if it satisfies the property that for any two coprime natural numbers `m` and `n`, the function evaluated at their product equals the sum of the function evaluated at each number individually.
--/
-@[blueprint
+attribute [blueprint
   "IsAdditive"
   (title := "IsAdditive")
   (statement := /-- Additive arithmetic function: satisfies $f(mn) = f(m) + f(n)$ for coprime $m$, $n$. -/)]
-def IsAdditive [AddZeroClass R] (f : ArithmeticFunction R) : Prop :=
-  ∀ {m n : ℕ}, m ≠ 0 → n ≠ 0 → Coprime m n → f (m * n) = f m + f n
+  IsAdditiveOnCoprime
 
 @[blueprint
   "IsCompletelyAdditive"
@@ -160,8 +157,8 @@ def IsCompletelyAdditive [AddZeroClass R] (f : ArithmeticFunction R) : Prop :=
   (title := "IsCompletelyAdditive.isAdditive")
   (statement := /-- A completely additive function is additive. -/)]
 lemma IsCompletelyAdditive.isAdditive [AddZeroClass R] {f : ArithmeticFunction R}
-    (hf : IsCompletelyAdditive f) : IsAdditive f :=
-  fun hm hn _ ↦ hf hm hn
+    (hf : IsCompletelyAdditive f) : IsAdditiveOnCoprime f :=
+  ⟨fun hm hn _ ↦ hf hm hn⟩
 
 -- **Think about more API for additive/completely additive functions, e.g. `f (p^k) = k * f p` for prime p, etc.**
 
@@ -1147,17 +1144,10 @@ Dirichlet-series terms preserve multiplicativity on coprime inputs, using
   -/)]
 lemma powOfAdditive_isMultiplicative
     {R : Type u_1} [CommMonoidWithZero R] (k : R)
-    {f : ArithmeticFunction ℕ} (hf : f.IsAdditive) :
-    (toArithmeticFunction (fun n ↦ k ^ (f n))).IsMultiplicative := by
-  simp only [IsAdditive, ne_eq] at hf
-  have := hf one_ne_zero one_ne_zero (coprime_one_right 1)
-  rw [mul_one, left_eq_add] at this
-  simp only [IsMultiplicative, toArithmeticFunction, coe_mk, one_ne_zero, ↓reduceIte, this,
-    pow_zero, mul_eq_zero, mul_ite, mul_zero, ite_mul, zero_mul, true_and]
-  intro m n mCn
-  by_cases m_eq_zero : m = 0 <;> simp only [m_eq_zero, true_or, ↓reduceIte, ite_self]
-  by_cases n_eq_zero : n = 0 <;> simp only [n_eq_zero, or_true, ↓reduceIte]
-  simp only [or_self, ↓reduceIte, hf m_eq_zero n_eq_zero mCn, pow_add]
+    {f : ArithmeticFunction ℕ} (hf : f.IsAdditiveOnCoprime) :
+    (toArithmeticFunction (fun n ↦ k ^ (f n))).IsMultiplicative :=
+  hf.isAdditive.isMultiplicative_of_eq_monoidHom (powersHom R k) fun n hn ↦ by
+    simp [toArithmeticFunction, hn]
 
 @[blueprint
   "two_pow_omega_isMultiplicative"
@@ -1170,7 +1160,7 @@ lemma powOfAdditive_isMultiplicative
   -/)]
 lemma two_pow_omega_isMultiplicative :
     (toArithmeticFunction (fun n ↦ (2 : ℂ) ^ ω n)).IsMultiplicative := by
-  exact powOfAdditive_isMultiplicative 2 (fun hm hn h => ArithmeticFunction.cardDistinctFactors_mul h)
+  exact powOfAdditive_isMultiplicative 2 ⟨fun _ _ h ↦ cardDistinctFactors_mul h⟩
 
 @[blueprint
   "sumOnPrimePows"

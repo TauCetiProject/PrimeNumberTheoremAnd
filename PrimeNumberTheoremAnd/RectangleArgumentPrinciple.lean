@@ -5,6 +5,7 @@ public import Mathlib.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Contour.Residue.LogDeriv
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
+import TauCeti.Analysis.Contour.Argument.Rectangle.Divisor
 
 /-!
 # Rectangle argument-principle infrastructure
@@ -83,16 +84,6 @@ theorem logDeriv_poles_eq_divisor_support
     rw [hneg_one]
     exact WithTop.coe_lt_coe.2 (by norm_num : (-1 : ℤ) < 0)
 
-private theorem sumResiduesIn_eq_finset_of_finite {F : ℂ → ℂ} {S : Set ℂ}
-    (hS : S.Finite) :
-    sumResiduesIn F S = ∑ z ∈ hS.toFinset, residue F z := by
-  let Sfin : Finset ℂ := hS.toFinset
-  change sumResiduesIn F S = ∑ z ∈ Sfin, residue F z
-  rw [sumResiduesIn]
-  have hS_eq : S = (Sfin : Set ℂ) := hS.coe_toFinset.symm
-  rw [hS_eq, tsum_fintype, ← Finset.sum_coe_sort Sfin]
-  rfl
-
 lemma divisor_support_rectangle_finite (f : ℂ → ℂ) (z w : ℂ) :
     (MeromorphicOn.divisor f (Rectangle z w)).support.Finite := by
   let R : Set ℂ := Rectangle z w
@@ -115,56 +106,35 @@ theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
           ((MeromorphicOn.divisor f (Rectangle z w)) p : ℂ) := by
   classical
   let R : Set ℂ := Rectangle z w
-  let D := MeromorphicOn.divisor f R
-  have hsupport : D.support.Finite := divisor_support_rectangle_finite f z w
-  have hlog_simple : HasSimplePolesOn (logDeriv f) R :=
-    fun p hp ↦ TauCeti.Contour.neg_one_le_meromorphicOrderAt_logDeriv (hf p hp)
-  have hlog_poles_eq :
-      R ∩ {s | meromorphicOrderAt (logDeriv f) s < 0} = D.support := by
-    simpa [R, D] using
-      logDeriv_poles_eq_divisor_support (f := f) (R := R) hf hfinite_order
-  have hlog_no_boundary :
-      Disjoint (RectangleBorder z w) {s | meromorphicOrderAt (logDeriv f) s < 0} := by
-    rw [Set.disjoint_left]
-    intro s hs_border hs_log_pole
-    have hsR : s ∈ R := by
-      exact rectangleBorder_subset_rectangle z w hs_border
-    have hsD : s ∈ D.support := by
-      rw [← hlog_poles_eq]
-      exact ⟨hsR, hs_log_pole⟩
-    exact Set.disjoint_left.mp (by simpa [R, D] using hno_boundary) hs_border hsD
-  have hlog_poles_finite :
-      (Rectangle z w ∩ {s | meromorphicOrderAt (logDeriv f) s < 0}).Finite := by
-    simpa [R, D, hlog_poles_eq] using hsupport
-  have hrect :=
-    RectangleIntegral'_eq_sumResiduesIn zRe_le_wRe zIm_le_wIm hlog hlog_no_boundary
-      hlog_poles_finite hlog_simple
-  rw [hrect, hlog_poles_eq, sumResiduesIn_eq_finset_of_finite hsupport]
-  refine Finset.sum_congr rfl ?_
-  intro p hp
-  have hpD : p ∈ D.support := by
-    simpa [D] using (hsupport.mem_toFinset.mp hp)
-  have hpR : p ∈ R := D.supportWithinDomain hpD
-  have hpD_ne : D p ≠ 0 := by
-    simpa [Function.mem_support] using hpD
-  have horder_ne_zero_or_top :
-      meromorphicOrderAt f p ≠ 0 ∧ meromorphicOrderAt f p ≠ ⊤ := by
-    change (MeromorphicOn.divisor f R) p ≠ 0 at hpD_ne
-    rw [MeromorphicOn.divisor_apply hf hpR] at hpD_ne
-    constructor
-    · intro hzero
-      exact hpD_ne (by simp [hzero])
-    · intro htop
-      exact hpD_ne (by simp [htop])
-  obtain ⟨n, hn⟩ :=
-    WithTop.ne_top_iff_exists.mp horder_ne_zero_or_top.2
-  have hres :
-      residue (logDeriv f) p = (n : ℂ) :=
-    logDeriv_residue_eq_meromorphicOrderAt (hf p hpR) hn.symm
-  rw [hres]
-  change (n : ℂ) = ((MeromorphicOn.divisor f R) p : ℂ)
-  rw [MeromorphicOn.divisor_apply hf hpR, ← hn]
-  simp
+  have hRfr : frontier R ⊆ R := (isClosed_rectangle z w).frontier_subset
+  have hfr (x : ℂ) (hx : x ∈ frontier R) : meromorphicOrderAt f x = 0 := by
+    have hd : MeromorphicOn.divisor f R x = 0 := Function.notMem_support.mp
+      (disjoint_left.mp hno_boundary (by
+        simp only [R, frontier_rectangle, mem_union, mem_reProdIm, mem_insert_iff,
+          mem_singleton_iff] at hx
+        simp only [RectangleBorder, mem_union, mem_reProdIm, mem_singleton_iff]
+        tauto))
+    rw [hf.divisor_apply (hRfr hx), WithTop.untop₀_eq_zero] at hd
+    exact hd.resolve_right (hfinite_order x (hRfr hx))
+  -- Replace `logDeriv f` by its normal form, which is analytic on the frontier.
+  let g := toMeromorphicNFOn (logDeriv f) R
+  have hcont : ContinuousOn g (frontier R) := fun x hx ↦
+    ((meromorphicNFOn_toMeromorphicNFOn _ R (hRfr hx)).meromorphicOrderAt_nonneg_iff_analyticAt.mp
+      (by rw [meromorphicOrderAt_toMeromorphicNFOn hlog (hRfr hx)]
+          exact meromorphicOrderAt_logDeriv_nonneg (hf x (hRfr hx)) (hfr x hx))
+      ).continuousAt.continuousWithinAt
+  have h := TauCeti.Contour.argumentPrinciple_rectBoundary_divisor zRe_le_wRe zIm_le_wIm
+    subset_rfl hf hfr
+  rw [integral_rectBoundary_congr_codiscreteWithin ((toMeromorphicNFOn_eqOn_codiscrete hlog).filter_mono
+    (codiscreteWithin_mono hRfr)), integral_rectBoundary hcont] at h
+  have hraw : RectangleIntegral g z w = 2 * Real.pi * I * (TauCeti.divisorCount f R R : ℂ) := h
+  rw [rectangleIntegral'_toMeromorphicNFOn_eq hlog, RectangleIntegral', hraw, smul_eq_mul,
+    one_div, ← mul_assoc, inv_mul_cancel₀ Complex.two_pi_I_ne_zero, one_mul, TauCeti.divisorCount_def,
+    finsum_mem_eq_sum_of_inter_support_eq _ (t := (divisor_support_rectangle_finite f z w).toFinset)
+      (by rw [Finite.coe_toFinset]
+          exact (inter_eq_right.mpr (MeromorphicOn.divisor f R).supportWithinDomain).trans
+            (inter_self _).symm),
+    Int.cast_sum]
 
 theorem rectangle_argumentChange_eq_two_pi_sum_meromorphicOrderAt
     {f : ℂ → ℂ} {z w : ℂ} {argumentChange : ℝ}
