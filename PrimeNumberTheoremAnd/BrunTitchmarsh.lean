@@ -100,25 +100,17 @@ theorem primesBetween_le_siftedSum_add :
 
 section Remainder
 
-theorem Ioc_filter_dvd_eq (d a b : ℕ) (hd : d ≠ 0) :
-  Finset.filter (fun x ↦ d ∣ x) (Finset.Ioc a b) =
-    Finset.image (fun x ↦ x * d) (Finset.Ioc (a / d) (b / d)) := by
-  ext n
-  simp only [Finset.mem_filter, Finset.mem_Ioc, Finset.mem_image]
-  constructor
-  · intro hn
-    rcases hn with ⟨⟨han, hnb⟩, hd⟩
-    refine ⟨n/d, ⟨Nat.div_lt_div_of_lt_of_dvd hd han,
-      Nat.div_le_div_right (Nat.le_floor hnb)⟩, Nat.div_mul_cancel hd⟩
-  · rintro ⟨r, ⟨ha, ha'⟩, rfl⟩
-    refine ⟨⟨(Nat.div_lt_iff_lt_mul (by omega)).mp ha, Nat.mul_le_of_le_div d r b ha'⟩,
-      Nat.dvd_mul_left d r⟩
-
-theorem card_Ioc_filter_dvd (d a b : ℕ) (hd : d ≠ 0) :
+theorem card_Ioc_filter_dvd (d a b : ℕ) (_hd : d ≠ 0) :
     (Finset.filter (fun x ↦ d ∣ x) (Finset.Ioc a b)).card =
       b / d - a / d := by
-  rw [Ioc_filter_dvd_eq _ _ _ hd, Finset.card_image_of_injective _ <| mul_left_injective₀ hd,
-    Nat.card_Ioc]
+  rcases le_total a b with h | h
+  · have := Finset.card_union_of_disjoint (Finset.disjoint_filter_filter
+      (s := Finset.Ioc 0 a) (t := Finset.Ioc a b) (p := (d ∣ ·)) (q := (d ∣ ·))
+      (Finset.Ioc_disjoint_Ioc_of_le le_rfl))
+    rw [← Finset.filter_union, Finset.Ioc_union_Ioc_eq_Ioc (Nat.zero_le a) h,
+      Nat.Ioc_filter_dvd_card_eq_div, Nat.Ioc_filter_dvd_card_eq_div] at this
+    omega
+  · simp [Finset.Ioc_eq_empty_of_le h, Nat.div_le_div_right h]
 
 include hx in
 theorem multSum_eq (d : ℕ) (hd : d ≠ 0) :
@@ -139,74 +131,26 @@ theorem rem_eq (d : ℕ) (hd : d ≠ 0) :
   rw [multSum_eq x y z hx hz d hd]
   simp [primeInterSieve, ite_eq_right hd]
 
-theorem floor_approx (x : ℝ) (hx : 0 ≤ x) :
-    ∃ C, |C| ≤ 1 ∧ ↑((Nat.floor x)) = x + C := by
-  use ↑(Nat.floor x) - x
-  simp only [add_sub_cancel, and_true]
-  rw [abs_le]
-  refine ⟨by linarith [Nat.lt_floor_add_one x], by linarith [Nat.floor_le hx]⟩
-
-theorem ceil_approx (x : ℝ) (hx : 0 ≤ x) : ∃ C, |C| ≤ 1 ∧ ↑((Nat.ceil x)) = x + C := by
-  use ↑(Nat.ceil x) - x
-  simp only [add_sub_cancel, and_true, abs_le]
-  refine ⟨by linarith [Nat.le_ceil x], ?_⟩
-  rw [tsub_le_iff_right, add_comm]
-  exact (Nat.ceil_lt_add_one hx).le
-
-theorem nat_div_approx (a b : ℕ) : ∃ C, |C| ≤ 1 ∧ ↑(a/b) = (a/b : ℝ) + C := by
-  rw [← Nat.floor_div_eq_div (K := ℝ)]
-  exact floor_approx (a/b:ℝ) (by positivity)
-
-theorem floor_div_approx (x : ℝ) (hx : 0 ≤ x) (d : ℕ) :
-    ∃ C, |C| ≤ 2 ∧ ↑((Nat.floor x)/d) = x / d + C := by
-  by_cases hd : d = 0
-  · simp [hd]
-  · obtain ⟨C₁, hC₁_le, hC₁⟩ := nat_div_approx (Nat.floor x) d
-    obtain ⟨C₂, hC₂_le, hC₂⟩ := floor_approx x hx
-    rw [hC₁, hC₂]
-    refine ⟨C₁ + C₂/d, ?_, by ring⟩
-    have : |C₁ + C₂/d| ≤ |C₁| + |C₂/d| := abs_add_le C₁ (C₂ / ↑d)
-    have : |C₂/d| ≤ |C₂| := by
-      rw [abs_div]
-      refine div_le_self (abs_nonneg C₂) ?_
-      simp only [Nat.abs_cast, Nat.one_le_cast]
-      omega
-    linarith
-
 include hx hy in
 theorem abs_rem_le {d : ℕ} (hd : d ≠ 0) :
     |rem (s := toBoundingSieve (self := primeInterSieve x y z hz)) d| ≤ 5 := by
-  rw [rem_eq _ _ _ hx hz _ hd]
-  have hpush : ↑(⌊x + y⌋₊ / d - (⌈x⌉₊ - 1) / d) =
-      (↑(⌊x + y⌋₊ / d) - ↑((⌈x⌉₊ - 1) / d) : ℝ) := by
-    rw [Nat.cast_sub]
-    gcongr
-    rw [Nat.le_floor_iff, ← add_le_add_iff_right 1]
-    · rw_mod_cast [Nat.sub_add_cancel (by simp [hx])]
-      linarith [(Nat.ceil_lt_add_one (le_of_lt hx)).le]
-    linarith
-  rw [hpush]
-  obtain ⟨C₁, hC₁_le, hC₁⟩ := floor_div_approx (x + y) (by linarith) d
-  obtain ⟨C₂, hC₂_le, hC₂⟩ := nat_div_approx (Nat.ceil x - 1) d
-  obtain ⟨C₃, hC₃_le, hC₃⟩ := ceil_approx (x) (by linarith)
-  rw [hC₁, hC₂, Nat.cast_sub, hC₃]
-  · ring_nf
-    rw [(by ring_nf : |(↑d)⁻¹ - (↑d)⁻¹ * C₃ + C₁ - C₂| = |(↑d)⁻¹ - (↑d)⁻¹ * C₃ + (C₁ - C₂)|)]
-    have : |(↑d)⁻¹ - (↑d)⁻¹ * C₃ + (C₁ - C₂)| ≤
-        |(↑d)⁻¹ - (↑d)⁻¹ * C₃| + |C₁ - C₂| := abs_add_le _ _
-    have : |(↑d)⁻¹ - (↑d)⁻¹ * C₃| ≤
-        |(↑d)⁻¹| + |(↑d)⁻¹ * C₃| := abs_sub _ _
-    have : |C₁ - C₂| ≤ |C₁| + |C₂| := abs_sub _ _
-    have : |(d:ℝ)⁻¹| ≤ 1 := by
-      rw [abs_inv, Nat.abs_cast]
-      exact Nat.cast_inv_le_one _
-    have : |(↑d)⁻¹ * C₃| ≤ |C₃| := by
-      rw [inv_mul_eq_div, abs_div]
-      refine div_le_self (abs_nonneg _) ?_
-      rw [Nat.abs_cast, Nat.one_le_cast]
-      omega
-    linarith
-  · simp [hx]
+  have hG : ((⌈x⌉₊ - 1 : ℕ) : ℝ) = ⌈x⌉₊ - 1 := by
+    rw [Nat.cast_sub (Nat.one_le_ceil_iff.2 hx), Nat.cast_one]
+  have hc := Nat.ceil_lt_add_one hx.le
+  rw [rem_eq _ _ _ hx hz _ hd, Nat.cast_sub (Nat.div_le_div_right
+    (Nat.le_floor (by rw [hG]; linarith [Nat.le_ceil x])))]
+  have h1 := Nat.floor_le (show 0 ≤ (x + y) / d by positivity)
+  have h2 := Nat.lt_floor_add_one ((x + y) / d)
+  have h3 := Nat.floor_le (show 0 ≤ ((⌈x⌉₊ - 1 : ℕ) : ℝ) / d by positivity)
+  have h4 := Nat.lt_floor_add_one (((⌈x⌉₊ - 1 : ℕ) : ℝ) / d)
+  rw [Nat.floor_div_natCast] at h1 h2
+  rw [Nat.floor_div_eq_div, hG] at h3 h4
+  have h5 : 0 ≤ (x - ⌈x⌉₊ + 1) / d := div_nonneg (by linarith) (by positivity)
+  have h6 : (x - ⌈x⌉₊ + 1) / d ≤ 1 := div_le_one_of_le₀ (by
+    linarith [Nat.le_ceil x, (Nat.one_le_cast (α := ℝ)).2 (Nat.pos_of_ne_zero hd)]) (by positivity)
+  have h7 : (x + y) / d - (⌈x⌉₊ - 1) / d - (d : ℝ)⁻¹ * y = (x - ⌈x⌉₊ + 1) / d := by ring
+  rw [abs_le]
+  constructor <;> linarith
 
 end Remainder
 
@@ -319,27 +263,13 @@ theorem tmp (N : ℕ) :
 
 theorem rpow_mul_rpow_log_isBigO_id_div_log (k : ℝ) {r : ℝ} (hr : r < 1) :
     (fun x ↦ (x : ℝ) ^ (r : ℝ) * (Real.log x) ^ k) =O[atTop]
-      (fun x ↦ x / Real.log x) := calc
-  (fun x ↦ (x : ℝ) ^ (r : ℝ) * (Real.log x) ^ k) =O[atTop]
-      (fun x ↦ (x : ℝ) ^ (r : ℝ) * x ^ ((1-r)/2 : ℝ)) := by
-    apply IsBigO.mul (isBigO_refl ..)
-    apply (isLittleO_log_rpow_rpow_atTop k (by linarith) ..).isBigO
-  _ =ᶠ[atTop] (fun N ↦ (N : ℝ) * (N ^ ((1-r)/2 : ℝ))⁻¹) := by
-    filter_upwards [Filter.eventually_gt_atTop 0]
-    intro N hN
-    trans (N ^ (1 : ℝ) * (N ^ ((1-r)/2 : ℝ))⁻¹)
-    · rw [← Real.rpow_add hN, ← Real.rpow_neg hN.le, ← Real.rpow_add hN]
-      ring_nf
-    · rw [← Nat.cast_one, Real.rpow_natCast, pow_one]
-  _ =O[atTop] (fun N ↦ (N : ℝ) * (Real.log N)⁻¹) := by
-    apply IsBigO.mul (isBigO_refl ..)
-    apply IsBigO.inv_rev
-    · apply (isLittleO_log_rpow_atTop (by linarith) ..).isBigO
-    · filter_upwards [Filter.eventually_gt_atTop 1]
-      intro N hN hcontra
-      linarith [Real.log_pos hN]
-  _ = (fun N ↦ (N : ℝ)/(Real.log N)) := by
-    simp_rw [div_eq_mul_inv]
+      (fun x ↦ x / Real.log x) := by
+  refine ((isLittleO_log_rpow_rpow_atTop (k + 1) (sub_pos.2 hr)).isBigO.mul
+    (isBigO_refl (fun x ↦ x ^ r / Real.log x) atTop)).congr' ?_ ?_ <;>
+    filter_upwards [eventually_gt_atTop 1] with x hx
+  · rw [Real.rpow_add_one (Real.log_pos hx).ne']
+    field_simp [(Real.log_pos hx).ne']
+  · rw [mul_div_assoc', ← Real.rpow_add (by linarith), sub_add_cancel, Real.rpow_one]
 
 theorem err_isBigO :
     (fun x ↦ (x ^ (1 / 2 : ℝ) * (1 + 1 / 2 * Real.log x) ^ 3)) =O[atTop]
@@ -361,9 +291,8 @@ theorem card_range_filter_prime_isBigO :
     apply isBigO_of_le
     intro N
     simp only [RCLike.norm_natCast, one_div, Real.norm_eq_abs]
-    rw [abs_of_nonneg]
+    rw [abs_of_nonneg (by positivity)]
     convert tmp N using 4 <;> norm_num
-    positivity
   _ =O[atTop] _ :=
     ((isBigO_refl ..).const_mul_left ..).add ((err_isBigO.comp_tendsto tendsto_natCast_atTop_atTop).const_mul_left _)
 

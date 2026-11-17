@@ -3,44 +3,21 @@ module
 public import Mathlib.Analysis.Calculus.LogDeriv
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Meromorphic.Divisor
-public import TauCeti.Analysis.Contour.Residue.LogDeriv
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 import TauCeti.Analysis.Contour.Argument.Rectangle.Divisor
 
 /-!
 # Rectangle argument-principle infrastructure
 
-This file isolates the local logarithmic-derivative residue calculation and the
-rectangle-facing finite divisor sum used by the Kadiri contour lanes.
+This file identifies the poles of a logarithmic derivative with the divisor support and
+provides the rectangle-facing finite divisor sum used by the Kadiri contour lanes.
 -/
 
-open Complex Filter Topology Set BigOperators Asymptotics
+open Complex Filter Topology Set BigOperators
 
 open scoped Interval
 
 public noncomputable section
-
-lemma logDeriv_sub_principal_isBigO_one_of_meromorphicOrderAt
-    {f : ℂ → ℂ} {p : ℂ} {n : ℤ}
-    (hf : MeromorphicAt f p)
-    (hord : meromorphicOrderAt f p = (n : WithTop ℤ)) :
-    (logDeriv f - fun s : ℂ => (n : ℂ) / (s - p)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-  obtain ⟨g, hg, hg0, heq⟩ := TauCeti.Contour.logDeriv_eventuallyEq_principalPart hf hord
-  have hbounded : logDeriv g =O[𝓝 p] (1 : ℂ → ℂ) :=
-    (hg.logDeriv hg0).continuousAt.norm.isBoundedUnder_le.isBigO_one ℂ
-  refine (hbounded.mono nhdsWithin_le_nhds).congr' ?_ .rfl
-  filter_upwards [heq] with z hz
-  simp only [Pi.sub_apply, hz, div_eq_mul_inv, add_sub_cancel_left]
-
-theorem logDeriv_residue_eq_meromorphicOrderAt
-    {f : ℂ → ℂ} {p : ℂ} {n : ℤ}
-    (hf : MeromorphicAt f p)
-    (hord : meromorphicOrderAt f p = (n : WithTop ℤ)) :
-    residue (logDeriv f) p = (n : ℂ) := by
-  have h := TauCeti.Contour.tendsto_sub_mul_nhds_residue hf.logDeriv
-    (TauCeti.Contour.neg_one_le_meromorphicOrderAt_logDeriv hf)
-  rw [TauCeti.Contour.residue_logDeriv_eq_meromorphicOrderAt hf hord] at h
-  exact residue_eq_of_tendsto h
 
 theorem logDeriv_poles_eq_divisor_support
     {f : ℂ → ℂ} {R : Set ℂ}
@@ -48,49 +25,19 @@ theorem logDeriv_poles_eq_divisor_support
     (hfinite_order : ∀ p ∈ R, meromorphicOrderAt f p ≠ ⊤) :
     R ∩ {p | meromorphicOrderAt (logDeriv f) p < 0} =
       (MeromorphicOn.divisor f R).support := by
-  classical
-  let D := MeromorphicOn.divisor f R
   ext p
-  constructor
-  · intro hp
-    rcases hp with ⟨hpR, hpneg⟩
-    obtain ⟨n, hn⟩ := WithTop.ne_top_iff_exists.mp (hfinite_order p hpR)
-    by_cases hn0 : n = 0
-    · have hord0 : meromorphicOrderAt f p = (0 : WithTop ℤ) := by
-        simpa [hn0] using hn.symm
-      have hnonneg :=
-        meromorphicOrderAt_logDeriv_nonneg (hf p hpR) hord0
-      exact False.elim (not_lt_of_ge hnonneg hpneg)
-    · have hpD_ne : D p ≠ 0 := by
-        change (MeromorphicOn.divisor f R) p ≠ 0
-        rw [MeromorphicOn.divisor_apply hf hpR, ← hn]
-        simp [hn0]
-      simp [D, Function.mem_support, hpD_ne]
-  · intro hpD
-    have hpR : p ∈ R := (MeromorphicOn.divisor f R).supportWithinDomain hpD
-    have hpD_ne : D p ≠ 0 := by
-      simpa [D, Function.mem_support] using hpD
-    change (MeromorphicOn.divisor f R) p ≠ 0 at hpD_ne
-    rw [MeromorphicOn.divisor_apply hf hpR] at hpD_ne
-    obtain ⟨n, hn⟩ := WithTop.ne_top_iff_exists.mp (hfinite_order p hpR)
-    have hn0 : n ≠ 0 := by
-      intro hn0
-      exact hpD_ne (by rw [← hn]; simp [hn0])
-    have hneg_one :=
-      meromorphicOrderAt_logDeriv_eq_neg_one
-        (by rw [← hn]; exact_mod_cast hn0) (hfinite_order p hpR)
-    refine ⟨hpR, ?_⟩
-    change meromorphicOrderAt (logDeriv f) p < 0
-    rw [hneg_one]
-    exact WithTop.coe_lt_coe.2 (by norm_num : (-1 : ℤ) < 0)
+  by_cases hpR : p ∈ R
+  · have h0 : MeromorphicOn.divisor f R p = 0 ↔ meromorphicOrderAt f p = 0 := by
+      rw [hf.divisor_apply hpR, WithTop.untop₀_eq_zero, or_iff_left (hfinite_order p hpR)]
+    simp only [mem_inter_iff, hpR, true_and, mem_ofPred_eq, Function.mem_support, ne_eq, h0]
+    refine ⟨fun h h0 ↦ (meromorphicOrderAt_logDeriv_nonneg (hf p hpR) h0).not_gt h, fun h ↦ ?_⟩
+    rw [meromorphicOrderAt_logDeriv_eq_neg_one h (hfinite_order p hpR)]
+    decide
+  · exact iff_of_false (fun h ↦ hpR h.1) fun h ↦ hpR ((MeromorphicOn.divisor f R).supportWithinDomain h)
 
 lemma divisor_support_rectangle_finite (f : ℂ → ℂ) (z w : ℂ) :
-    (MeromorphicOn.divisor f (Rectangle z w)).support.Finite := by
-  let R : Set ℂ := Rectangle z w
-  let D := MeromorphicOn.divisor f R
-  have hR_compact : IsCompact R := by
-    exact IsCompact.reProdIm isCompact_uIcc isCompact_uIcc
-  exact D.finiteSupport hR_compact
+    (MeromorphicOn.divisor f (Rectangle z w)).support.Finite :=
+  (MeromorphicOn.divisor f _).finiteSupport (isCompact_rectangle z w)
 
 theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
     {f : ℂ → ℂ} {z w : ℂ}
