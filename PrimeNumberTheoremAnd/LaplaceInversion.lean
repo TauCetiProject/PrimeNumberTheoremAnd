@@ -719,14 +719,7 @@ theorem norm_sin_div_kernel_tail_le_integral_norm
     exact integral_mono_measure Measure.restrict_le_self
       (Filter.Eventually.of_forall fun _u => mul_nonneg hC_nonneg (norm_nonneg _)) hbound_int
   have htranslate : (∫ u : ℝ, C * ‖f (x - u)‖) = C * ∫ u : ℝ, ‖f u‖ := by
-    rw [integral_const_mul]
-    congr 1
-    calc
-      (∫ u : ℝ, ‖f (x - u)‖) = ∫ u : ℝ, ‖f (x + u)‖ := by
-        simpa [sub_eq_add_neg] using
-          integral_neg_eq_self (f := fun u : ℝ => ‖f (x + u)‖) (μ := volume)
-      _ = ∫ u : ℝ, ‖f u‖ := by
-        simpa using integral_add_left_eq_self (μ := volume) (fun u : ℝ => ‖f u‖) x
+    rw [integral_const_mul, integral_sub_left_eq_self (fun u : ℝ => ‖f u‖) volume x]
   exact hnorm_le.trans (hset_le.trans_eq htranslate)
 
 /-- Finite symmetric-window split for the `sin (T * u) / (π * u)` kernel.
@@ -785,22 +778,6 @@ theorem intervalIntegral_sin_div_kernel_split
             (f (x - u) - f x) := by
           rw [intervalIntegral.integral_smul_const]
 
-/-- A scalar finite-window Dirichlet mass limit immediately gives the
-corresponding vector-valued mass limit. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_smul_of_scalar_mass
-    (z : E) {R : ℝ}
-    (hmass : Filter.Tendsto
-      (fun T : ℝ =>
-        ∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      Filter.atTop (nhds (1 : ℂ))) :
-    Filter.Tendsto
-      (fun T : ℝ =>
-        (∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) • z)
-      Filter.atTop (nhds z) := by
-  simpa using hmass.smul_const z
-
 /-- Scaling reduces the finite-window mass of `sin (T * u) / (π * u)` to the
 normalized symmetric sine integral at height `T * R`. -/
 theorem intervalIntegral_sin_div_kernel_scalar_mass_eq_scaled (T R : ℝ) :
@@ -836,21 +813,6 @@ theorem intervalIntegral_sin_div_kernel_scalar_mass_eq_scaled (T R : ℝ) :
         ∫ v in (T * (-R))..(T * R),
           if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ) := by
           rfl
-
-/-- The sine-over-argument kernel is interval-integrable on finite intervals;
-the value at zero is irrelevant by the removable singularity of `Real.sinc`. -/
-theorem intervalIntegrable_sin_div_kernel (a b : ℝ) :
-    IntervalIntegrable
-      (fun v : ℝ => if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ))
-      volume a b := by
-  let g : ℝ → ℂ := fun v => (Real.sinc v : ℂ)
-  have hg : IntervalIntegrable g volume a b := by
-    exact (Complex.continuous_ofReal.comp Real.continuous_sinc).intervalIntegrable a b
-  refine hg.congr_ae ?_
-  refine ae_restrict_of_ae ?_
-  filter_upwards [show ∀ᵐ v : ℝ ∂volume, v ≠ 0 by simp [ae_iff, measure_singleton]]
-    with v hv
-  simp [g, Real.sinc_of_ne_zero hv, hv]
 
 /-- The scaled sine kernel is interval-integrable on finite intervals; its value
 at zero is again irrelevant. -/
@@ -950,169 +912,6 @@ theorem norm_fourierInvTrunc_le_of_windowed_sin_div_bounds
       linarith
     _ = M * B + L + (1 / (π * R)) * ∫ u : ℝ, ‖f u‖ := by ring
 
-/-- The negative half of the finite sine integral equals the positive half. -/
-theorem intervalIntegral_sin_div_kernel_neg_zero_eq_zero_to (A : ℝ) :
-    (∫ v in (-A)..0,
-      if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ)) =
-      ∫ v in 0..A,
-        if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ) := by
-  let k : ℝ → ℂ := fun v => if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ)
-  have h := intervalIntegral.integral_comp_neg (f := k) (a := 0) (b := A)
-  rw [neg_zero] at h
-  rw [← h]
-  refine intervalIntegral.integral_congr ?_
-  intro v _hv
-  by_cases hv : v = 0
-  · simp [k, hv]
-  · have hneg : -v ≠ 0 := neg_ne_zero.mpr hv
-    simp [k, hv, hneg]
-
-/-- The symmetric finite sine integral is twice its positive half. -/
-theorem intervalIntegral_sin_div_kernel_symmetric_eq_two_mul_zero_to (A : ℝ) :
-    (∫ v in (-A)..A,
-      if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ)) =
-      2 * ∫ v in 0..A,
-        if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ) := by
-  let k : ℝ → ℂ := fun v => if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ)
-  have hleft : (∫ v in (-A)..0, k v) = ∫ v in 0..A, k v := by
-    exact intervalIntegral_sin_div_kernel_neg_zero_eq_zero_to A
-  have hsplit : (∫ v in (-A)..0, k v) + (∫ v in 0..A, k v) =
-      ∫ v in (-A)..A, k v := by
-    exact intervalIntegral.integral_add_adjacent_intervals
-      (intervalIntegrable_sin_div_kernel (-A) 0)
-      (intervalIntegrable_sin_div_kernel 0 A)
-  calc
-    (∫ v in (-A)..A, k v) = (∫ v in (-A)..0, k v) + (∫ v in 0..A, k v) := by
-      rw [hsplit]
-    _ = (∫ v in 0..A, k v) + (∫ v in 0..A, k v) := by
-      rw [hleft]
-    _ = 2 * ∫ v in 0..A, k v := by ring
-
-/-- A one-sided Dirichlet integral limit gives the symmetric sine integral
-limit. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_symmetric_of_one_sided
-    (hdir : Filter.Tendsto
-      (fun A : ℝ =>
-        ∫ v in 0..A,
-          if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ))
-      Filter.atTop (nhds ((π / 2 : ℝ) : ℂ))) :
-    Filter.Tendsto
-      (fun A : ℝ =>
-        ∫ v in (-A)..A,
-          if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ))
-      Filter.atTop (nhds (π : ℂ)) := by
-  have htwo := hdir.const_mul (2 : ℂ)
-  convert htwo.congr' ?_ using 1
-  · norm_num
-    ring
-  · filter_upwards with A
-    rw [intervalIntegral_sin_div_kernel_symmetric_eq_two_mul_zero_to]
-
-/-- A normalized symmetric Dirichlet integral limit gives the scalar
-finite-window mass at every positive radius. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_dirichlet
-    {R : ℝ} (hR : 0 < R)
-    (hdir : Filter.Tendsto
-      (fun A : ℝ =>
-        (1 / (π : ℂ)) * ∫ v in (-A)..A,
-          if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ))
-      Filter.atTop (nhds (1 : ℂ))) :
-    Filter.Tendsto
-      (fun T : ℝ =>
-        ∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      Filter.atTop (nhds (1 : ℂ)) := by
-  have hTR : Filter.Tendsto (fun T : ℝ => T * R) Filter.atTop Filter.atTop := by
-    simpa [mul_comm] using
-      ((Filter.tendsto_const_mul_atTop_of_pos (f := fun T : ℝ => T) hR).2
-        Filter.tendsto_id)
-  have hcomp := hdir.comp hTR
-  refine hcomp.congr' ?_
-  filter_upwards with T
-  rw [intervalIntegral_sin_div_kernel_scalar_mass_eq_scaled]
-  rw [show T * (-R) = -(T * R) by ring]
-  rfl
-
-/-- The classical symmetric sine integral limit, with value `π`, gives the
-scalar finite-window mass at every positive radius. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_symmetric_sine_integral
-    {R : ℝ} (hR : 0 < R)
-    (hdir : Filter.Tendsto
-      (fun A : ℝ =>
-        ∫ v in (-A)..A,
-          if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ))
-      Filter.atTop (nhds (π : ℂ))) :
-    Filter.Tendsto
-      (fun T : ℝ =>
-        ∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      Filter.atTop (nhds (1 : ℂ)) := by
-  refine tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_dirichlet hR ?_
-  have hnorm := hdir.const_mul (1 / (π : ℂ))
-  convert hnorm using 1
-  field_simp [Real.pi_ne_zero]
-
-/-- The one-sided Dirichlet integral limit gives the scalar finite-window mass
-at every positive radius. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_one_sided_sine_integral
-    {R : ℝ} (hR : 0 < R)
-    (hdir : Filter.Tendsto
-      (fun A : ℝ =>
-        ∫ v in 0..A,
-          if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ))
-      Filter.atTop (nhds ((π / 2 : ℝ) : ℂ))) :
-    Filter.Tendsto
-      (fun T : ℝ =>
-        ∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      Filter.atTop (nhds (1 : ℂ)) := by
-  exact tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_symmetric_sine_integral hR
-    (tendsto_intervalIntegral_sin_div_kernel_symmetric_of_one_sided hdir)
-
-/-- The one-sided sine-over-argument integral agrees with the integral of
-`Real.sinc`; the only difference is the chosen singleton value at zero. -/
-theorem intervalIntegral_sin_div_kernel_zero_to_eq_sinc (A : ℝ) :
-    (∫ v in 0..A,
-      if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ)) =
-      ∫ v in 0..A, (Real.sinc v : ℂ) := by
-  refine intervalIntegral.integral_congr_ae ?_
-  filter_upwards [show ∀ᵐ v : ℝ ∂volume, v ≠ 0 by simp [ae_iff, measure_singleton]]
-    with v hv _hv_mem
-  simp [Real.sinc_of_ne_zero hv, hv]
-
-/-- A complex-valued one-sided sinc integral limit gives the scalar
-finite-window mass at every positive radius. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_sinc_integral
-    {R : ℝ} (hR : 0 < R)
-    (hsinc : Filter.Tendsto
-      (fun A : ℝ => ∫ v in 0..A, (Real.sinc v : ℂ))
-      Filter.atTop (nhds ((π / 2 : ℝ) : ℂ))) :
-    Filter.Tendsto
-      (fun T : ℝ =>
-        ∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      Filter.atTop (nhds (1 : ℂ)) := by
-  refine tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_one_sided_sine_integral hR ?_
-  exact hsinc.congr' (by
-    filter_upwards with A
-    rw [intervalIntegral_sin_div_kernel_zero_to_eq_sinc])
-
-/-- A real-valued one-sided sinc integral limit gives the scalar finite-window
-mass at every positive radius. -/
-theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_real_sinc_integral
-    {R : ℝ} (hR : 0 < R)
-    (hsinc : Filter.Tendsto
-      (fun A : ℝ => ∫ v in 0..A, Real.sinc v)
-      Filter.atTop (nhds (π / 2 : ℝ))) :
-    Filter.Tendsto
-      (fun T : ℝ =>
-        ∫ u in (-R)..R,
-          if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      Filter.atTop (nhds (1 : ℂ)) := by
-  refine tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_sinc_integral hR ?_
-  simpa [Function.comp_def, intervalIntegral.integral_ofReal] using
-    (Complex.continuous_ofReal.tendsto (π / 2 : ℝ)).comp hsinc
-
 /-- Uniform finite-tail control for the one-sided sinc integral. -/
 theorem norm_intervalIntegral_sinc_tail_le {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     ‖∫ x in a..b, Real.sinc x‖ ≤ 3 * a⁻¹ := by
@@ -1200,13 +999,6 @@ theorem integral_Ioi_exp_neg_mul_sin (a : ℝ) (ha : 0 < a) :
           simp [z, Complex.div_im, Complex.normSq]
           ring
 
-/-- For a positive lower endpoint, the arctangent tail integral is
-`arctan (1/a)`. -/
-theorem integral_Ioi_one_div_one_add_sq_eq_arctan_inv (a : ℝ) (ha : 0 < a) :
-    ∫ u : ℝ in Set.Ioi a, (1 / (u ^ 2 + 1) : ℝ) = Real.arctan a⁻¹ := by
-  simpa only [one_div, add_comm] using
-    integral_Ioi_inv_one_add_sq.trans (Real.arctan_inv_of_pos ha).symm
-
 /-- The exponentially damped sinc function is integrable on the positive
 half-line. -/
 theorem integrableOn_exp_neg_mul_sinc (a : ℝ) (ha : 0 < a) :
@@ -1248,107 +1040,6 @@ theorem norm_integral_Ioi_exp_neg_mul_sinc_tail_le
     exact norm_intervalIntegral_exp_neg_mul_sinc_tail_le ha hR hRB
   exact le_of_tendsto hnorm hbound
 
-/-- On a fixed finite window, damping tends back to the undamped sinc integral. -/
-theorem tendsto_intervalIntegral_exp_neg_mul_sinc_nhdsGT_zero (R : ℝ) :
-    Filter.Tendsto
-      (fun a : ℝ => ∫ x in (0 : ℝ)..R, Real.exp (-a * x) * Real.sinc x)
-      (𝓝[>] (0 : ℝ))
-      (nhds (∫ x in (0 : ℝ)..R, Real.sinc x)) := by
-  let f : ℝ → ℝ → ℝ := fun a x => Real.exp (-a * x) * Real.sinc x
-  have hf : Continuous f.uncurry := by
-    dsimp [f, Function.uncurry]
-    fun_prop
-  have hcont : Continuous fun a : ℝ => ∫ x in (0 : ℝ)..R, f a x :=
-    intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'
-      (μ := volume) (f := f) hf (0 : ℝ) R
-  have ht : Filter.Tendsto (fun a : ℝ => ∫ x in (0 : ℝ)..R, f a x)
-      (𝓝 (0 : ℝ)) (nhds (∫ x in (0 : ℝ)..R, f 0 x)) :=
-    hcont.tendsto (0 : ℝ)
-  have ht' : Filter.Tendsto (fun a : ℝ => ∫ x in (0 : ℝ)..R, f a x)
-      (𝓝[>] (0 : ℝ)) (nhds (∫ x in (0 : ℝ)..R, f 0 x)) :=
-    ht.mono_left nhdsWithin_le_nhds
-  simpa [f] using ht'
-
-/-- Abel comparison: any finite-window sinc limit agrees with the damped
-half-line limit. -/
-theorem tendsto_integral_Ioi_exp_neg_mul_sinc_of_tendsto_interval
-    {L : ℝ}
-    (hL : Filter.Tendsto
-      (fun R : ℝ => ∫ x in (0 : ℝ)..R, Real.sinc x)
-      Filter.atTop (nhds L)) :
-    Filter.Tendsto
-      (fun a : ℝ => ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sinc x)
-      (𝓝[>] (0 : ℝ)) (nhds L) := by
-  rw [Metric.tendsto_nhds] at hL ⊢
-  intro ε hε
-  let η : ℝ := ε / 4
-  have hη : 0 < η := by dsimp [η]; positivity
-  have hL_event : ∀ᶠ R : ℝ in Filter.atTop,
-      dist (∫ x in (0 : ℝ)..R, Real.sinc x) L < η :=
-    hL η hη
-  have htail_lim : Filter.Tendsto (fun R : ℝ => 4 * R⁻¹) Filter.atTop (nhds 0) := by
-    simpa using (tendsto_const_nhds.mul tendsto_inv_atTop_zero : Filter.Tendsto
-      (fun R : ℝ => 4 * R⁻¹) Filter.atTop (nhds (4 * 0)))
-  have htail_event : ∀ᶠ R : ℝ in Filter.atTop, 4 * R⁻¹ < η :=
-    htail_lim.eventually (gt_mem_nhds hη)
-  have hlarge : ∀ᶠ R : ℝ in Filter.atTop, 1 ≤ R := Filter.eventually_ge_atTop 1
-  rcases Filter.eventually_atTop.1 (hL_event.and (htail_event.and hlarge)) with ⟨R, hR⟩
-  have hFR_dist : dist (∫ x in (0 : ℝ)..R, Real.sinc x) L < η := (hR R le_rfl).1
-  have htail_small : 4 * R⁻¹ < η := (hR R le_rfl).2.1
-  have hR_one : 1 ≤ R := (hR R le_rfl).2.2
-  have hR_pos : 0 < R := zero_lt_one.trans_le hR_one
-  have hfinite_event :
-      ∀ᶠ a : ℝ in 𝓝[>] (0 : ℝ),
-        dist (∫ x in (0 : ℝ)..R, Real.exp (-a * x) * Real.sinc x)
-          (∫ x in (0 : ℝ)..R, Real.sinc x) < η :=
-    Metric.tendsto_nhds.mp (tendsto_intervalIntegral_exp_neg_mul_sinc_nhdsGT_zero R) η hη
-  filter_upwards [hfinite_event, self_mem_nhdsWithin] with a hfinite ha_mem
-  have ha : 0 < a := ha_mem
-  let g : ℝ → ℝ := fun x => Real.exp (-a * x) * Real.sinc x
-  let D : ℝ := ∫ x in (0 : ℝ)..R, g x
-  let F : ℝ := ∫ x in (0 : ℝ)..R, Real.sinc x
-  let T : ℝ := ∫ x : ℝ in Set.Ioi R, g x
-  let G : ℝ := ∫ x : ℝ in Set.Ioi 0, g x
-  have hg0 : IntegrableOn g (Set.Ioi 0) := by
-    dsimp [g]
-    exact integrableOn_exp_neg_mul_sinc a ha
-  have hgR : IntegrableOn g (Set.Ioi R) := by
-    exact hg0.mono_set (Set.Ioi_subset_Ioi hR_pos.le)
-  have hsplit : D + T = G := by
-    dsimp [D, T, G, g]
-    exact intervalIntegral.integral_interval_add_Ioi hg0 hgR
-  have hfinite_norm : ‖D - F‖ < η := by
-    simpa [D, F, g, Real.dist_eq, Real.norm_eq_abs] using hfinite
-  have hFR_norm : ‖F - L‖ < η := by
-    simpa [F, Real.dist_eq, Real.norm_eq_abs] using hFR_dist
-  have htail_norm : ‖T‖ < η := by
-    have htail_le : ‖T‖ ≤ 4 * R⁻¹ := by
-      dsimp [T, g]
-      exact norm_integral_Ioi_exp_neg_mul_sinc_tail_le ha hR_one
-    exact lt_of_le_of_lt htail_le htail_small
-  have htriangle :
-      ‖G - L‖ ≤ ‖D - F‖ + ‖T‖ + ‖F - L‖ := by
-    calc
-      ‖G - L‖ = ‖(D - F) + T + (F - L)‖ := by
-        rw [← hsplit]
-        congr 1
-        ring
-      _ ≤ ‖(D - F) + T‖ + ‖F - L‖ := norm_add_le _ _
-      _ ≤ (‖D - F‖ + ‖T‖) + ‖F - L‖ := by
-        simpa [add_comm, add_left_comm, add_assoc] using
-          add_le_add_right (norm_add_le (D - F) T) ‖F - L‖
-      _ = ‖D - F‖ + ‖T‖ + ‖F - L‖ := by ring
-  have hsum : ‖D - F‖ + ‖T‖ + ‖F - L‖ < ε := by
-    have hsum_eta : ‖D - F‖ + ‖T‖ + ‖F - L‖ < η + η + η := by
-      nlinarith [hfinite_norm, htail_norm, hFR_norm]
-    have heta : η + η + η < ε := by
-      dsimp [η]
-      nlinarith [hε]
-    exact lt_trans hsum_eta heta
-  have hG : dist G L < ε := by
-    simpa [Real.dist_eq, Real.norm_eq_abs] using lt_of_le_of_lt htriangle hsum
-  simpa [G, g] using hG
-
 /-- Positive half-line exponential tail with a variable decay constant. -/
 theorem integral_Ioi_exp_neg_mul_const (a x : ℝ) (hx : 0 < x) :
     ∫ u : ℝ in Set.Ioi a, Real.exp (-u * x) = Real.exp (-a * x) / x := by
@@ -1371,60 +1062,6 @@ theorem integral_Ioi_exp_neg_mul_const_mul_sin (a x : ℝ) (hx : 0 < x) :
   rw [integral_Ioi_exp_neg_mul_const a x hx]
   rw [Real.sinc_of_ne_zero hx.ne']
   field_simp [hx.ne']
-
-/-- Evaluation of the damped sinc integral from the one remaining Fubini swap.
-The hypothesis is the exact product-integrability/swap term left to prove. -/
-theorem integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv_of_integral_swap
-    (a : ℝ) (ha : 0 < a)
-    (hswap :
-      (∫ x : ℝ in Set.Ioi 0,
-        ∫ u : ℝ in Set.Ioi a, Real.exp (-u * x) * Real.sin x) =
-      ∫ u : ℝ in Set.Ioi a,
-        ∫ x : ℝ in Set.Ioi 0, Real.exp (-u * x) * Real.sin x) :
-    ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sinc x =
-      Real.arctan a⁻¹ := by
-  calc
-    ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sinc x
-        = ∫ x : ℝ in Set.Ioi 0,
-            ∫ u : ℝ in Set.Ioi a, Real.exp (-u * x) * Real.sin x := by
-          refine integral_congr_ae ?_
-          filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
-          exact (integral_Ioi_exp_neg_mul_const_mul_sin a x hx).symm
-    _ = ∫ u : ℝ in Set.Ioi a,
-          ∫ x : ℝ in Set.Ioi 0, Real.exp (-u * x) * Real.sin x := hswap
-    _ = ∫ u : ℝ in Set.Ioi a, (1 / (u ^ 2 + 1) : ℝ) := by
-          refine integral_congr_ae ?_
-          filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
-          exact integral_Ioi_exp_neg_mul_sin u (lt_trans ha hu)
-    _ = Real.arctan a⁻¹ := integral_Ioi_one_div_one_add_sq_eq_arctan_inv a ha
-
-/-- The standard Fubini theorem gives the damped-sinc swap once the product
-kernel is integrable. -/
-theorem integral_Ioi_exp_neg_mul_sinc_integral_swap_of_integrable
-    (a : ℝ)
-    (hprod : Integrable
-      (Function.uncurry
-        (fun x u : ℝ => Real.exp (-u * x) * Real.sin x))
-      ((volume.restrict (Set.Ioi 0)).prod (volume.restrict (Set.Ioi a)))) :
-    (∫ x : ℝ in Set.Ioi 0,
-      ∫ u : ℝ in Set.Ioi a, Real.exp (-u * x) * Real.sin x) =
-    ∫ u : ℝ in Set.Ioi a,
-      ∫ x : ℝ in Set.Ioi 0, Real.exp (-u * x) * Real.sin x := by
-  simpa [Function.uncurry] using integral_integral_swap hprod
-
-/-- Evaluation of the damped sinc integral from product-integrability of the
-Fubini kernel. This is the canonical remaining input for the regularized sinc
-route. -/
-theorem integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv_of_product_integrable
-    (a : ℝ) (ha : 0 < a)
-    (hprod : Integrable
-      (Function.uncurry
-        (fun x u : ℝ => Real.exp (-u * x) * Real.sin x))
-      ((volume.restrict (Set.Ioi 0)).prod (volume.restrict (Set.Ioi a)))) :
-    ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sinc x =
-      Real.arctan a⁻¹ :=
-  integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv_of_integral_swap a ha
-    (integral_Ioi_exp_neg_mul_sinc_integral_swap_of_integrable a hprod)
 
 /-- Product-integrability of the damped sine kernel on `(0,∞) × (a,∞)`.
 The proof integrates the `u`-tail first and bounds the inner norm by
@@ -1500,9 +1137,24 @@ theorem integrable_exp_neg_mul_sin_prod_Ioi (a : ℝ) (ha : 0 < a) :
 for the classical `∫₀ᴬ sinc -> π/2` route. -/
 theorem integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv (a : ℝ) (ha : 0 < a) :
     ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sinc x =
-      Real.arctan a⁻¹ :=
-  integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv_of_product_integrable a ha
-    (integrable_exp_neg_mul_sin_prod_Ioi a ha)
+      Real.arctan a⁻¹ := by
+  calc
+    ∫ x : ℝ in Set.Ioi 0, Real.exp (-a * x) * Real.sinc x
+        = ∫ x : ℝ in Set.Ioi 0,
+            ∫ u : ℝ in Set.Ioi a, Real.exp (-u * x) * Real.sin x := by
+          refine integral_congr_ae ?_
+          filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
+          exact (integral_Ioi_exp_neg_mul_const_mul_sin a x hx).symm
+    _ = ∫ u : ℝ in Set.Ioi a,
+          ∫ x : ℝ in Set.Ioi 0, Real.exp (-u * x) * Real.sin x :=
+          integral_integral_swap (integrable_exp_neg_mul_sin_prod_Ioi a ha)
+    _ = ∫ u : ℝ in Set.Ioi a, (1 / (u ^ 2 + 1) : ℝ) := by
+          refine integral_congr_ae ?_
+          filter_upwards [ae_restrict_mem measurableSet_Ioi] with u hu
+          exact integral_Ioi_exp_neg_mul_sin u (lt_trans ha hu)
+    _ = Real.arctan a⁻¹ := by
+          simpa only [one_div, add_comm] using
+            integral_Ioi_inv_one_add_sq.trans (Real.arctan_inv_of_pos ha).symm
 
 /-- Abel limit of the Laplace-regularized sinc integral as the damping tends
 to zero from the right. -/
@@ -1526,8 +1178,17 @@ theorem tendsto_intervalIntegral_sin_div_kernel_scalar_mass {R : ℝ} (hR : 0 < 
         ∫ u in (-R)..R,
           if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
       Filter.atTop (nhds (1 : ℂ)) := by
-  exact tendsto_intervalIntegral_sin_div_kernel_scalar_mass_of_real_sinc_integral hR
-    TauCeti.Contour.tendsto_integral_sinc_atTop
+  have h := ((Complex.continuous_ofReal.tendsto _).comp
+    ((TauCeti.Contour.tendsto_integral_sin_mul_div_neg_self_atTop one_pos).comp
+      (tendsto_id.atTop_mul_const hR))).const_mul (1 / (π : ℂ))
+  rw [one_div_mul_cancel (by exact_mod_cast Real.pi_ne_zero)] at h
+  refine h.congr fun T => ?_
+  simp only [Function.comp_apply, id, one_mul]
+  rw [intervalIntegral_sin_div_kernel_scalar_mass_eq_scaled, mul_neg,
+    ← intervalIntegral.integral_ofReal]
+  congr 1
+  refine intervalIntegral.integral_congr fun v _ => ?_
+  by_cases hv : v = 0 <;> simp [hv]
 
 /-- The scalar finite-window sine-kernel mass is eventually bounded by `2`. -/
 theorem eventually_norm_intervalIntegral_sin_div_kernel_scalar_mass_le_two
@@ -1691,8 +1352,7 @@ theorem sinc_kernel_tendsto_of_windowed_pv_of_pos_radius
         (∫ u in (-R)..R,
           if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) • f x)
       Filter.atTop (nhds (f x)) :=
-    tendsto_intervalIntegral_sin_div_kernel_smul_of_scalar_mass (E := E) (f x)
-      (tendsto_intervalIntegral_sin_div_kernel_scalar_mass hR)
+    by simpa using (tendsto_intervalIntegral_sin_div_kernel_scalar_mass hR).smul_const (f x)
   have hconst : ∀ᶠ T in Filter.atTop,
       IntervalIntegrable
         (fun u : ℝ =>
@@ -1827,13 +1487,6 @@ theorem laplaceInvLineTrunc_tendsto_laplaceTransformBilateral_eq
   filter_upwards with T
   exact (laplaceInvLineTrunc_laplaceTransformBilateral_eq_fourierInvTrunc sigma f x T).symm
 
-theorem Complex.exp_mul_log_of_pos_eq_cpow {x : ℝ} (hx : 0 < x) (s : ℂ) :
-    Complex.exp (s * (Real.log x : ℂ)) = (x : ℂ) ^ s := by
-  rw [Complex.cpow_def_of_ne_zero (Complex.ofReal_ne_zero.mpr hx.ne')]
-  rw [Complex.ofReal_log hx.le]
-  congr 1
-  ring
-
 /-- The truncated multiplication-form inverse Laplace integral is the truncated
 vector-valued inverse Laplace line integral at `log x`. -/
 theorem laplaceIntegralCpowTrunc_eq_laplaceInvLineTrunc
@@ -1853,8 +1506,8 @@ theorem laplaceIntegralCpowTrunc_eq_laplaceInvLineTrunc
         (x : ℂ) ^ ((sigma : ℂ) + (t : ℂ) * I) =
       Complex.exp (((sigma : ℂ) + (t : ℂ) * I) * (Real.log x : ℂ)) *
         laplaceTransformBilateral f ((sigma : ℂ) + (t : ℂ) * I)
-    rw [← Complex.exp_mul_log_of_pos_eq_cpow hx ((sigma : ℂ) + (t : ℂ) * I)]
-    ring
+    rw [cpow_def_of_ne_zero (by exact_mod_cast hx.ne'), ofReal_log hx.le]
+    ring_nf
 
 /-- Principal-value Laplace inversion in the multiplication `x^s` form, reduced
 to truncated Fourier convergence for the exponentially weighted source. -/
