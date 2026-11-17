@@ -16,6 +16,7 @@ public import Mathlib.Tactic.Bound
 public import Mathlib.Tactic.GCongr
 public import Mathlib.Analysis.Complex.RealDeriv
 import TauCeti.Analysis.Calculus.FDeriv.OfReal
+import TauCeti.MeasureTheory.Measure.Haar.MultHaar
 
 
 @[expose] public section
@@ -33,46 +34,16 @@ variable {𝕂 : Type*} [RCLike 𝕂]
 lemma MeasureTheory.integral_comp_div_I0i_haar
     (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
     ∫ (y : ℝ) in Ioi 0, f (a / y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  have hlog (h : ℝ → 𝕂) : (∫ y : ℝ in Ioi 0, h y / y) = ∫ v : ℝ, h (Real.exp (-v)) := by
-    simpa only [convolution, ContinuousLinearMap.mul_apply', mul_one, one_mul,
-      RCLike.real_smul_eq_coe_mul, RCLike.ofReal_inv, div_eq_mul_inv, mul_comm] using
-      ContinuousLinearMap.integral_inv_smul_bilinear_eq_convolution
-        (ContinuousLinearMap.mul ℝ 𝕂) h (fun _ : ℝ => (1 : 𝕂)) 0
-  rw [hlog (fun y => f (a / y)), hlog f]
-  have harg (v : ℝ) : a / Real.exp (-v) = Real.exp (-(-Real.log a - v)) := by
-    calc
-      _ = Real.exp (Real.log a) / Real.exp (-v) := by rw [Real.exp_log ha]
-      _ = Real.exp (Real.log a - -v) := (Real.exp_sub _ _).symm
-      _ = _ := by congr 1; ring
-  simp_rw [harg]
-  exact integral_sub_left_eq_self (fun v : ℝ => f (Real.exp (-v))) volume (-Real.log a)
-
-lemma Function.support_of_along_fiber_subset_subset {α β M : Type*} [Zero M]
-    {f : α × β → M} {s : Set α} {t : Set β}
-    (hx : ∀ (y : β), (fun x ↦ f (x, y)).support ⊆ s)
-    (hy : ∀ (x : α), (fun y ↦ f (x, y)).support ⊆ t) :
-    f.support ⊆ s ×ˢ t := by
-  intro ⟨x, y⟩ hxy
-  constructor
-  · exact hx y (by simp only [Function.mem_support, ne_eq] at hxy ⊢; exact hxy)
-  · exact hy x (by simp only [Function.mem_support, ne_eq] at hxy ⊢; exact hxy)
-
-lemma IntervalIntegral.integral_eq_integral_of_support_subset_Icc {a b : ℝ} {μ : Measure ℝ}
-    [NullSingletonClass μ] {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
-    {f : ℝ → E} (h : f.support ⊆ Icc a b) :
-    ∫ x in a..b, f x ∂μ = ∫ x, f x ∂μ := by
-  rcases le_total a b with hab | hab
-  · rw [intervalIntegral.integral_of_le hab, ← integral_Icc_eq_integral_Ioc,
-    ← integral_indicator measurableSet_Icc, indicator_eq_self.2 h]
-  · by_cases hab2 : b = a
-    · rw [hab2] at h ⊢
-      simp only [intervalIntegral.integral_same]
-      simp only [Icc_self] at h
-      have : ∫ (x : ℝ), f x ∂μ = ∫ (x : ℝ) in {a}, f x ∂μ := by
-        rw [ ← integral_indicator (by simp), indicator_eq_self.2 h]
-      rw [this, integral_singleton]; simp [Measure.real]
-    · rw [Icc_eq_empty_iff.mpr <| by exact fun x ↦ hab2 <| le_antisymm hab x, subset_empty_iff,
-          Function.support_eq_empty_iff] at h; simp [h]
+  have h (g : ℝ → 𝕂) : ∫ y in Ioi 0, g y / y = ∫ y, g y ∂TauCeti.multHaar := by
+    rw [TauCeti.integral_multHaar_eq_setIntegral]
+    simp [RCLike.real_smul_eq_coe_mul, div_eq_inv_mul]
+  have hinv : MeasurePreserving Inv.inv TauCeti.multHaar TauCeti.multHaar :=
+    ⟨measurable_inv, TauCeti.map_multHaar_inv⟩
+  have hmul : MeasurePreserving (a * ·) TauCeti.multHaar TauCeti.multHaar :=
+    ⟨measurable_const_mul a, TauCeti.map_multHaar_mul_left ha⟩
+  simp_rw [h, div_eq_mul_inv a]
+  rw [hinv.integral_comp measurableEmbedding_inv (fun y ↦ f (a * y)),
+    hmul.integral_comp (measurableEmbedding_mulLeft₀ ha.ne') f]
 
 blueprint_comment /--
 \label{PartialIntegration}
@@ -223,7 +194,6 @@ lemma support_MellinConvolution (f g : ℝ → 𝕂) :
     (MellinConvolution f g).support ⊆ f.support * g.support :=
   support_MellinConvolution_subsets subset_rfl subset_rfl
 
-set_option backward.isDefEq.respectTransparency false in
 lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     (suppν : ν.support ⊆ Set.Icc (1 / 2) 2)
     {s : ℂ} (hs : s ≠ 0) :
@@ -337,20 +307,13 @@ lemma MellinOfPsi {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
           have h := rpow_le_rpow xpos (mem_Icc.mp hx).2 (by linarith : 0 ≤ s.re)
           exact le_trans h <| rpow_le_rpow_of_exponent_le (by norm_num) hs₂
         convert! mul_le_mul f_bound pow_bound (norm_nonneg _) ?_ using 1 <;> simp [f]
-  have Cnonneg : 0 ≤ C := by
-    have hh := mainBnd 1 (by norm_num) ((3 : ℂ) / 2) (by norm_num) (by norm_num)
-    have hhh : 0 ≤ ‖𝓜 (fun x ↦ (ν x : ℂ)) ((3 : ℂ) / 2)‖ := by positivity
-    have hhhh : 0 < ‖(3 : ℂ) / 2‖⁻¹ := by norm_num
-    have := hhh.trans hh
-    exact (mul_nonneg_iff_of_pos_right hhhh).mp this
-  by_cases CeqZero : C = 0
-  · refine ⟨1, by linarith, ?_⟩
-    intro ε εpos s hs₁ hs₂
+  have Cnonneg : 0 ≤ C := by positivity
+  rcases Cnonneg.eq_or_lt with CeqZero | Cpos
+  · refine ⟨1, one_pos, fun ε εpos s hs₁ hs₂ ↦ ?_⟩
     have := mainBnd ε εpos s hs₁ hs₂
-    rw [CeqZero, zero_mul] at this
-    have : 0 ≤ 1 * ‖s‖⁻¹ := by positivity
-    linarith
-  · exact ⟨C, lt_of_le_of_ne Cnonneg fun a ↦ CeqZero (id (Eq.symm a)), mainBnd⟩
+    rw [← CeqZero, zero_mul] at this
+    exact this.trans (by positivity)
+  · exact ⟨C, Cpos, mainBnd⟩
 
 
 
@@ -403,28 +366,15 @@ lemma DeltaSpikeMass {ν : ℝ → ℝ} (mass_one : ∫ x in Ioi 0, ν x / x = 1
 
 
 
-lemma DeltaSpikeSupport_aux {ν : ℝ → ℝ} {ε : ℝ} (εpos : 0 < ε)
-    (suppν : ν.support ⊆ Icc (1 / 2) 2) :
-    (fun x ↦ if x < 0 then 0 else DeltaSpike ν ε x).support ⊆ Icc (2 ^ (-ε)) (2 ^ ε) := by
-  unfold DeltaSpike
-  simp only [one_div, Function.support_subset_iff, ne_eq, ite_eq_left_iff, not_lt, div_eq_zero_iff,
-    not_forall, exists_prop, mem_Icc, and_imp]
-  intro x hx h; push Not at h
-  have := suppν <| Function.mem_support.mpr h.1
-  simp only [one_div, mem_Icc] at this
-  have hl := (le_rpow_inv_iff_of_pos (by norm_num) hx εpos).mp this.1
-  rw [inv_rpow (by norm_num) ε, ← rpow_neg (by norm_num)] at hl
-  refine ⟨hl, (rpow_inv_le_iff_of_pos ?_ (by norm_num) εpos).mp this.2⟩
-  linarith [(by apply rpow_nonneg (by norm_num) : 0 ≤ (2 : ℝ) ^ (-ε))]
-
 lemma DeltaSpikeSupport' {ν : ℝ → ℝ} {ε x : ℝ} (εpos : 0 < ε) (xnonneg : 0 ≤ x)
     (suppν : ν.support ⊆ Icc (1 / 2) 2) :
     DeltaSpike ν ε x ≠ 0 → x ∈ Icc (2 ^ (-ε)) (2 ^ ε) := by
   intro h
-  have : (fun x ↦ if x < 0 then 0 else DeltaSpike ν ε x) x = DeltaSpike ν ε x := by
-    simp [xnonneg]
-  rw [← this] at h
-  exact (Function.support_subset_iff.mp <| DeltaSpikeSupport_aux εpos suppν) _ h
+  have hν := suppν (div_ne_zero_iff.mp h).1
+  have hx : (x ^ (1 / ε)) ^ ε = x := by
+    rw [← rpow_mul xnonneg, one_div_mul_cancel εpos.ne', rpow_one]
+  rw [← hx, rpow_neg two_pos.le, ← inv_rpow two_pos.le, ← one_div]
+  exact ⟨rpow_le_rpow (by norm_num) hν.1 εpos.le, rpow_le_rpow (by positivity) hν.2 εpos.le⟩
 
 lemma DeltaSpikeSupport {ν : ℝ → ℝ} {ε x : ℝ} (εpos : 0 < ε) (xnonneg : 0 ≤ x)
     (suppν : ν.support ⊆ Icc (1 / 2) 2) :
@@ -437,14 +387,9 @@ lemma DeltaSpikeContinuous {ν : ℝ → ℝ} {ε : ℝ} (εpos : 0 < ε)
   apply diffν.continuous.comp (g := ν) _ |>.div_const
   exact continuous_id.rpow_const fun _ ↦ Or.inr <| div_nonneg (by norm_num) εpos.le
 
-lemma DeltaSpikeOfRealContinuous {ν : ℝ → ℝ} {ε : ℝ} (εpos : 0 < ε)
-    (diffν : ContDiff ℝ 1 ν) : Continuous (fun x ↦ (DeltaSpike ν ε x : ℂ)) :=
-  continuous_ofReal.comp <| DeltaSpikeContinuous εpos diffν
-
 blueprint_comment /--
 The Mellin transform of the delta spike is easy to compute.
 -/
-set_option backward.isDefEq.respectTransparency false in
 @[blueprint
   (title := "MellinOfDeltaSpike")
   (statement := /--
@@ -624,45 +569,12 @@ $$
 
 lemma Smooth1Properties_estimate {ε : ℝ} (εpos : 0 < ε) :
     (1 - 2 ^ (-ε)) / ε < Real.log 2 := by
-  apply (div_lt_iff₀' εpos).mpr
-  have : 1 - 1 / (2 : ℝ) ^ ε = ((2 : ℝ) ^ ε - 1) / (2 : ℝ) ^ ε := by
-    rw [sub_div, div_self (by positivity)]
-  rw [← Real.log_rpow (by norm_num), rpow_neg (by norm_num), inv_eq_one_div (2 ^ ε), this]
-  set c := (2 : ℝ) ^ ε
-  have hc : 1 < c := by
-    rw [← rpow_zero (2 : ℝ)]
-    apply Real.rpow_lt_rpow_of_exponent_lt (by norm_num) εpos
-  apply (div_lt_iff₀' (by positivity)).mpr <| lt_sub_iff_add_lt'.mp ?_
-  let f := (fun x ↦ x * Real.log x - x)
-  rw [(by simp [f] : -1 = f 1), (by simp [f] : c * Real.log c - c = f c)]
-  have mono: StrictMonoOn f <| Ici 1 := by
-    refine strictMonoOn_of_deriv_pos (convex_Ici _) ?_ ?_
-    · apply continuousOn_id.mul (continuousOn_id.log ?_) |>.sub continuousOn_id
-      intro x hx; simp only [mem_Ici] at hx; simp only [id_eq, ne_eq]; linarith
-    · intro x hx; simp only [nonempty_Iio, interior_Ici', mem_Ioi] at hx
-      dsimp only [f]
-      rw [deriv_fun_sub, deriv_fun_mul, Real.deriv_log, deriv_id'', one_mul, mul_inv_cancel₀]
-      · simp [log_pos hx]
-      · linarith
-      · simp only [differentiableAt_fun_id]
-      · simp only [differentiableAt_log_iff, ne_eq]; linarith
-      · exact differentiableAt_fun_id.mul <| differentiableAt_fun_id.log (by linarith)
-      · simp only [differentiableAt_fun_id]
-  exact mono (by rw [mem_Ici]) (mem_Ici.mpr <| le_of_lt hc) hc
-
-
+  rw [div_lt_iff₀ εpos, rpow_def_of_pos two_pos]
+  linarith [add_one_lt_exp (x := Real.log 2 * -ε) (by have := log_pos one_lt_two; nlinarith)]
 
 blueprint_comment /--
 In particular, we have the following two properties.
 -/
-
-lemma Smooth1Properties_below_aux {x ε : ℝ} (hx : x ≤ 1 - Real.log 2 * ε) (εpos : 0 < ε) :
-    x < 2 ^ (-ε) := by
-  calc
-    x ≤ 1 - Real.log 2 * ε := hx
-    _ < 2 ^ (-ε) := ?_
-  rw [sub_lt_iff_lt_add, add_comm, ← sub_lt_iff_lt_add]
-  exact (div_lt_iff₀ εpos).mp <| Smooth1Properties_estimate εpos
 
 @[blueprint
   (title := "Smooth1Properties-below")
@@ -714,7 +626,8 @@ lemma Smooth1Properties_below {ν : ℝ → ℝ} (suppν : ν.support ⊆ Icc (1
   set c := Real.log 2; use c
   refine ⟨log_pos (by norm_num), rfl, ?_⟩
   intro ε x εpos xpos hx
-  have hx2 := Smooth1Properties_below_aux hx εpos
+  have hx2 : x < 2 ^ (-ε) := by
+    linarith [(div_lt_iff₀ εpos).mp <| Smooth1Properties_estimate εpos]
   rewrite [← DeltaSpikeMass mass_one εpos]
   unfold Smooth1 MellinConvolution
   calc
@@ -738,56 +651,6 @@ lemma Smooth1Properties_below {ν : ℝ → ℝ} (suppν : ν.support ⊆ Icc (1
     · rw [le_div_iff₀ (by linarith), zero_mul]; exact xpos.le
 
 
-
-lemma Smooth1Properties_above_aux {x ε : ℝ} (hx : 1 + (2 * Real.log 2) * ε ≤ x)
-    (hε : ε ∈ Ioo 0 1) :
-    2 ^ ε < x := by
-  calc
-    x ≥ 1 + (2 * Real.log 2) * ε := hx
-    _ > 2 ^ ε := ?_
-  refine lt_add_of_sub_left_lt <| (div_lt_iff₀ hε.1).mp ?_
-  calc
-    2 * Real.log 2 > 2 * (1 - 2 ^ (-ε)) / ε := ?_
-    _ > 2 ^ ε * (1 - 2 ^ (-ε)) / ε := ?_
-    _ = (2 ^ ε - 1) / ε := ?_
-  · field_simp
-    exact Smooth1Properties_estimate hε.1
-  · have : (2 : ℝ) ^ ε < 2 := by
-      have h := rpow_lt_rpow_of_exponent_lt (x := 2) (by norm_num) hε.2
-      rwa [Real.rpow_one] at h
-    have pos: 0 < (1 - 2 ^ (-ε)) / ε := by
-      refine div_pos ?_ hε.1
-      rw [sub_pos]
-      have h := rpow_lt_rpow_of_exponent_lt (x := 2) (by norm_num) (neg_lt_zero.mpr hε.1)
-      rwa [Real.rpow_zero] at h
-    have := (mul_lt_mul_iff_left₀ pos).mpr this
-    ring_nf at this ⊢
-    exact this
-  · have : (2 : ℝ) ^ ε * (2 : ℝ) ^ (-ε) = (2 : ℝ) ^ (ε - ε) := by
-      rw [← rpow_add (by norm_num), add_neg_cancel, sub_self]
-    conv => lhs; lhs; ring_nf; rhs; simp [this]
-
-lemma Smooth1Properties_above_aux2 {x y ε : ℝ} (hε : ε ∈ Ioo 0 1) (hy : y ∈ Ioc 0 1)
-  (hx2 : 2 ^ ε < x) :
-    2 < (x / y) ^ (1 / ε) := by
-  obtain ⟨εpos, ε1⟩ := hε
-  obtain ⟨ypos, y1⟩ := hy
-  calc
-    _ > (2 ^ ε / y) ^ (1 / ε) := ?_
-    _ = 2 / y ^ (1 / ε) := ?_
-    _ ≥ 2 / y := ?_
-    _ ≥ 2 := ?_
-  · rw [gt_iff_lt, div_rpow, div_rpow, lt_div_iff₀, mul_comm_div, div_self, mul_one]
-    <;> try positivity
-    · exact rpow_lt_rpow (by positivity) hx2 (by positivity)
-    · exact LT.lt.le <| lt_trans (by positivity) hx2
-  · rw [div_rpow, ← rpow_mul, mul_div_cancel₀ 1 <| ne_of_gt εpos, rpow_one] <;> positivity
-  · have : y ^ (1 / ε) ≤ y := by
-      nth_rewrite 2 [← rpow_one y]
-      exact rpow_le_rpow_of_exponent_ge ypos y1 (by linarith [one_lt_one_div εpos ε1])
-    have pos : 0 < y ^ (1 / ε) := rpow_pos_of_pos ypos _
-    rw [ge_iff_le, div_le_iff₀, div_mul_eq_mul_div, le_div_iff₀', mul_comm] <;> try linarith
-  · rw [ge_iff_le, le_div_iff₀ <| ypos]; exact (mul_le_iff_le_one_right zero_lt_two).mpr y1
 
 @[blueprint
   (title := "Smooth1Properties-above")
@@ -827,7 +690,12 @@ lemma Smooth1Properties_above {ν : ℝ → ℝ} (suppν : ν.support ⊆ Icc (1
   constructor
   · rfl
   intro ε x hε hx
-  have hx2 := Smooth1Properties_above_aux hx hε
+  have hx2 : 2 ^ ε < x := by
+    have h := rpow_one_add_le_one_add_mul_self (s := 1) (by norm_num) hε.1.le hε.2.le
+    have h2 := add_one_lt_exp (neg_ne_zero.mpr (log_pos one_lt_two).ne')
+    rw [Real.exp_neg, Real.exp_log two_pos] at h2
+    norm_num at h
+    nlinarith [hε.1]
   unfold Smooth1 MellinConvolution
   simp only [ite_mul, one_mul, zero_mul, RCLike.ofReal_real_eq_id, id_eq]
   apply setIntegral_eq_zero_of_forall_eq_zero
@@ -837,22 +705,10 @@ lemma Smooth1Properties_above {ν : ℝ → ℝ} (suppν : ν.support ⊆ Icc (1
   swap
   · simp [ypos, y1]
   simp only [mem_Ioi.mp hy, y1, and_self, ↓reduceIte, div_eq_zero_iff]; left
-  apply DeltaSpikeSupport hε.1 ?_ suppν
-  on_goal 1 =>
-    simp only [mem_Icc, not_and, not_le]
-  on_goal 2 =>
-    suffices h : 2 ^ ε < x / y by
-      linarith [(by apply rpow_pos_of_pos (by norm_num) : 0 < (2 : ℝ) ^ ε)]
-  all_goals
-  try intro
-  have : x / y = ((x / y) ^ (1 / ε)) ^ ε := by
-    rw [← rpow_mul]
-    simp only [one_div, inv_mul_cancel₀ (ne_of_gt hε.1), rpow_one]
-    apply div_nonneg_iff.mpr; left;
-    exact ⟨(le_trans (rpow_pos_of_pos (by norm_num) ε).le) hx2.le, ypos.le⟩
-  rw [this]
-  refine rpow_lt_rpow (by norm_num) ?_ hε.1
-  exact Smooth1Properties_above_aux2 hε ⟨ypos, y1⟩ hx2
+  have hxy : 2 ^ ε < x / y :=
+    hx2.trans_le (le_div_self ((rpow_pos_of_pos two_pos ε).trans hx2).le ypos y1)
+  exact DeltaSpikeSupport hε.1 (div_nonneg (by linarith [rpow_pos_of_pos two_pos ε]) ypos.le)
+    suppν fun h ↦ hxy.not_ge h.2
 
 
 lemma DeltaSpikeNonNeg_of_NonNeg {ν : ℝ → ℝ} (νnonneg : ∀ x > 0, 0 ≤ ν x)
@@ -1033,7 +889,7 @@ lemma MellinOfSmooth1a {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
       · apply ContinuousOn.cpow continuous_ofReal.continuousOn continuousOn_const
         intro x hx
         exact Or.inl (by simpa using hA.trans_le hx.1)
-      · exact (DeltaSpikeOfRealContinuous εpos diffν).continuousOn
+      · exact (continuous_ofReal.comp (DeltaSpikeContinuous εpos diffν)).continuousOn
     apply IntegrableOn.of_inter_support measurableSet_Ioi
     apply hcompact.mono_set
     intro x hx
