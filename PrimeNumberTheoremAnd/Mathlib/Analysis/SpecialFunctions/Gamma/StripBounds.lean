@@ -111,6 +111,17 @@ lemma log_one_add_norm_div_two_add_one_le {s : ℂ} (hs : 1 ≤ ‖s‖) :
     simpa [mul_assoc] using Real.log_mul h3 h1
   simpa [hmul] using hlog'
 
+/-- For `‖s‖ ≥ 1`, the `s ↦ s + 1` shift in the Stirling exponent is absorbed by a factor `4`. -/
+lemma norm_mul_log_shift_add_one_bound {s : ℂ} (hs : 1 ≤ ‖s‖) :
+    ‖s + 1‖ * Real.log (1 + ‖s + 1‖) ≤ 4 * (‖s‖ * Real.log (1 + ‖s‖)) := by
+  have hn : ‖s + 1‖ ≤ 2 * ‖s‖ := by linarith [norm_add_le s 1, norm_one (α := ℂ)]
+  have hl : Real.log (1 + ‖s + 1‖) ≤ 2 * Real.log (1 + ‖s‖) := by
+    rw [show 2 * Real.log (1 + ‖s‖) = Real.log ((1 + ‖s‖) ^ 2) by rw [Real.log_pow]; norm_num]
+    exact Real.log_le_log (by positivity) (by nlinarith)
+  have h0 : 0 ≤ Real.log (1 + ‖s + 1‖) := Real.log_nonneg (by linarith [norm_nonneg (s + 1)])
+  calc ‖s + 1‖ * Real.log (1 + ‖s + 1‖) ≤ (2 * ‖s‖) * (2 * Real.log (1 + ‖s‖)) := by gcongr
+    _ = 4 * (‖s‖ * Real.log (1 + ‖s‖)) := by ring
+
 /-- For `‖s‖ ≥ 1`, the `s ↦ s/2 + 1` shift in the half-plane Stirling exponent. -/
 lemma norm_mul_log_shift_half_bound {s : ℂ} (hs : 1 ≤ ‖s‖) :
     ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖) ≤

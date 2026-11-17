@@ -18,14 +18,14 @@ public import Mathlib.MeasureTheory.Function.Floor
 /-!
 # Fractional-part kernel for the Abel zeta formula
 
-`K_s(u) = {u} · u^{-s-1}` and its integrability / domination lemmas, used in
-`RiemannZetaAbelContinuation`.
+`K_s(u) = {u} · u^{-s-1}` and its integrability lemmas, used in
+`RiemannZetaPartialSum` and `RiemannZetaAbelContinuation`.
 
 ## Main results
 
 * `zetaAbelFractKernel`, `norm_zetaAbelFractKernel_le`
 * `ZetaAbelFractKernel.intervalIntegrable`
-* `ZetaAbelFractKernel.hasDerivAt_in_param`, `kernel_deriv_norm_bound_on_ball`
+* `ZetaAbelFractKernel.hasDerivAt_in_param`
 
 The positive-half-plane integral regularity and convergence are supplied directly by the
 generic APIs in `TauCeti.Analysis.MellinTransform.UpperTail`.
@@ -65,12 +65,6 @@ lemma aestronglyMeasurable (s : ℂ) (S : Set ℝ) (_ : MeasurableSet S) :
   refine (measurable_fract.complex_ofReal.mul ?_).aestronglyMeasurable
   simpa using Complex.measurable_ofReal.pow_const (-s - 1)
 
-lemma ae_bound_Ioi (s : ℂ) :
-    ∀ᵐ u ∂(volume.restrict (Ioi (1 : ℝ))),
-      ‖zetaAbelFractKernel s u‖ ≤ u ^ (-s.re - 1) :=
-  ae_restrict_iff' measurableSet_Ioi |>.2 <| ae_of_all _ fun u hu =>
-    norm_zetaAbelFractKernel_le u (le_of_lt hu) s
-
 lemma intervalIntegrable (s : ℂ) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     IntervalIntegrable (fun u => zetaAbelFractKernel s u) volume a b := by
   let μ := volume.restrict (Icc a b)
@@ -94,19 +88,6 @@ lemma intervalIntegrable (s : ℂ) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     integrable_of_norm_sub_le hmeas hf0 hg
       (hbound_ae.mono fun u hu => by simpa [sub_eq_add_neg, μ, g] using hu)
 
-lemma aestronglyMeasurable_param_deriv (z : ℂ) :
-    AEStronglyMeasurable (fun u : ℝ => -((Real.log u) : ℂ) * zetaAbelFractKernel z u)
-      (volume.restrict (Ioi (1 : ℝ))) := by
-  have hmeas : Measurable (fun u : ℝ => zetaAbelFractKernel z u) :=
-    (measurable_fract.complex_ofReal.mul <| by simpa using Complex.measurable_ofReal.pow_const (-z - 1))
-  simpa only [neg_mul] using
-    (Real.measurable_log.complex_ofReal.fun_mul hmeas).fun_neg.aestronglyMeasurable
-
-lemma eventually_aestronglyMeasurable_param (s : ℂ) :
-    ∀ᶠ z in 𝓝 s,
-      AEStronglyMeasurable (fun u : ℝ => zetaAbelFractKernel z u) (volume.restrict (Ioi (1 : ℝ))) :=
-  Eventually.of_forall fun z => aestronglyMeasurable z (Ioi (1 : ℝ)) measurableSet_Ioi
-
 theorem hasDerivAt_in_param (u : ℝ) (hu : 1 < u) (z : ℂ) :
     HasDerivAt (fun w => zetaAbelFractKernel w u)
       (-((Real.log u) : ℂ) * zetaAbelFractKernel z u) z := by
@@ -118,19 +99,5 @@ theorem hasDerivAt_in_param (u : ℝ) (hu : 1 < u) (z : ℂ) :
   exact (h.congr_of_eventuallyEq (EventuallyEq.of_eq hfun)).congr_deriv (by
     simp [zetaAbelFractKernel, Complex.ofReal_log (x := u) (hx := le_of_lt (lt_trans zero_lt_one hu)),
       mul_comm, mul_left_comm])
-
-theorem kernel_deriv_norm_bound_on_ball (ε : ℝ) (u : ℝ) (hu : 1 < u) (x : ℂ) (hx : ε ≤ x.re) :
-    ‖-((Real.log u) : ℂ) * zetaAbelFractKernel x u‖ ≤ Real.log u * u ^ (-1 - ε) := by
-  have hu1 : (1 : ℝ) ≤ u := le_of_lt hu
-  have hinner : ‖zetaAbelFractKernel x u‖ ≤ u ^ (-1 - ε) :=
-    (norm_zetaAbelFractKernel_le u hu1 x).trans (Real.rpow_le_rpow_of_exponent_le hu1 (by linarith))
-  have hlognorm : ‖-((Real.log u) : ℂ)‖ = Real.log u := by
-    have hnonneg : 0 ≤ Real.log u := le_of_lt (Real.log_pos hu)
-    simp [norm_neg, Complex.norm_real, abs_of_nonneg hnonneg]
-  calc
-    ‖-((Real.log u) : ℂ) * zetaAbelFractKernel x u‖
-        = Real.log u * ‖zetaAbelFractKernel x u‖ := by rw [norm_mul, hlognorm]
-    _ ≤ Real.log u * u ^ (-1 - ε) := mul_le_mul_of_nonneg_left hinner (le_of_lt (Real.log_pos hu))
-
 
 end ZetaAbelFractKernel
