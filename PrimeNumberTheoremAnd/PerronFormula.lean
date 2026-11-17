@@ -7,6 +7,7 @@ public import Mathlib.MeasureTheory.Integral.Asymptotics
 public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 public import TauCeti.Analysis.MellinInversion
+import TauCeti.Analysis.SpecialFunctions.ImproperIntegrals
 
 
 @[expose] public section
@@ -346,14 +347,6 @@ variable {x σ σ' σ'' T : ℝ}
 noncomputable abbrev f (x : ℝ) := fun (s : ℂ) ↦ x ^ s / (s * (s + 1))
 
 
-lemma f_mul_eq_f {x t : ℝ} (tpos : 0 < t) (xpos : 0 < x) (s : ℂ) :
-    f t s * (x : ℂ) ^ (-s) = f (t / x) s := by
-  change (t : ℂ) ^ s / (s * (s + 1)) * (x : ℂ) ^ (-s) =
-    ((t / x : ℝ) : ℂ) ^ s / (s * (s + 1))
-  rw [ofReal_div, Complex.div_cpow_ofReal_nonneg tpos.le xpos.le, cpow_neg]
-  ring
-
-
 @[blueprint
   "isHolomorphicOn"
   (title := "isHolomorphicOn")
@@ -374,57 +367,6 @@ lemma isHolomorphicOn (xpos : 0 < x) : DifferentiableOn ℂ (f x) {0, -1}ᶜ := 
     obtain ⟨h0, h1⟩ := not_or.mp hx
     exact mul_ne_zero h0 <| add_ne_add_left 1 |>.mpr h1 |>.trans_eq (neg_add_cancel 1)
 
-
-
-
-lemma integral_one_div_const_add_sq_pos (c : ℝ) (hc : 0 < c) :
-    0 < ∫ (t : ℝ), 1 / (c + t ^ 2) := by
-  have hfun_eq (t : ℝ) : 1 / (c + t ^ 2) = c⁻¹ * (1 + (c.sqrt⁻¹ * t) ^ 2)⁻¹ := by
-    field_simp [hc.ne.symm]
-    simp [hc.le]
-    ring
-  simp_rw [hfun_eq, integral_const_mul,
-    Measure.integral_comp_mul_left (fun t ↦ (1 + t ^ 2)⁻¹) (a:=c.sqrt⁻¹)]
-  simp [abs_eq_self.mpr <| Real.sqrt_nonneg c,
-    mul_pos (inv_pos.mpr hc) <| mul_pos (sqrt_pos.mpr hc) Real.pi_pos]
-
-lemma Integrable.one_div_const_add_sq (c : ℝ) (hc : 0 < c) :
-    Integrable fun (t : ℝ) ↦ 1 / (c + t ^ 2) :=
-  .of_integral_ne_zero (integral_one_div_const_add_sq_pos c hc).ne'
-
-lemma integralPosAux'_of_le (c₁ c₂ : ℝ) (c₁_pos : 0 < c₁) (hle : c₁ ≤ c₂) :
-    0 < ∫ (t : ℝ), 1 / ((c₁ + t ^ 2).sqrt * (c₂ + t ^ 2).sqrt) := by
-  have c₂_pos : 0 < c₂ := by linarith
-  have hlower (t : ℝ) :
-      1 / (c₂ + t ^ 2) ≤ 1 / ((c₁ + t ^ 2).sqrt * (c₂ + t ^ 2).sqrt) := by
-    gcongr
-    calc
-      _ ≤ (c₂ + t ^ 2).sqrt * (c₂ + t ^ 2).sqrt := by gcongr
-      _ ≤ c₂ + t ^ 2 := by rw [← Real.sqrt_mul, sqrt_mul_self] <;> positivity
-  have hupper (t : ℝ) :
-      1 / ((c₁ + t ^ 2).sqrt * (c₂ + t ^ 2).sqrt) ≤ 1 / (c₁ + t ^ 2) := by
-      gcongr
-      calc
-        _ ≥ (c₁ + t ^ 2).sqrt * (c₁ + t ^ 2).sqrt := by gcongr
-        _ ≥ c₁ + t ^ 2 := by rw [← Real.sqrt_mul, sqrt_mul_self] <;> positivity
-  calc 0 < ∫ t, 1 / (c₂ + t^2) := integral_one_div_const_add_sq_pos c₂ c₂_pos
-       _ ≤ ∫ t, 1 / (Real.sqrt (c₁ + t^2) * Real.sqrt (c₂ + t^2)) := ?_
-  refine integral_mono (Integrable.one_div_const_add_sq c₂ c₂_pos) ?_ hlower
-  apply MeasureTheory.Integrable.mono (g := fun t : ℝ ↦ 1 / (c₁ + t ^ 2))
-    <| Integrable.one_div_const_add_sq c₁ c₁_pos
-  · refine (measurable_const.div <| Measurable.mul ?_ ?_).aestronglyMeasurable <;>
-      exact (measurable_const.add <| measurable_id'.pow_const 2).sqrt
-  · refine ae_of_all _ (fun x ↦ ?_)
-    repeat rewrite [norm_of_nonneg (by positivity)]
-    exact hupper x
-
-
-lemma integralPosAux' (c₁ c₂ : ℝ) (c₁_pos : 0 < c₁) (c₂_pos : 0 < c₂) :
-    0 < ∫ (t : ℝ), 1 / ((c₁ + t^2).sqrt * (c₂ + t^2).sqrt) := by
-  by_cases hc : c₁ ≤ c₂
-  · exact integralPosAux'_of_le c₁ c₂ c₁_pos hc
-  · convert integralPosAux'_of_le c₂ c₁ c₂_pos (by linarith) using 4; rw [mul_comm]
-
 @[blueprint
   "integralPosAux"
   (title := "integralPosAux")
@@ -438,7 +380,16 @@ lemma integralPosAux' (c₁ c₂ : ℝ) (c₁_pos : 0 < c₁) (c₂_pos : 0 < c�
 lemma integralPosAux : 0 < ∫ (t : ℝ), 1 / ((1 + t^2).sqrt * (2 + t^2).sqrt) := by
   /-- This integral is between $\frac{1}{2}$ and $1$ of the integral of $\frac{1}{1+t^2}$,
   which is $\pi$. -/
-  apply integralPosAux' <;> norm_num
+  have hpos (t : ℝ) : 0 < (1 + t ^ 2).sqrt * (2 + t ^ 2).sqrt := by positivity
+  have hcont : Continuous fun t : ℝ ↦ 1 / ((1 + t ^ 2).sqrt * (2 + t ^ 2).sqrt) :=
+    continuous_const.div (by fun_prop) fun t ↦ (hpos t).ne'
+  refine integral_pos_of_integrable_nonneg_ne_zero (x := 0) hcont ?_
+    (fun t ↦ (one_div_pos.mpr (hpos t)).le) (one_div_pos.mpr (hpos 0)).ne'
+  refine integrable_inv_one_add_sq.mono' hcont.aestronglyMeasurable (.of_forall fun t ↦ ?_)
+  rw [norm_of_nonneg (one_div_pos.mpr (hpos t)).le, one_div]
+  gcongr
+  calc 1 + t ^ 2 = (1 + t ^ 2).sqrt * (1 + t ^ 2).sqrt := (mul_self_sqrt (by positivity)).symm
+    _ ≤ _ := by gcongr; linarith
 
 
 @[blueprint
@@ -525,9 +476,10 @@ lemma vertIntBoundLeft (xpos : 0 < x) :
     · rw [integral_undef hint]
       exact integral_nonneg <| fun t ↦ by simp only [Pi.zero_apply]; positivity
     apply integral_mono hint
-    · have := integralPosAux' (4⁻¹) (4⁻¹) (by norm_num) (by norm_num)
-      contrapose! this
-      simp_rw [integral_undef this, le_rfl]
+    · refine (TauCeti.integrable_inv_sq_add_sq (c := 2⁻¹) (by norm_num)).congr
+        (.of_forall fun t ↦ ?_)
+      simp only [mul_self_sqrt (by positivity : (0 : ℝ) ≤ 4⁻¹ + t ^ 2)]
+      ring
     rw [Pi.le_def]
     intro t
     gcongr <;> rw [Complex.norm_def] <;> apply sqrt_le_sqrt
@@ -541,13 +493,6 @@ lemma vertIntBoundLeft (xpos : 0 < x) :
       rw [← norm_of_nonneg this, ← Complex.norm_real]
       apply le_of_eq; congr; norm_cast
 
-
-lemma map_conj (hx : 0 ≤ x) (s : ℂ) : f x (conj s) = conj (f x s) := by
-  simp only [f, map_div₀, map_mul, map_add, map_one]
-  congr
-  rw [cpow_conj, Complex.conj_ofReal]
-  rw [Complex.arg_ofReal_of_nonneg hx]
-  exact pi_ne_zero.symm
 
 theorem isTheta_uniformlyOn_uIcc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
     (fun (σ, (y : ℝ)) ↦ f x (σ + y * I)) =Θ[𝓟 [[σ', σ'']] ×ˢ (atBot ⊔ atTop)]
@@ -583,13 +528,6 @@ theorem isTheta_uniformlyOn_uIoc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
   refine (𝓟 (uIoc σ' σ'')).eq_or_neBot.casesOn (fun hbot ↦ by simp [hbot]) (fun _ ↦ ?_)
   have : NeBot (atBot (α := ℝ) ⊔ atTop) := sup_neBot.mpr (Or.inl atBot_neBot)
   exact (isTheta_uniformlyOn_uIcc xpos σ' σ'').mono (by simpa using! Ioc_subset_Icc_self)
-
-lemma isTheta (xpos : 0 < x) :
-    ((fun (y : ℝ) ↦ f x (σ + y * I)) =Θ[atBot] fun (y : ℝ) ↦ 1 / y^2) ∧
-    (fun (y : ℝ) ↦ f x (σ + y * I)) =Θ[atTop] fun (y : ℝ) ↦ 1 / y^2 :=
-  isTheta_sup.mp <| (eventually_principal.mp
-    (isTheta_uniformlyOn_uIcc xpos σ σ).fiberwise_right) σ left_mem_uIcc
-
 
 blueprint_comment /--
 \label{isIntegrable}

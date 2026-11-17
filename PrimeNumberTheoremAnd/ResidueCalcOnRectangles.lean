@@ -476,30 +476,6 @@ private lemma rectangleIntegral'_eq_native_sum_residue
   rw [RectangleIntegral', hraw, smul_eq_mul, one_div, ← mul_assoc,
     inv_mul_cancel₀ Complex.two_pi_I_ne_zero, one_mul]
 
-theorem ResidueTheoremAtOrigin_aux1c (a b : ℝ) :
-    let f : ℝ → ℂ := fun y => (y + I)⁻¹
-    IntervalIntegrable f volume a b :=
-  (ContinuousOn.inv₀ (by fun_prop)
-    (by simp [Complex.ext_iff])).intervalIntegrable
-
-theorem ResidueTheoremAtOrigin_aux1c' (a b : ℝ) :
-    let f : ℝ → ℂ := fun y => (y - I)⁻¹
-    IntervalIntegrable f volume a b :=
-  (ContinuousOn.inv₀ (by fun_prop)
-    (by simp [Complex.ext_iff])).intervalIntegrable
-
-theorem ResidueTheoremAtOrigin_aux2c (a b : ℝ) :
-    let f : ℝ → ℂ := fun y => (1 + y * I)⁻¹
-    IntervalIntegrable f volume a b :=
-  (ContinuousOn.inv₀ (by fun_prop)
-    (by simp [Complex.ext_iff])).intervalIntegrable
-
-theorem ResidueTheoremAtOrigin_aux2c' (a b : ℝ) :
-    let f : ℝ → ℂ := fun y => (-1 + y * I)⁻¹
-    IntervalIntegrable f volume a b :=
-  (ContinuousOn.inv₀ (by fun_prop)
-    (by simp [Complex.ext_iff])).intervalIntegrable
-
 theorem RectangleIntegral.const_smul (f : ℂ → E) (z w c : ℂ) :
     RectangleIntegral (fun s => c • f s) z w = c • RectangleIntegral f z w := by
   simp [RectangleIntegral, HIntegral, VIntegral, smul_add, smul_sub, smul_smul, mul_comm]
@@ -523,13 +499,6 @@ lemma Complex.inv_re_add_im : (x + y * I)⁻¹ = (x - I * y) / (x ^ 2 + y ^ 2) :
   rw [Complex.inv_def, div_eq_mul_inv]
   congr <;> simp [conj_ofReal, normSq] <;> ring
 
-lemma sq_add_sq_ne_zero (hy : y ≠ 0) : x ^ 2 + y ^ 2 ≠ 0 := by
-  linarith [sq_nonneg x, sq_pos_iff.mpr hy]
-
-lemma continuous_self_div_sq_add_sq (hy : y ≠ 0) :
-    Continuous fun x => x / (x ^ 2 + y ^ 2) :=
-  continuous_id.div (continuous_id.pow 2 |>.add continuous_const) (fun _ => sq_add_sq_ne_zero hy)
-
 set_option backward.isDefEq.respectTransparency false in
 lemma integral_const_div_self_add_im (hy : y ≠ 0) :
     ∫ x : ℝ in x₁..x₂, A / (x + y * I) =
@@ -543,12 +512,13 @@ lemma integral_const_div_self_add_im (hy : y ≠ 0) :
     apply Continuous.intervalIntegrable
     simp_rw [mul_div_assoc]
     norm_cast
-    exact continuous_const.mul (continuous_ofReal.comp (continuous_self_div_sq_add_sq hy))
+    exact continuous_const.mul (continuous_ofReal.comp
+      (continuous_id.div (by fun_prop) fun _ ↦ by positivity))
   have e3 : IntervalIntegrable (fun x ↦ A * I * y / (x ^ 2 + y ^ 2)) volume x₁ x₂ := by
     apply Continuous.intervalIntegrable
     refine continuous_const.div (by fun_prop) (fun x => ?_)
     norm_cast
-    exact sq_add_sq_ne_zero hy
+    positivity
   simp_rw [integral_congr (fun _ _ => e1), integral_sub e2 e3, mul_div_assoc]
   norm_cast
   simp_rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_ofReal,
@@ -668,21 +638,11 @@ lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ
 lemma IsBigO_to_BddAbove {f : ℂ → ℂ} {p : ℂ}
     (f_near_p : f =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
     ∃ U ∈ 𝓝 p, BddAbove (norm ∘ f '' (U \ {p})) := by
-  simp only [isBigO_iff, Pi.one_apply, one_mem, CStarRing.norm_of_mem_unitary, mul_one] at f_near_p
-  obtain ⟨c, hc⟩ := f_near_p
-  dsimp [Filter.Eventually, nhdsWithin] at hc
-  rw [mem_inf_principal'] at hc
-  obtain ⟨U, hU, ⟨U_is_open, p_in_U⟩⟩ := mem_nhds_iff.mp hc
-  use U
-  constructor
-  · exact IsOpen.mem_nhds U_is_open p_in_U
-  · refine bddAbove_def.mpr ?_
-    use c
-    intro y hy
-    simp only [Function.comp_apply, mem_image, Set.mem_sdiff, mem_singleton_iff] at hy
-    obtain ⟨x, ⟨x_in_U, x_not_p⟩, fxy⟩ := hy
-    rw [← fxy]
-    simpa [x_not_p] using hU x_in_U
+  obtain ⟨c, hc⟩ := f_near_p.bound
+  obtain ⟨U, hU, hsub⟩ := mem_nhdsWithin_iff_exists_mem_nhds_inter.mp hc
+  refine ⟨U, hU, c, ?_⟩
+  rintro _ ⟨s, ⟨hsU, hsp⟩, rfl⟩
+  simpa using hsub ⟨hsU, hsp⟩
 
 theorem BddAbove_on_rectangle_of_bdd_near {z w p : ℂ} {f : ℂ → ℂ}
     (f_cont : ContinuousOn f (Rectangle z w \ {p}))
