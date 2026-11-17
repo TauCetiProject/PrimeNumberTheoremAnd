@@ -23,22 +23,6 @@ open Finset
 open BigOperators Filter Real Classical Asymptotics MeasureTheory intervalIntegral
 open scoped ArithmeticFunction.Moebius ArithmeticFunction.Omega Chebyshev
 
-lemma Set.Ico_subset_Ico_of_Icc_subset_Icc {a b c d : ℝ} (h : Set.Icc a b ⊆ Set.Icc c d) :
-    Set.Ico a b ⊆ Set.Ico c d := by
-  intro z hz
-  have hz' := Set.Ico_subset_Icc_self.trans h hz
-  have hcd : c ≤ d := by
-    contrapose! hz'
-    rw [Icc_eq_empty_of_lt hz']
-    exact notMem_empty _
-  simp only [mem_Ico, mem_Icc] at *
-  refine ⟨hz'.1, hz'.2.eq_or_lt.resolve_left ?_⟩
-  rintro rfl
-  apply hz.2.not_ge
-  have := h <| right_mem_Icc.mpr (hz.1.trans hz.2.le)
-  simp only [mem_Icc] at this
-  exact this.2
-
 @[blueprint
   (title := "finsum-range-eq-sum-range")
   (statement := /--
@@ -79,33 +63,12 @@ This is Mathlib's `Chebyshev.isEquivalent_theta_id`.
 
 theorem chebyshev_asymptotic_finsum :
     (fun x ↦ ∑ᶠ (p : ℕ) (_ : p ≤ x) (_ : Nat.Prime p), log p) ~[atTop] fun x ↦ x := by
-  have hReal :
-      (fun x : ℝ ↦ ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ)) ~[atTop]
-        fun x ↦ x := by
-    have h x : ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ) = θ x := by
-      rw [Chebyshev.theta_eq_sum_Icc]
-      have hfin : {p : ℕ | (p : ℝ) ≤ x ∧ p.Prime}.Finite :=
-        (Iic ⌊x⌋₊).finite_toSet.subset fun p ⟨hpx, _⟩ ↦ mem_Iic.mpr (Nat.le_floor hpx)
-      calc ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ)
-          = ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x ∧ p.Prime), log (p : ℝ) :=
-            finsum_congr fun p ↦ by by_cases hp : p.Prime <;> simp [hp]
-        _ = ∑ p ∈ hfin.toFinset, log (p : ℝ) := finsum_mem_eq_finite_toFinset_sum _ hfin
-        _ = _ := sum_congr (by ext p; simp only [Set.Finite.mem_toFinset, Set.mem_ofPred_eq,
-            mem_filter, mem_Icc, and_congr_left_iff]; exact fun hp ↦
-            ⟨fun hpx ↦ ⟨Nat.zero_le _, Nat.le_floor hpx⟩, fun ⟨_, hpn⟩ ↦
-              (le_or_gt 0 x).elim
-                (fun hx ↦ (Nat.floor_le hx).trans' (Nat.cast_le.mpr hpn)) fun hx ↦
-                absurd (Nat.le_zero.mp (Nat.floor_eq_zero.mpr (hx.trans_le zero_le_one) ▸ hpn))
-                  hp.ne_zero⟩) (fun _ _ ↦ rfl)
-    have heq :
-        (fun x : ℝ ↦ ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ)) =ᶠ[atTop] θ :=
-      Filter.Eventually.of_forall h
-    exact Chebyshev.isEquivalent_theta_id.congr_left heq.symm
-  simp only [IsEquivalent,
-    show (fun n : ℕ ↦ ∑ᶠ (p : ℕ) (_ : p ≤ n) (_ : p.Prime), log (p : ℝ)) =
-      (fun x : ℝ ↦ ∑ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), log (p : ℝ)) ∘ Nat.cast
-    from funext fun _ ↦ finsum_congr fun _ ↦ by simp]
-  exact hReal.isLittleO.comp_tendsto tendsto_natCast_atTop_atTop
+  have h (n : ℕ) : ∑ᶠ (p : ℕ) (_ : p ≤ n) (_ : p.Prime), log (p : ℝ) = θ n := by
+    rw [Chebyshev.theta_eq_sum_Icc, floor_natCast, sum_filter,
+      finsum_cond_eq_sum_of_cond_iff _ (t := Icc 0 n) (by simp)]
+    simp [finsum_eq_if]
+  simp only [h]
+  exact Chebyshev.isEquivalent_theta_id.comp_tendsto tendsto_natCast_atTop_atTop
 
 theorem chebyshev_asymptotic' :
     ∃ (f : ℝ → ℝ),
@@ -178,26 +141,12 @@ theorem primorial_bounds_finprod :
   rw [heq]
   simpa only [finprod_eq_if, Finset.prod_filter] using hprod x
 
-lemma continuousOn_log0 :
-    ContinuousOn (fun x ↦ -1 / (x * log x ^ 2)) {0, 1, -1}ᶜ := by
-  refine fun t ht ↦ ContinuousAt.continuousWithinAt ?_
-  fun_prop (disch := simp_all)
-
-lemma continuousOn_log1 : ContinuousOn (fun x ↦ (log x ^ 2)⁻¹ * x⁻¹) {0, 1, -1}ᶜ := by
-  refine fun t ht ↦ ContinuousAt.continuousWithinAt ?_
-  fun_prop (disch := simp_all)
-
 lemma integral_log_inv_pos (x : ℝ) (hx : 2 < x) :
     0 < ∫ t in Set.Icc 2 x, (log t)⁻¹ := by
   rw [integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le hx.le,
     ← TauCeti.Real.logIntegral_def]
   exact (div_pos (sub_pos.mpr hx) (log_pos (one_lt_two.trans hx))).trans_le
     (TauCeti.Real.le_logIntegral hx.le)
-
-lemma integral_log_inv_ne_zero (x : ℝ) (hx : 2 < x) :
-    ∫ t in Set.Icc 2 x, (log t)⁻¹ ≠ 0 := by
-  have := integral_log_inv_pos x hx
-  linarith
 
 theorem pi_asymp'' :
     (fun x => ((Nat.primeCounting ⌊x⌋₊ : ℝ) / ∫ t in Set.Icc 2 x, 1 / log t) - (1 : ℝ)) =o[atTop]
@@ -246,28 +195,6 @@ theorem pi_asymp :
   rw [intervalIntegral.integral_of_le (by linarith),
     ← MeasureTheory.integral_Icc_eq_integral_Ioc]
   field [(integral_log_inv_pos x (by linarith)).ne']
-
-lemma inv_div_log_asy : ∃ c, ∀ᶠ (x : ℝ) in atTop,
-    ∫ (t : ℝ) in Set.Icc 2 x, 1 / log t ^ 2 ≤ c * (x / log x ^ 2) := by
-  have := Chebyshev.integral_one_div_log_sq_isBigO
-  rw [isBigO_iff] at this
-  obtain ⟨c, hc⟩ := this
-  use c
-  filter_upwards [hc, eventually_ge_atTop 2] with x hc hx
-  rw [integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le hx]
-  apply le_trans (by apply le_norm_self)
-  nth_rewrite 2 [norm_of_nonneg (by positivity)] at hc
-  exact hc
-
-lemma integral_div_log_asymptotic : ∃ c : ℝ → ℝ, c =o[atTop] (fun _ ↦ (1:ℝ)) ∧
-    ∀ᶠ (x : ℝ) in atTop, ∫ t in Set.Icc 2 x, 1 / (log t) = (1 + c x) * x / (log x) := by
-  obtain ⟨qlog, hqlog, heq⟩ := TauCeti.Real.logIntegral_isEquivalent_div_log.exists_eq_mul
-  refine ⟨fun x ↦ qlog x - 1, (isLittleO_one_iff ℝ).mpr ?_, ?_⟩
-  · simpa only [sub_self] using hqlog.sub_const (1 : ℝ)
-  · filter_upwards [heq, eventually_ge_atTop (2 : ℝ)] with x heq hx
-    rw [show 1 + (qlog x - 1) = qlog x by ring, mul_div_assoc]
-    simpa only [TauCeti.Real.logIntegral_def, intervalIntegral.integral_of_le hx,
-      integral_Icc_eq_integral_Ioc, Pi.mul_apply, one_div] using heq
 
 @[blueprint
   (title := "pi-alt")
@@ -411,28 +338,6 @@ theorem pn_pn_plus_one : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) 
     simp only [Pi.div_apply, sub_div, div_self (hne n)]
   · intro n
     exact (div_mul_cancel₀ _ (hne n)).symm
-
-lemma smaller_terms {ε : ℝ} (hε : 0 < ε) (f : ℝ → ℝ) (hf : Tendsto f atTop (nhds 0)) (δ : ℝ)
-    (hδ : δ > 0) :
-    ∀ᶠ x : ℝ in atTop, (1 - δ) * ((1 + ε) * x / (Real.log ((1 + ε) * x))) <
-      (1 + f ((1 + ε) * x)) * ((1 + ε) * x / (Real.log ((1 + ε) * x))) := by
-  filter_upwards
-    [((hf.comp (tendsto_id.const_mul_atTop
-      (by positivity : (0 : ℝ) < 1 + ε))).const_add 1).eventually_const_lt
-        (show 1 - δ < 1 + 0 by linarith), eventually_ge_atTop (1 : ℝ)] with x hx h1
-  apply mul_lt_mul_of_pos_right hx
-  exact div_pos (by positivity)
-    (log_pos (one_lt_mul_of_lt_of_le (by linarith) h1))
-
-
-lemma second_smaller_terms (f : ℝ → ℝ) (hf : Tendsto f atTop (nhds 0)) (δ : ℝ) (hδ : δ > 0) :
-    ∀ᶠ x : ℝ in atTop,
-      (1 + δ) * (x / Real.log x) > (1 + f x) * (x / Real.log x) := by
-  filter_upwards [(hf.const_add 1).eventually_lt_const (show 1 + 0 < 1 + δ by linarith),
-    eventually_ge_atTop (2 : ℝ)] with x hx h2
-  exact mul_lt_mul_of_pos_right hx
-    (div_pos (by linarith) (log_pos (by linarith)))
-
 
 lemma tendsto_by_squeeze (ε : ℝ) (hε : ε > 0) :
     Tendsto (fun (x : ℝ) => (Nat.primeCounting ⌊(1 + ε) * x⌋₊ : ℝ) -
@@ -599,12 +504,7 @@ lemma M_log_identity (x : ℝ) (hx : 1 ≤ x) : M x * log x = ∑ k ∈ Iic ⌊x
 
 noncomputable def R (x : ℝ) : ℝ := Chebyshev.psi x - x
 
-lemma R_isLittleO : R =o[atTop] id := by
-  have h_pnt : (fun x => Chebyshev.psi x - x) =o[atTop] (fun x => x) := by
-    have h_psi : (fun x => Chebyshev.psi x) ~[atTop] (fun x => x) := by
-      exact Chebyshev.isEquivalent_psi_id
-    exact h_psi
-  convert! h_pnt using 1
+lemma R_isLittleO : R =o[atTop] id := Chebyshev.isEquivalent_psi_id
 
 lemma sum_mobius_div_isBigO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (x / k)) =O[atTop] id := by
   have h_abs : ∀ x : ℝ, 1 ≤ x → |∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) / n| ≤ 1 := by
@@ -637,22 +537,9 @@ lemma sum_log_div_isBigO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, log (x / k)
   rw [Asymptotics.isBigO_iff]
   exact ⟨2, Filter.eventually_atTop.mpr ⟨1, fun x hx => le_trans (h_sum_log x hx) (by norm_num [abs_of_nonneg (by linarith : 0 ≤ x)])⟩⟩
 
-lemma R_locally_bounded (K : ℝ) (hK : 0 ≤ K) : ∃ C, ∀ y ∈ Set.Icc 0 K, |R y| ≤ C := by
-  have hR_bounded : BddAbove (Set.image (fun y => |R y|) (Set.Icc 0 K)) := by
-    have hR_bounded : ∀ y ∈ Set.Icc 0 K, |R y| ≤ ∑ p ∈ Iic ⌊K⌋₊, log p + K := by
-      intro y hy
-      simp only [R, Chebyshev.psi_eq_sum_Icc]
-      refine abs_sub_le_iff.mpr ⟨?_, ?_⟩
-      · refine le_trans (sub_le_self _ hy.1) ?_
-        refine le_trans (Finset.sum_le_sum_of_subset_of_nonneg (Finset.Iic_subset_Iic.mpr <| Nat.floor_mono hy.2) fun ?_ ?_ ?_ => ?_) ?_
-        · exact vonMangoldt_nonneg
-        · refine le_add_of_le_of_nonneg (Finset.sum_le_sum fun i hi => ?_) hK
-          exact vonMangoldt_le_log
-      · refine le_trans ?_ (le_add_of_nonneg_left ?_)
-        · exact le_trans (sub_le_self _ <| Finset.sum_nonneg fun _ _ => by exact_mod_cast ArithmeticFunction.vonMangoldt_nonneg) hy.2
-        · exact Finset.sum_nonneg fun _ _ => Real.log_natCast_nonneg _
-    exact ⟨_, Set.forall_mem_image.2 hR_bounded⟩
-  exact ⟨hR_bounded.choose, fun y hy => hR_bounded.choose_spec <| Set.mem_image_of_mem _ hy⟩
+lemma R_locally_bounded (K : ℝ) (hK : 0 ≤ K) : ∃ C, ∀ y ∈ Set.Icc 0 K, |R y| ≤ C :=
+  ⟨ψ K + K, fun y hy ↦ abs_sub_le_iff.2 ⟨by linarith [Chebyshev.psi_mono hy.2, hy.1],
+    by linarith [Chebyshev.psi_nonneg y, Chebyshev.psi_nonneg K, hy.2]⟩⟩
 
 lemma sum_bounded_of_linear_bound {f : ℝ → ℝ} {ε C : ℝ} (hε : 0 ≤ ε) (hC : 0 ≤ C) (h : ∀ y, 1 ≤ y → |f y| ≤ ε * y + C) (x : ℝ) (hx : 1 ≤ x) :
   ∑ k ∈ Icc 1 ⌊x⌋₊, |f (x / k)| ≤ ε * x * (log x + 1) + C * x := by
@@ -720,14 +607,6 @@ lemma sum_abs_R_isLittleO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, |R (x / k)
     intro ε hε; obtain ⟨x₀, hx₀⟩ := h_eps (ε / 2) (half_pos hε) ; use Max.max x₀ 2; intro x hx; rw [abs_of_nonneg (Finset.sum_nonneg fun _ _ => abs_nonneg _), abs_of_nonneg (by linarith [le_max_right x₀ 2]), abs_of_nonneg (Real.log_nonneg (by linarith [le_max_right x₀ 2]))] ; rw [div_lt_iff₀] <;> nlinarith [hx₀ x (le_trans (le_max_left x₀ 2) hx), Real.log_pos (by linarith [le_max_right x₀ 2] : 1 < x), mul_pos (by linarith [le_max_right x₀ 2] : 0 < x) (Real.log_pos (by linarith [le_max_right x₀ 2] : 1 < x)), h_sum_eq x (by linarith [le_max_right x₀ 2])]
   · filter_upwards [Filter.eventually_gt_atTop 1] with x hx hx' using absurd hx' (by nlinarith [Real.log_pos hx])
 
-lemma R_linear_bound (ε : ℝ) (hε : 0 < ε) : ∃ C, 0 ≤ C ∧ ∀ y, 1 ≤ y → |R y| ≤ ε * y + C := by
-  obtain ⟨A, hA⟩ : ∃ A : ℝ, 0 < A ∧ ∀ y : ℝ, A ≤ y → |R y| ≤ ε * y := by
-    have := R_isLittleO.def hε
-    rw [Filter.eventually_atTop] at this; rcases this with ⟨A, hA⟩ ; exact ⟨Max.max A 1, by positivity, fun y hy => by simpa [abs_of_nonneg (show 0 ≤ y by linarith [le_max_right A 1])] using hA y (le_trans (le_max_left A 1) hy)⟩
-  obtain ⟨CA, hCA⟩ : ∃ CA : ℝ, ∀ y ∈ Set.Icc 0 A, |R y| ≤ CA := by
-    exact R_locally_bounded A hA.1.le |> fun ⟨CA, hCA⟩ => ⟨CA, fun y hy => hCA y hy⟩
-  exact ⟨Max.max CA 0, by positivity, fun y hy => if hy' : y ≤ A then le_trans (hCA y ⟨by linarith, by linarith⟩) (by linarith [le_max_left CA 0, le_max_right CA 0, show 0 ≤ ε * y by nlinarith]) else le_trans (hA.2 y (by linarith)) (by linarith [le_max_left CA 0, le_max_right CA 0, show 0 ≤ ε * y by nlinarith])⟩
-
 lemma M_isLittleO : M =o[atTop] id := by
   have h_identity : ∀ x ≥ 1, M x * Real.log x = ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (Real.log (x / k) - Chebyshev.psi (x / k)) := by
     exact fun x a => M_log_identity x a
@@ -736,9 +615,7 @@ lemma M_isLittleO : M =o[atTop] id := by
       intros x hx
       have h_abs : ∀ k ∈ Iic ⌊x⌋₊, |(μ k : ℝ) * Real.log (x / k)| ≤ Real.log (x / k) := by
         intros k hk
-        have h_abs : |(μ k : ℝ)| ≤ 1 := by
-          norm_num [ArithmeticFunction.moebius]
-          split_ifs <;> norm_num
+        have h_abs : |(μ k : ℝ)| ≤ 1 := mod_cast abs_moebius_le_one
         by_cases hk0 : k = 0
         · rw [hk0] ; norm_num [ArithmeticFunction.map_zero, Nat.cast_zero, Real.log_zero, div_zero, abs_zero]
         · have hx_pos : 0 < x := by positivity
@@ -1205,7 +1082,7 @@ theorem mu_pnt_alt : (fun x : ℝ ↦ ∑ n ∈ range ⌊x⌋₊, (μ n : ℝ) /
     exact Metric.tendsto_atTop.mpr fun ε hε => by simpa using h_eps ε hε
   have h_sum_zero : Filter.Tendsto (fun x : ℝ => ∑ n ∈ Finset.range (⌊x⌋₊ + 1), (μ n : ℝ) / n) Filter.atTop (nhds 0) := by
     convert h_sum_zero using 2 ; erw [Finset.sum_Ico_eq_sub _ _] <;> norm_num [Finset.sum_range_succ']
-  simpa [Finset.sum_range_succ] using h_sum_zero.sub (show Filter.Tendsto (fun x : ℝ => (μ ⌊x⌋₊ : ℝ) / ⌊x⌋₊) Filter.atTop (nhds 0) from tendsto_zero_iff_norm_tendsto_zero.mpr <| squeeze_zero (fun _ => by positivity) (fun x => by simpa using div_le_div_of_nonneg_right (show |(μ ⌊x⌋₊ : ℝ)| ≤ 1 from mod_cast by { unfold ArithmeticFunction.moebius; aesop }) <| Nat.cast_nonneg _) <| tendsto_inv_atTop_zero.comp <| tendsto_natCast_atTop_atTop.comp <| tendsto_nat_floor_atTop)
+  simpa [Finset.sum_range_succ] using h_sum_zero.sub (show Filter.Tendsto (fun x : ℝ => (μ ⌊x⌋₊ : ℝ) / ⌊x⌋₊) Filter.atTop (nhds 0) from tendsto_zero_iff_norm_tendsto_zero.mpr <| squeeze_zero (fun _ => by positivity) (fun x => by simpa using div_le_div_of_nonneg_right (show |(μ ⌊x⌋₊ : ℝ)| ≤ 1 from mod_cast abs_moebius_le_one) <| Nat.cast_nonneg _) <| tendsto_inv_atTop_zero.comp <| tendsto_natCast_atTop_atTop.comp <| tendsto_nat_floor_atTop)
 
 
 blueprint_comment /--
