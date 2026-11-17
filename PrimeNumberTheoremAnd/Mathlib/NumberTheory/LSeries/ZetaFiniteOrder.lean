@@ -63,30 +63,6 @@ namespace Complex
 
 /-! ### Finite order of the completed zeta function -/
 
-/-- The functional equation lets one work in the half-plane `1 / 2 ≤ re z`. -/
-lemma exists_completedRiemannZeta₀_right_halfPlane (z : ℂ) :
-    ∃ w : ℂ,
-      completedRiemannZeta₀ w = completedRiemannZeta₀ z ∧
-        (2⁻¹ : ℝ) ≤ w.re ∧ ‖w‖ ≤ 1 + ‖z‖ := by
-  refine ⟨if z.re < (2⁻¹ : ℝ) then 1 - z else z, ?_, ?_, ?_⟩
-  · by_cases hzr : z.re < (2⁻¹ : ℝ)
-    · have hw : (if z.re < (2⁻¹ : ℝ) then 1 - z else z) = 1 - z := by
-        simp [hzr]
-      simpa [hw] using (completedRiemannZeta₀_one_sub z)
-    · simp [hzr]
-  · by_cases hzr : z.re < (2⁻¹ : ℝ)
-    · have : (if z.re < (2⁻¹ : ℝ) then 1 - z else z).re = 1 - z.re := by
-        simp [hzr]
-      linarith [this, hzr]
-    · simpa [hzr] using le_of_not_gt hzr
-  · by_cases hzr : z.re < (2⁻¹ : ℝ)
-    · have hw : (if z.re < (2⁻¹ : ℝ) then 1 - z else z) = 1 - z := by
-        simp [hzr]
-      have : ‖1 - z‖ ≤ ‖(1 : ℂ)‖ + ‖z‖ := by
-        simpa using (norm_sub_le (1 : ℂ) z)
-      simpa [hw, norm_one, add_comm, add_left_comm, add_assoc] using this
-    · simp [hzr]
-
 /-- If `re z ≤ σ₀`, then `1 - σ₀ ≤ re (1 - z)` for `σ₀ = zetaAbelContinuationReLower`. -/
 lemma one_sub_re_ge_one_sub_zetaAbelContinuationReLower_of_re_le {z : ℂ}
     (hz : z.re ≤ zetaAbelContinuationReLower) :
@@ -100,18 +76,6 @@ lemma one_sub_re_ge_one_sub_zetaAbelContinuationReLower_of_re_le {z : ℂ}
         norm_num [zetaAbelContinuationReLower, one_sub_zetaAbelContinuationReLower]
     _ ≤ 1 - z.re := h
     _ = (1 - z).re := by simp [Complex.sub_re]
-
-/-- The zeta functional equation written with a reflected variable `w = 1 - z`. -/
-lemma riemannZeta_eq_reflected {z w : ℂ} (hw : w = 1 - z)
-    (hw_ne_neg : ∀ n : ℕ, w ≠ -n) (hw_ne_one : w ≠ 1) :
-    riemannZeta z =
-      2 * (2 * π) ^ (-w) * Complex.Gamma w * Complex.cos (π * w / 2) *
-        riemannZeta w := by
-  have h := riemannZeta_one_sub (s := w) (hs := hw_ne_neg) (hs' := hw_ne_one)
-  have hsub : 1 - w = z := by
-    rw [hw]
-    ring
-  simpa [hsub, mul_assoc, mul_left_comm, mul_comm] using h
 
 /-- The large coefficient in the reflected zeta estimate is dominated by the chosen constant. -/
 lemma reflected_zeta_coefficient_le {C CΓ : ℝ} (hCΓ : 0 ≤ CΓ)
@@ -331,7 +295,7 @@ theorem zeta_minus_pole_entire_growth :
           have hzeta_fe :
               riemannZeta z =
                 2 * (2 * π) ^ (-w) * Complex.Gamma w * Complex.cos (π * w / 2) * riemannZeta w := by
-            exact riemannZeta_eq_reflected (by simp [w]) hw_ne_neg hw_ne1
+            simpa [w, mul_assoc, mul_left_comm, mul_comm] using riemannZeta_one_sub hw_ne_neg hw_ne1
           have hpow_le1 : ‖(2 * π : ℂ) ^ (-w)‖ ≤ 1 :=
             Complex.Gammaℝ.Stirling.norm_cpow_two_mul_pi_neg_le_one hw_re0
           have hw_norm_le : ‖w‖ ≤ A := by

@@ -628,7 +628,7 @@ theorem DifferentiableOn.upperUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : �
   apply EventuallyEq.tendsto
   filter_upwards [eventually_ge_atTop T]
   refine fun _ hTU ↦ hf.vanishesOnRectangle fun _ ↦ ?_
-  rw [mem_Rect (by simp [hσ]) (by simp [hTU])]
+  rw [mem_rectangle_iff (by simp [hσ]) (by simp [hTU])]
   simpa using by tauto
 
 theorem DifferentiableOn.lowerUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : ℝ} (hσ : σ ≤ σ')
@@ -642,7 +642,7 @@ theorem DifferentiableOn.lowerUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : �
   apply EventuallyEq.tendsto
   filter_upwards [eventually_ge_atTop T]
   refine fun _ hTU ↦ hf.vanishesOnRectangle fun _ ↦ ?_
-  rw [mem_Rect (by simp [hσ]) (by simp [hTU])]
+  rw [mem_rectangle_iff (by simp [hσ]) (by simp [hTU])]
   simpa using by tauto
 
 @[blueprint
@@ -787,8 +787,8 @@ lemma residueAtZero (xpos : 0 < x) : ∀ᶠ (c : ℝ) in 𝓝[>] 0,
   obtain ⟨cpos, _⟩ := hc
   have RectSub : Square 0 c \ {0} ⊆ {0, -1}ᶜ := by
     refine fun s ⟨hs, hs0⟩ ↦ not_or.mpr ⟨hs0, ?_⟩
-    rw [Square, mem_Rect (by simpa using by linarith) (by simp [cpos.le])] at hs
-    replace hs : -c ≤ s.re ∧ s.re ≤ c ∧ -c ≤ s.im ∧ s.im ≤ c := by simpa using hs
+    rw [Square, mem_rectangle_iff (by simpa using by linarith) (by simp [cpos.le])] at hs
+    replace hs : -c ≤ s.re ∧ s.re ≤ c ∧ -c ≤ s.im ∧ s.im ≤ c := by simpa [and_assoc] using hs
     simpa [Complex.ext_iff] using fun h ↦ by linarith
   have fHolo : DifferentiableOn ℂ (f x) (Square 0 c \ {0}) := (isHolomorphicOn xpos).mono RectSub
   have f1Holo : DifferentiableOn ℂ ((f x) - (fun (s : ℂ) ↦ 1 / s)) (Square 0 c \ {0}) :=
@@ -828,8 +828,8 @@ lemma residueAtNegOne (xpos : 0 < x) : ∀ᶠ (c : ℝ) in 𝓝[>] 0,
   obtain ⟨cpos, _⟩ := hc
   have h_mem {s : ℂ} (hs : s ∈ Square (-1) c) :
       -c ≤ s.re + 1 ∧ s.re + 1 ≤ c ∧ -c ≤ s.im ∧ s.im ≤ c := by
-    rw [Square, mem_Rect (by simpa using by linarith) (by simp [cpos.le])] at hs
-    simpa using hs
+    rw [Square, mem_rectangle_iff (by simpa using by linarith) (by simp [cpos.le])] at hs
+    simpa [and_assoc] using hs
   have RectSub : Square (-1) c \ {-1} ⊆ {0, -1}ᶜ := by
     refine fun s ⟨hs, hs1⟩ ↦ not_or.mpr ⟨?_, hs1⟩
     simpa [Complex.ext_iff] using fun _ _ ↦ by linarith [h_mem hs]

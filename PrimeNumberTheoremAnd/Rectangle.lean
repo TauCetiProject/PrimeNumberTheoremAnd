@@ -5,6 +5,7 @@ public import Mathlib.Analysis.Complex.Convex
 public import Mathlib.Analysis.InnerProductSpace.Basic
 public import Mathlib.Analysis.Normed.Order.Lattice
 public import Mathlib.Order.Interval.Set.Monotone
+public import TauCeti.Analysis.Complex.Rectangle
 
 
 @[expose] public section
@@ -24,9 +25,6 @@ namespace Rectangle
 lemma symm : Rectangle z w = Rectangle w z := by
   simp [Rectangle, uIcc_comm]
 
-lemma symm_re : Rectangle (w.re + z.im * I) (z.re + w.im * I) = Rectangle z w := by
-  simp [Rectangle, uIcc_comm]
-
 end Rectangle
 
 blueprint_comment /--
@@ -43,22 +41,10 @@ def RectangleBorder (z w : ℂ) : Set ℂ :=
 
 def Square (p : ℂ) (c : ℝ) : Set ℂ := Rectangle (-c - c * I + p) (c + c * I + p)
 
-lemma Square_apply (p : ℂ) (cpos : c > 0) :
-    Square p c = Icc (-c + p.re) (c + p.re) ×ℂ Icc (-c + p.im) (c + p.im) := by
-  rw [Square, Rectangle, uIcc_of_le (by simp; linarith), uIcc_of_le (by simp; linarith)]
-  simp
-
-
 @[simp]
 theorem preimage_equivRealProdCLM_reProdIm (s t : Set ℝ) :
     equivRealProdCLM.symm ⁻¹' (s ×ℂ t) = s ×ˢ t :=
   rfl
-
-lemma mem_Rect {z w : ℂ} (zRe_lt_wRe : z.re ≤ w.re) (zIm_lt_wIm : z.im ≤ w.im) (p : ℂ) :
-    p ∈ Rectangle z w ↔
-      z.re ≤ p.re ∧ p.re ≤ w.re ∧ z.im ≤ p.im ∧ p.im ≤ w.im := by
-  rw [Rectangle, uIcc_of_le zRe_lt_wRe, uIcc_of_le zIm_lt_wIm]
-  exact and_assoc
 
 lemma square_neg (p : ℂ) (c : ℝ) : Square p (-c) = Square p c := by
   simpa [Square] using! Rectangle.symm
@@ -70,17 +56,9 @@ lemma right_mem_rect (z w : ℂ) : w ∈ Rectangle z w := ⟨right_mem_uIcc, rig
 
 lemma rect_subset_iff {z w z' w' : ℂ} :
     Rectangle z' w' ⊆ Rectangle z w ↔ z' ∈ Rectangle z w ∧ w' ∈ Rectangle z w := by
-  use fun h ↦ ⟨h (left_mem_rect z' w'), h (right_mem_rect z' w')⟩
-  intro ⟨⟨⟨hz're_ge, hz're_le⟩, ⟨hz'im_ge, hz'im_le⟩⟩,
-    ⟨⟨hw're_ge, hw're_le⟩, ⟨hw'im_ge, hw'im_le⟩⟩⟩ x
-    ⟨⟨hxre_ge, hxre_le⟩, ⟨hxim_ge, hxim_le⟩⟩
-  refine ⟨⟨?_, ?_⟩, ⟨?_, ?_⟩⟩
-  · exact (le_inf hz're_ge hw're_ge).trans hxre_ge
-  · exact (le_sup_iff.mp hxre_le).casesOn (fun h ↦ h.trans hz're_le)
-      (fun h ↦ h.trans hw're_le)
-  · exact (le_inf hz'im_ge hw'im_ge).trans hxim_ge
-  · exact (le_sup_iff.mp hxim_le).casesOn (fun h ↦ h.trans hz'im_le)
-      (fun h ↦ h.trans hw'im_le)
+  simp only [Rectangle, reProdIm_subset_iff, prod_subset_prod_iff, uIcc_subset_uIcc_iff_mem,
+    mem_reProdIm, nonempty_uIcc.ne_empty, or_false]
+  tauto
 
 set_option linter.style.multiGoal false in
 lemma RectSubRect {x₀ x₁ x₂ x₃ y₀ y₁ y₂ y₃ : ℝ} (x₀_le_x₁ : x₀ ≤ x₁)
@@ -88,8 +66,8 @@ lemma RectSubRect {x₀ x₁ x₂ x₃ y₀ y₁ y₂ y₃ : ℝ} (x₀_le_x₁ 
     (y₁_le_y₂ : y₁ ≤ y₂) (y₂_le_y₃ : y₂ ≤ y₃) :
     Rectangle (x₁ + y₁ * I) (x₂ + y₂ * I) ⊆
       Rectangle (x₀ + y₀ * I) (x₃ + y₃ * I) := by
-  rw [rect_subset_iff, mem_Rect, mem_Rect]
-  refine ⟨⟨?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_⟩
+  rw [rect_subset_iff, mem_rectangle_iff, mem_rectangle_iff]
+  refine ⟨⟨⟨?_, ?_⟩, ?_, ?_⟩, ⟨?_, ?_⟩, ?_, ?_⟩
   all_goals simpa using by linarith
 
 lemma RectSubRect' {z₀ z₁ z₂ z₃ : ℂ} (x₀_le_x₁ : z₀.re ≤ z₁.re)
@@ -185,30 +163,6 @@ lemma mapsTo_rectangleBorder_right_im (z w : ℂ) :
     MapsTo (fun (x : ℝ) => ↑x + w.im * I) [[z.re, w.re]] (RectangleBorder z w) :=
   (Set.mapsTo_image _ _).mono subset_rfl fun _ ↦
     by simp_all [horizontalSegment_eq, RectangleBorder]
-
-lemma mapsTo_rectangle_left_re_NoP (z w : ℂ) {p : ℂ}
-    (pNotOnBorder : p ∉ RectangleBorder z w) :
-    MapsTo (fun (y : ℝ) => ↑z.re + ↑y * I) [[z.im, w.im]] (Rectangle z w \ {p}) := by
-  refine (mapsTo_rectangleBorder_left_re z w).mono_right (Set.subset_sdiff.mpr ?_)
-  exact ⟨rectangleBorder_subset_rectangle z w, disjoint_singleton_right.mpr pNotOnBorder⟩
-
-lemma mapsTo_rectangle_right_re_NoP (z w : ℂ) {p : ℂ}
-    (pNotOnBorder : p ∉ RectangleBorder z w) :
-    MapsTo (fun (y : ℝ) => ↑w.re + ↑y * I) [[z.im, w.im]] (Rectangle z w \ {p}) := by
-  refine (mapsTo_rectangleBorder_right_re z w).mono_right (Set.subset_sdiff.mpr ?_)
-  exact ⟨rectangleBorder_subset_rectangle z w, disjoint_singleton_right.mpr pNotOnBorder⟩
-
-lemma mapsTo_rectangle_left_im_NoP (z w : ℂ) {p : ℂ}
-    (pNotOnBorder : p ∉ RectangleBorder z w) :
-    MapsTo (fun (x : ℝ) => ↑x + z.im * I) [[z.re, w.re]] (Rectangle z w \ {p}) := by
-  refine (mapsTo_rectangleBorder_left_im z w).mono_right (Set.subset_sdiff.mpr ?_)
-  exact ⟨rectangleBorder_subset_rectangle z w, disjoint_singleton_right.mpr pNotOnBorder⟩
-
-lemma mapsTo_rectangle_right_im_NoP (z w : ℂ) {p : ℂ}
-    (pNotOnBorder : p ∉ RectangleBorder z w) :
-    MapsTo (fun (x : ℝ) => ↑x + w.im * I) [[z.re, w.re]] (Rectangle z w \ {p}) := by
-  refine (mapsTo_rectangleBorder_right_im z w).mono_right (Set.subset_sdiff.mpr ?_)
-  exact ⟨rectangleBorder_subset_rectangle z w, disjoint_singleton_right.mpr pNotOnBorder⟩
 
 theorem not_mem_rectangleBorder_of_rectangle_mem_nhds {z w p : ℂ}
     (hp : Rectangle z w ∈ 𝓝 p) :

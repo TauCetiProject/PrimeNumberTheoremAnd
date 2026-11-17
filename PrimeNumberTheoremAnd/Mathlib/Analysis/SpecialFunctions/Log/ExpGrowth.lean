@@ -110,21 +110,6 @@ theorem log_growth_of_norm_le_exp_mul_rpow
   have hlog2_nonneg : 0 ≤ Real.log 2 := Real.log_nonneg (by norm_num)
   nlinarith [hlog, hX, hlog2_nonneg]
 
-/-- A pointwise exponential bound with real exponent can be weakened to a natural exponent. -/
-theorem exists_norm_le_exp_mul_pow_of_rpow_bound
-    {f : α → E} {r : α → ℝ} {τ : ℝ} {n : ℕ} (hr : ∀ x, 1 ≤ r x) (hτn : τ < (n : ℝ))
-    (hbound : ∃ C > 0, ∀ x, ‖f x‖ ≤ Real.exp (C * (r x) ^ τ)) :
-    ∃ C > 0, ∀ x, ‖f x‖ ≤ Real.exp (C * (r x) ^ n) := by
-  rcases hbound with ⟨C, hCpos, hC⟩
-  have hweak :
-      ∀ x, ‖f x‖ ≤ Real.exp (C * (r x) ^ (n : ℝ)) :=
-    norm_le_exp_mul_rpow_of_exponent_le
-      (f := f) (r := r) hCpos.le hr (le_of_lt hτn) hC
-  refine ⟨C, hCpos, ?_⟩
-  intro x
-  have hpow : (r x) ^ (n : ℝ) = (r x) ^ n := Real.rpow_natCast (r x) n
-  simpa [hpow] using hweak x
-
 /-- A quadratic polynomial factor is absorbed by any positive exponential `rpow` margin. -/
 theorem sq_le_exp_const_mul_rpow {b r : ℝ} (hb : 0 < b) (hr : 1 ≤ r) :
     r ^ 2 ≤ exp ((4 / b) * r ^ b) := by

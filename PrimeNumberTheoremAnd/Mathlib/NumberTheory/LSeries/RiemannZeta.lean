@@ -21,7 +21,7 @@ and convexity bounds in `RiemannZetaConvexity`.
 
 ## Main results
 
-* `verticalLine`, `verticalLine_re`, `verticalLine_add_const`
+* `verticalLine`, `verticalLine_re`
 * `Nat.Primes.norm_one_sub_cpow_neg_vertical_le` and companions
 * `riemannZeta_div_riemannZeta_eq_tprod_inv_one_add`, `norm_riemannZeta_div_riemannZeta`
 * `norm_riemannZeta_eulerProduct`, `tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine`
@@ -36,36 +36,9 @@ open Complex Filter Real Set
 def verticalLine (σ t : ℝ) : ℂ := σ + t * Complex.I
 
 lemma verticalLine_re (σ t : ℝ) : (verticalLine σ t).re = σ := by
-  simp only [verticalLine, Complex.add_re, Complex.ofReal_re, Complex.ofReal_im, Complex.mul_re,
-    Complex.I_re, Complex.I_im, mul_zero]
-  ring
-
-lemma verticalLine_im (σ t : ℝ) : (verticalLine σ t).im = t := by
-  simp only [verticalLine, Complex.add_im, Complex.ofReal_re, Complex.ofReal_im, Complex.mul_im,
-    Complex.I_re, Complex.I_im, mul_zero, add_zero]
-  ring
-
-lemma verticalLine_add_const (s : ℂ) (h t : ℝ) :
-    s + (h : ℂ) + t * Complex.I = verticalLine (s.re + h) (s.im + t) := by
-  apply Complex.ext
-  · simp [verticalLine, Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.I_re, mul_zero,
-      add_assoc, add_comm]
-  · simp [verticalLine, Complex.add_im, Complex.ofReal_re, Complex.ofReal_im, Complex.mul_im,
-      Complex.I_re, Complex.I_im, mul_zero, add_assoc, add_comm]
+  simp [verticalLine]
 
 namespace Nat.Primes
-
-/-- For a prime `p` and `s` with real part `> 1`, `‖p^{-s}‖ < 1`. -/
-lemma norm_cpow_neg_lt_one (p : Nat.Primes) (s : ℂ) (hs : 1 < s.re) :
-    ‖((p : ℕ) : ℂ) ^ (-s)‖ < 1 := by
-  have hx1 : 1 < ((p : ℕ) : ℝ) := by
-    have h2 : (2 : ℝ) ≤ ((p : ℕ) : ℝ) := by exact_mod_cast (p.2.two_le : 2 ≤ (p : ℕ))
-    exact lt_of_lt_of_le one_lt_two h2
-  have hx0 : 0 < ((p : ℕ) : ℝ) := lt_trans zero_lt_one hx1
-  have hnorm : ‖((p : ℕ) : ℂ) ^ (-s)‖ = ((p : ℕ) : ℝ) ^ (-s.re) :=
-    Complex.norm_cpow_eq_rpow_re_of_pos hx0 (-s)
-  have hz : -s.re < 0 := neg_lt_zero.mpr (lt_trans zero_lt_one hs)
-  simpa [hnorm] using Real.rpow_lt_one_of_one_lt_of_neg hx1 hz
 
 /-- `(1 + p^{-r})⁻¹` in `ℂ` equals the real inverse cast from `ℝ`. -/
 lemma cast_inv_one_add (p : Nat.Primes) (r : ℝ) :
@@ -99,25 +72,13 @@ lemma norm_one_sub_cpow_neg_vertical_le (p : Nat.Primes) (σ t : ℝ) :
     _ = 1 + ((p : ℕ) : ℝ) ^ (-σ) := by
       rw [Complex.norm_natCast_cpow_of_pos p.property.pos, Complex.neg_re, hre]
 
-/-- On the vertical line `σ + it` with `1 < σ`, the Euler factor `1 - p^{-s}` is nonzero. -/
-lemma one_sub_cpow_neg_vertical_ne_zero (p : Nat.Primes) (σ t : ℝ) (hσ : 1 < σ) :
-    1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t) ≠ 0 := by
-  intro h
-  set s := verticalLine σ t
-  have hs : 1 < s.re := by rw [verticalLine_re]; exact hσ
-  have hp_eq_one : ((p : ℕ) : ℂ) ^ (-s) = 1 := by
-    rw [sub_eq_zero] at h; exact h.symm
-  have h_abs_lt : ‖((p : ℕ) : ℂ) ^ (-s)‖ < 1 := norm_cpow_neg_lt_one p s hs
-  rw [hp_eq_one, show ‖(1 : ℂ)‖ = 1 from by simp] at h_abs_lt
-  exact lt_irrefl 1 h_abs_lt
-
 /-- Compare inverse Euler factors on the vertical line `σ + it` with `1 < σ`. -/
 lemma inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical (p : Nat.Primes) (σ t : ℝ)
     (hσ : 1 < σ) :
     (1 + ((p : ℕ) : ℝ) ^ (-σ))⁻¹ ≤
       (‖(1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t))‖)⁻¹ := by
   have hpos : 0 < ‖(1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t))‖ :=
-    norm_pos_iff.mpr (one_sub_cpow_neg_vertical_ne_zero p σ t hσ)
+    norm_pos_iff.mpr (Complex.one_sub_prime_cpow_ne_zero p.prop (by rwa [verticalLine_re]))
   simpa [one_div] using one_div_le_one_div_of_le hpos (norm_one_sub_cpow_neg_vertical_le p σ t)
 
 lemma multipliable_inv_one_add (r : ℝ) (hr : 1 < r) :

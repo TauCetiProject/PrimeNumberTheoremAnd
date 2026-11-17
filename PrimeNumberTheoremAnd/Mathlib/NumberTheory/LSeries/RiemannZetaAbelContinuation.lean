@@ -12,8 +12,8 @@ public import TauCeti.Topology.Homotopy.PuncturedStarConvex
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import Mathlib.MeasureTheory.Integral.IntegrableOn
+import Mathlib.NumberTheory.LSeries.SumCoeff
 import TauCeti.Analysis.MellinTransform.UpperTail
 
 /-!
@@ -28,9 +28,10 @@ fractional part of `u > 0` and `K_s(u) = {u} · u^{-s-1}`, one has
 The fixed strip threshold `σ₀ = 1/10`, its domain, the kernel, and the renormalized integral are bundled in
 `zetaAbelContinuationReLower`, `zetaAbelContinuationDomain`, `zetaAbelFractKernel`, and
 `zetaAbelContinuationFormula`. The equality with `riemannZeta` on the full punctured right half-plane is proved by analytic
-continuation from `re s > 1`, where the formula is the classical Abel partial-sum limit.
+continuation from `re s > 1`, where it follows from Mathlib's partial-summation integral
+`LSeries_eq_mul_integral'` and `⌊u⌋ = u - {u}`.
 
-Kernel and partial-sum input live in `RiemannZetaAbelKernel` and `RiemannZetaPartialSum`.
+The kernel lives in `RiemannZetaAbelKernel`.
 
 ## Main results
 
@@ -42,7 +43,7 @@ Kernel and partial-sum input live in `RiemannZetaAbelKernel` and `RiemannZetaPar
 @[expose] public section
 
 open scoped Topology
-open Real Set Filter Topology MeasureTheory Complex ZetaPartialSum ZetaAbelFractKernel
+open Real Set Filter Topology MeasureTheory Complex
 
 /-- Fixed positive strip threshold used for quantitative bounds from the Abel formula. -/
 noncomputable def zetaAbelContinuationReLower : ℝ := 1 / 10
@@ -54,10 +55,6 @@ theorem zetaAbelContinuationReLower_pos : 0 < zetaAbelContinuationReLower := by
 theorem one_sub_zetaAbelContinuationReLower :
     (1 - zetaAbelContinuationReLower : ℝ) = 9 / 10 := by
   change (1 - 1 / 10 : ℝ) = 9 / 10
-  norm_num
-
-theorem zetaAbelContinuationReLower_lt_half : zetaAbelContinuationReLower < (2⁻¹ : ℝ) := by
-  change (1 / 10 : ℝ) < (2⁻¹ : ℝ)
   norm_num
 
 /-- Quantitative substrip `{s : ℂ | s ≠ 1 ∧ re s > 1/10}` for uniform Abel-formula bounds. -/
@@ -90,23 +87,8 @@ noncomputable def zetaAbelContinuationFormula (s : ℂ) : ℂ :=
 
 theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
     riemannZeta s = zetaAbelContinuationFormula s := by
-  have hsne : s ≠ 1 := by
-    intro h
-    have hre : s.re = 1 := by simp [h]
-    linarith
-  set G : ℕ → ℂ := fun N =>
-    (N : ℂ) ^ (1 - s) / (1 - s) + 1 + 1 / (s - 1)
-      - s * ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u
-  have hEv : ∀ᶠ N in atTop, zetaPartialSum s N = G N :=
-    (eventually_ge_atTop 1).mono fun N hN => (abel_formula s hsne N hN).trans rfl
-  have hG_to_zeta := (tendsto_congr' hEv).mp (tendsto_riemannZeta s hs)
-  have hA : Tendsto (fun N : ℕ => (N : ℂ) ^ (1 - s) / (1 - s)) atTop (𝓝 0) := by
-    simpa [div_eq_mul_inv, mul_comm] using
-      (Tendsto.const_mul (1 / (1 - s))
-        (tendsto_natCast_cpow_zero_of_neg_re (1 - s)
-          (by rw [Complex.sub_re, Complex.one_re]; linarith)))
-  have hK : Tendsto (fun _ : ℕ => (1 + 1 / (s - 1) : ℂ)) atTop
-      (𝓝 (1 + 1 / (s - 1))) := tendsto_const_nhds
+  have hs1 : -s + 1 ≠ 0 := fun h ↦ by simp [neg_add_eq_zero.mp h] at hs
+  have hpow : (-s).re < -1 := by simpa using hs
   have hfract (u : ℝ) : ‖((Int.fract u : ℝ) : ℂ)‖ ≤ 1 := by
     simpa only [norm_real, Real.norm_eq_abs, Int.abs_fract] using (Int.fract_lt_one u).le
   have hL : LocallyIntegrableOn (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) (Ici 1) :=
@@ -116,29 +98,30 @@ theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
   have hO : (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) =O[atTop] fun u ↦ u ^ (0 : ℝ) :=
     .of_bound 1 (Eventually.of_forall fun u ↦ by
       simpa only [Real.rpow_zero, norm_one, one_mul] using hfract u)
-  have hKint : IntegrableOn (zetaAbelFractKernel s) (Ioi 1) := by
+  have hK : IntegrableOn (zetaAbelFractKernel s) (Ioi 1) := by
     change IntegrableOn (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ) * (u : ℂ) ^ (-s - 1)) (Ioi 1)
     simpa only [neg_add', sub_eq_add_neg] using
       TauCeti.integrableOn_mul_cpow_of_isBigO hL hO (zero_lt_one.trans hs)
-  have hIntMul := (intervalIntegral_tendsto_integral_Ioi 1 hKint
-    tendsto_natCast_atTop_atTop).const_mul s
-  set Aseq : ℕ → ℂ := fun N => (N : ℂ) ^ (1 - s) / (1 - s)
-  set Kseq : ℕ → ℂ := fun _ => (1 + 1 / (s - 1) : ℂ)
-  set Iseq : ℕ → ℂ := fun N => s * ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u
-  have hSum : Tendsto (fun N => Aseq N + Kseq N) atTop (𝓝 (1 + 1 / (s - 1))) := by
-    simpa using! ((continuous_fst.add continuous_snd).tendsto _).comp (hA.prodMk_nhds hK)
-  have hG_limit : Tendsto G atTop
-      (𝓝 ((1 + 1 / (s - 1)) - s * ∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u)) := by
-    have hSub : Tendsto (fun N => Aseq N + Kseq N - Iseq N) atTop
-        (𝓝 ((1 + 1 / (s - 1)) - s * ∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u)) := by
-      simpa [Function.comp_apply, Function.comp_def, sub_eq_add_neg] using
-        ((continuous_fst.add continuous_snd).tendsto _).comp (hSum.prodMk_nhds hIntMul.neg)
-    have hGdef : (fun N => Aseq N + Kseq N - Iseq N) = G := by
-      funext N
-      simp [Aseq, Kseq, Iseq, G, add_comm, add_left_comm, add_assoc, sub_eq_add_neg]
-    simpa [hGdef] using hSub
-  have huniq := tendsto_nhds_unique hG_to_zeta hG_limit
-  simpa [zetaAbelContinuationFormula, sub_eq_add_neg] using huniq
+  have hsum : (fun n : ℕ ↦ ∑ k ∈ Finset.Icc 1 n, ‖(1 : ℕ → ℂ) k‖) =O[atTop]
+      fun n ↦ (n : ℝ) ^ (1 : ℝ) :=
+    Asymptotics.isBigO_of_le _ fun n ↦ by simp
+  have hint : ∫ t in Ioi (1 : ℝ), (∑ k ∈ Finset.Icc 1 ⌊t⌋₊, (1 : ℕ → ℂ) k) * (t : ℂ) ^ (-(s + 1)) =
+      ∫ t in Ioi (1 : ℝ), ((t : ℂ) ^ (-s) - zetaAbelFractKernel s t) := by
+    refine setIntegral_congr_fun measurableSet_Ioi fun t (ht : 1 < t) ↦ ?_
+    have ht0 : (t : ℂ) ≠ 0 := ofReal_ne_zero.mpr (zero_lt_one.trans ht).ne'
+    have hfl : (⌊t⌋₊ : ℂ) = t - ((Int.fract t : ℝ) : ℂ) := by
+      rw [Int.fract, ← Int.natCast_floor_eq_floor (zero_le_one.trans ht.le)]
+      push_cast
+      ring
+    simp only [Pi.one_apply, Finset.sum_const, Nat.card_Icc, add_tsub_cancel_right, nsmul_eq_mul,
+      mul_one, hfl, zetaAbelFractKernel, neg_add', sub_mul]
+    rw [cpow_sub _ _ ht0, cpow_one, mul_div_cancel₀ _ ht0]
+  rw [← LSeries_one_eq_riemannZeta hs, LSeries_eq_mul_integral' _ zero_le_one hs hsum, hint,
+    integral_sub (integrableOn_Ioi_cpow_of_lt hpow zero_lt_one) hK,
+    integral_Ioi_cpow_of_lt hpow zero_lt_one, zetaAbelContinuationFormula, ofReal_one, one_cpow]
+  have hs1' : s - 1 ≠ 0 := by rw [show s - 1 = -(-s + 1) by ring]; exact neg_ne_zero.mpr hs1
+  field_simp
+  ring
 
 /-- The Abel formula satisfies its standard norm bound whenever the real part is positive. -/
 theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs_re : 0 < s.re) :

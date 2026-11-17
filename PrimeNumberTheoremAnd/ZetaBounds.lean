@@ -14,7 +14,6 @@ public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
 public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
 public import Mathlib.Analysis.Complex.RealDeriv
 public import TauCeti.Analysis.Asymptotics.Sum.EulerMaclaurin
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 
@@ -506,6 +505,16 @@ lemma integrableOn_of_Zeta0_fun {N : ℕ} (N_pos : 0 < N) {s : ℂ} (s_re_gt : 0
   · refine Measurable.add ?_ measurable_const |>.sub (by fun_prop) |>.aestronglyMeasurable
     exact Measurable.comp (by exact fun _ _ ↦ trivial) Int.measurable_floor
 
+lemma tendsto_natCast_cpow_zero_of_neg_re (w : ℂ) (hw : w.re < 0) :
+    Tendsto (fun N : ℕ => (N : ℂ) ^ w) atTop (𝓝 0) := by
+  rw [tendsto_zero_iff_norm_tendsto_zero]
+  have h1 : (fun N : ℕ => (N : ℝ) ^ w.re) =ᶠ[atTop] fun N : ℕ => ‖(N : ℂ) ^ w‖ := by
+    filter_upwards [eventually_gt_atTop 0] with N hN
+    rw [Complex.norm_natCast_cpow_of_pos hN w]
+  rw [tendsto_congr' (EventuallyEq.symm h1)]
+  rw [show w.re = -(-w.re) from by ring]
+  exact (tendsto_rpow_neg_atTop (neg_pos.mpr hw)).comp tendsto_natCast_atTop_atTop
+
 @[blueprint
   (title := "ZetaSum-aux2")
   (statement := /--
@@ -539,11 +548,11 @@ lemma ZetaSum_aux2 {N : ℕ} (N_pos : 0 < N) {s : ℂ} (s_re_gt : 1 < s.re) :
     · exact ZetaSum_aux3 s_re_gt
   · apply (Tendsto.sub ?_ ?_).add (Tendsto.const_mul _ ?_)
     · rw [(by ring : -↑N ^ (1 - s) / (1 - s) = (0 - ↑N ^ (1 - s)) / (1 - s) + 0)]
-      apply (ZetaPartialSum.tendsto_natCast_cpow_zero_of_neg_re (1 - s)
+      apply (tendsto_natCast_cpow_zero_of_neg_re (1 - s)
         (by simp only [Complex.sub_re, Complex.one_re]; linarith)).sub_const _ |>.div_const _ |>.add
       simp_rw [mul_comm_div, one_mul, one_div, (by congr; ring : 𝓝 (0 : ℂ) = 𝓝 ((0 : ℂ) / 2))]
       apply Tendsto.div_const
-      simpa only [cpow_neg] using ZetaPartialSum.tendsto_natCast_cpow_zero_of_neg_re
+      simpa only [cpow_neg] using tendsto_natCast_cpow_zero_of_neg_re
         (-s) (by simp only [Complex.neg_re]; linarith)
     · simp_rw [mul_comm_div, one_mul, one_div, cpow_neg]; exact tendsto_const_nhds
     · exact MeasureTheory.intervalIntegral_tendsto_integral_Ioi (a := N)

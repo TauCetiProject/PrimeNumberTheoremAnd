@@ -57,21 +57,6 @@ lemma dyadicShell_upper_bound {r0 x : ℝ} {k : ℕ} (hr0 : 0 < r0) (hx : r0 ≤
     field_simp [hr0ne]
   exact le_of_lt (by simpa [mul_assoc, hxEq] using this)
 
-/-- Some dyadic scale is beyond any prescribed real bound. -/
-lemma exists_nat_le_two_pow (A : ℝ) :
-    ∃ k0 : ℕ, ∀ n ≥ k0, A ≤ (2 : ℝ) ^ n := by
-  have htend : Tendsto (fun n : ℕ => (2 : ℝ) ^ n) atTop atTop :=
-    tendsto_pow_atTop_atTop_of_one_lt (r := (2 : ℝ)) (by norm_num : (1 : ℝ) < 2)
-  exact eventually_atTop.1 ((tendsto_atTop.1 htend) A)
-
-/-- Once the dyadic scale is past `r₀⁻¹`, the upper endpoint `r₀ 2^(k+1)` is at least `1`. -/
-lemma one_le_dyadicRadius_succ_of_inv_le_two_pow
-    {r0 : ℝ} {k0 kk : ℕ} (hr0 : 0 < r0)
-    (hk0 : ∀ n ≥ k0, (1 / r0 : ℝ) ≤ (2 : ℝ) ^ n) (hkk : k0 ≤ kk + 1) :
-    (1 : ℝ) ≤ r0 * (2 : ℝ) ^ ((kk : ℝ) + 1) := by
-  have h := (div_le_iff₀ hr0).mp (hk0 (kk + 1) hkk)
-  simpa only [← Real.rpow_natCast, Nat.cast_add, Nat.cast_one, mul_comm] using h
-
 /-- A dyadic radius `r₀ 2^(k+1)` gives polynomial growth bounded by a geometric term. -/
 lemma one_add_abs_two_mul_dyadicRadius_rpow_le {r0 ρ : ℝ} (k : ℕ)
     (hr0 : 0 < r0) (hρ : 0 ≤ ρ) :
@@ -199,11 +184,5 @@ lemma dyadic_growth_mass_mul_inv_le_geometric {C L M X T Ctrail r0 ρ τ : ℝ} 
   have hB := dyadic_trailing_inv_term_le Ctrail L r0 τ k hr0
   exact hpre.trans (by
     simpa [mul_assoc, mul_left_comm, mul_comm] using add_le_add hA hB)
-
-lemma two_geometric_shift_add (A B q qσ : ℝ) (k k0 : ℕ) :
-    A * q ^ (k + k0) + B * qσ ^ (k + k0)
-      = (A * q ^ k0) * q ^ k + (B * qσ ^ k0) * qσ ^ k := by
-  rw [pow_add, pow_add]
-  ac_rfl
 
 end Real
