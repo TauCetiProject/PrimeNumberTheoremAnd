@@ -14,27 +14,6 @@ public section
 open MeasureTheory Set Real
 open scoped ContDiff
 
-lemma smooth_urysohn_support_Ioo {a b c d : ℝ} (h1 : a < b) (h3 : c < d) :
-    ∃ Ψ : ℝ → ℝ, (ContDiff ℝ ∞ Ψ) ∧ (HasCompactSupport Ψ) ∧
-    Set.indicator (Set.Icc b c) 1 ≤ Ψ ∧ Ψ ≤ Set.indicator (Set.Ioo a d) 1 ∧
-    (Function.support Ψ = Set.Ioo a d) := by
-  obtain ⟨Ψ, hΨsmooth, hΨrange, hΨsupport, hΨone⟩ :=
-    exists_contDiff_support_eq_eq_one_iff (n := ⊤) isOpen_Ioo isClosed_Icc
-      (fun x hx ↦ ⟨h1.trans_le hx.1, hx.2.trans_lt h3⟩)
-  refine ⟨Ψ, hΨsmooth, ?_, ?_, ?_, hΨsupport⟩
-  · exact HasCompactSupport.of_support_subset_isCompact isCompact_Icc
-      (hΨsupport ▸ Ioo_subset_Icc_self)
-  · apply Set.indicator_le'
-    · intro x hx
-      rw [Pi.one_apply, (hΨone x).mp hx]
-    · exact fun x _ ↦ (hΨrange (mem_range_self x)).1
-  · intro x
-    by_cases hx : x ∈ Ioo a d
-    · simpa only [indicator_of_mem hx, Pi.one_apply] using
-        (hΨrange (mem_range_self x)).2
-    · simpa only [indicator_of_notMem hx, Pi.zero_apply] using
-        (le_of_eq (Function.notMem_support.mp (hΨsupport.symm ▸ hx)))
-
 blueprint_comment /--
 Let $\nu$ be a bumpfunction.
 -/
