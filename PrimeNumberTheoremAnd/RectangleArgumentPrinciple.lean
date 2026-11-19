@@ -35,10 +35,6 @@ theorem logDeriv_poles_eq_divisor_support
     decide
   · exact iff_of_false (fun h ↦ hpR h.1) fun h ↦ hpR ((MeromorphicOn.divisor f R).supportWithinDomain h)
 
-lemma divisor_support_rectangle_finite (f : ℂ → ℂ) (z w : ℂ) :
-    (MeromorphicOn.divisor f (Rectangle z w)).support.Finite :=
-  (MeromorphicOn.divisor f _).finiteSupport (isCompact_rectangle z w)
-
 theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
     {f : ℂ → ℂ} {z w : ℂ}
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
@@ -49,7 +45,7 @@ theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
       Disjoint (RectangleBorder z w) (MeromorphicOn.divisor f (Rectangle z w)).support) :
     RectangleIntegral' (logDeriv f) z w =
       ∑ p ∈
-        ((divisor_support_rectangle_finite f z w).toFinset),
+        (((MeromorphicOn.divisor f _).finiteSupport (isCompact_rectangle z w)).toFinset),
           ((MeromorphicOn.divisor f (Rectangle z w)) p : ℂ) := by
   classical
   let R : Set ℂ := Rectangle z w
@@ -77,7 +73,8 @@ theorem rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt
   have hraw : RectangleIntegral g z w = 2 * Real.pi * I * (TauCeti.divisorCount f R R : ℂ) := h
   rw [rectangleIntegral'_toMeromorphicNFOn_eq hlog, RectangleIntegral', hraw, smul_eq_mul,
     one_div, ← mul_assoc, inv_mul_cancel₀ Complex.two_pi_I_ne_zero, one_mul, TauCeti.divisorCount_def,
-    finsum_mem_eq_sum_of_inter_support_eq _ (t := (divisor_support_rectangle_finite f z w).toFinset)
+    finsum_mem_eq_sum_of_inter_support_eq _
+      (t := ((MeromorphicOn.divisor f _).finiteSupport (isCompact_rectangle z w)).toFinset)
       (by rw [Finite.coe_toFinset]
           exact (inter_eq_right.mpr (MeromorphicOn.divisor f R).supportWithinDomain).trans
             (inter_self _).symm),
@@ -96,13 +93,13 @@ theorem rectangle_argumentChange_eq_two_pi_sum_meromorphicOrderAt
         (2 * Real.pi : ℂ) * RectangleIntegral' (logDeriv f) z w) :
     argumentChange =
       2 * Real.pi *
-        ∑ p ∈ (divisor_support_rectangle_finite f z w).toFinset,
+        ∑ p ∈ ((MeromorphicOn.divisor f _).finiteSupport (isCompact_rectangle z w)).toFinset,
           (((MeromorphicOn.divisor f (Rectangle z w)) p : ℤ) : ℝ) := by
   classical
   have hcomplex :
       (argumentChange : ℂ) =
         (2 * Real.pi : ℂ) *
-          ∑ p ∈ (divisor_support_rectangle_finite f z w).toFinset,
+          ∑ p ∈ ((MeromorphicOn.divisor f _).finiteSupport (isCompact_rectangle z w)).toFinset,
             (((MeromorphicOn.divisor f (Rectangle z w)) p : ℤ) : ℂ) := by
     rw [hargumentChange]
     rw [rectangleIntegral_logDeriv_eq_sum_meromorphicOrderAt zRe_le_wRe zIm_le_wIm

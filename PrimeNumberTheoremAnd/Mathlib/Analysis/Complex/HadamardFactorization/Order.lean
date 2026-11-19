@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
+public import Mathlib.Analysis.Analytic.Order
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Growth
 public import TauCeti.Analysis.Complex.GrowthOrder
@@ -54,7 +54,11 @@ theorem centeredHadamardDenom_eq_hadamardDenom_translate
     (m : ℕ) (c : ℂ) (f : ℂ → ℂ) (z : ℂ) :
     centeredHadamardDenom m c f z =
       hadamardDenom m (fun w : ℂ => f (w + c)) (z - c) := by
-  simp [centeredHadamardDenom, hadamardDenom, analyticOrderNatAt_comp_add_const]
+  have horder := congrArg ENat.toNat
+    (analyticOrderAt_comp_of_deriv_ne_zero (f := f) (g := fun w : ℂ ↦ w + c)
+      (z₀ := 0) (analyticAt_id.add analyticAt_const) (by simp))
+  simp only [Function.comp_def, zero_add] at horder
+  simp [centeredHadamardDenom, hadamardDenom, analyticOrderNatAt, horder]
 
 /-- An entire function has order at most `ρ` if it satisfies the `ε`-family growth bound used in
 this formalization.
@@ -270,7 +274,9 @@ theorem hadamard_factorization_of_order_centered {f : ℂ → ℂ} {ρ : ℝ} (h
   intro z
   have h := hfac (z - c)
   have horder0 : analyticOrderNatAt g 0 = analyticOrderNatAt f c := by
-    simpa [g] using analyticOrderNatAt_comp_add_const f c 0
+    simpa only [g, analyticOrderNatAt, Function.comp_def, zero_add] using congrArg ENat.toNat
+      (analyticOrderAt_comp_of_deriv_ne_zero (f := f) (g := fun w : ℂ ↦ w + c)
+        (z₀ := 0) (analyticAt_id.add analyticAt_const) (by simp))
   simpa [g, horder0] using h
 
 /-- Reindexed centered finite-order Hadamard factorization, for any index type equivalent to the

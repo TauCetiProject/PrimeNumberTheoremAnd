@@ -7,7 +7,6 @@ import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.LaplaceInversion
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanInverseFactorBound

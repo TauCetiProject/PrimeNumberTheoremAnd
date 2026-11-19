@@ -1,6 +1,6 @@
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Analytic.Order
+public import Mathlib.Analysis.Analytic.Order
 
 public import Architect
 public import Mathlib.Algebra.Lie.OfAssociative
@@ -1316,7 +1316,12 @@ lemma SumBoundI :
       · simp only [add_sub_cancel_right, r, hρ.1]
     · ring_nf
       rw [mul_comm]
-      simp only [add_comm, analyticOrderNatAt_comp_add_const]
+      simp only [add_comm, show ∀ c w : ℂ,
+        analyticOrderNatAt (fun v ↦ ζ (v + c)) w = analyticOrderNatAt ζ (w + c) from
+        fun c w ↦ by
+          simpa only [analyticOrderNatAt, Function.comp_def] using congrArg ENat.toNat
+            (analyticOrderAt_comp_of_deriv_ne_zero (f := ζ) (g := fun v : ℂ ↦ v + c)
+              (z₀ := w) (analyticAt_id.add analyticAt_const) (by simp))]
       ring_nf
 
 
@@ -1857,7 +1862,12 @@ lemma SumBoundII :
     · ring_nf
       simp only [add_assoc _ _ (I * t), add_comm _ (I * t), ← add_assoc _ (I * t) _]
       rw [mul_comm]
-      simp only [add_comm, analyticOrderNatAt_comp_add_const]
+      simp only [add_comm, show ∀ c w : ℂ,
+        analyticOrderNatAt (fun v ↦ ζ (v + c)) w = analyticOrderNatAt ζ (w + c) from
+        fun c w ↦ by
+          simpa only [analyticOrderNatAt, Function.comp_def] using congrArg ENat.toNat
+            (analyticOrderAt_comp_of_deriv_ne_zero (f := ζ) (g := fun v : ℂ ↦ v + c)
+              (z₀ := w) (analyticAt_id.add analyticAt_const) (by simp))]
       rw [hZ]
       ring_nf
       simp only [add_assoc, hz, neg_add_eq_sub ρ z, mul_comm]
@@ -2071,8 +2081,16 @@ lemma LogDerivZetaUniformLogSquaredBoundStrip : ∃ (F : ℝ) (_ : F = E / 3)
           zero_add, zero_sub, abs_neg] at h
         linarith
       have horder := analyticOrderNatAt_fun_mul_const hAnal (inv_ne_zero zetaThreeHalfNonzero)
-      simpa only [div_eq_mul_inv, add_assoc, analyticOrderNatAt_comp_add_const,
-        sub_add_cancel] using horder.symm
+      have htranslate :
+          analyticOrderNatAt (fun w : ℂ ↦ ζ (w + (3 / 2 + I * t)))
+              (z - (3 / 2 + I * t)) =
+            analyticOrderNatAt ζ (z - (3 / 2 + I * t) + (3 / 2 + I * t)) := by
+        simpa only [analyticOrderNatAt, Function.comp_def] using congrArg ENat.toNat
+          (analyticOrderAt_comp_of_deriv_ne_zero (f := ζ)
+            (g := fun w : ℂ ↦ w + (3 / 2 + I * t)) (z₀ := z - (3 / 2 + I * t))
+            (analyticAt_id.add analyticAt_const) (by simp))
+      simp only [div_eq_mul_inv] at htranslate
+      simpa only [div_eq_mul_inv, add_assoc, htranslate, sub_add_cancel] using horder.symm
   set z : ℂ := σ + t * I with hz
   have zIm : t = z.im := by
     simp only [hz, add_im, ofReal_im, mul_im, ofReal_re, I_im, mul_one, I_re, mul_zero, add_zero,
