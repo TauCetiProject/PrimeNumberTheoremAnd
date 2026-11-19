@@ -205,35 +205,6 @@ theorem sinc_kernel_integral_comp_sub_left
   have h := integral_sub_left_eq_self g volume x
   simpa [g] using h
 
-/-- The normalized sinc kernel is the usual `sin (T * u) / (π * u)` kernel,
-with the removable value at `u = 0` made explicit. -/
-theorem normalized_sinc_smul_eq_sin_div (T u : ℝ) (z : E) :
-    (1 / (2 * π) : ℝ) • ((2 * T * Real.sinc (T * u) : ℂ) • z) =
-      (if u = 0 then (T / π : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) • z := by
-  by_cases hu : u = 0
-  · subst u
-    rw [ite_eq_left rfl]
-    simp only [one_div, mul_inv_rev, mul_zero, Real.sinc_zero, ofReal_one, mul_one]
-    rw [← smul_assoc]
-    congr 1
-    rw [RCLike.real_smul_eq_coe_mul]
-    push_cast
-    field_simp [Real.pi_ne_zero]
-    ring_nf
-    rfl
-  · rw [ite_eq_right hu]
-    by_cases hT : T = 0
-    · subst T
-      simp
-    · rw [Real.sinc_of_ne_zero (mul_ne_zero hT hu)]
-      rw [← smul_assoc]
-      congr 1
-      rw [RCLike.real_smul_eq_coe_mul]
-      push_cast
-      field_simp [Real.pi_ne_zero, hT, hu]
-      ring_nf
-      rfl
-
 /-- The normalized sinc kernel integral in translated coordinates, with the
 removable singularity of `sin (T * u) / (π * u)` exposed. -/
 theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div
@@ -246,7 +217,12 @@ theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div
   rw [sinc_kernel_integral_comp_sub_left]
   rw [← integral_smul]
   congr with u
-  exact normalized_sinc_smul_eq_sin_div (E := E) T u (f (x - u))
+  rw [← smul_assoc, RCLike.real_smul_eq_coe_mul]
+  congr 1
+  by_cases hu : u = 0 <;>
+    by_cases hT : T = 0 <;>
+    simp [Real.sinc, hu, hT] <;>
+    field_simp [hu, hT, Real.pi_ne_zero]
 
 /-- The value assigned at the removable singularity of `sin (T * u) / (π * u)`
 does not affect the whole-line kernel integral. -/
@@ -272,42 +248,6 @@ theorem tendsto_integral_sin_mul_smul_atTop {f : ℝ → E} (hf : Integrable f) 
     fun T ↦ ?_
   have hT : 2 * π * (T / (2 * π)) = T := by field_simp
   simp only [Function.comp_apply, id, hT]
-
-theorem sin_div_kernel_sub_eq_sin_smul_quotient
-    (f : ℝ → E) (x T u : ℝ) :
-    (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) •
-        (f (x - u) - f x) =
-      (Real.sin (T * u) : ℂ) •
-        (if u = 0 then 0 else (1 / (π * u) : ℂ) • (f (x - u) - f x)) := by
-  by_cases hu : u = 0
-  · simp [hu]
-  · rw [ite_eq_right hu, ite_eq_right hu, ← smul_assoc]
-    congr 1
-    simp only [div_eq_mul_inv]
-    ring
-
-theorem local_quotient_eq_dslope
-    (f : ℝ → E) (x : ℝ) {u : ℝ} (hu : u ≠ 0) :
-    ((-1 / π : ℂ) • dslope f x (x - u)) =
-      (if u = 0 then 0 else (1 / (π * u) : ℂ) • (f (x - u) - f x)) := by
-  rw [ite_eq_right hu]
-  have hne : x - u ≠ x := by
-    intro h
-    have : u = 0 := by linarith
-    exact hu this
-  rw [dslope_of_ne f hne]
-  rw [slope_def_module]
-  let r : ℝ := (x - u - x)⁻¹
-  change (-1 / π : ℂ) • (r • (f (x - u) - f x)) =
-    (1 / (π * u) : ℂ) • (f (x - u) - f x)
-  rw [← smul_comm r ((-1 / π : ℂ))]
-  rw [RCLike.real_smul_eq_coe_smul (K := ℂ) (E := E)]
-  rw [← smul_assoc]
-  congr 1
-  dsimp [r]
-  push_cast
-  field_simp [hu, Real.pi_ne_zero]
-  ring
 
 /-- Differentiability at the target point makes the local sine-error quotient
 interval-integrable on every positive window. -/
@@ -341,7 +281,14 @@ theorem intervalIntegrable_local_quotient_of_differentiableAt
   filter_upwards [show ∀ᵐ u : ℝ, u ≠ 0 by simp [ae_iff, measure_singleton]]
     with u hu _hu_mem
   dsimp [qds]
-  exact local_quotient_eq_dslope (E := E) f x hu
+  have hne : x - u ≠ x := by grind
+  rw [ite_eq_right hu, dslope_of_ne f hne, slope_def_module,
+    show x - u - x = -u by ring,
+    RCLike.real_smul_eq_coe_smul (K := ℂ) (E := E), smul_smul]
+  congr 1
+  push_cast
+  field_simp [hu, Real.pi_ne_zero]
+  rfl
 
 /-- Local quotient integrability gives interval-integrability of the finite
 sine-kernel error term. -/
@@ -366,7 +313,12 @@ theorem intervalIntegrable_sin_div_kernel_error_of_intervalIntegrable_quotient
   refine hsinq.congr ?_
   intro u _hu
   dsimp [q]
-  exact (sin_div_kernel_sub_eq_sin_smul_quotient (E := E) f x T u).symm
+  symm
+  by_cases hu : u = 0
+  · simp [hu]
+  · simp only [ite_eq_right hu, div_eq_mul_inv, one_mul]
+    rw [RCLike.real_smul_eq_coe_smul (K := ℂ) (E := E), smul_smul]
+    rfl
 
 /-- Local quotient integrability gives the finite-window Riemann-Lebesgue
 cancellation for the sine-kernel error term. -/
@@ -401,7 +353,11 @@ theorem tendsto_intervalIntegral_sin_div_kernel_error_of_intervalIntegrable_quot
     apply intervalIntegral.integral_congr
     intro u _hu
     dsimp [q]
-    exact sin_div_kernel_sub_eq_sin_smul_quotient (E := E) f x T u
+    by_cases hu : u = 0
+    · simp [hu]
+    · simp only [ite_eq_right hu, div_eq_mul_inv, one_mul]
+      rw [RCLike.real_smul_eq_coe_smul (K := ℂ) (E := E), smul_smul]
+      rfl
   rw [hinterval, intervalIntegral.integral_of_le hle]
   dsimp [qWindow]
   rw [← integral_indicator measurableSet_Ioc]
@@ -458,19 +414,6 @@ theorem integrable_sin_div_kernel_smul_of_integrable
     exact mul_le_mul (norm_sin_div_kernel_le_abs_height T u) le_rfl
       (norm_nonneg _) hC_nonneg
 
-/-- Outside `(-R, R]`, a positive radius is a lower bound for `|u|`. -/
-lemma le_abs_of_notMem_Ioc_neg_pos {R u : ℝ} (hR : 0 < R)
-    (hu : u ∉ Set.Ioc (-R) R) :
-    R ≤ |u| := by
-  rw [Set.mem_Ioc] at hu
-  by_cases hleft : -R < u
-  · have hRu : R < u := lt_of_not_ge (fun huR : u ≤ R => hu ⟨hleft, huR⟩)
-    exact le_trans hRu.le (le_abs_self u)
-  · have hule : u ≤ -R := le_of_not_gt hleft
-    have hneg : R ≤ -u := by linarith
-    have hu_nonpos : u ≤ 0 := by linarith
-    exact hneg.trans_eq (abs_of_nonpos hu_nonpos).symm
-
 /-- The fixed-window tail quotient is bounded by an integrable translate. -/
 lemma norm_tail_quotient_le
     {f : ℝ → E} (x : ℝ) {R : ℝ} (hR : 0 < R) (u : ℝ) :
@@ -481,7 +424,10 @@ lemma norm_tail_quotient_le
   by_cases huSet : u ∈ (Set.Ioc (-R) R)ᶜ
   · rw [Set.indicator_of_mem huSet]
     have hu_not : u ∉ Set.Ioc (-R) R := by simpa using huSet
-    have hR_abs : R ≤ |u| := le_abs_of_notMem_Ioc_neg_pos hR hu_not
+    have hR_abs : R ≤ |u| := by
+      by_contra h
+      have hu' : |u| < R := lt_of_not_ge h
+      exact hu_not ⟨(abs_lt.mp hu').1, (abs_lt.mp hu').2.le⟩
     have hu_ne : u ≠ 0 := by
       intro h0
       apply hu_not
@@ -529,32 +475,6 @@ theorem integrable_tail_quotient_of_integrable
     rw [hCnorm]
     exact norm_tail_quotient_le (E := E) x hR u
 
-/-- Pointwise tail algebra for the sine kernel. -/
-lemma tail_indicator_sin_div_eq_sin_smul_quotient
-    (f : ℝ → E) (x T : ℝ) {R : ℝ} (hR : 0 < R) (u : ℝ) :
-    (Set.Ioc (-R) R)ᶜ.indicator
-        (fun u : ℝ =>
-          (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) •
-            f (x - u)) u =
-      (Real.sin (T * u) : ℂ) •
-        (Set.Ioc (-R) R)ᶜ.indicator
-          (fun u : ℝ => (if u = 0 then (0 : ℂ) else (1 / (π * u) : ℂ)) •
-            f (x - u)) u := by
-  by_cases huSet : u ∈ (Set.Ioc (-R) R)ᶜ
-  · rw [Set.indicator_of_mem huSet, Set.indicator_of_mem huSet]
-    have hu_not : u ∉ Set.Ioc (-R) R := by simpa using huSet
-    have hu_ne : u ≠ 0 := by
-      intro h0
-      apply hu_not
-      have hzmem : (0 : ℝ) ∈ Set.Ioc (-R) R := by
-        exact ⟨by linarith, hR.le⟩
-      simpa [h0] using hzmem
-    rw [ite_eq_right hu_ne, ite_eq_right hu_ne, ← smul_assoc]
-    congr 1
-    simp only [div_eq_mul_inv]
-    ring
-  · rw [Set.indicator_of_notMem huSet, Set.indicator_of_notMem huSet, smul_zero]
-
 /-- The fixed-window tail of the sine kernel tends to zero for integrable
 sources. -/
 theorem tendsto_sin_div_kernel_tail_of_integrable
@@ -601,7 +521,14 @@ theorem tendsto_sin_div_kernel_tail_of_integrable
           apply integral_congr_ae
           filter_upwards with u
           dsimp [k, qTail]
-          exact tail_indicator_sin_div_eq_sin_smul_quotient (E := E) f x T hR u
+          by_cases hs : u ∈ (Set.Ioc (-R) R)ᶜ
+          · rw [Set.indicator_of_mem hs, Set.indicator_of_mem hs]
+            by_cases hu : u = 0
+            · simp [hu]
+            · simp only [ite_eq_right hu, div_eq_mul_inv, one_mul]
+              rw [RCLike.real_smul_eq_coe_smul (K := ℂ) (E := E), smul_smul]
+              rfl
+          · simp only [Set.indicator_of_notMem hs, smul_zero]
 
 /-- Uniform fixed-window tail bound for the sine kernel. Outside `(-R, R]`,
 the denominator gives a `1 / (π R)` bound, independent of the height and
@@ -646,7 +573,10 @@ theorem norm_sin_div_kernel_tail_le_integral_norm
     filter_upwards [MeasureTheory.self_mem_ae_restrict measurableSet_Ioc.compl] with u hucomp
     dsimp [k, C]
     have hu_not : u ∉ Set.Ioc (-R) R := by simpa using hucomp
-    have hR_abs : R ≤ |u| := le_abs_of_notMem_Ioc_neg_pos hR hu_not
+    have hR_abs : R ≤ |u| := by
+      by_contra h
+      have hu' : |u| < R := lt_of_not_ge h
+      exact hu_not ⟨(abs_lt.mp hu').1, (abs_lt.mp hu').2.le⟩
     have hu_ne : u ≠ 0 := by
       intro h0
       apply hu_not
@@ -1533,37 +1463,6 @@ theorem laplaceIntegralCpowTrunc_tendsto_of_integrable_local_quotient
     (sinc_kernel_tendsto_of_integrable_local_quotient (E := ℂ)
       (f := fun y : ℝ => Complex.exp (-((sigma : ℂ) * (y : ℂ))) * f y)
       (x := Real.log x) (R := R) hg hR hq)
-
-/-- A continuous function that decays like a negative exponential at `+∞` and is
-controlled by a positive exponential at `-∞` is globally bounded. -/
-lemma bounded_of_continuous_of_isBigO_exp_atBot_atTop
-    {f : ℝ → ℂ} (hf_cont : Continuous f) {cTop cBot : ℝ}
-    (hcTop : cTop < 0) (hcBot : 0 < cBot)
-    (htop : f =O[Filter.atTop] fun y : ℝ => Real.exp (cTop * y))
-    (hbot : f =O[Filter.atBot] fun y : ℝ => Real.exp (cBot * y)) :
-    ∃ B : ℝ, 0 ≤ B ∧ ∀ y : ℝ, ‖f y‖ ≤ B := by
-  have ht := htop.isBigO_principal_Ici_of_continuousOn (a := 0)
-    hf_cont.continuousOn (by fun_prop) (fun _ _ ↦ Real.exp_ne_zero _)
-  have hb := (hbot.comp_tendsto tendsto_neg_atTop_atBot).isBigO_principal_Ici_of_continuousOn
-    (a := 0) (hf_cont.comp continuous_neg).continuousOn (by fun_prop)
-    (fun _ _ ↦ Real.exp_ne_zero _)
-  obtain ⟨Ct, hCt⟩ := Asymptotics.isBigO_principal.mp ht
-  obtain ⟨Cb, hCb⟩ := Asymptotics.isBigO_principal.mp hb
-  have hCt0 : 0 ≤ Ct := by simpa using (norm_nonneg (f 0)).trans (hCt 0 (by simp))
-  have hCb0 : 0 ≤ Cb := by
-    have h := hCb 0 (by simp)
-    simp only [Function.comp_apply, neg_zero, mul_zero, Real.exp_zero, norm_one, mul_one] at h
-    exact (norm_nonneg (f 0)).trans h
-  refine ⟨max Ct Cb, hCt0.trans (le_max_left _ _), fun y ↦ ?_⟩
-  rcases le_or_gt 0 y with hy | hy
-  · refine (hCt y hy).trans ((mul_le_of_le_one_right hCt0 ?_).trans (le_max_left _ _))
-    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _), Real.exp_le_one_iff]
-    exact mul_nonpos_of_nonpos_of_nonneg hcTop.le hy
-  · have h := hCb (-y) (neg_nonneg.mpr hy.le)
-    simp only [Function.comp_apply, neg_neg] at h
-    refine h.trans ((mul_le_of_le_one_right hCb0 ?_).trans (le_max_right _ _))
-    rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _), Real.exp_le_one_iff]
-    exact mul_nonpos_of_nonneg_of_nonpos hcBot.le hy.le
 
 /-- Continuity of the bilateral Laplace integral along the `σ + tI` vertical line,
 under integrability of the exponentially weighted source. Companion to
