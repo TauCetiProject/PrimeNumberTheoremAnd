@@ -161,8 +161,9 @@ attribute [blueprint "ZeroFactor"
 
 
 
-@[blueprint "ZeroFactorization"
+attribute [blueprint "ZeroFactorization"
   (title := "ZeroFactorization")
+  (uses := ["SetOfZeros", "ZeroFactor"])
   (statement := /--
     Let $f:\mathbb{C}\to\mathbb{C}$ be analytic on $\overline{\mathbb{D}_1}$ with $f(0)\neq 0$.
     For all $\rho\in\mathcal{K}_f(R)$ with $R<1$ there exists $h_\rho(z)$ such that
@@ -181,29 +182,7 @@ attribute [blueprint "ZeroFactor"
     $$h_\rho(\rho)=\sum_{m\leq n}a_n(\rho-\rho)^{n-m}=\sum_{m\leq n}a_n0^{n-m}=a_m\neq 0.$$
   -/)
   (latexEnv := "lemma")]
-lemma ZeroFactorization {R : ℝ} {f : ℂ → ℂ} {ρ : ℂ}
-    (RleOne : R < 1)
-    (hfAnalytic : AnalyticOnNhd ℂ f (Metric.closedBall (0 : ℂ) 1))
-    (hf_neq_zero_at_zero : f 0 ≠ 0)
-    (hρ : ρ ∈ SetOfZeros R f) :
-    ∃ h_ρ : ℂ → ℂ, AnalyticAt ℂ h_ρ ρ ∧ h_ρ ρ ≠ 0 ∧
-      (if AnalyticAt ℂ f ρ then meromorphicTrailingCoeffAt f ρ else 0) = h_ρ ρ ∧
-      f =ᶠ[nhds ρ] fun z ↦ (z - ρ) ^ analyticOrderNatAt f ρ * h_ρ z := by
-  have ρ_mem_closedBall : ρ ∈ Metric.closedBall (0 : ℂ) 1 := by
-    simpa only [Metric.mem_closedBall, dist_zero_right] using hρ.1.trans RleOne.le
-  have finiteOrder : analyticOrderAt f ρ ≠ ⊤ :=
-    hfAnalytic.analyticOrderAt_ne_top_of_isPreconnected Metric.isPreconnected_closedBall
-      (Metric.mem_closedBall_self zero_le_one) ρ_mem_closedBall
-      (by simp [analyticOrderAt_eq_zero.2 (Or.inr hf_neq_zero_at_zero)])
-  have AnalyticAt_ρ : AnalyticAt ℂ f ρ := hfAnalytic ρ ρ_mem_closedBall
-  obtain ⟨h_ρ, h_ρ_neq_zero_at_zero, f_eq⟩ :=
-    (AnalyticAt_ρ.analyticOrderAt_ne_top.mp finiteOrder).choose_spec
-  set g := (AnalyticAt_ρ.analyticOrderAt_ne_top.mp finiteOrder).choose
-  refine ⟨g, h_ρ, h_ρ_neq_zero_at_zero, ?_, f_eq⟩
-  simp only [AnalyticAt_ρ, ite_true]
-  exact h_ρ.meromorphicTrailingCoeffAt_of_ne_zero_of_eq_nhdsNE
-    (n := (analyticOrderNatAt f ρ : ℤ)) h_ρ_neq_zero_at_zero
-    (by simpa only [zpow_natCast] using f_eq.filter_mono nhdsWithin_le_nhds)
+  AnalyticAt.analyticOrderAt_ne_top
 
 
 
@@ -252,10 +231,18 @@ lemma CfAnalytic {r R : ℝ} {f : ℂ → ℂ}
   by_cases finite_zeros_mono : (SetOfZeros r f).Finite
   · simp only [finite_zeros_mono, ↓reduceDIte]
     by_cases w_in_zeros : w ∈ SetOfZeros r f
-    · obtain ⟨hW, hhWanalytic, hhWne_zero, hhWeq⟩ :=
-        ZeroFactorization (by linarith)
-          (hfAnalytic.mono (Metric.closedBall_subset_closedBall (by linarith))) hf_neq_zero_at_zero
-          w_in_zeros
+    · obtain ⟨hW, hhWanalytic, hhWne_zero, hhWeq⟩ :
+          ∃ g : ℂ → ℂ, AnalyticAt ℂ g w ∧ g w ≠ 0 ∧
+            (if AnalyticAt ℂ f w then meromorphicTrailingCoeffAt f w else 0) = g w ∧
+            f =ᶠ[nhds w] fun z ↦ (z - w) ^ analyticOrderNatAt f w * g z := by
+        have hwB : w ∈ Metric.closedBall (0 : ℂ) 1 := by simpa only [Metric.mem_closedBall, dist_zero_right] using w_in_zeros.1.trans (r_lt_R.trans R_lt_one).le
+        have ha := hfAnalytic w hwB
+        have hord := hfAnalytic.analyticOrderAt_ne_top_of_isPreconnected Metric.isPreconnected_closedBall
+          (Metric.mem_closedBall_self zero_le_one) hwB (by simp [analyticOrderAt_eq_zero.2 (Or.inr hf_neq_zero_at_zero)])
+        obtain ⟨g, hg, hg0, heq⟩ := ha.analyticOrderAt_ne_top.mp hord
+        refine ⟨g, hg, hg0, ?_, heq⟩
+        simpa only [ha, ite_true] using hg.meromorphicTrailingCoeffAt_of_ne_zero_of_eq_nhdsNE
+          (n := (analyticOrderNatAt f w : ℤ)) hg0 (by simpa only [zpow_natCast] using heq.filter_mono nhdsWithin_le_nhds)
       have h_eq : ∀ᶠ z in nhds w,
           (if h : z ∈ SetOfZeros r f then
             (if AnalyticAt ℂ f z then meromorphicTrailingCoeffAt f z else 0) /
@@ -584,9 +571,18 @@ lemma BlaschkeNonzero {r R : ℝ} {f : ℂ → ℂ}
   unfold BlaschkeB Cf
   by_cases z_in_zeros : z ∈ SetOfZeros r f
   · simp only [hFin, z_in_zeros, ↓reduceDIte]
-    obtain ⟨_, _, hne, heq⟩ := ZeroFactorization (by linarith)
-      (hfAnalytic.mono (Metric.closedBall_subset_closedBall (by linarith))) hf_neq_zero_at_zero
-      z_in_zeros
+    obtain ⟨_, _, hne, heq⟩ :
+        ∃ g : ℂ → ℂ, AnalyticAt ℂ g z ∧ g z ≠ 0 ∧
+          (if AnalyticAt ℂ f z then meromorphicTrailingCoeffAt f z else 0) = g z ∧
+          f =ᶠ[nhds z] fun w ↦ (w - z) ^ analyticOrderNatAt f z * g w := by
+      have hzB : z ∈ Metric.closedBall (0 : ℂ) 1 := by simpa only [Metric.mem_closedBall, dist_zero_right] using z_in_zeros.1.trans r_lt_one.le
+      have ha := hfAnalytic z hzB
+      have hord := hfAnalytic.analyticOrderAt_ne_top_of_isPreconnected Metric.isPreconnected_closedBall
+        (Metric.mem_closedBall_self zero_le_one) hzB (by simp [analyticOrderAt_eq_zero.2 (Or.inr hf_neq_zero_at_zero)])
+      obtain ⟨g, hg, hg0, hfac⟩ := ha.analyticOrderAt_ne_top.mp hord
+      refine ⟨g, hg, hg0, ?_, hfac⟩
+      simpa only [ha, ite_true] using hg.meromorphicTrailingCoeffAt_of_ne_zero_of_eq_nhdsNE
+        (n := (analyticOrderNatAt f z : ℤ)) hg0 (by simpa only [zpow_natCast] using hfac.filter_mono nhdsWithin_le_nhds)
     rw [heq.1]
     refine mul_ne_zero (div_ne_zero hne (Finset.prod_ne_zero_iff.mpr fun ρ hρ =>
       pow_ne_zero _ (sub_ne_zero.mpr fun h =>
@@ -1054,6 +1050,7 @@ lemma norm_zeta_strict_mono_ofReal {a b : ℝ} (hb : 1 < b) (hab : b < a) :
 
 @[blueprint "LogDerivZetaFinalBound"
   (title := "LogDerivZetaFinalBound")
+  (proofUses := [-"ZeroFactorization"])
   (statement := /--
     Let $t\in\mathbb{R}$ with $|t|\geq 2$ and $0 < r' < r < R' < R<1$. If
     $f(z)=\zeta(z+3/2+it)$, then for all
@@ -1927,6 +1924,7 @@ lemma GapSize (t : ℝ) (ht : |t| ≥ 3)
 
 @[blueprint "LogDerivZetaUniformLogSquaredBoundStrip"
   (title := "LogDerivZetaUniformLogSquaredBoundStrip")
+  (proofUses := [-"ZeroFactorization"])
   (statement := /--
     There exists a constant $F\in(0,1/42)$ such that
     for all $t\in\mathbb{R}$ with $|t|\geq 3$ one has
