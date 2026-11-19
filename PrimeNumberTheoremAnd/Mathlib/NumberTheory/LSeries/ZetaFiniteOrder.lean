@@ -296,8 +296,13 @@ theorem zeta_minus_pole_entire_growth :
               riemannZeta z =
                 2 * (2 * π) ^ (-w) * Complex.Gamma w * Complex.cos (π * w / 2) * riemannZeta w := by
             simpa [w, mul_assoc, mul_left_comm, mul_comm] using riemannZeta_one_sub hw_ne_neg hw_ne1
-          have hpow_le1 : ‖(2 * π : ℂ) ^ (-w)‖ ≤ 1 :=
-            Complex.Gammaℝ.Stirling.norm_cpow_two_mul_pi_neg_le_one hw_re0
+          have hpow_le1 : ‖(2 * π : ℂ) ^ (-w)‖ ≤ 1 := by
+            have h : ‖(2 * π : ℂ) ^ (-w)‖ = (2 * Real.pi) ^ (-w.re) := by
+              simpa using Complex.norm_cpow_eq_rpow_re_of_pos
+                (by positivity : 0 < 2 * Real.pi) (-w)
+            rw [h]
+            exact Real.rpow_le_one_of_one_le_of_nonpos
+              (by linarith [Real.pi_gt_three]) (neg_nonpos.mpr hw_re0)
           have hw_norm_le : ‖w‖ ≤ A := by
             simpa [w, A] using norm_sub_le (1 : ℂ) z
           have hw_norm_ge1 : (1 : ℝ) ≤ ‖w‖ := by

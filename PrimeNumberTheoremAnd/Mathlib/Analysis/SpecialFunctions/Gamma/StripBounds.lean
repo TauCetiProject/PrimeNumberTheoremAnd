@@ -37,116 +37,11 @@ in regions of the complex plane that arise naturally in the analytic theory of
 the completed zeta function, Hadamard factorization, and the Selberg class.
 -/
 
-namespace Real.Stirling
 
-/-- For `x ≥ 1`, `log (1 + x) ≥ log 2`. -/
-lemma log_one_add_ge_log_two {x : ℝ} (hx : 1 ≤ x) :
-    Real.log 2 ≤ Real.log (1 + x) := by
-  have h₂ : (0 : ℝ) < 2 := by norm_num
-  have hle : (2 : ℝ) ≤ 1 + x := by linarith
-  exact Real.log_le_log h₂ hle
-
-/-- For `x ≥ 1`, `log 2 ≤ x * log (1 + x)`. -/
-lemma log_two_le_mul_log_one_add {x : ℝ} (hx : 1 ≤ x) :
-    Real.log 2 ≤ x * Real.log (1 + x) := by
-  have hlog2_pos : 0 < Real.log 2 := Real.log_pos (by norm_num : (1 : ℝ) < 2)
-  have hlog2_le := log_one_add_ge_log_two hx
-  have hx_mul : x * Real.log 2 ≤ x * Real.log (1 + x) :=
-    mul_le_mul_of_nonneg_left hlog2_le (by linarith)
-  have hx_ge : Real.log 2 ≤ x * Real.log 2 := by
-    simpa [one_mul] using mul_le_mul_of_nonneg_right hx hlog2_pos.le
-  exact le_trans hx_ge hx_mul
-
-/-- For `x ≥ 1`, `log 3 ≤ (log 3 / log 2) * log (1 + x)`. -/
-lemma log_three_le_coef_mul_log_one_add {x : ℝ} (hx : 1 ≤ x) :
-    Real.log 3 ≤ (Real.log 3 / Real.log 2) * Real.log (1 + x) := by
-  have hlog2_pos : 0 < Real.log 2 := Real.log_pos (by norm_num : (1 : ℝ) < 2)
-  have hlog2_ne : Real.log 2 ≠ 0 := ne_of_gt hlog2_pos
-  have hlog3_pos : 0 < Real.log 3 := Real.log_pos (by norm_num : (1 : ℝ) < 3)
-  have hcoef_nonneg : 0 ≤ Real.log 3 / Real.log 2 := div_nonneg hlog3_pos.le hlog2_pos.le
-  have hscaled :
-      (Real.log 3 / Real.log 2) * Real.log 2 ≤
-        (Real.log 3 / Real.log 2) * Real.log (1 + x) :=
-    mul_le_mul_of_nonneg_left (log_one_add_ge_log_two hx) hcoef_nonneg
-  simpa [div_mul_cancel₀ _ hlog2_ne] using hscaled
-
-/-- Absorbs the `s ↦ s/2 + 1` shift in half-plane Stirling bounds. -/
-noncomputable def half_shift_log_constant : ℝ :=
-  (3 / 2 : ℝ) * (Real.log 3 / Real.log 2 + 1)
-
-lemma half_shift_log_constant_pos : 0 < half_shift_log_constant := by
-  have hthree : 0 < (3 / 2 : ℝ) := by norm_num
-  have hcoef : 0 < Real.log 3 / Real.log 2 + 1 := by
-    have hlog2_pos : 0 < Real.log 2 := Real.log_pos (by norm_num : (1 : ℝ) < 2)
-    have hlog3_pos : 0 < Real.log 3 := Real.log_pos (by norm_num : (1 : ℝ) < 3)
-    have hcoef_nonneg : 0 ≤ Real.log 3 / Real.log 2 :=
-      div_nonneg hlog3_pos.le hlog2_pos.le
-    linarith
-  simpa [half_shift_log_constant] using mul_pos hthree hcoef
-
-end Real.Stirling
 
 namespace Complex.Gamma
 
 open Real
-
-/-- For `‖s‖ ≥ 1`, `‖s/2 + 1‖ ≤ (3/2) * ‖s‖`. -/
-lemma norm_div_two_add_one_le_three_halves_mul {s : ℂ} (hs : 1 ≤ ‖s‖) :
-    ‖s / 2 + 1‖ ≤ (3 / 2) * ‖s‖ := by
-  have h1 : ‖s / 2 + 1‖ ≤ ‖s / 2‖ + 1 := by simpa using norm_add_le (s / 2) (1 : ℂ)
-  have h1' : ‖s / 2 + 1‖ ≤ ‖s‖ / 2 + 1 := by simpa using h1
-  nlinarith [h1', hs]
-
-/-- For `‖s‖ ≥ 1`, `log(1 + ‖s/2 + 1‖) ≤ log 3 + log(1 + ‖s‖)`. -/
-lemma log_one_add_norm_div_two_add_one_le {s : ℂ} (hs : 1 ≤ ‖s‖) :
-    Real.log (1 + ‖s / 2 + 1‖) ≤ Real.log 3 + Real.log (1 + ‖s‖) := by
-  have hpos : 0 < (1 + ‖s / 2 + 1‖ : ℝ) := by linarith [norm_nonneg (s / 2 + 1)]
-  have hle : (1 + ‖s / 2 + 1‖ : ℝ) ≤ 3 * (1 + ‖s‖) := by
-    nlinarith [norm_div_two_add_one_le_three_halves_mul hs]
-  have hlog' : Real.log (1 + ‖s / 2 + 1‖) ≤ Real.log (3 * (1 + ‖s‖)) :=
-    Real.log_le_log hpos (by linarith)
-  have hmul : Real.log (3 * (1 + ‖s‖)) = Real.log 3 + Real.log (1 + ‖s‖) := by
-    have h3 : (3 : ℝ) ≠ 0 := by norm_num
-    have h1 : (1 + ‖s‖ : ℝ) ≠ 0 := by linarith [norm_nonneg s]
-    simpa [mul_assoc] using Real.log_mul h3 h1
-  simpa [hmul] using hlog'
-
-/-- For `‖s‖ ≥ 1`, the `s ↦ s + 1` shift in the Stirling exponent is absorbed by a factor `4`. -/
-lemma norm_mul_log_shift_add_one_bound {s : ℂ} (hs : 1 ≤ ‖s‖) :
-    ‖s + 1‖ * Real.log (1 + ‖s + 1‖) ≤ 4 * (‖s‖ * Real.log (1 + ‖s‖)) := by
-  have hn : ‖s + 1‖ ≤ 2 * ‖s‖ := by linarith [norm_add_le s 1, norm_one (α := ℂ)]
-  have hl : Real.log (1 + ‖s + 1‖) ≤ 2 * Real.log (1 + ‖s‖) := by
-    rw [show 2 * Real.log (1 + ‖s‖) = Real.log ((1 + ‖s‖) ^ 2) by rw [Real.log_pow]; norm_num]
-    exact Real.log_le_log (by positivity) (by nlinarith)
-  have h0 : 0 ≤ Real.log (1 + ‖s + 1‖) := Real.log_nonneg (by linarith [norm_nonneg (s + 1)])
-  calc ‖s + 1‖ * Real.log (1 + ‖s + 1‖) ≤ (2 * ‖s‖) * (2 * Real.log (1 + ‖s‖)) := by gcongr
-    _ = 4 * (‖s‖ * Real.log (1 + ‖s‖)) := by ring
-
-/-- For `‖s‖ ≥ 1`, the `s ↦ s/2 + 1` shift in the half-plane Stirling exponent. -/
-lemma norm_mul_log_shift_half_bound {s : ℂ} (hs : 1 ≤ ‖s‖) :
-    ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖) ≤
-      Real.Stirling.half_shift_log_constant * (‖s‖ * Real.log (1 + ‖s‖)) := by
-  have hlog_nonneg : 0 ≤ Real.log (1 + ‖s / 2 + 1‖) :=
-    Real.log_nonneg (by linarith [norm_nonneg (s / 2 + 1)])
-  have hlog_w' :
-      Real.log (1 + ‖s / 2 + 1‖) ≤
-        (Real.log 3 / Real.log 2 + 1) * Real.log (1 + ‖s‖) := by
-    nlinarith [log_one_add_norm_div_two_add_one_le hs,
-      Real.Stirling.log_three_le_coef_mul_log_one_add hs]
-  calc
-    ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)
-        ≤ ((3 / 2 : ℝ) * ‖s‖) * Real.log (1 + ‖s / 2 + 1‖) :=
-          mul_le_mul_of_nonneg_right (norm_div_two_add_one_le_three_halves_mul hs) hlog_nonneg
-    _ ≤ Real.Stirling.half_shift_log_constant * (‖s‖ * Real.log (1 + ‖s‖)) := by
-      have hstep2 :
-          ((3 / 2 : ℝ) * ‖s‖) * Real.log (1 + ‖s / 2 + 1‖) ≤
-            ((3 / 2 : ℝ) * ‖s‖) * ((Real.log 3 / Real.log 2 + 1) * Real.log (1 + ‖s‖)) :=
-        mul_le_mul_of_nonneg_left hlog_w' (by positivity)
-      have hEq :
-          ((3 / 2 : ℝ) * ‖s‖) * ((Real.log 3 / Real.log 2 + 1) * Real.log (1 + ‖s‖)) =
-            Real.Stirling.half_shift_log_constant * (‖s‖ * Real.log (1 + ‖s‖)) := by
-        simp [Real.Stirling.half_shift_log_constant, mul_assoc, mul_left_comm, mul_comm]
-      exact le_trans hstep2 (by simp [hEq])
 
 /-- For `re s ≥ 1`, the real Gamma bound controls `‖Γ(s)‖` in terms of `‖s‖`. -/
 theorem norm_bound_re_ge_one :
@@ -215,17 +110,47 @@ theorem half_bound_re_ge_zero :
       ∀ s : ℂ, 0 ≤ s.re → 1 ≤ ‖s‖ →
         ‖Gamma (s / 2)‖ ≤ Real.exp (C * ‖s‖ * Real.log (1 + ‖s‖)) := by
   obtain ⟨C, hC, hbound⟩ := Complex.Gamma.stirling_bound_re_ge_zero
-  let A := Real.Stirling.half_shift_log_constant
-  have hA : 0 < A := Real.Stirling.half_shift_log_constant_pos
+  let A : ℝ := (3 / 2) * (Real.log 3 / Real.log 2 + 1)
+  have hA : 0 < A := by
+    dsimp only [A]
+    positivity
   refine ⟨1 + C * A, by positivity, ?_⟩
   intro s hs hn
   have hs2 : (1 / 2 : ℝ) ≤ ‖s / 2‖ := by simpa using (show (1 / 2 : ℝ) ≤ ‖s‖ / 2 by linarith)
   have hwre : 0 ≤ (s / 2 + 1).re := by simp; linarith
   have hw1 : (1 : ℝ) ≤ (s / 2 + 1).re := by simp; linarith
   have hwnorm : 1 ≤ ‖s / 2 + 1‖ := hw1.trans (Complex.re_le_norm _)
-  have hshift := mul_le_mul_of_nonneg_left
-    (Complex.Gamma.norm_mul_log_shift_half_bound hn) hC.le
-  have hlog := Real.Stirling.log_two_le_mul_log_one_add hn
+  have hshift :
+      C * (‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) ≤
+        C * (A * (‖s‖ * Real.log (1 + ‖s‖))) := by
+    apply mul_le_mul_of_nonneg_left _ hC.le
+    dsimp only [A]
+    have hnorm : ‖s / 2 + 1‖ ≤ (3 / 2) * ‖s‖ :=
+      (norm_add_le_of_le (by simp : ‖s / 2‖ ≤ ‖s‖ / 2)
+        (by simp : ‖(1 : ℂ)‖ ≤ (1 : ℝ))).trans (by linarith)
+    have hlog_shift : Real.log (1 + ‖s / 2 + 1‖) ≤ 2 * Real.log (1 + ‖s‖) := by
+      simpa only [Real.log_pow, Nat.cast_ofNat] using
+        (Real.log_le_log (x := 1 + ‖s / 2 + 1‖) (y := (1 + ‖s‖) ^ (2 : ℕ))
+          (by positivity) (by nlinarith only [hnorm, hn, sq_nonneg ‖s‖]))
+    have hcoef : (3 : ℝ) ≤ (3 / 2) * (Real.log 3 / Real.log 2 + 1) := by
+      have h : (1 : ℝ) ≤ Real.log 3 / Real.log 2 :=
+        (le_div_iff₀ (Real.log_pos (by norm_num))).mpr
+          (by simpa only [one_mul] using
+            Real.log_le_log (by norm_num : (0 : ℝ) < 2) (by norm_num : (2 : ℝ) ≤ 3))
+      linarith
+    calc
+      ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖) ≤
+          3 * (‖s‖ * Real.log (1 + ‖s‖)) := by
+        nlinarith only [mul_le_mul hnorm hlog_shift
+          (Real.log_nonneg (by linarith [norm_nonneg (s / 2 + 1)])) (by positivity)]
+      _ ≤ ((3 / 2 : ℝ) * (Real.log 3 / Real.log 2 + 1)) *
+          (‖s‖ * Real.log (1 + ‖s‖)) :=
+        mul_le_mul_of_nonneg_right hcoef
+          (mul_nonneg (norm_nonneg s) (Real.log_nonneg (by linarith [norm_nonneg s])))
+  have hlog : Real.log 2 ≤ ‖s‖ * Real.log (1 + ‖s‖) := by
+    have h : Real.log 2 ≤ Real.log (1 + ‖s‖) :=
+      Real.log_le_log (by norm_num) (by linarith)
+    exact h.trans (le_mul_of_one_le_left (Real.log_nonneg (by linarith)) hn)
   calc
     ‖Complex.Gamma (s / 2)‖ ≤ 2 * ‖Complex.Gamma (s / 2 + 1)‖ := by
       rw [Complex.Gamma_add_one _ (norm_pos_iff.mp (by linarith only [hs2])), norm_mul]
@@ -236,7 +161,7 @@ theorem half_bound_re_ge_zero :
       rw [Real.exp_add, Real.exp_log (by norm_num : (0 : ℝ) < 2)]
     _ ≤ Real.exp ((1 + C * A) * ‖s‖ * Real.log (1 + ‖s‖)) := by
       apply Real.exp_le_exp.mpr
-      dsimp [A] at ⊢
+      dsimp only [A] at hshift ⊢
       nlinarith
 
 end Complex.Gamma
@@ -244,31 +169,6 @@ end Complex.Gamma
 namespace Complex.Gammaℝ.Stirling
 
 open Real
-
-/-- The norm of `π^{-s/2}` is at most `1` when `Re(s) ≥ 0`. -/
-lemma norm_cpow_pi_neg_half_le_one {s : ℂ} (hs : 0 ≤ s.re) :
-    ‖(Real.pi : ℂ) ^ (-s / 2)‖ ≤ 1 := by
-  have hpi_pos : (0 : ℝ) < Real.pi := Real.pi_pos
-  rw [Complex.norm_cpow_eq_rpow_re_of_pos hpi_pos]
-  have h_re : (-s / 2).re = -s.re / 2 := by simp [Complex.neg_re]
-  rw [h_re]
-  have h_exp : -s.re / 2 ≤ 0 := by linarith
-  have hpi_gt_1 : (1 : ℝ) < Real.pi := by
-    calc (1 : ℝ) < 3 := by norm_num
-      _ < Real.pi := Real.pi_gt_three
-  exact Real.rpow_le_one_of_one_le_of_nonpos (le_of_lt hpi_gt_1) h_exp
-
-/-- The norm of `(2π)^{-w}` is at most `1` when `Re(w) ≥ 0`. -/
-lemma norm_cpow_two_mul_pi_neg_le_one {w : ℂ} (hw : 0 ≤ w.re) :
-    ‖(2 * π : ℂ) ^ (-w)‖ ≤ 1 := by
-  have hbase_pos : (0 : ℝ) < 2 * Real.pi := by nlinarith [Real.pi_pos]
-  have hbase : (1 : ℝ) ≤ 2 * Real.pi := by
-    have : (1 : ℝ) < 2 * Real.pi := by nlinarith [Real.pi_gt_three, Real.pi_pos]
-    exact le_of_lt this
-  have hnorm : ‖(2 * π : ℂ) ^ (-w)‖ = (2 * Real.pi) ^ ((-w : ℂ).re) := by
-    simpa using Complex.norm_cpow_eq_rpow_re_of_pos (x := 2 * Real.pi) hbase_pos (-w)
-  rw [hnorm]
-  exact Real.rpow_le_one_of_one_le_of_nonpos hbase (neg_nonpos.mpr hw)
 
 /-- **Stirling bound for the archimedean factor** `Γ_ℝ = π^{-s/2} · Γ(s/2)`. -/
 theorem bound_re_ge_zero :
@@ -282,7 +182,11 @@ theorem bound_re_ge_zero :
     simp [Complex.Gammaℝ_def]
   have hΓ : ‖Complex.Gamma (s / 2)‖ ≤ Real.exp (C₁ * ‖s‖ * Real.log (1 + ‖s‖)) :=
     hC₁ s hs_re hs_norm
-  have hpi : ‖(Real.pi : ℂ) ^ (-s / 2)‖ ≤ 1 := norm_cpow_pi_neg_half_le_one hs_re
+  have hpi : ‖(Real.pi : ℂ) ^ (-s / 2)‖ ≤ 1 := by
+    rw [Complex.norm_cpow_eq_rpow_re_of_pos Real.pi_pos]
+    exact Real.rpow_le_one_of_one_le_of_nonpos (by linarith [Real.pi_gt_three])
+      (by simpa using (div_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr hs_re)
+        (by norm_num : (0 : ℝ) ≤ 2)))
   have h1 : ‖Complex.Gammaℝ s‖ ≤ ‖(Real.pi : ℂ) ^ (-s / 2)‖ * ‖Complex.Gamma (s / 2)‖ := by
     rw [hdef]; exact norm_mul_le _ _
   have h2 : ‖(Real.pi : ℂ) ^ (-s / 2)‖ * ‖Complex.Gamma (s / 2)‖
