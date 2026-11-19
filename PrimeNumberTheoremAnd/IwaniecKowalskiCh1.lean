@@ -197,8 +197,7 @@ divisor sum is the product over prime factors of one minus the function value; M
 this as `IsMultiplicative.prodPrimeFactors_one_sub`.
 -/
 
-/-- The Dirichlet convolution of $\zeta$ with itself is $\tau$ (the divisor count function). -/
-@[blueprint
+attribute [blueprint
   "zeta_mul_zeta"
   (title := "zeta mul zeta")
   (statement := /-- The Dirichlet convolution of $\zeta$ with itself is $\tau$ (the divisor count function). -/)
@@ -207,9 +206,7 @@ this as `IsMultiplicative.prodPrimeFactors_one_sub`.
   $(\zeta * \zeta)(n)$ counts the number of ways to write $n$ as a product of two positive integers,
   which is exactly the number of divisors of $n$, i.e., $\tau(n)$.
   -/)]
-theorem zeta_mul_zeta : (ζ : ArithmeticFunction ℕ) * ζ = τ := by
-  nth_rw 2 [← pow_zero_eq_zeta]
-  exact zeta_mul_pow_eq_sigma
+  ArithmeticFunction.zeta_mul_pow_eq_sigma
 
 /-- The L-series of $\tau$ equals the square of the Riemann zeta function for $\Re(s) > 1$. -/
 @[blueprint
@@ -228,7 +225,8 @@ theorem LSeries_tau_eq_riemannZeta_sq {s : ℂ} (hs : 1 < s.re) :
     congr 1; ext n; simp only [← natCoe_mul, natCoe_apply]
   have h2 : LSeries (↗((ζ : ArithmeticFunction ℂ) * ζ)) s = LSeries (↗ζ) s * LSeries (↗ζ) s :=
     LSeries_mul' (LSeriesSummable_zeta_iff.mpr hs) (LSeriesSummable_zeta_iff.mpr hs)
-  rw [← zeta_mul_zeta, h1, h2, LSeries_zeta_eq_riemannZeta hs, pow_two]
+  rw [tau, ← zeta_mul_pow_eq_sigma, pow_zero_eq_zeta, h1, h2,
+    LSeries_zeta_eq_riemannZeta hs, pow_two]
 
 blueprint_comment /--
 \label{d}
@@ -1110,7 +1108,9 @@ lemma LSeriesSummable_two_pow_omega {s : ℂ} (hs : 1 < s.re) :
   apply Summable.of_norm_bounded ?_ hgf
   rw [summable_norm_iff, ← LSeriesSummable]
   convert LSeriesSummable_zeta_pow 2 hs using 1;
-  exact funext fun n => by rw [pow_two, zeta_mul_zeta]; rfl
+  exact funext fun n => by
+    rw [pow_two, ← zeta_mul_pow_eq_sigma, pow_zero_eq_zeta]
+    rfl
 
 blueprint_comment /--
 Dirichlet-series terms preserve multiplicativity on coprime inputs, using
@@ -1801,26 +1801,6 @@ lemma liouville_eq_moebius_on_squarefree (n : ℕ) (hn : Squarefree n) : liouvil
   rw [liouville_apply hn0]
   rw [moebius_apply_of_squarefree hn,
     ← ((cardDistinctFactors_eq_cardFactors_iff_squarefree hn0).2 hn)]
-
--- The totient Dirichlet series identity at the level of arithmetic functions
-
-/-- Cast Nat.totient to ArithmeticFunction ℂ (value at 0 is 0 since Nat.totient 0 = 0). -/
-private noncomputable def totientAF : ArithmeticFunction ℂ :=
-  ⟨fun n ↦ (Nat.totient n : ℂ), by simp [Nat.totient_zero]⟩
-
-private lemma totientAF_apply (n : ℕ) : totientAF n = (Nat.totient n : ℂ) := rfl
-
-/-- Key identity: (totientAF * ζ) = powR 1, via ∑_{d|n} φ(d) = n. -/
-private lemma totientAF_mul_zeta_eq_powR1 :
-    (totientAF * (ζ : ArithmeticFunction ℂ) : ArithmeticFunction ℂ) = powR 1 := by
-  ext n
-  simp only [coe_mul_zeta_apply, totientAF_apply]
-  simp only [ArithmeticFunction.powR, ArithmeticFunction.coe_mk]
-  rcases n.eq_zero_or_pos with rfl | hn
-  · simp
-  · simp only [hn.ne', ↓reduceIte, Complex.cpow_one]
-    rw [← Nat.cast_sum]
-    exact_mod_cast Nat.sum_totient n
 
 attribute [blueprint
   "LSeries_totient_eq"
