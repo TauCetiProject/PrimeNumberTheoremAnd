@@ -23,7 +23,7 @@ and convexity bounds in `RiemannZetaConvexity`.
 ## Main results
 
 * `verticalLine`, `verticalLine_re`
-* `Nat.Primes.norm_one_sub_cpow_neg_vertical_le` and companions
+* `Nat.Primes.inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical`
 * `norm_riemannZeta_eulerProduct`, `tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine`
 -/
 
@@ -40,18 +40,6 @@ lemma verticalLine_re (σ t : ℝ) : (verticalLine σ t).re = σ := by
 
 namespace Nat.Primes
 
-/-- On the vertical line `σ + it`, `‖1 - p^{-s}‖ ≤ 1 + p^{-σ}`. -/
-lemma norm_one_sub_cpow_neg_vertical_le (p : Nat.Primes) (σ t : ℝ) :
-    ‖(1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t))‖ ≤ 1 + ((p : ℕ) : ℝ) ^ (-σ) := by
-  set s := verticalLine σ t
-  have hre : s.re = σ := verticalLine_re σ t
-  calc
-    ‖1 - ((p : ℕ) : ℂ) ^ (-s)‖ ≤ 1 + ‖((p : ℕ) : ℂ) ^ (-s)‖ := by
-      simpa [sub_eq_add_neg, norm_one, norm_neg] using
-        norm_add_le (1 : ℂ) (-((p : ℕ) : ℂ) ^ (-s))
-    _ = 1 + ((p : ℕ) : ℝ) ^ (-σ) := by
-      rw [Complex.norm_natCast_cpow_of_pos p.property.pos, Complex.neg_re, hre]
-
 /-- Compare inverse Euler factors on the vertical line `σ + it` with `1 < σ`. -/
 lemma inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical (p : Nat.Primes) (σ t : ℝ)
     (hσ : 1 < σ) :
@@ -59,7 +47,11 @@ lemma inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical (p : Nat.Primes) (�
       (‖(1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t))‖)⁻¹ := by
   have hpos : 0 < ‖(1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t))‖ :=
     norm_pos_iff.mpr (Complex.one_sub_prime_cpow_ne_zero p.prop (by rwa [verticalLine_re]))
-  simpa [one_div] using one_div_le_one_div_of_le hpos (norm_one_sub_cpow_neg_vertical_le p σ t)
+  have htriangle :
+      ‖1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t)‖ ≤ 1 + ((p : ℕ) : ℝ) ^ (-σ) := by
+    simpa [Complex.norm_natCast_cpow_of_pos p.property.pos, verticalLine] using
+      (norm_sub_le (1 : ℂ) (((p : ℕ) : ℂ) ^ (-verticalLine σ t)))
+  simpa [one_div] using one_div_le_one_div_of_le hpos htriangle
 
 end Nat.Primes
 
