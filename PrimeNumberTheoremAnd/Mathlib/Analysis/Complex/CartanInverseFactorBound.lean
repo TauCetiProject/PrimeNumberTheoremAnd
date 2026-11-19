@@ -18,7 +18,7 @@ This file bundles two pointwise estimates used in Cartan/minimum-modulus argumen
 factorization:
 
 - a bound in the “near regime”, combining `Complex.CartanBound.log_norm_one_sub_div_ge_neg_phi` with
-  the general lower bound `Complex.log_norm_weierstrassFactor_ge_log_norm_one_sub_sub`;
+  the elementary-factor formula and the comparison of real part with norm;
 - a bound in the “far regime” (`‖u / a‖ ≤ 1 / 2`), based on
   `Complex.log_norm_weierstrassFactor_ge_neg_two_pow`.
 
@@ -77,8 +77,16 @@ lemma norm_inv_weierstrassFactor_le_exp_near
   have hlog_one :
       Real.log ‖(1 : ℂ) - u / a‖ ≥ -CartanBound.φ (r / ‖a‖) :=
     CartanBound.log_norm_one_sub_div_ge_neg_phi (hur := hur) (ha := ha) (hr := hr)
-  have hbase :=
-    log_norm_weierstrassFactor_ge_log_norm_one_sub_sub (m := m) (z := (u / a))
+  have hbase : Real.log ‖1 - u / a‖ - ‖logTaylor (m + 1) (-(u / a))‖ ≤
+      Real.log ‖weierstrassFactor m (u / a)‖ := by
+    by_cases hz : u / a = 1
+    · simp [hz]
+    have hne : ‖1 - u / a‖ ≠ 0 := norm_ne_zero_iff.mpr (sub_ne_zero.mpr (Ne.symm hz))
+    rw [weierstrassFactor_def, norm_mul, Complex.norm_exp,
+      Real.log_mul hne (Real.exp_pos _).ne', Real.log_exp]
+    simpa only [Complex.neg_re, sub_eq_add_neg] using
+      sub_le_sub_left (Complex.re_le_norm (logTaylor (m + 1) (-(u / a))))
+        (Real.log ‖1 - u / a‖)
   have hlogE :
       Real.log ‖weierstrassFactor m (u / a)‖
         ≥ -CartanBound.φ (r / ‖a‖) - (m : ℝ) * max 1 (‖u / a‖ ^ m) := by
