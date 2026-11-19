@@ -35,13 +35,6 @@ noncomputable def HIntegral' (f : ℂ → E) (x₁ x₂ y : ℝ) : E :=
 noncomputable def VIntegral' (f : ℂ → E) (x y₁ y₂ : ℝ) : E :=
     (1 / (2 * π * I)) • VIntegral f x y₁ y₂
 
-lemma HIntegral_symm :
-    HIntegral f x₁ x₂ y = -HIntegral f x₂ x₁ y := integral_symm _ _
-
-lemma VIntegral_symm :
-    VIntegral f x y₁ y₂ = -VIntegral f x y₂ y₁ := by
-  simp_rw [VIntegral, integral_symm y₁ y₂, smul_neg, neg_neg]
-
 /-- A `RectangleIntegral` of a function `f` is one over a rectangle
   determined by `z` and `w` in `ℂ`. -/
 @[blueprint
@@ -138,7 +131,8 @@ lemma DiffVertRect_eq_UpperLowerUs {σ σ' T : ℝ}
   ring_nf
   abel
 
-@[blueprint
+attribute [blueprint
+  "existsDifferentiableOn_of_bddAbove"
   (title := "existsDifferentiableOn-of-bddAbove")
   (statement := /--
   If $f$ is differentiable on a set $s$ except at $c\in s$,
@@ -151,16 +145,7 @@ lemma DiffVertRect_eq_UpperLowerUs {σ σ' T : ℝ}
   rephrased from what's in Mathlib. (We don't care what the
   function $g$ is, just that it's holomorphic.)
   -/)]
-theorem existsDifferentiableOn_of_bddAbove [CompleteSpace E]
-    {s : Set ℂ} {c : ℂ} (hc : s ∈ nhds c)
-    (hd : DifferentiableOn ℂ f (s \ {c}))
-    (hb : BddAbove (norm ∘ f '' (s \ {c}))) :
-    ∃ (g : ℂ → E),
-      DifferentiableOn ℂ g s ∧ Set.EqOn f g (s \ {c}) :=
-  ⟨Function.update f c (limUnder (𝓝[{c}ᶜ] c) f),
-    differentiableOn_update_limUnder_of_bddAbove hc hd hb,
-    fun z hz ↦ if h : z = c then (hz.2 h).elim
-      else by simp [h]⟩
+  Complex.differentiableOn_update_limUnder_of_bddAbove
 
 @[blueprint
   (title := "DifferentiableOn.vanishesOnRectangle")
@@ -201,7 +186,8 @@ theorem rectangleIntegral_symm_re (f : ℂ → E) (z w : ℂ) :
     RectangleIntegral f (w.re + z.im * I) (z.re + w.im * I) = -RectangleIntegral f z w := by
   simp only [RectangleIntegral, add_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im,
     mul_one, sub_self, add_zero, add_im, mul_im, zero_add, neg_sub, ← sub_eq_zero, sub_zero]
-  rw [HIntegral_symm (y := z.im), HIntegral_symm (y := w.im)]
+  simp only [HIntegral]
+  rw [intervalIntegral.integral_symm w.re z.re, intervalIntegral.integral_symm w.re z.re]
   abel
 
 def RectangleBorderIntegrable (f : ℂ → E) (z w : ℂ) : Prop :=

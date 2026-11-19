@@ -799,8 +799,14 @@ lemma residueAtZero (xpos : 0 < x) : ∀ᶠ (c : ℝ) in 𝓝[>] 0,
   $x^s/(s(s+1))$ is equal to $1/s$ plus a function, $g$, say,
   holomorphic in the whole rectangle (by Lemma \ref{diffBddAtZero}).
   -/
-  obtain ⟨g, gHolo, g_eq_fDiff⟩ :=
-    existsDifferentiableOn_of_bddAbove RectMemNhds f1Holo bddAbove
+  let g : ℂ → ℂ := Function.update ((f x) - fun s : ℂ ↦ 1 / s) 0
+    (limUnder (𝓝[≠] (0 : ℂ)) ((f x) - fun s : ℂ ↦ 1 / s))
+  have gHolo : DifferentiableOn ℂ g (Square 0 c) :=
+    Complex.differentiableOn_update_limUnder_of_bddAbove RectMemNhds f1Holo bddAbove
+  have g_eq_fDiff : Set.EqOn ((f x) - fun s : ℂ ↦ 1 / s) g (Square 0 c \ {0}) := by
+    intro z hz
+    have hne : z ≠ _ := hz.2
+    simp [g, hne]
   simp_rw [Square, add_zero] at fHolo gHolo RectMemNhds
   /-- Now apply Lemma \ref{ResidueTheoremOnRectangleWithSimplePole}. -/
   refine ResidueTheoremOnRectangleWithSimplePole ?_ ?_ RectMemNhds gHolo ?_
@@ -841,8 +847,15 @@ lemma residueAtNegOne (xpos : 0 < x) : ∀ᶠ (c : ℝ) in 𝓝[>] 0,
         simpa only [ne_eq, add_eq_zero_iff_eq_neg, Set.mem_singleton_iff] using hx.2
     exact differentiableOn_id.add (differentiableOn_const 1)
   have RectMemNhds : Square (-1) c ∈ 𝓝 (-1) := square_mem_nhds (-1) (ne_of_gt cpos)
-  obtain ⟨g, gHolo, g_eq_fDiff⟩ :=
-    existsDifferentiableOn_of_bddAbove RectMemNhds f1Holo bddAbove
+  let g : ℂ → ℂ := Function.update ((f x) - fun s : ℂ ↦ -x⁻¹ / (s + 1)) (-1)
+    (limUnder (𝓝[≠] (-1 : ℂ)) ((f x) - fun s : ℂ ↦ -x⁻¹ / (s + 1)))
+  have gHolo : DifferentiableOn ℂ g (Square (-1) c) :=
+    Complex.differentiableOn_update_limUnder_of_bddAbove RectMemNhds f1Holo bddAbove
+  have g_eq_fDiff :
+      Set.EqOn ((f x) - fun s : ℂ ↦ -x⁻¹ / (s + 1)) g (Square (-1) c \ {-1}) := by
+    intro z hz
+    have hne : z ≠ _ := hz.2
+    simp [g, hne]
   simp_rw [Square] at fHolo gHolo RectMemNhds
   refine ResidueTheoremOnRectangleWithSimplePole ?_ ?_ RectMemNhds gHolo ?_
   · simpa using cpos.le

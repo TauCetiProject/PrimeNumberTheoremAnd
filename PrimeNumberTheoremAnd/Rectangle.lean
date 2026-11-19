@@ -41,18 +41,9 @@ def RectangleBorder (z w : ℂ) : Set ℂ :=
 
 def Square (p : ℂ) (c : ℝ) : Set ℂ := Rectangle (-c - c * I + p) (c + c * I + p)
 
-@[simp]
-theorem preimage_equivRealProdCLM_reProdIm (s t : Set ℝ) :
-    equivRealProdCLM.symm ⁻¹' (s ×ℂ t) = s ×ˢ t :=
-  rfl
-
 lemma square_neg (p : ℂ) (c : ℝ) : Square p (-c) = Square p c := by
   simpa [Square] using! Rectangle.symm
 
-
-lemma left_mem_rect (z w : ℂ) : z ∈ Rectangle z w := ⟨left_mem_uIcc, left_mem_uIcc⟩
-
-lemma right_mem_rect (z w : ℂ) : w ∈ Rectangle z w := ⟨right_mem_uIcc, right_mem_uIcc⟩
 
 lemma rect_subset_iff {z w z' w' : ℂ} :
     Rectangle z' w' ⊆ Rectangle z w ↔ z' ∈ Rectangle z w ∧ w' ∈ Rectangle z w := by
@@ -184,7 +175,8 @@ theorem Complex.nhds_hasBasis_square (p : ℂ) : (𝓝 p).HasBasis (0 < ·) (Squ
   · intro; rfl
   · intros
     rw [← uIcc_of_lt (by linarith), ← uIcc_of_lt (by linarith)]
-    simpa [Square, Rectangle] using by ring_nf
+    simpa [Square, Rectangle, show ∀ s t : Set ℝ,
+      equivRealProdCLM.symm ⁻¹' (s ×ℂ t) = s ×ˢ t from fun s t ↦ rfl] using by ring_nf
   all_goals exact (antitone_const_tsub.Icc (monotone_id.const_add _)).monotoneOn _
 
 lemma square_mem_nhds (p : ℂ) {c : ℝ} (hc : c ≠ 0) :
