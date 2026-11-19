@@ -8,8 +8,8 @@ in the suggested existing section) before it can move to Tau Ceti.
    `ψ(x) ∼ x`, `M(x) = o(x)`, `∑_{n≤x} μ(n)/n → 0` with `|∑_{n≤x} μ(n)/n| ≤ 1`, and `L(x) = o(x)`.
    Suggested home: a new AnalyticNumberTheoryPartIII §11.5, or the missing
    ExplicitMultiplicativeFunctions roadmap that ExplicitPrimeCounting already refers to.
-2. **μ² as a divisor sum** (`IwaniecKowalskiCh1.lean`, about 150 lines): `μ²(n) = ∑_{d²∣n} μ(d)` and
-   the unique decomposition `n = a²b` with `b` squarefree. A target line in AnalyticNumberTheoryPartIII
+2. **μ² as a divisor sum** (`IwaniecKowalskiCh1.lean`, about 150 lines): `μ²(n) = ∑_{d²∣n} μ(d)`,
+   with multiplicativity and prime-power evaluations for the divisor sum. A target line in AnalyticNumberTheoryPartIII
    §11.4, where it is only a Check.
 3. **Laplace-weighted sinc integrals and pointwise Laplace inversion** (`LaplaceInversion.lean`,
    about 400 lines): `∫₀^∞ e^{−ax} sin x / x dx = arctan(1/a)` and its `a → 0⁺` limit, and

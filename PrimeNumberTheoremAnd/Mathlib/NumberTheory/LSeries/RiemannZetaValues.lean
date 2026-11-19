@@ -13,9 +13,9 @@ public import Mathlib.Analysis.Real.Pi.Bounds
 /-!
 ## Special values of the completed Riemann zeta function
 
-This file records elementary special values used by applications of the completed zeta function,
-including the value at `2` and the functional-equation relation `Λ₀(0) = Λ₀(1)`.  The explicit
-Euler-Mascheroni formula for `Λ₀(1)` is in `Mathlib/NumberTheory/Harmonic/ZetaAsymp.lean`.
+This file proves numerical nonvanishing of the entire completed zeta function at `0` and `1`,
+using explicit Euler-Mascheroni and logarithmic bounds and the functional equation.
+The Euler-Mascheroni formula for `Λ₀(1)` is in `Mathlib/NumberTheory/Harmonic/ZetaAsymp.lean`.
 
 ## References
 
@@ -41,45 +41,14 @@ private lemma twenty_seven_div_fifty_lt_eulerMascheroniConstant :
     norm_num [Finset.sum_range_succ, Nat.factorial]
   exact hseq.trans (Real.eulerMascheroniSeq_lt_eulerMascheroniConstant 20)
 
-private lemma exp_one_hundred_twenty_seven_div_fifty_gt :
-    (7854 / 625 : ℝ) < Real.exp (127 / 50 : ℝ) := by
-  have h := Real.sum_le_exp_of_nonneg (by norm_num : 0 ≤ (127 / 50 : ℝ)) 12
-  have hpoly :
-      (7854 / 625 : ℝ) <
-        ∑ i ∈ Finset.range 12, (127 / 50 : ℝ) ^ i / (i.factorial : ℝ) := by
-    norm_num [Finset.sum_range_succ, Nat.factorial]
-  exact hpoly.trans_le h
-
 private lemma log_four_mul_pi_lt_one_hundred_twenty_seven_div_fifty :
     Real.log (4 * Real.pi) < 127 / 50 := by
   rw [Real.log_lt_iff_lt_exp (by positivity : (0 : ℝ) < 4 * Real.pi)]
   have hpi : 4 * Real.pi < 7854 / 625 := by
     nlinarith [Real.pi_lt_d4]
-  exact hpi.trans exp_one_hundred_twenty_seven_div_fifty_gt
-
-/-- The completed Riemann zeta factor has value `π / 6` at `2`. -/
-theorem completedRiemannZeta_two :
-    completedRiemannZeta (2 : ℂ) = (Real.pi : ℂ) / 6 := by
-  have h := riemannZeta_def_of_ne_zero (s := (2 : ℂ)) (by norm_num)
-  rw [riemannZeta_two] at h
-  norm_num [Gammaℝ_def, cpow_neg_one] at h
-  apply mul_right_cancel₀ (Complex.ofReal_ne_zero.mpr Real.pi_ne_zero)
-  calc
-    completedRiemannZeta (2 : ℂ) * Real.pi = (Real.pi : ℂ) ^ 2 / 6 := h.symm
-    _ = ((Real.pi : ℂ) / 6) * Real.pi := by ring
-
-/-- The entire completed zeta function `Λ₀` has value `(π - 3) / 6` at `2`. -/
-theorem completedRiemannZeta₀_two :
-    completedRiemannZeta₀ (2 : ℂ) = ((Real.pi : ℂ) - 3) / 6 := by
-  have h := completedRiemannZeta_eq (2 : ℂ)
-  norm_num [completedRiemannZeta_two] at h
-  linear_combination -h
-
-/-- The entire completed zeta function `Λ₀` is not identically zero. -/
-theorem completedRiemannZeta₀_nontrivial : ∃ z : ℂ, completedRiemannZeta₀ z ≠ 0 := by
-  refine ⟨(2 : ℂ), ?_⟩
-  rw [completedRiemannZeta₀_two]
-  exact div_ne_zero (sub_ne_zero.mpr (by exact_mod_cast ne_of_gt Real.pi_gt_three)) (by norm_num)
+  refine hpi.trans (lt_of_lt_of_le ?_
+    (Real.sum_le_exp_of_nonneg (by norm_num : 0 ≤ (127 / 50 : ℝ)) 12))
+  norm_num [Finset.sum_range_succ, Nat.factorial]
 
 /-- The entire completed zeta function `Λ₀` is nonzero at `1`.
 

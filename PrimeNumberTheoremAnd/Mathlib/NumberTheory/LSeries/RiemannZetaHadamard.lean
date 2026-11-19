@@ -402,7 +402,7 @@ theorem completedRiemannZeta₀_hadamard_factorization_reindex
   simpa using
     (Complex.Hadamard.hadamard_factorization_of_order_reindex
       (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
-      (by norm_num) completedRiemannZeta₀_nontrivial
+      (by norm_num) ⟨0, completedRiemannZeta₀_zero_ne_zero⟩
       completedRiemannZeta₀_entireOfOrderAtMost_one e)
 
 /-- Reindexed divisor Hadamard factorization for Λ₀, with the origin monomial removed. -/
@@ -428,7 +428,7 @@ theorem completedRiemannZeta₀_hadamard_factorization_sequence
   simpa using
     (Complex.Hadamard.hadamard_factorization_of_order_sequence
       (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
-      (by norm_num) completedRiemannZeta₀_nontrivial
+      (by norm_num) ⟨0, completedRiemannZeta₀_zero_ne_zero⟩
       completedRiemannZeta₀_entireOfOrderAtMost_one e)
 
 /-- Sequence-indexed Hadamard factorization for Λ₀, with the origin monomial removed. -/

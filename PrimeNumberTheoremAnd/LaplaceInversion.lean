@@ -196,15 +196,6 @@ theorem fourierInvTrunc_tendsto_of_sinc_kernel
   filter_upwards [Filter.eventually_ge_atTop (0 : ℝ)] with T hT
   exact (fourierInvTrunc_fourier_eq_sinc_kernel hf x T hT).symm
 
-/-- The sinc kernel can be written in translated coordinates `u = x - y`. -/
-theorem sinc_kernel_integral_comp_sub_left
-    (f : ℝ → E) (x T : ℝ) :
-    (∫ y : ℝ, (2 * T * Real.sinc (T * (x - y)) : ℂ) • f y) =
-      ∫ u : ℝ, (2 * T * Real.sinc (T * u) : ℂ) • f (x - u) := by
-  let g : ℝ → E := fun u => (2 * T * Real.sinc (T * u) : ℂ) • f (x - u)
-  have h := integral_sub_left_eq_self g volume x
-  simpa [g] using h
-
 /-- The normalized sinc kernel integral in translated coordinates, with the
 removable singularity of `sin (T * u) / (π * u)` exposed. -/
 theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div
@@ -214,7 +205,13 @@ theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div
       ∫ u : ℝ,
         (if u = 0 then (T / π : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) •
           f (x - u) := by
-  rw [sinc_kernel_integral_comp_sub_left]
+  have htranslate :
+      (∫ y : ℝ, (2 * T * Real.sinc (T * (x - y)) : ℂ) • f y) =
+        ∫ u : ℝ, (2 * T * Real.sinc (T * u) : ℂ) • f (x - u) := by
+    let g : ℝ → E := fun u => (2 * T * Real.sinc (T * u) : ℂ) • f (x - u)
+    have h := integral_sub_left_eq_self g volume x
+    simpa [g] using h
+  rw [htranslate]
   rw [← integral_smul]
   congr with u
   rw [← smul_assoc, RCLike.real_smul_eq_coe_mul]
@@ -237,17 +234,6 @@ theorem normalized_sinc_kernel_integral_comp_sub_left_sin_div_ae
   refine integral_congr_ae ?_
   filter_upwards [show ∀ᵐ u : ℝ, u ≠ 0 by simp [ae_iff, measure_singleton]] with u hu
   rw [ite_eq_right hu, ite_eq_right hu]
-
-/-- Riemann-Lebesgue in sine-integral form. This is the oscillatory cancellation
-brick used by the non-L1 principal-value Laplace inversion route. -/
-theorem tendsto_integral_sin_mul_smul_atTop {f : ℝ → E} (hf : Integrable f) :
-    Filter.Tendsto (fun T : ℝ => ∫ v : ℝ, (Real.sin (T * v) : ℂ) • f v)
-      Filter.atTop (nhds 0) := by
-  refine (hf.tendsto_integral_sin_smul_atTop.comp
-    ((tendsto_div_const_atTop_of_pos (by positivity : (0 : ℝ) < 2 * π)).2 tendsto_id)).congr
-    fun T ↦ ?_
-  have hT : 2 * π * (T / (2 * π)) = T := by field_simp
-  simp only [Function.comp_apply, id, hT]
 
 /-- Differentiability at the target point makes the local sine-error quotient
 interval-integrable on every positive window. -/
@@ -342,7 +328,14 @@ theorem tendsto_intervalIntegral_sin_div_kernel_error_of_intervalIntegrable_quot
     simpa [q] using (intervalIntegrable_iff_integrableOn_Ioc_of_le hle).1 hq
   have hqWindow : Integrable qWindow := by
     exact hqIoc.integrable_indicator measurableSet_Ioc
-  have hlim := tendsto_integral_sin_mul_smul_atTop (E := E) hqWindow
+  have hlim : Filter.Tendsto
+      (fun T : ℝ => ∫ v : ℝ, (Real.sin (T * v) : ℂ) • qWindow v)
+      Filter.atTop (nhds 0) := by
+    refine (hqWindow.tendsto_integral_sin_smul_atTop.comp
+      ((tendsto_div_const_atTop_of_pos (by positivity : (0 : ℝ) < 2 * π)).2 tendsto_id)).congr
+      fun T ↦ ?_
+    have hT : 2 * π * (T / (2 * π)) = T := by field_simp
+    simp only [Function.comp_apply, id, hT]
   refine hlim.congr' ?_
   filter_upwards with T
   have hinterval :
@@ -493,7 +486,14 @@ theorem tendsto_sin_div_kernel_tail_of_integrable
       f (x - u))
   have hqTail : Integrable qTail := by
     simpa [qTail] using integrable_tail_quotient_of_integrable (E := E) hf x hR
-  have hlim := tendsto_integral_sin_mul_smul_atTop (E := E) hqTail
+  have hlim : Filter.Tendsto
+      (fun T : ℝ => ∫ v : ℝ, (Real.sin (T * v) : ℂ) • qTail v)
+      Filter.atTop (nhds 0) := by
+    refine (hqTail.tendsto_integral_sin_smul_atTop.comp
+      ((tendsto_div_const_atTop_of_pos (by positivity : (0 : ℝ) < 2 * π)).2 tendsto_id)).congr
+      fun T ↦ ?_
+    have hT : 2 * π * (T / (2 * π)) = T := by field_simp
+    simp only [Function.comp_apply, id, hT]
   refine hlim.congr' ?_
   filter_upwards with T
   let k : ℝ → E := fun u =>
@@ -728,19 +728,6 @@ theorem intervalIntegrable_scaled_sin_div_kernel (T a b : ℝ) :
     simp [g, hu, Real.sinc_of_ne_zero hTu]
     field_simp [Real.pi_ne_zero, hT, hu]
 
-/-- Multiplying the finite sine kernel by a constant vector preserves
-interval-integrability. -/
-theorem intervalIntegrable_sin_div_kernel_smul_const
-    (z : E) (T a b : ℝ) :
-    IntervalIntegrable
-      (fun u : ℝ =>
-        (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) • z)
-      volume a b := by
-  have h := intervalIntegrable_scaled_sin_div_kernel T a b
-  constructor
-  · exact h.1.smul_const z
-  · exact h.2.smul_const z
-
 /-- Windowed bound for finite-height Fourier inversion. The mass term, local
 principal-value window, and far-field tail are separated so applications can
 supply uniform bounds for the first two and use the built-in tail estimate. -/
@@ -766,7 +753,10 @@ theorem norm_fourierInvTrunc_le_of_windowed_sin_div_bounds
     rw [fourierInvTrunc_fourier_eq_sinc_kernel (E := E) hf x T hT]
     simpa [K] using normalized_sinc_kernel_integral_comp_sub_left_sin_div_ae (E := E) f x T
   have hconst : IntervalIntegrable (fun u : ℝ => K u • f x) volume (-R) R := by
-    simpa [K] using intervalIntegrable_sin_div_kernel_smul_const (E := E) (f x) T (-R) R
+    have h := intervalIntegrable_scaled_sin_div_kernel T (-R) R
+    constructor
+    · exact h.1.smul_const (f x)
+    · exact h.2.smul_const (f x)
   have hsplit := intervalIntegral_sin_div_kernel_split (E := E) f x T R hconst
     (by simpa [K] using herr)
   have hwindow_bound : ‖∫ u in (-R)..R, K u • f (x - u)‖ ≤ M * B + L := by
@@ -1251,8 +1241,11 @@ theorem sinc_kernel_tendsto_of_windowed_pv_of_pos_radius
         (fun u : ℝ =>
           (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) • f x)
         volume (-R) R := by
-    exact Filter.Eventually.of_forall fun T =>
-      intervalIntegrable_sin_div_kernel_smul_const (E := E) (f x) T (-R) R
+    filter_upwards with T
+    have h := intervalIntegrable_scaled_sin_div_kernel T (-R) R
+    constructor
+    · exact h.1.smul_const (f x)
+    · exact h.2.smul_const (f x)
   exact sinc_kernel_tendsto_of_windowed_pv (E := E) hconst herrInt hmass herror htail
 
 /-- Windowed principal-value convergence from local quotient integrability and
