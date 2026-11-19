@@ -13,6 +13,7 @@ public import Mathlib.Analysis.SpecialFunctions.Log.Base
 public import Mathlib.NumberTheory.Primorial
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
+import Mathlib.NumberTheory.LSeries.WeakPNT
 import TauCeti.NumberTheory.SelbergSieve.Bounds
 
 open Sieve SelbergSieve BoundingSieve
@@ -154,9 +155,9 @@ theorem abs_rem_le {d : ℕ} (hd : d ≠ 0) :
 
 end Remainder
 
-theorem boudingSum_ge : (primeInterSieve x y z hz).selbergBoundingSum ≥ Real.log z / 2 := by
-  rw [ge_iff_le]
-  have hz0 : 0 ≤ z := zero_le_one.trans hz
+theorem boudingSum_ge :
+    (primeInterSieve x y z hz).toBoundingSieve.truncatedSelbergSum (Real.sqrt z) ≥
+      Real.log z / 2 := by
   have hsqrt : Real.sqrt z ≤ z := Real.sqrt_le_self_iff.mpr (Or.inr hz)
   have h := BoundingSieve.log_le_sum_selbergTerms
     (primeInterSieve x y z hz).toBoundingSieve (Real.sqrt z) (Real.sqrt_nonneg z)
@@ -168,19 +169,8 @@ theorem boudingSum_ge : (primeInterSieve x y z hz).selbergBoundingSum ≥ Real.l
       simp only [primeInterSieve, ArithmeticFunction.pdiv_apply,
         ArithmeticFunction.natCoe_apply, ArithmeticFunction.zeta_apply_ne hp.ne_zero,
         ArithmeticFunction.id_apply, Nat.cast_one, one_div, le_refl])
-  have hsum (s : SelbergSieve) :
-      (∑ d ∈ s.prodPrimes.divisors,
-        if (d : ℝ) ≤ Real.sqrt s.level then s.toBoundingSieve.selbergTerms d else 0) =
-        s.selbergBoundingSum := by
-    unfold SelbergSieve.selbergBoundingSum
-    apply Finset.sum_congr rfl
-    intro d _
-    simp only [Real.le_sqrt (Nat.cast_nonneg d) (zero_le_one.trans s.one_le_level)]
-  have hlevel : (primeInterSieve x y z hz).level = z := rfl
-  have heq := hsum (primeInterSieve x y z hz)
-  rw [hlevel] at heq
-  rw [heq, Real.log_sqrt hz0] at h
-  exact h
+  rw [Real.log_sqrt (zero_le_one.trans hz)] at h
+  rwa [ge_iff_le, BoundingSieve.truncatedSelbergSum_def]
 
 include hx hy in
 theorem primeSieve_rem_sum_le :
@@ -281,20 +271,6 @@ theorem err_isBigO :
           ((isBigO_refl ..).const_mul_left ..) |>.pow _)
     _ =O[atTop] _ := by
       convert rpow_mul_rpow_log_isBigO_id_div_log 3 (?_) <;> norm_num
-
-theorem card_range_filter_prime_isBigO :
-    (fun N ↦ ((Finset.range N).filter Nat.Prime).card : ℕ → ℝ) =O[atTop]
-      (fun N ↦ N / Real.log N) := calc
-  _ =O[atTop]
-      (fun N ↦ 4 * (N / Real.log N) +
-        6 * (N ^ (1/2 : ℝ) * (1 + 1/2 * Real.log N) ^ 3) : ℕ→ℝ) := by
-    apply isBigO_of_le
-    intro N
-    simp only [RCLike.norm_natCast, one_div, Real.norm_eq_abs]
-    rw [abs_of_nonneg (by positivity)]
-    convert tmp N using 4 <;> norm_num
-  _ =O[atTop] _ :=
-    ((isBigO_refl ..).const_mul_left ..).add ((err_isBigO.comp_tendsto tendsto_natCast_atTop_atTop).const_mul_left _)
 
 theorem prime_or_pow (N n : ℕ) (hnN : n < N) (hnprime : IsPrimePow n) :
     Nat.Prime n ∨ (∃ (m : ℕ), m < Real.sqrt N ∧ ∃ k ≤ Nat.log 2 N, n = m ^ k) := by
@@ -423,8 +399,13 @@ theorem card_isPrimePow_isBigO :
     intro N
     rw [abs_of_nonneg (by positivity)]
     exact_mod_cast Finset.card_union_le _ _
-  _ =O[atTop] fun N ↦ N / Real.log N :=
-    IsBigO.add (card_range_filter_prime_isBigO) card_pows_aux
+  _ =O[atTop] fun N ↦ N / Real.log N := by
+    refine IsBigO.add (IsBigO.trans (isBigO_of_le _ fun N ↦ ?_)
+      (Nat.isEquivalent_primeCounting.isBigO.comp_tendsto tendsto_natCast_atTop_atTop))
+      card_pows_aux
+    simp only [Function.comp_apply, Nat.floor_natCast, RCLike.norm_natCast, Nat.cast_le,
+      ← Nat.count_eq_card_filter_range]
+    exact Nat.count_monotone _ N.le_succ
 
 theorem card_range_filter_isPrimePow_le :
     ∃ C, ∀ N, ((Finset.range N).filter IsPrimePow).card ≤ C * (N / Real.log N) := by

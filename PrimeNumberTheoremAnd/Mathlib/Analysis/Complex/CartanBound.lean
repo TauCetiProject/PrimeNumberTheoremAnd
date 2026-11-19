@@ -176,7 +176,9 @@ lemma log_norm_one_sub_div_ge_neg_phi {u a : ℂ} {r : ℝ}
     exact lt_of_le_of_ne (abs_nonneg _) (Ne.symm this)
   have hlogx :
       Real.log |1 - (r / ‖a‖)| ≥ -φ (r / ‖a‖) := by
-    have := Real.neg_posLog_inv_le_log (x := |1 - (r / ‖a‖)|)
+    have h1 := Real.posLog_sub_posLog_inv (x := |1 - (r / ‖a‖)|)
+    have : -Real.posLog |1 - (r / ‖a‖)|⁻¹ ≤ Real.log |1 - (r / ‖a‖)| := by
+      linarith [Real.posLog_nonneg (x := |1 - (r / ‖a‖)|)]
     simpa [φ, one_div, inv_inv, abs_sub_comm, sub_eq_add_neg] using this
   have hlog_mono :
       Real.log |1 - (r / ‖a‖)| ≤ Real.log ‖(1 : ℂ) - u / a‖ :=

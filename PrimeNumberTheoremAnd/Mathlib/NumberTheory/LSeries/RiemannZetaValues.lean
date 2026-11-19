@@ -81,13 +81,6 @@ theorem completedRiemannZeta₀_nontrivial : ∃ z : ℂ, completedRiemannZeta�
   rw [completedRiemannZeta₀_two]
   exact div_ne_zero (sub_ne_zero.mpr (by exact_mod_cast ne_of_gt Real.pi_gt_three)) (by norm_num)
 
-/-- The functional equation identifies the values of the entire completed zeta function `Λ₀`
-at `0` and `1`. -/
-theorem completedRiemannZeta₀_zero_eq_one :
-    completedRiemannZeta₀ (0 : ℂ) = completedRiemannZeta₀ (1 : ℂ) := by
-  have h := completedRiemannZeta₀_one_sub (0 : ℂ)
-  simpa using h.symm
-
 /-- The entire completed zeta function `Λ₀` is nonzero at `1`.
 
 This uses the Euler-Mascheroni formula for `Λ₀(1)` from `ZetaAsymp`, the lower bound
@@ -112,4 +105,4 @@ theorem completedRiemannZeta₀_one_ne_zero :
 nonvanishing at `1`. -/
 theorem completedRiemannZeta₀_zero_ne_zero :
     completedRiemannZeta₀ (0 : ℂ) ≠ 0 := by
-  simpa [completedRiemannZeta₀_zero_eq_one] using completedRiemannZeta₀_one_ne_zero
+  simpa [← completedRiemannZeta₀_one_sub (0 : ℂ)] using completedRiemannZeta₀_one_ne_zero

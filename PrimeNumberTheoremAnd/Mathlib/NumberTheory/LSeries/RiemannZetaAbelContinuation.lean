@@ -9,7 +9,7 @@ public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.Analysis.Complex.Convex
 public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
 public import TauCeti.Topology.Homotopy.PuncturedStarConvex
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 public import Mathlib.MeasureTheory.Integral.IntegrableOn

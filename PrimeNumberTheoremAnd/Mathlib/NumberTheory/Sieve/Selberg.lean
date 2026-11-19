@@ -41,30 +41,9 @@ local notation3 "g" => @BoundingSieve.selbergTerms (SelbergSieve.toBoundingSieve
 local notation3 "y" => SelbergSieve.level (self := s)
 local notation3 "hy" => SelbergSieve.one_le_level (self := s)
 
-@[simp]
-def selbergBoundingSum : ℝ :=
-  ∑ l ∈ divisors P, if l ^ 2 ≤ y then g l else 0
-
 set_option quotPrecheck false
-local notation3 "S" => SelbergSieve.selbergBoundingSum s
-
-/-- The fork's normalizer is Tau Ceti's truncated Selberg sum at the cutoff `√y`. -/
-theorem selbergBoundingSum_eq_truncatedSelbergSum :
-    S = s.toBoundingSieve.truncatedSelbergSum (Real.sqrt y) := by
-  rw [selbergBoundingSum, truncatedSelbergSum_def]
-  refine sum_congr rfl fun l _ ↦ ?_
-  simp only [Real.le_sqrt (Nat.cast_nonneg l) (zero_le_one.trans hy)]
-
-theorem selbergBoundingSum_pos :
-    0 < S := by
-  rw [selbergBoundingSum_eq_truncatedSelbergSum]
-  exact s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy)
-
-theorem selbergBoundingSum_ne_zero : S ≠ 0 := by
-  apply _root_.ne_of_gt
-  exact s.selbergBoundingSum_pos
-
-theorem selbergBoundingSum_nonneg : 0 ≤ S := _root_.le_of_lt s.selbergBoundingSum_pos
+local notation3 "S" => BoundingSieve.truncatedSelbergSum
+  (SelbergSieve.toBoundingSieve (self := s)) (Real.sqrt (SelbergSieve.level (self := s)))
 
 def selbergWeights : ℕ → ℝ := fun d =>
   if d ∣ P then
@@ -75,10 +54,6 @@ def selbergWeights : ℕ → ℝ := fun d =>
 -- This notation traditionally uses λ, which is unavailable in lean
 set_option quotPrecheck false
 local notation3 "γ" => SelbergSieve.selbergWeights s
-
-theorem selbergWeights_eq_zero_of_not_dvd {d : ℕ} (hd : ¬ d ∣ P) :
-    γ d = 0 := by
-  rw [selbergWeights, ite_eq_right hd]
 
 @[aesop safe]
 theorem selbergWeights_mul_mu_nonneg (d : ℕ) (hdP : d ∣ P) :
@@ -94,7 +69,7 @@ theorem selbergWeights_mul_mu_nonneg (d : ℕ) (hdP : d ∣ P) :
   · rw [inv_nonneg]
     exact le_of_lt <| nu_pos_of_dvd_prodPrimes hdP
   · exact le_of_lt <| @BoundingSieve.selbergTerms_pos _ d hdP
-  · exact s.selbergBoundingSum_nonneg
+  · exact (s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy)).le
   apply sum_nonneg; intro m hm
   split_ifs with h
   · exact le_of_lt <| @BoundingSieve.selbergTerms_pos _ m (dvd_of_mem_divisors hm)
@@ -173,12 +148,11 @@ theorem selbergWeights_eq_boundingSieve_selbergWeights :
   funext d
   by_cases hd : d ∣ P
   · apply mul_left_cancel₀ (nu_ne_zero hd)
-    rw [selbergWeights_eq_dvds_sum, nu_mul_selbergWeights, selbergBoundingSum_eq_truncatedSelbergSum,
-      mul_comm ((s.toBoundingSieve.truncatedSelbergSum (Real.sqrt y))⁻¹)]
+    rw [selbergWeights_eq_dvds_sum, nu_mul_selbergWeights, mul_comm ((s.toBoundingSieve.truncatedSelbergSum (Real.sqrt y))⁻¹)]
     congr 1
     refine sum_congr rfl fun l _ ↦ ?_
     simp only [Real.le_sqrt (Nat.cast_nonneg l) (zero_le_one.trans hy)]
-  · rw [selbergWeights_eq_zero_of_not_dvd s hd, BoundingSieve.selbergWeights_eq_zero_of_not_dvd _ _ hd]
+  · rw [selbergWeights, ite_eq_right hd, BoundingSieve.selbergWeights_eq_zero_of_not_dvd _ _ hd]
 
 def selbergMuPlus : ℕ → ℝ :=
   lambdaSquared γ
@@ -213,7 +187,7 @@ theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :
     S ≥ γ d * ↑(μ d) * S := by
   calc
   _ = (∑ k ∈ divisors P, ∑ l ∈ divisors P, if k = d.gcd l ∧ l ^ 2 ≤ y then g l else 0) := by
-    dsimp only [selbergBoundingSum]
+    simp only [truncatedSelbergSum_def, Real.le_sqrt (Nat.cast_nonneg _) (zero_le_one.trans hy)]
     rw [sum_comm, sum_congr rfl]; intro l _
     simp_rw [ite_and]
     rw [sum_ite_eq_of_mem']
@@ -275,19 +249,20 @@ theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :
     · rw [mul_inv_cancel₀, ←Int.cast_pow, moebius_sq_eq_one_of_squarefree]
       · ring
       · exact Squarefree.squarefree_of_dvd hdP s.prodPrimes_squarefree
-      · exact _root_.ne_of_gt <| s.selbergBoundingSum_pos
+      · exact (s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy)).ne'
     dsimp only [selbergWeights]; rw [ite_eq_left hdP]
     ring
 
 theorem selberg_bound_weights (d : ℕ) : |γ d| ≤ 1 := by
   by_cases hdP : d ∣ P
   swap
-  · rw [s.selbergWeights_eq_zero_of_not_dvd hdP]; simp only [zero_le_one, abs_zero]
+  · rw [selbergWeights, ite_eq_right hdP]; simp only [zero_le_one, abs_zero]
   have : 1*S ≥ γ d * ↑(μ d) * S := by
     rw[one_mul]
     exact s.selbergBoundingSum_ge hdP
   replace this : γ d * μ d ≤ 1 := by
-    apply le_of_mul_le_mul_of_pos_right this (s.selbergBoundingSum_pos)
+    exact le_of_mul_le_mul_of_pos_right this
+      (s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy))
   convert this using 1
   rw [← abs_of_nonneg <| s.selbergWeights_mul_mu_nonneg d hdP,
     abs_mul, ←Int.cast_abs, abs_moebius_eq_one_of_squarefree <|
@@ -306,8 +281,7 @@ theorem selberg_bound_simple :
           (hγ ▸ selbergWeights_one _ (Real.one_le_sqrt.mpr hy)))
     _ ≤ _ := ?_
   gcongr
-  · rw [selbergMuPlus, hγ, mainSum_lambdaSquared_selbergWeights,
-      ← selbergBoundingSum_eq_truncatedSelbergSum, div_eq_mul_inv]
+  · rw [selbergMuPlus, hγ, mainSum_lambdaSquared_selbergWeights, div_eq_mul_inv]
   · refine errSum_lambdaSquared_le_sum_three_pow_cardDistinctFactors _ γ y
       (fun d _ => s.selberg_bound_weights d) (fun d hdP hd => ?_)
     rw [hγ, selbergWeights_eq_zero_of_lt _ _ _

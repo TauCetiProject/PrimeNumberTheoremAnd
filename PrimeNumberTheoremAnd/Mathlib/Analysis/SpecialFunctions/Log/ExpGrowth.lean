@@ -90,7 +90,7 @@ theorem norm_le_exp_mul_rpow_of_log_growth
     Real.rpow_le_rpow_of_exponent_le (hr x) hρτ
   have hlogτ : Real.log (1 + ‖f x‖) ≤ C * (r x) ^ τ :=
     (hlog x).trans (mul_le_mul_of_nonneg_left hpow hC)
-  exact Real.le_exp_of_log_one_add_le (norm_nonneg (f x)) hlogτ
+  linarith [(Real.log_le_iff_le_exp (by positivity)).1 hlogτ]
 
 /-- Convert a pointwise exponential norm bound into a logarithmic growth bound. -/
 theorem log_growth_of_norm_le_exp_mul_rpow

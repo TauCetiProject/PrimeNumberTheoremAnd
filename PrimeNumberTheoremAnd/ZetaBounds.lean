@@ -1549,18 +1549,6 @@ lemma ZetaNear1BndExact :
   gcongr
   exact (hC _ ⟨σ, Ioc_subset_Icc_self hσ, rfl⟩).trans (le_max_left _ _)
 
-/-- For positive `x` and nonzero `y` we have that
-$|\zeta(x)^3 \cdot \zeta(x+iy)^4 \cdot \zeta(x+2iy)| \ge 1$. -/
-lemma norm_zeta_product_ge_one {x : ℝ} (hx : 0 < x) (y : ℝ) :
-    ‖ζ (1 + x) ^ 3 * ζ (1 + x + I * y) ^ 4 * ζ (1 + x + 2 * I * y)‖ ≥ 1 := by
-  have h₀ : 1 < ( 1 + x : ℂ).re := by simp[hx]
-  have h₁ : 1 < (1 + x + I * y).re := by simp [hx]
-  have h₂ : 1 < (1 + x + 2 * I * y).re := by simp [hx]
-  simpa only [one_pow, norm_mul, norm_pow, DirichletCharacter.LSeries_modOne_eq,
-    LSeries_one_eq_riemannZeta, h₀, h₁, h₂] using
-    DirichletCharacter.norm_LSeries_product_ge_one (1 : DirichletCharacter ℂ 1) hx y
-
-
 theorem ZetaLowerBound1_aux1 {σ t : ℝ} (this : 1 ≤ ‖ζ σ‖ ^ (3 : ℝ) * ‖ζ (σ + I * t)‖ ^ (4 : ℝ) * ‖ζ (σ + 2 * I * t)‖) :
   ‖ζ σ‖ ^ ((3 : ℝ) / 4) * ‖ζ (σ + 2 * t * I)‖ ^ ((1 : ℝ) / 4) * ‖ζ (σ + t * I)‖ ≥ 1 := by
   use (one_le_pow_iff_of_nonneg (by bound) four_ne_zero).1 (by_contra (this.not_gt ∘ ?_))
@@ -1570,7 +1558,10 @@ theorem ZetaLowerBound1_aux1 {σ t : ℝ} (this : 1 ≤ ‖ζ σ‖ ^ (3 : ℝ) 
 lemma ZetaLowerBound1 {σ t : ℝ} (σ_gt : 1 < σ) :
     ‖ζ σ‖ ^ ((3 : ℝ) / 4) * ‖ζ (σ + 2 * t * I)‖ ^ ((1 : ℝ) / 4) * ‖ζ (σ + t * I)‖ ≥ 1 := by
   -- Start with the fundamental identity
-  have := norm_zeta_product_ge_one (x := σ - 1) (by linarith) t
+  have := DirichletCharacter.norm_LFunction_product_ge_one (1 : DirichletCharacter ℂ 1)
+    (x := σ - 1) (by linarith) t
+  simp only [DirichletCharacter.LFunctionTrivChar, one_pow,
+    DirichletCharacter.LFunction_modOne_eq] at this
   simp_rw [ge_iff_le, norm_mul, norm_pow, ofReal_sub, ofReal_one, add_sub_cancel, ← Real.rpow_natCast]
     at this
   apply ZetaLowerBound1_aux1 this

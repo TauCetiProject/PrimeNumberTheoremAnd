@@ -10,6 +10,7 @@ public import Mathlib.Analysis.SpecificLimits.Normed
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelContinuation
 public import Mathlib.Topology.MetricSpace.Basic
+import TauCeti.NumberTheory.LSeries.Moebius
 
 /-!
 # Bounds for the Riemann zeta function
@@ -38,10 +39,17 @@ open Real Set Filter Topology MeasureTheory Complex
 theorem norm_riemannZeta_ratio_le_on_verticalLine (σ t : ℝ) (hσ : 1 < σ) :
     ‖riemannZeta (2 * (σ : ℂ)) / riemannZeta (σ : ℂ)‖ ≤ ‖riemannZeta (verticalLine σ t)‖ := by
   have hs : 1 < (verticalLine σ t).re := by rw [verticalLine_re]; exact hσ
+  have hs' : 1 < (σ : ℂ).re := by simpa using hσ
+  have h := TauCeti.riemannZeta_eq_mul_LSeries_moebius_sq hs'
+  have hL := right_ne_zero_of_mul (h ▸ riemannZeta_ne_zero_of_one_lt_re hs')
   calc
     ‖riemannZeta (2 * (σ : ℂ)) / riemannZeta (σ : ℂ)‖
-        = ∏' p : Nat.Primes, (1 + ((p : ℕ) : ℝ) ^ (-σ))⁻¹ :=
-          norm_riemannZeta_div_riemannZeta σ hσ
+        = ∏' p : Nat.Primes, (1 + ((p : ℕ) : ℝ) ^ (-σ))⁻¹ := by
+      rw [h, div_mul_cancel_left₀ (left_ne_zero_of_mul (h ▸ riemannZeta_ne_zero_of_one_lt_re hs')),
+        norm_inv, (HasProd.inv₀ ?_ (norm_ne_zero_iff.2 hL)).tprod_eq]
+      convert (TauCeti.LSeries_moebius_sq_eulerProduct_hasProd hs').norm using 2 with p
+      rw [← ofReal_natCast, ← ofReal_neg, ← ofReal_cpow (by positivity), ← ofReal_one,
+        ← ofReal_add, norm_real, Real.norm_of_nonneg (by positivity)]
     _ ≤ ∏' p : Nat.Primes, (‖1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t)‖)⁻¹ :=
         tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine σ t hσ
     _ = ‖riemannZeta (verticalLine σ t)‖ := by

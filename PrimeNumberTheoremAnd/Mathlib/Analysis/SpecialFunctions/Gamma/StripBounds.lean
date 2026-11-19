@@ -148,13 +148,6 @@ lemma norm_mul_log_shift_half_bound {s : ℂ} (hs : 1 ≤ ‖s‖) :
         simp [Real.Stirling.half_shift_log_constant, mul_assoc, mul_left_comm, mul_comm]
       exact le_trans hstep2 (by simp [hEq])
 
-/-- From `Γ(z + 1) = z Γ(z)` and `1/2 ≤ ‖z‖`, bound `‖Γ(z)‖` by `2 * ‖Γ(z + 1)‖`. -/
-lemma norm_Gamma_le_two_mul_norm_Gamma_add_one {z : ℂ} (hz_lb : (1 / 2 : ℝ) ≤ ‖z‖) :
-    ‖Gamma z‖ ≤ 2 * ‖Gamma (z + 1)‖ := by
-  have hz : z ≠ 0 := norm_pos_iff.mp (by linarith only [hz_lb])
-  rw [Gamma_add_one z hz, norm_mul]
-  nlinarith only [mul_le_mul_of_nonneg_right hz_lb (norm_nonneg (Gamma z))]
-
 /-- For `re s ≥ 1`, the real Gamma bound controls `‖Γ(s)‖` in terms of `‖s‖`. -/
 theorem norm_bound_re_ge_one :
     ∃ C : ℝ, 0 < C ∧
@@ -234,8 +227,9 @@ theorem half_bound_re_ge_zero :
     (Complex.Gamma.norm_mul_log_shift_half_bound hn) hC.le
   have hlog := Real.Stirling.log_two_le_mul_log_one_add hn
   calc
-    ‖Complex.Gamma (s / 2)‖ ≤ 2 * ‖Complex.Gamma (s / 2 + 1)‖ :=
-      Complex.Gamma.norm_Gamma_le_two_mul_norm_Gamma_add_one hs2
+    ‖Complex.Gamma (s / 2)‖ ≤ 2 * ‖Complex.Gamma (s / 2 + 1)‖ := by
+      rw [Complex.Gamma_add_one _ (norm_pos_iff.mp (by linarith only [hs2])), norm_mul]
+      nlinarith only [mul_le_mul_of_nonneg_right hs2 (norm_nonneg (Complex.Gamma (s / 2)))]
     _ ≤ 2 * Real.exp (C * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) :=
       mul_le_mul_of_nonneg_left (hbound _ hwre hwnorm) (by norm_num)
     _ = Real.exp (Real.log 2 + C * ‖s / 2 + 1‖ * Real.log (1 + ‖s / 2 + 1‖)) := by

@@ -1554,7 +1554,7 @@ lemma ShiftZeroBound :
   linarith only [hb', le_max_right (1 : ℝ) C]
 
 
-@[blueprint "vonMangoldtLSeriesSummable"
+attribute [blueprint "vonMangoldtLSeriesSummable"
   (title := "vonMangoldtLSeriesSummable")
   (statement := /--
     The series
@@ -1569,12 +1569,7 @@ lemma ShiftZeroBound :
     Since $\varepsilon$ can be arbitrarily small, we know the left hand side converges by the
     $p$-test.
   -/)]
-lemma vonMangoldtLSeriesSummable {s : ℂ} (hs : 1 < s.re) :
-    Summable (fun n : ℕ => (Λ n : ℂ) / (n : ℂ) ^ s) := by
-  refine (ArithmeticFunction.LSeriesSummable_vonMangoldt hs).congr (fun n => ?_)
-  by_cases heq0 : n = 0 <;> simp only [LSeries.term, heq0, ↓reduceIte, ArithmeticFunction.map_zero,
-    ofReal_zero, CharP.cast_eq_zero, zero_div]
-
+  ArithmeticFunction.LSeriesSummable_vonMangoldt
 
 
 @[blueprint "ZeroWindowFinite"
