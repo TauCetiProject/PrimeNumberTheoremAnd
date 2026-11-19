@@ -1291,7 +1291,10 @@ theorem SmoothedChebyshevPull1 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
           linarith
       have f_near_p : (f - fun (z : ℂ) => 1 * (z - 1)⁻¹) =O[nhdsWithin 1 {1}ᶜ] (1 : ℂ → ℂ) := by
         simp only [one_mul, f]
-        exact riemannZetaLogDerivResidueBigO
+        change (fun s : ℂ ↦ -deriv riemannZeta s / riemannZeta s - (s - 1)⁻¹)
+          =O[nhdsWithin 1 {1}ᶜ] (fun _ ↦ (1 : ℂ))
+        simpa only [neg_add, sub_eq_add_neg, neg_div]
+          using log_deriv_riemannZeta_add_inv_sub_bounded.neg_left
       convert ResidueMult g_holc pInRectangleInterior f_near_p using 1
       ext
       simp [f, g]

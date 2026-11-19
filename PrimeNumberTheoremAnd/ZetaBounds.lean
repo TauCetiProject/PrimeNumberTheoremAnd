@@ -10,6 +10,7 @@ public import Mathlib.MeasureTheory.Function.Floor
 public import Mathlib.MeasureTheory.Order.Group.Lattice
 public import Mathlib.NumberTheory.Harmonic.Bounds
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
+public import Mathlib.NumberTheory.Harmonic.ZetaAsymp
 public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
 public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
 public import Mathlib.Analysis.Complex.RealDeriv
@@ -85,7 +86,9 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   simp only [vsub_eq_sub, smul_eq_mul, inv_mul_eq_div, hgp] at H
   exact IsBigO_to_BddAbove (he.trans_isBigO (H.isBigO_one ℂ))
 
-@[blueprint
+attribute [blueprint "riemannZetaResidue"
+  (uses := ["DifferentiableOn.vanishesOnRectangle"])
+  (proofUses := ["ResidueOfTendsTo"])
   (title := "riemannZetaResidue")
   (statement := /--
   The Riemann zeta function $\zeta(s)$ has a simple pole at $s=1$ with residue $1$. In particular,
@@ -97,14 +100,7 @@ theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
   (This can also be done using $\zeta_0$ below, which is expressed as
   $1/(s-1)$ plus things that are holomorphic for $\Re(s)>0$...)
   -/)]
-theorem riemannZetaResidue :
-    ∃ U ∈ 𝓝 1, BddAbove (norm ∘ (ζ - (fun s ↦ (s - 1)⁻¹)) '' (U \ {1})) := by
-  have zeta_holc : DifferentiableOn ℂ ζ (univ \ {1}) := by
-    intro y hy
-    exact DifferentiableAt.differentiableWithinAt <| differentiableAt_riemannZeta hy.2
-  convert ResidueOfTendsTo univ_mem zeta_holc riemannZeta_residue_one using 6
-  simp
-
+  isBigO_riemannZeta_sub_one_div
 
 /-- A bounded remainder vanishes after multiplication by the displacement from the pole. -/
 private theorem simple_pole_limit_of_bounded_remainder {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
@@ -261,7 +257,9 @@ theorem ResidueMult {f g : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
 blueprint_comment /--
 As a corollary, the log derivative of the Riemann zeta function has a simple pole at $s=1$:
 -/
-@[blueprint
+attribute [blueprint "riemannZetaLogDerivResidue"
+  (uses := ["DifferentiableOn.vanishesOnRectangle"])
+  (proofUses := ["logDerivResidue", "riemannZetaResidue"])
   (title := "riemannZetaLogDerivResidue")
   (statement := /--
   The log derivative of the Riemann zeta function $\zeta(s)$ has a simple pole at $s=1$ with
@@ -270,28 +268,7 @@ As a corollary, the log derivative of the Riemann zeta function has a simple pol
   (proof := /--
   This follows from Theorem \ref{logDerivResidue} and Theorem \ref{riemannZetaResidue}.
   -/)]
-theorem riemannZetaLogDerivResidue :
-    ∃ U ∈ 𝓝 1, BddAbove (norm ∘ (-(ζ' / ζ) - (fun s ↦ (s - 1)⁻¹)) '' (U \ {1})) := by
-  obtain ⟨U, hU, hb⟩ := riemannZetaResidue
-  have hd : DifferentiableOn ℂ ζ (U \ {1}) := by
-    intro z hz
-    exact (differentiableAt_riemannZeta hz.2).differentiableWithinAt
-  have H := logDerivResidue hd hU one_ne_zero (by simpa only [one_mul] using hb)
-  have he : (-(ζ' / ζ) - (fun s ↦ (s - 1)⁻¹)) =
-      -(deriv ζ * ζ⁻¹ + (fun s ↦ (s - 1)⁻¹)) := by
-    ext z
-    simp only [Pi.sub_apply, Pi.neg_apply, Pi.add_apply, Pi.mul_apply, Pi.inv_apply,
-      div_eq_mul_inv, neg_add_rev, sub_eq_add_neg, add_comm]
-  rw [he]
-  exact IsBigO_to_BddAbove H.neg_left
-
-theorem riemannZetaLogDerivResidueBigO :
-    (-ζ' / ζ - fun z ↦ (z - 1)⁻¹) =O[nhdsWithin 1 {1}ᶜ] (1 : ℂ → ℂ) := by
-  obtain ⟨U, hU, hb⟩ := riemannZetaLogDerivResidue
-  have H : (-(ζ' / ζ) - fun z ↦ (z - 1)⁻¹) =O[𝓝[≠] 1] (1 : ℂ → ℂ) :=
-    (hb.isBoundedUnder (sdiff_mem_nhdsWithin_compl hU {1})).isBigO_one ℂ
-  convert H using 2
-  rw [neg_div]
+  log_deriv_riemannZeta_add_inv_sub_bounded
 
 @[blueprint
   (title := "riemannZeta0")
