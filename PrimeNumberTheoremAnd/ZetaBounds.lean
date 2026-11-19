@@ -17,6 +17,8 @@ public import Mathlib.Analysis.Complex.RealDeriv
 public import TauCeti.Analysis.Asymptotics.Sum.EulerMaclaurin
 public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
 public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
+import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
+import TauCeti.Analysis.Asymptotics.Lemmas
 
 
 @[expose] public section
@@ -102,27 +104,6 @@ attribute [blueprint "riemannZetaResidue"
   -/)]
   isBigO_riemannZeta_sub_one_div
 
-/-- A bounded remainder vanishes after multiplication by the displacement from the pole. -/
-private theorem simple_pole_limit_of_bounded_remainder {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (hU : U ∈ 𝓝 p) {A : ℂ}
-    (hb : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
-  have hz : Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 0) := by
-    simpa only [id_eq, sub_self] using
-      ((tendsto_id.sub tendsto_const_nhds).mono_left nhdsWithin_le_nhds :
-        Tendsto (fun z : ℂ ↦ z - p) (𝓝[≠] p) (𝓝 (p - p)))
-  have hb' : IsBoundedUnder (· ≤ ·) (𝓝[≠] p)
-      (fun z ↦ ‖f z - A * (z - p)⁻¹‖) :=
-    hb.isBoundedUnder (sdiff_mem_nhdsWithin_compl hU {p})
-  have hprod := hz.zero_mul_isBoundedUnder_le hb'
-  have H := hprod.add_const A
-  simp only [zero_add] at H
-  apply H.congr'
-  filter_upwards [self_mem_nhdsWithin] with z hz
-  field_simp [sub_ne_zero.mpr hz]
-  ring
-
-
 @[blueprint
   (title := "nonZeroOfBddAbove")
   (statement := /--
@@ -140,7 +121,14 @@ theorem nonZeroOfBddAbove {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
     (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
     ∃ V ∈ 𝓝 p, IsOpen V ∧ ∀ s ∈ V \ {p}, f s ≠ 0 := by
-  have hlim := simple_pole_limit_of_bounded_remainder U_in_nhds f_near_p
+  have hlim : Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
+    have h := (f_near_p.isBoundedUnder
+      (sdiff_mem_nhdsWithin_compl U_in_nhds {p})).isLittleO_sub_self_inv
+    change (fun z ↦ f z - A * (z - p)⁻¹) =o[𝓝[≠] p] (fun z ↦ (z - p)⁻¹) at h
+    have hn : ∀ᶠ z in 𝓝[≠] p, (z - p)⁻¹ ≠ 0 :=
+      Filter.Eventually.mono self_mem_nhdsWithin fun _ hz ↦ inv_ne_zero (sub_ne_zero.mpr hz)
+    have hl := (isLittleO_sub_mul_iff_tendsto_div hn).mp h
+    simpa only [div_inv_eq_mul, mul_comm] using hl
   have hf : ∀ᶠ z in 𝓝[≠] p, f z ≠ 0 :=
     (hlim.eventually_ne A_ne_zero).mono fun _ hz ↦ right_ne_zero_of_mul hz
   obtain ⟨V, hV, hVo, hpV⟩ := mem_nhds_iff.mp (eventually_nhdsWithin_iff.mp hf)
@@ -171,7 +159,14 @@ theorem logDerivResidue {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
     (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
     (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
     (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-  have hlim := simple_pole_limit_of_bounded_remainder U_in_nhds f_near_p
+  have hlim : Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
+    have h := (f_near_p.isBoundedUnder
+      (sdiff_mem_nhdsWithin_compl U_in_nhds {p})).isLittleO_sub_self_inv
+    change (fun z ↦ f z - A * (z - p)⁻¹) =o[𝓝[≠] p] (fun z ↦ (z - p)⁻¹) at h
+    have hn : ∀ᶠ z in 𝓝[≠] p, (z - p)⁻¹ ≠ 0 :=
+      Filter.Eventually.mono self_mem_nhdsWithin fun _ hz ↦ inv_ne_zero (sub_ne_zero.mpr hz)
+    have hl := (isLittleO_sub_mul_iff_tendsto_div hn).mp h
+    simpa only [div_inv_eq_mul, mul_comm] using hl
   obtain ⟨g, hg, hgp, heq⟩ := analytic_factor_of_simple_pole_limit U_in_nhds holc hlim
   have hm : MeromorphicAt f p :=
     ((TauCeti.Contour.meromorphicAt_sub_inv p).mul hg.meromorphicAt).congr heq.symm
