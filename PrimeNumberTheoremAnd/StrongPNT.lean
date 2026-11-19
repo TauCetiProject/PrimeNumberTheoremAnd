@@ -1,6 +1,7 @@
 module
 
 public import Mathlib.Analysis.Analytic.Order
+public import Mathlib.Analysis.Meromorphic.TrailingCoefficient
 
 public import Architect
 public import Mathlib.Algebra.Lie.OfAssociative
@@ -148,7 +149,7 @@ blueprint_comment /--
 
 
 open Classical
-@[blueprint "ZeroFactor"
+attribute [blueprint "ZeroFactor"
   (title := "ZeroFactor")
   (statement := /--
     Let $f:\mathbb{C}\to\mathbb{C}$ and $\rho\in\mathbb{C}$. Then there exists $h_\rho$ such that
@@ -156,12 +157,7 @@ open Classical
     In LEAN, this corresponds exactly with (-.analyticOrderAt-ne-top.mp -).choose,
     but this serves as a wrapper of that with the necessary conditions.
   -/)]
-noncomputable def ZeroFactor (f : ℂ → ℂ) (z : ℂ) : ℂ :=
-  if h1 : AnalyticAt ℂ f z then
-    if h2 : analyticOrderAt f z ≠ ⊤ then
-      (h1.analyticOrderAt_ne_top.mp h2).choose z
-    else 0
-  else 0
+  meromorphicTrailingCoeffAt
 
 
 
@@ -190,7 +186,8 @@ lemma ZeroFactorization {R : ℝ} {f : ℂ → ℂ} {ρ : ℂ}
     (hfAnalytic : AnalyticOnNhd ℂ f (Metric.closedBall (0 : ℂ) 1))
     (hf_neq_zero_at_zero : f 0 ≠ 0)
     (hρ : ρ ∈ SetOfZeros R f) :
-    ∃ h_ρ : ℂ → ℂ, AnalyticAt ℂ h_ρ ρ ∧ h_ρ ρ ≠ 0 ∧ ZeroFactor f ρ = h_ρ ρ ∧
+    ∃ h_ρ : ℂ → ℂ, AnalyticAt ℂ h_ρ ρ ∧ h_ρ ρ ≠ 0 ∧
+      (if AnalyticAt ℂ f ρ then meromorphicTrailingCoeffAt f ρ else 0) = h_ρ ρ ∧
       f =ᶠ[nhds ρ] fun z ↦ (z - ρ) ^ analyticOrderNatAt f ρ * h_ρ z := by
   have ρ_mem_closedBall : ρ ∈ Metric.closedBall (0 : ℂ) 1 := by
     simpa only [Metric.mem_closedBall, dist_zero_right] using hρ.1.trans RleOne.le
@@ -203,8 +200,10 @@ lemma ZeroFactorization {R : ℝ} {f : ℂ → ℂ} {ρ : ℂ}
     (AnalyticAt_ρ.analyticOrderAt_ne_top.mp finiteOrder).choose_spec
   set g := (AnalyticAt_ρ.analyticOrderAt_ne_top.mp finiteOrder).choose
   refine ⟨g, h_ρ, h_ρ_neq_zero_at_zero, ?_, f_eq⟩
-  simp only [ZeroFactor, AnalyticAt_ρ, ↓reduceDIte, ne_eq, finiteOrder, not_false_eq_true,
-    smul_eq_mul, g]
+  simp only [AnalyticAt_ρ, ite_true]
+  exact h_ρ.meromorphicTrailingCoeffAt_of_ne_zero_of_eq_nhdsNE
+    (n := (analyticOrderNatAt f ρ : ℤ)) h_ρ_neq_zero_at_zero
+    (by simpa only [zpow_natCast] using f_eq.filter_mono nhdsWithin_le_nhds)
 
 
 
@@ -226,7 +225,8 @@ lemma ZeroFactorization {R : ℝ} {f : ℂ → ℂ} {ρ : ℂ}
 noncomputable def Cf (r : ℝ) (f : ℂ → ℂ) (z : ℂ) : ℂ :=
   if finite_zeros_mono : (SetOfZeros r f).Finite then
     if _ : z ∈ SetOfZeros r f then
-      ZeroFactor f z / ∏ ρ ∈ (finite_zeros_mono.toFinset \ {z}), (z - ρ) ^ (analyticOrderNatAt f ρ)
+      (if AnalyticAt ℂ f z then meromorphicTrailingCoeffAt f z else 0) /
+        ∏ ρ ∈ (finite_zeros_mono.toFinset \ {z}), (z - ρ) ^ (analyticOrderNatAt f ρ)
     else
       f z / ∏ ρ ∈ (finite_zeros_mono.toFinset), (z - ρ) ^ (analyticOrderNatAt f ρ)
   else 1
@@ -257,9 +257,10 @@ lemma CfAnalytic {r R : ℝ} {f : ℂ → ℂ}
           (hfAnalytic.mono (Metric.closedBall_subset_closedBall (by linarith))) hf_neq_zero_at_zero
           w_in_zeros
       have h_eq : ∀ᶠ z in nhds w,
-          (if h : z ∈ SetOfZeros r f then ZeroFactor f z / ∏ ρ ∈ finite_zeros_mono.toFinset \ {z},
-          (z - ρ) ^ analyticOrderNatAt f ρ else f z / ∏ ρ ∈ finite_zeros_mono.toFinset,
-          (z - ρ) ^ analyticOrderNatAt f ρ) =
+          (if h : z ∈ SetOfZeros r f then
+            (if AnalyticAt ℂ f z then meromorphicTrailingCoeffAt f z else 0) /
+              ∏ ρ ∈ finite_zeros_mono.toFinset \ {z}, (z - ρ) ^ analyticOrderNatAt f ρ
+          else f z / ∏ ρ ∈ finite_zeros_mono.toFinset, (z - ρ) ^ analyticOrderNatAt f ρ) =
           hW z / ∏ ρ ∈ finite_zeros_mono.toFinset \ {w}, (z - ρ) ^ analyticOrderNatAt f ρ := by
         filter_upwards [hhWeq.2, hhWanalytic.continuousAt.eventually_ne hhWne_zero] with z hz hz'
         by_cases h : z = w
@@ -297,9 +298,7 @@ lemma CfAnalytic {r R : ℝ} {f : ℂ → ℂ}
           exact fun h => absurd h w_in_zeros
       · filter_upwards [IsOpen.mem_nhds (isOpen_compl_iff.mpr finite_zeros_mono.isClosed)
           w_in_zeros] with z hz
-        split_ifs with h
-        · exact absurd h hz
-        · rfl
+        simp only [dite_eq_right hz]
   · simp only [finite_zeros_mono, ↓reduceDIte]
     exact analyticAt_const
 
@@ -601,6 +600,7 @@ lemma BlaschkeNonzero {r R : ℝ} {f : ℂ → ℂ}
 
 @[blueprint "ZerosBound"
   (title := "ZerosBound")
+  (proofUses := [-"ZeroFactor"])
   (statement := /--
     Let $0< r < R<1$. If $f:\mathbb{C}\to\mathbb{C}$ is a function analytic on
     neighborhoods of points in $\overline{\mathbb{D}_1}$ with $f(0)=1$ and $|f(z)|\leq B$
@@ -769,6 +769,7 @@ theorem JBlaschkeDerivBound {B r' r R : ℝ} {f : ℂ → ℂ} {z : ℂ}
 
 @[blueprint "FinalBound"
   (title := "FinalBound")
+  (proofUses := [-"ZeroFactor"])
   (statement := /--
     Let $B>1$ and $0 < r' < r < R' < R<1$. If $f:\mathbb{C}\to\mathbb{C}$ is a function
     analytic on neighborhoods of points in $\overline{\mathbb{D}_1}$ with $f(0)=1$ and
