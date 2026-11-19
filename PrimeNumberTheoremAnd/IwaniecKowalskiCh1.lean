@@ -165,7 +165,7 @@ lemma IsCompletelyAdditive.isAdditive [AddZeroClass R] {f : ArithmeticFunction R
 
 -- **Think about more API for additive/completely additive functions, e.g. `f (p^k) = k * f p` for prime p, etc.**
 
-@[blueprint
+attribute [blueprint
   "unique_divisor_decomposition"
   (title := "unique divisor decomposition")
   (statement := /-- If $a$ and $b$ are coprime, then any divisor $d$ of $ab$ can be uniquely expressed as a product of a divisor of $a$ and a divisor of $b$.
@@ -176,19 +176,7 @@ lemma IsCompletelyAdditive.isAdditive [AddZeroClass R] {f : ArithmeticFunction R
   (proof := /--
   Let $a$ and $b$ be coprime natural numbers, and let $d$ be a divisor of $ab$. Since $a$ and $b$ are coprime, we can use the fact that the divisors of $ab$ correspond to pairs of divisors of $a$ and $b$. Specifically, we can express $d$ as $d = d_a \cdot d_b$, where $d_a$ divides $a$ and $d_b$ divides $b$. The uniqueness of this decomposition follows from the coprimality of $a$ and $b$, which ensures that the divisors of $a$ and $b$ do not share any common factors. Therefore, there is a one-to-one correspondence between the divisors of $ab$ and the pairs of divisors of $a$ and $b$, which guarantees the uniqueness of the decomposition.
   -/)]
-lemma unique_divisor_decomposition {a b d : ℕ} (hab : Coprime a b) (hd : d ∣ a * b) :
-    ∃! p : ℕ × ℕ, p.1 ∣ a ∧ p.2 ∣ b ∧ p.1 * p.2 = d := by
-  refine ⟨(d.gcd a, d.gcd b), ⟨Nat.gcd_dvd_right _ _, Nat.gcd_dvd_right _ _,
-    (Nat.gcd_mul_gcd_eq_iff_dvd_mul_of_coprime hab).mpr hd⟩, ?_⟩
-  rintro ⟨x, y⟩ ⟨hx, hy, hxy⟩
-  apply Prod.ext
-  · change x = d.gcd a
-    rw [← hxy, mul_comm x y]
-    exact (Nat.gcd_mul_of_coprime_of_dvd (hab.symm.coprime_dvd_left hy) hx).symm
-  · change y = d.gcd b
-    rw [← hxy]
-    exact (Nat.gcd_mul_of_coprime_of_dvd (hab.coprime_dvd_left hx) hy).symm
-
+  Nat.gcd_mul_gcd_eq_iff_dvd_mul_of_coprime
 
 blueprint_comment /--
 For a multiplicative arithmetic function, its divisor sum is multiplicative. This is Mathlib's
@@ -1655,7 +1643,7 @@ For coprime natural numbers the product map is injective on the product of their
 This is Mathlib's `Nat.Coprime.mul_injOn_divisors`.
 -/
 
-@[blueprint
+attribute [blueprint
   "pow_divisors_mul_injective"
   (title := "pow-divisors-mul-injective")
   (statement := /--
@@ -1666,12 +1654,7 @@ This is Mathlib's `Nat.Coprime.mul_injOn_divisors`.
     This is the restriction of Lemma \ref{divisors-mul-injective} to a subset of the divisor
     product, so injectivity is preserved.
   -/)]
-lemma pow_divisors_mul_injective {m n k : ℕ} (hmn : Nat.Coprime m n) :
-    Set.InjOn (fun (p : ℕ × ℕ) => p.1 * p.2) (m.divisors.filter (fun x => x ^ k ∣ m) ×ˢ n.divisors.filter (fun x => x ^ k ∣ n)) := by
-  apply Set.InjOn.mono _ (by simpa only [Finset.coe_product] using hmn.mul_injOn_divisors)
-  intro ⟨_, _⟩ hab
-  simp only [Finset.coe_filter, Set.mem_prod, Set.mem_ofPred_eq, Finset.mem_coe] at hab ⊢
-  exact ⟨hab.1.1, hab.2.1⟩
+  Nat.Coprime.mul_injOn_divisors
 
 @[blueprint
   "sum_moebius_sq_divisors"
@@ -1704,8 +1687,14 @@ lemma sum_moebius_sq_divisors_IsMultiplicative : sum_moebius_sq_divisors.IsMulti
     OfNat.ofNat_ne_zero, or_false, sum_ite_eq', mem_singleton, ↓reduceIte, isUnit_iff_eq_one,
     IsUnit.squarefree, moebius_apply_of_squarefree, Int.reduceNeg, cardFactors_one, pow_zero], ?_⟩
   intro m n mCn
+  have hinj : Set.InjOn (fun p : ℕ × ℕ => p.1 * p.2)
+      (m.divisors.filter (fun x => x ^ 2 ∣ m) ×ˢ n.divisors.filter (fun x => x ^ 2 ∣ n)) := by
+    apply Set.InjOn.mono _ (by simpa only [Finset.coe_product] using mCn.mul_injOn_divisors)
+    intro ⟨_, _⟩ hab
+    simp only [Finset.coe_filter, Set.mem_prod, Set.mem_ofPred_eq, Finset.mem_coe] at hab ⊢
+    exact ⟨hab.1.1, hab.2.1⟩
   simp only [coe_mk, pow_divisors_mul mCn, Finset.sum_product,
-    Finset.sum_image (fun x hx y hy => pow_divisors_mul_injective (k := 2) mCn
+    Finset.sum_image (fun x hx y hy => hinj
       (Finset.coe_product _ _ ▸ Finset.mem_coe.mpr hx)
       (Finset.coe_product _ _ ▸ Finset.mem_coe.mpr hy))]
   trans (∑ i ∈ m.divisors.filter (fun x => x ^ 2 ∣ m), ∑ j ∈ n.divisors.filter (fun x => x ^ 2 ∣ n), μ i * μ j)
