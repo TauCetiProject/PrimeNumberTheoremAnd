@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Analysis.Complex.CauchyIntegral
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Basic
+public import Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Basic
 public import Mathlib.Analysis.SpecialFunctions.Integrability.Log
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 public import Mathlib.MeasureTheory.Integral.CircleAverage
@@ -21,8 +21,8 @@ function. Used in Hadamard divisor summability and finite-order factorization.
 
 * `Function.locallyFinsuppWithin.logCounting_divisor_le_of_log_growth` : log-growth of order `ρ`
   controls log-counting on disks
-* `Function.locallyFinsuppWithin.massClosedBall₀`, `log_two_mul_massClosedBall₀_le_logCounting` :
-  compare zero mass in a ball with log-counting at twice the radius
+* `log_two_mul_massClosedBall₀_le_logCounting` :
+  compare the native nonzero multiplicity sum with log-counting at twice the radius
 
 ## Tags
 
@@ -82,7 +82,7 @@ For non-negative locally finite support, twice the ball radius gives enough log-
 -/
 theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} (hDnonneg : 0 ≤ D)
     {R : ℝ} (hR : 1 ≤ R) :
-    (log 2) * massClosedBall₀ D R ≤ logCounting D (2 * R) := by
+    (log 2) * (∑ᶠ z ∈ closedBall (0 : E) |R| \ {0}, (D z : ℝ)) ≤ logCounting D (2 * R) := by
   classical
   have hR0 : 0 < R := zero_lt_one.trans_le hR
   let r := 2 * R
@@ -133,15 +133,21 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
         (log_two_le_log_two_mul_mul_inv_norm_of_norm_le hz0 hn)
         (show (0 : ℝ) ≤ (D z : ℝ) by exact_mod_cast hDnonneg z)
     · simpa only [v, ite_eq_right hz] using hw z
-  have hmass : ∑ᶠ z, v z = log 2 * massClosedBall₀ D R := by
-    rw [finsum_eq_sum_of_support_subset v hvsub]
-    change (∑ z ∈ S, v z) = log 2 * ∑ z ∈ S, (D z : ℝ)
-    rw [Finset.mul_sum]
-    exact Finset.sum_congr rfl fun z hz => by simp only [v, ite_eq_left hz]
+  have hmass : ∑ᶠ z, v z = log 2 *
+      (∑ᶠ z ∈ closedBall (0 : E) |R| \ {0}, (D z : ℝ)) := by
+    have hsum : (∑ᶠ z ∈ closedBall (0 : E) |R| \ {0}, (D z : ℝ)) =
+        ∑ z ∈ S, (D z : ℝ) := by
+      apply finsum_cond_eq_sum_of_cond_iff
+      intro z hz
+      have hDz : D z ≠ 0 := by exact_mod_cast hz
+      simp [S, Function.mem_support, toClosedBall_apply,
+        locallyFinsuppWithin.restrict_apply, hDz]
+    rw [finsum_eq_sum_of_support_subset v hvsub, hsum, Finset.mul_sum]
+    exact Finset.sum_congr rfl fun z hz ↦ by simp only [v, ite_eq_left hz]
   have hc : 0 ≤ (D 0 : ℝ) * log r :=
     mul_nonneg (by exact_mod_cast hDnonneg 0) (log_nonneg (by dsimp [r]; linarith))
   calc
-    log 2 * massClosedBall₀ D R = ∑ᶠ z, v z := hmass.symm
+    log 2 * (∑ᶠ z ∈ closedBall (0 : E) |R| \ {0}, (D z : ℝ)) = ∑ᶠ z, v z := hmass.symm
     _ ≤ ∑ᶠ z, w z := finsum_le_finsum hvfin hwfin hvw
     _ ≤ (∑ᶠ z, w z) + (D 0 : ℝ) * log r := le_add_of_nonneg_right hc
     _ = logCounting D (2 * R) := rfl
@@ -150,12 +156,14 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
 theorem massClosedBall₀_divisor_le_of_log_growth {f : ℂ → ℂ} {ρ C : ℝ}
     (hf : Differentiable ℂ f)
     (hC : ∀ z : ℂ, log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) {R : ℝ} (hR : 1 ≤ R) :
-    massClosedBall₀ (divisor f (Set.univ : Set ℂ)) R
+    (∑ᶠ z ∈ closedBall (0 : ℂ) |R| \ {0},
+        (divisor f Set.univ z : ℝ))
       ≤ (C * (1 + |2 * R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖|) / log 2 := by
   have hR0 : 0 < R := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 1) hR
   have hlog2pos : 0 < log 2 := log_pos (by norm_num : (1 : ℝ) < 2)
   have hlow :
-      (log 2) * massClosedBall₀ (divisor f (Set.univ : Set ℂ)) R
+      (log 2) * (∑ᶠ z ∈ closedBall (0 : ℂ) |R| \ {0},
+        (divisor f Set.univ z : ℝ))
         ≤ logCounting (divisor f (Set.univ : Set ℂ)) (2 * R) :=
     log_two_mul_massClosedBall₀_le_logCounting
       (D := divisor f (Set.univ : Set ℂ))
@@ -168,11 +176,13 @@ theorem massClosedBall₀_divisor_le_of_log_growth {f : ℂ → ℂ} {ρ C : ℝ
     simpa using logCounting_divisor_le_of_log_growth (f := f) (ρ := ρ) (C := C) hf hC
       (R := 2 * R) h2R0
   have hmul :
-      (log 2) * massClosedBall₀ (divisor f (Set.univ : Set ℂ)) R
+      (log 2) * (∑ᶠ z ∈ closedBall (0 : ℂ) |R| \ {0},
+        (divisor f Set.univ z : ℝ))
         ≤ C * (1 + |2 * R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖| :=
     hlow.trans hupp
   have hmul' :
-      massClosedBall₀ (divisor f (Set.univ : Set ℂ)) R * log 2
+      (∑ᶠ z ∈ closedBall (0 : ℂ) |R| \ {0},
+        (divisor f Set.univ z : ℝ)) * log 2
         ≤ C * (1 + |2 * R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖| := by
     simpa [mul_assoc, mul_left_comm, mul_comm] using hmul
   exact (le_div_iff₀ hlog2pos).2 hmul'

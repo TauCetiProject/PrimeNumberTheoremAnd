@@ -43,7 +43,7 @@ product.
 ## References
 
 * [tao246bComplexAnalysis], Theorem 2 and Proposition 8 (disk formulation; compare
-  `massClosedBall₀` and `logCounting`)
+  native multiplicity sums over punctured closed balls and `logCounting`)
 * [MR886677], §1 for disk automorphisms and disk canonical factors used in the counting background
 * [boas1954] and [levin1980] for the Jensen/counting estimates feeding the classical Hadamard
   product theorem
@@ -66,7 +66,6 @@ A bound on `log (1 + ‖f z‖)` controls `logCounting` of the divisor and yield
 -/
 
 open scoped Real
-open Function.locallyFinsuppWithin (massClosedBall₀)
 
 /-!
 ### Dyadic-shell summability for divisor-indexed zeros
@@ -78,7 +77,8 @@ open scoped BigOperators
 lemma card_ball_le_divisorMassClosedBall₀
     {f : ℂ → ℂ} (hf : Differentiable ℂ f) {R : ℝ} (hR : 0 < R) :
     (Nat.card {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) // ‖divisorZeroIndex₀_val p‖ ≤ R} : ℝ)
-      ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
+      ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
   set U : Set ℂ := (Set.univ : Set ℂ)
   set D : Function.locallyFinsuppWithin U ℤ := MeromorphicOn.divisor f U
   have :
@@ -171,8 +171,15 @@ lemma card_ball_le_divisorMassClosedBall₀
       refine Finset.sum_le_sum ?_
       intro z hz
       exact htoNat_le z hz
-    _ = massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
-      rfl
+    _ = (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
+      symm
+      apply finsum_cond_eq_sum_of_cond_iff
+      intro z hz
+      have hDz : D z ≠ 0 := by exact_mod_cast hz
+      simp [S, SR, Function.mem_support,
+        Function.locallyFinsuppWithin.toClosedBall_apply,
+        Function.locallyFinsuppWithin.restrict_apply, hDz]
 
 /-- A finite family of divisor indices contained in a closed ball has cardinality bounded by the
 divisor mass of that ball. -/
@@ -180,7 +187,8 @@ lemma card_subtype_le_divisorMassClosedBall₀_of_norm_le
     {f : ℂ → ℂ} (hf : Differentiable ℂ f)
     {s : Set (divisorZeroIndex₀ f (Set.univ : Set ℂ))} [Fintype s]
     {R : ℝ} (hR : 0 < R) (hs : ∀ p : s, ‖divisorZeroIndex₀_val p.1‖ ≤ R) :
-    (Fintype.card s : ℝ) ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
+    (Fintype.card s : ℝ) ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
   let Aball : Type :=
     {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) // ‖divisorZeroIndex₀_val p‖ ≤ R}
   have : Fintype Aball := by
@@ -196,12 +204,15 @@ lemma card_subtype_le_divisorMassClosedBall₀_of_norm_le
     exact congrArg (fun x : Aball => x.1) hpq
   have hcard_le : Fintype.card s ≤ Fintype.card Aball :=
     Fintype.card_le_of_injective _ hinj
-  have hAball : (Nat.card Aball : ℝ) ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
+  have hAball : (Nat.card Aball : ℝ) ≤
+      (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
     simpa [Aball] using card_ball_le_divisorMassClosedBall₀ (f := f) hf hR
   calc
     (Fintype.card s : ℝ) ≤ (Fintype.card Aball : ℝ) := by exact_mod_cast hcard_le
     _ = (Nat.card Aball : ℝ) := by simp [Nat.card_eq_fintype_card]
-    _ ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := hAball
+    _ ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ)) := hAball
 
 lemma finite_divisorZeroIndex₀_dyadicShell
     {f : ℂ → ℂ} {r0 : ℝ}
@@ -274,12 +285,14 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
       (a := fun p : S => ‖divisorZeroIndex₀_val p.1‖)
       hrk_pos hτpos (fun _ => norm_nonneg _) hk_lower
   have hmass_le_growth :
-      massClosedBall₀ (MeromorphicOn.divisor f Set.univ) Rk
+      (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |Rk| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ))
         ≤ (Cgrow * (1 + |2 * Rk|) ^ ρ + Ctrail) / (Real.log 2) := by
     simpa [Ctrail, Rk] using
       Function.locallyFinsuppWithin.massClosedBall₀_divisor_le_of_log_growth hf hCgrow hk_ge_one
   have hcard_le_mass :
-      (Fintype.card S : ℝ) ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) Rk := by
+      (Fintype.card S : ℝ) ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |Rk| \ {0},
+        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
     have hRk_pos : 0 < Rk := lt_of_lt_of_le (by norm_num) hk_ge_one
     exact card_subtype_le_divisorMassClosedBall₀_of_norm_le (f := f) hf hRk_pos hk_upper
   have htsum' :
