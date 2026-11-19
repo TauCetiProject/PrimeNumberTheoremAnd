@@ -6,7 +6,8 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Summability
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import Mathlib.Analysis.Complex.AbsMax
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
@@ -367,10 +368,11 @@ theorem hadamardQuotient_norm_le_exp_rpow_of_growth {f H : ℂ → ℂ} {ρ τ :
   let Cprod : ℝ := cartanProductConstant m τ Sτ
   have hCprod_nonneg : 0 ≤ Cprod := by
     simpa [Cprod] using cartanProductConstant_nonneg (m := m) (τ := τ) hSτ_nonneg
-  have hf_boundτ : ∀ z : ℂ, ‖f z‖ ≤ Real.exp (Cf * (1 + ‖z‖) ^ τ) :=
-    Real.norm_le_exp_mul_rpow_of_log_growth
-      (f := f) (r := fun z : ℂ => 1 + ‖z‖) (C := Cf) (ρ := ρ) (τ := τ)
-      hCfpos.le (fun z => by linarith [norm_nonneg z]) (le_of_lt hτ) hCf
+  have hf_boundτ : ∀ z : ℂ, ‖f z‖ ≤ Real.exp (Cf * (1 + ‖z‖) ^ τ) := by
+    intro z
+    have hlogτ := (hCf z).trans (mul_le_mul_of_nonneg_left
+      (Real.rpow_le_rpow_of_exponent_le (by linarith [norm_nonneg z]) hτ.le) hCfpos.le)
+    exact (le_add_of_nonneg_left zero_le_one).trans (Real.le_exp_of_log_le hlogτ)
   refine ⟨(Cf + Cprod + 10) * (3 : ℝ) ^ τ, by
     have h3τ : 0 < (3 : ℝ) ^ τ := by positivity
     nlinarith [hCfpos, hCprod_nonneg, h3τ], ?_⟩
@@ -419,14 +421,17 @@ theorem hadamardQuotient_norm_le_exp_rpow_of_growth {f H : ℂ → ℂ} {ρ τ :
     apply hcircle u
     simpa only [frontier_ball (x := (0 : ℂ)) (r := r) (ne_of_gt hrpos), Metric.mem_sphere, dist_zero_right] using hu
   have hr_le_3 : 1 + r ≤ 3 * (1 + ‖z‖) := by
-    exact Real.one_add_le_three_mul_one_add_of_le_two_mul_max (norm_nonneg z)
-      (by simpa [R] using hr_le_2R)
+    have hm : max ‖z‖ 1 ≤ 1 + ‖z‖ := max_le (by linarith) (by linarith [norm_nonneg z])
+    have hrr : r ≤ 2 * max ‖z‖ 1 := by simpa [R] using hr_le_2R
+    linarith
   have hmain :
       Real.exp ((Cf + Cprod + 10) * (1 + r) ^ τ)
         ≤ Real.exp (((Cf + Cprod + 10) * (3 : ℝ) ^ τ) * (1 + ‖z‖) ^ τ) := by
     have hnn : 0 ≤ (Cf + Cprod + 10) := by nlinarith [le_of_lt hCfpos, hCprod_nonneg]
-    exact Real.exp_mul_rpow_le_exp_mul_rpow_of_le_mul hnn (by norm_num)
-      (by linarith [le_of_lt hrpos]) (by positivity) hτ_nonneg hr_le_3
+    rw [mul_assoc, ← Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 3)
+      (by positivity : 0 ≤ 1 + ‖z‖)]
+    exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left
+      (Real.rpow_le_rpow (by linarith [hrpos]) hr_le_3 hτ_nonneg) hnn)
   simpa [mul_assoc] using hball.trans hmain
 
 /-- Hadamard factorization from a global logarithmic growth bound.
@@ -454,8 +459,10 @@ theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
         hρ hentire hgrowth)
   rcases exists_entire_nonzero_hadamardQuotient (m := m) (f := f) hentire hnot h_sum with
     ⟨H, hH_entire, hH_ne, hfactor⟩
-  rcases Real.exists_between_self_and_floor_add_one_same_floor hρ with
-    ⟨τ, hτ, hτ_lt, hτ_nonneg, hfloorτ'⟩
+  obtain ⟨τ, hτ, hτ_lt⟩ := exists_between (Nat.lt_floor_add_one (a := ρ))
+  have hτ_nonneg : 0 ≤ τ := hρ.trans hτ.le
+  have hfloorτ' : Nat.floor τ = Nat.floor ρ :=
+    (Nat.floor_eq_iff hτ_nonneg).mpr ⟨(Nat.floor_le hρ).trans hτ.le, hτ_lt⟩
   have hfloorτ : Nat.floor τ = m := by
     simpa [m] using hfloorτ'
   have hmρ : (m : ℝ) ≤ ρ := by

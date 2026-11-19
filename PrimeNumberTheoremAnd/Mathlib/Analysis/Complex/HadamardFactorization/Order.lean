@@ -11,6 +11,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorizati
 public import TauCeti.Analysis.Complex.GrowthOrder
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
 import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
+import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
 
 /-!
@@ -146,9 +147,13 @@ theorem exists_log_growth {ρ τ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMo
   have hnorm : ∀ z : ℂ, ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ τ) := by
     intro z
     simpa [sub_add_cancel] using (hC z)
-  exact Real.log_growth_of_norm_le_exp_mul_rpow (f := f)
-    (r := fun z : ℂ => 1 + ‖z‖) hCpos hτ_nonneg
-    (fun z => by linarith [norm_nonneg z]) hnorm
+  refine ⟨C + 1, add_pos hCpos zero_lt_one, fun z ↦ ?_⟩
+  have hX := Real.one_le_rpow (by linarith [norm_nonneg z] : 1 ≤ 1 + ‖z‖) hτ_nonneg
+  have hP := mul_nonneg hCpos.le (zero_le_one.trans hX)
+  have hp := Real.posLog_le_posLog (neg_one_lt_zero.le.trans (norm_nonneg _)) (hnorm z)
+  have hlog := (Real.log_one_add_le_posLog (x := ‖f z‖)).trans (add_le_add hp le_rfl)
+  simp only [Real.posLog_apply, Real.log_exp, max_eq_right hP] at hlog
+  nlinarith [Real.log_le_sub_one_of_pos (by norm_num : (0 : ℝ) < 2)]
 
 /-- Finite order is invariant under translation of the input. -/
 theorem comp_add_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)
@@ -185,8 +190,10 @@ theorem hadamard_factorization_of_order {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
   classical
   let hentire : Differentiable ℂ f := horder.differentiable
   set m : ℕ := Nat.floor ρ
-  rcases Real.exists_between_self_and_floor_add_one_same_floor hρ with
-    ⟨τ, hτ, hτ_lt, hτ_nonneg, hfloorτ'⟩
+  obtain ⟨τ, hτ, hτ_lt⟩ := exists_between (Nat.lt_floor_add_one (a := ρ))
+  have hτ_nonneg : 0 ≤ τ := hρ.trans hτ.le
+  have hfloorτ' : Nat.floor τ = Nat.floor ρ :=
+    (Nat.floor_eq_iff hτ_nonneg).mpr ⟨(Nat.floor_le hρ).trans hτ.le, hτ_lt⟩
   have hfloorτ : Nat.floor τ = m := by
     simpa [m] using hfloorτ'
   have hgrowthτ :

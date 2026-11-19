@@ -13,7 +13,7 @@ public import Mathlib.Analysis.SpecialFunctions.Integrability.Basic
 import Mathlib.Analysis.SpecialFunctions.Integrability.PosLog
 import TauCeti.Analysis.SpecialFunctions.Integrals.PosLog
 import TauCeti.Analysis.SpecialFunctions.Log.Bounds
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
+public import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 
 
 /-!

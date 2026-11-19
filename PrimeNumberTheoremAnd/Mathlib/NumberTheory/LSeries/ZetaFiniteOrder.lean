@@ -9,7 +9,7 @@ public import Mathlib.Analysis.Complex.Basic
 public import Mathlib.Analysis.Complex.Trigonometric
 public import Mathlib.Analysis.SpecialFunctions.Exp
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
+public import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 public import Mathlib.NumberTheory.LSeries.HurwitzZetaValues
@@ -403,8 +403,10 @@ theorem zeta_minus_pole_entire_growth :
       have hB0 : 0 ≤ C * A ^ (2 : ℝ) := mul_nonneg hC0 hA2_nonneg
       have hlog :
           Real.log (1 + ‖(DirichletCharacter.LFunctionTrivChar₁ 1) z‖) ≤
-            C * A ^ (2 : ℝ) + Real.log 2 :=
-        Real.log_one_add_le_add_log_two_of_le_exp (norm_nonneg _) hB0 hmain
+            C * A ^ (2 : ℝ) + Real.log 2 := by
+        have hp := Real.posLog_le_posLog (neg_one_lt_zero.le.trans (norm_nonneg _)) hmain
+        have hposlog := Real.log_one_add_le_posLog.trans (add_le_add hp le_rfl)
+        simpa only [Real.posLog_apply, Real.log_exp, max_eq_right hB0] using hposlog
       have hA2_ge1 : (1 : ℝ) ≤ A ^ (2 : ℝ) :=
         Real.one_le_rpow hA1 (by norm_num)
       calc

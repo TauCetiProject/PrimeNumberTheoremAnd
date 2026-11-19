@@ -11,7 +11,6 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 public import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import TauCeti.Analysis.SpecialFunctions.Complex.Exp.LogDeriv
 import TauCeti.Analysis.Complex.Hadamard.OrderOne
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
 public import TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth

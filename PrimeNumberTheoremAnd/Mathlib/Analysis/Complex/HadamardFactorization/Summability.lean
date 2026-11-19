@@ -10,7 +10,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.L
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Meromorphic.TrailingCoefficient
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
+public import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Log.Summable
 public import TauCeti.Analysis.PSeries
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct

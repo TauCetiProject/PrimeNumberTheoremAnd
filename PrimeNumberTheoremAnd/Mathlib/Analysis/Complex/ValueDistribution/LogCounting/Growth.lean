@@ -9,7 +9,6 @@ public import Mathlib.Analysis.Complex.CauchyIntegral
 public import Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Basic
 public import Mathlib.Analysis.SpecialFunctions.Integrability.Log
 import Mathlib.Analysis.SpecialFunctions.Log.PosLog
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 public import Mathlib.MeasureTheory.Integral.CircleAverage
 
 /-!
@@ -71,7 +70,12 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
     have hn : ‖z‖ ≤ r := by
       simpa only [mem_closedBall, dist_zero_right, abs_of_pos hr0] using hb
     exact mul_nonneg (by exact_mod_cast heq ▸ hDnonneg z)
-      (log_nonneg_mul_inv_norm_of_norm_le hn)
+      (by
+        by_cases hz0 : z = 0
+        · simp [hz0]
+        · apply Real.log_nonneg
+          rw [← div_eq_mul_inv, one_le_div (norm_pos_iff.mpr hz0)]
+          exact hn)
   have hvw : v ≤ w := by
     intro z
     by_cases hz : z ∈ S
@@ -89,8 +93,11 @@ theorem log_two_mul_massClosedBall₀_le_logCounting {D : locallyFinsupp E ℤ} 
       rw [ite_eq_left hz]
       change log 2 * (D z : ℝ) ≤ (Dr z : ℝ) * log (r * ‖z‖⁻¹)
       rw [heq]
-      simpa only [r, mul_comm] using mul_le_mul_of_nonneg_right
-        (log_two_le_log_two_mul_mul_inv_norm_of_norm_le hz0 hn)
+      have hlog2 : log 2 ≤ log ((2 * R) * ‖z‖⁻¹) := by
+        apply Real.log_le_log (by norm_num)
+        rw [← div_eq_mul_inv, le_div_iff₀ (norm_pos_iff.mpr hz0)]
+        exact mul_le_mul_of_nonneg_left hn (by norm_num)
+      simpa only [r, mul_comm] using mul_le_mul_of_nonneg_right hlog2
         (show (0 : ℝ) ≤ (D z : ℝ) by exact_mod_cast hDnonneg z)
     · simpa only [v, ite_eq_right hz] using hw z
   have hmass : ∑ᶠ z, v z = log 2 *
