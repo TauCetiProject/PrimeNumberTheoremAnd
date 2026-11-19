@@ -8,6 +8,8 @@ module
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CartanBound
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.WeierstrassFactor
 
+import TauCeti.Analysis.SpecialFunctions.Complex.Log.Taylor
+
 
 /-!
 ## Pointwise inverse bounds for Weierstrass factors in Cartan-type arguments
@@ -80,8 +82,17 @@ lemma norm_inv_weierstrassFactor_le_exp_near
   have hlogE :
       Real.log ‖weierstrassFactor m (u / a)‖
         ≥ -CartanBound.φ (r / ‖a‖) - (m : ℝ) * max 1 (‖u / a‖ ^ m) := by
-    have hpls :=
-      norm_logTaylor_neg_le_nat_mul_max_one_norm_pow m (u / a)
+    have hpls : ‖logTaylor (m + 1) (-(u / a))‖ ≤ (m : ℝ) * max 1 (‖u / a‖ ^ m) := by
+      rw [← norm_neg, neg_logTaylor_succ_neg_eq_sum]
+      refine (norm_sum_le _ _).trans ?_
+      refine (Finset.sum_le_card_nsmul _ _ (max 1 (‖u / a‖ ^ m)) fun k hk ↦ ?_).trans_eq
+        (by simp)
+      rw [norm_div, norm_pow, ← Nat.cast_add_one, norm_natCast, Nat.cast_add_one]
+      refine (div_le_self (by positivity)
+        (le_add_of_nonneg_left (Nat.cast_nonneg k))).trans ?_
+      rw [← (one_pow m : (1 : ℝ) ^ m = 1), ← max_pow_of_nonneg zero_le_one (norm_nonneg (u / a))]
+      exact (pow_le_pow_left₀ (norm_nonneg _) (le_max_right _ _) _).trans
+        (pow_le_pow_right₀ (le_max_left _ _) (Nat.succ_le_iff.mpr (Finset.mem_range.mp hk)))
     linarith [hbase, hlog_one, hpls]
   have hmax :
       max 1 (‖u / a‖ ^ m) ≤ 1 + (r / ‖a‖) ^ τ :=

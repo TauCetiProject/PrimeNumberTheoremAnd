@@ -27,7 +27,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Summ
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.WeierstrassFactor
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
 import Mathlib.MeasureTheory.Integral.IntegrableOn

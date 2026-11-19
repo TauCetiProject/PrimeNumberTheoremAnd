@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
+public import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 public import Mathlib.Analysis.Complex.Basic
 public import TauCeti.Analysis.Complex.CanonicalProduct.ElementaryFactor
 public import Mathlib.Analysis.Analytic.Order
@@ -13,6 +13,10 @@ public import Mathlib.Analysis.Complex.CauchyIntegral
 public import Mathlib.Analysis.Normed.Group.Bounded
 public import Mathlib.Analysis.Normed.Module.MultipliableUniformlyOn
 public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+
+import Mathlib.Analysis.Normed.Group.InfiniteSum
+import Mathlib.Analysis.SpecificLimits.Basic
+import TauCeti.Analysis.SpecialFunctions.Complex.Log.Taylor
 
 /-!
 # Weierstrass elementary factors
@@ -26,9 +30,7 @@ uniform convergence of products of scaled factors of arbitrary genus.
 ## Main results
 
 * `Complex.weierstrassFactor_eq_exp_neg_tail`: on `‖z‖ < 1` with `z ≠ 1`,
-  `E_m z = exp (-logTail m z)`
-* `Complex.norm_logTaylor_neg_le_nat_mul_max_one_norm_pow`: a crude bound on the truncated
-  logarithm series
+  `E_m z = exp (-∑' k, z ^ (m + 1 + k) / (m + 1 + k))`
 * `Complex.log_norm_weierstrassFactor_ge_log_norm_one_sub_nat_mul_max_one_norm_pow`: a crude lower
   bound for `log ‖E_m(z)‖` used in minimum-modulus arguments
 -/
@@ -42,20 +44,26 @@ open Set
 
 namespace Complex
 
-/-- For `‖z‖ < 1` and `z ≠ 1`, `E_m(z) = exp(-logTail_m(z))`. -/
+/-- On `‖z‖ < 1` with `z ≠ 1`, the elementary factor is the exponential of its negative tail. -/
 lemma weierstrassFactor_eq_exp_neg_tail (m : ℕ) {z : ℂ} (hz : ‖z‖ < 1) (hz1 : z ≠ 1) :
-    weierstrassFactor m z = exp (-logTail m z) := by
+    weierstrassFactor m z = exp (-(∑' k, z ^ (m + 1 + k) / (m + 1 + k))) := by
+  let tail : ℂ := ∑' k, z ^ (m + 1 + k) / (m + 1 + k)
   rw [weierstrassFactor_def]
   have hz_ne_1 : 1 - z ≠ 0 := sub_ne_zero.mpr hz1.symm
   rw [← exp_log hz_ne_1, ← Complex.exp_add]
-  have hsum : log (1 - z) + (-logTaylor (m + 1) (-z)) = -logTail m z := by
-    have hdecomp := neg_log_one_sub_eq_neg_logTaylor_neg_add_logTail hz m
+  have hsum : log (1 - z) + (-logTaylor (m + 1) (-z)) = -tail := by
+    have hdecomp : -log (1 - z) = (-logTaylor (m + 1) (-z)) +
+        tail := by
+      have h := (hasSum_taylorSeries_neg_log hz).summable.sum_add_tsum_nat_add (m + 1)
+      rw [(hasSum_taylorSeries_neg_log hz).tsum_eq] at h
+      simpa [tail, neg_logTaylor_succ_neg_eq_sum, Finset.sum_range_succ',
+        Nat.cast_add, Nat.cast_one, add_assoc, add_comm, add_left_comm] using h.symm
     calc
       log (1 - z) + (-logTaylor (m + 1) (-z))
-          = log (1 - z) + ((-logTaylor (m + 1) (-z)) + logTail m z) - logTail m z := by ring
-      _ = log (1 - z) + (-log (1 - z)) - logTail m z := by rw [hdecomp]
-      _ = -logTail m z := by ring
-  simp [hsum]
+          = log (1 - z) + ((-logTaylor (m + 1) (-z)) + tail) - tail := by ring
+      _ = log (1 - z) + (-log (1 - z)) - tail := by rw [hdecomp]
+      _ = -tail := by ring
+  simpa only [tail] using congrArg Complex.exp hsum
 
 /-!
 ## Lower bounds on `Real.log ‖weierstrassFactor m z‖`
@@ -92,23 +100,32 @@ lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_sub (m : ℕ) (z : ℂ) :
 
 lemma log_norm_weierstrassFactor_ge_neg_two_pow {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ (1 / 2 : ℝ)) :
     (-2 : ℝ) * ‖z‖ ^ (m + 1) ≤ Real.log ‖weierstrassFactor m z‖ := by
+  let tail : ℂ := ∑' k, z ^ (m + 1 + k) / (m + 1 + k)
   have hz_lt : ‖z‖ < (1 : ℝ) := lt_of_le_of_lt hz (by norm_num)
   have hz1 : z ≠ (1 : ℂ) := by
     intro h
     have : (1 : ℝ) ≤ (1 / 2 : ℝ) := by
       simpa [h] using hz
     norm_num at this
-  have hEq : weierstrassFactor m z = Complex.exp (-logTail m z) :=
+  have hEq : weierstrassFactor m z = Complex.exp (-tail) :=
     weierstrassFactor_eq_exp_neg_tail m hz_lt hz1
   have hlog :
-      Real.log ‖weierstrassFactor m z‖ = (-logTail m z).re := by
+      Real.log ‖weierstrassFactor m z‖ = (-tail).re := by
     simp [hEq, Complex.norm_exp, Real.log_exp]
-  have hre : (-logTail m z).re ≥ -‖logTail m z‖ := by
-    simpa [norm_neg] using neg_le_of_abs_le (Complex.abs_re_le_norm (-logTail m z))
-  have htail := norm_logTail_le_two_mul_norm_pow hz_lt hz m
-  have : (-logTail m z).re ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
+  have hre : (-tail).re ≥ -‖tail‖ := by
+    simpa [norm_neg] using neg_le_of_abs_le (Complex.abs_re_le_norm (-tail))
+  have htail : ‖∑' k, z ^ (m + 1 + k) / (m + 1 + k)‖ ≤ 2 * ‖z‖ ^ (m + 1) := by
+    refine (tsum_of_norm_bounded (f := fun k : ℕ ↦ z ^ (m + 1 + k) / (m + 1 + k))
+      ((hasSum_geometric_of_lt_one (norm_nonneg z) hz_lt).mul_left (‖z‖ ^ (m + 1))) ?_).trans ?_
+    · intro k
+      simp only [norm_div, norm_mul, norm_pow, ← Nat.cast_add_one, ← Nat.cast_add, norm_natCast,
+        pow_add]
+      exact div_le_self (by positivity) (by norm_cast; omega)
+    · rw [← div_eq_mul_inv, div_le_iff₀ (by linarith)]
+      nlinarith [mul_le_mul_of_nonneg_right hz (pow_nonneg (norm_nonneg z) (m + 1))]
+  have : (-tail).re ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
     calc
-      (-logTail m z).re ≥ -‖logTail m z‖ := hre
+      (-tail).re ≥ -‖tail‖ := hre
       _ ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
             nlinarith [htail]
   simpa [hlog, mul_assoc, mul_left_comm, mul_comm] using this
@@ -120,7 +137,14 @@ lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_nat_mul_max_one_norm_pow
     Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m)
         ≤ Real.log ‖1 - z‖ - ‖logTaylor (m + 1) (-z)‖ := by
           gcongr
-          exact norm_logTaylor_neg_le_nat_mul_max_one_norm_pow m z
+          rw [← norm_neg, neg_logTaylor_succ_neg_eq_sum]
+          refine (norm_sum_le _ _).trans ?_
+          refine (Finset.sum_le_card_nsmul _ _ (max 1 (‖z‖ ^ m)) fun k hk ↦ ?_).trans_eq (by simp)
+          rw [norm_div, norm_pow, ← Nat.cast_add_one, norm_natCast, Nat.cast_add_one]
+          refine (div_le_self (by positivity) (le_add_of_nonneg_left (Nat.cast_nonneg k))).trans ?_
+          rw [← (one_pow m : (1 : ℝ) ^ m = 1), ← max_pow_of_nonneg zero_le_one (norm_nonneg z)]
+          exact (pow_le_pow_left₀ (norm_nonneg _) (le_max_right _ _) _).trans
+            (pow_le_pow_right₀ (le_max_left _ _) (Nat.succ_le_iff.mpr (Finset.mem_range.mp hk)))
     _ ≤ Real.log ‖weierstrassFactor m z‖ :=
       log_norm_weierstrassFactor_ge_log_norm_one_sub_sub m z
 
