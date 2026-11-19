@@ -9,11 +9,13 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorizati
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Meromorphic.TrailingCoefficient
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.Dyadic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
 public import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.SpecialFunctions.Log.Summable
 public import TauCeti.Analysis.PSeries
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
+import Mathlib.Topology.Algebra.InfiniteSum.Order
+import TauCeti.Analysis.SpecialFunctions.Log.Base
 import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
 
 /-!
@@ -194,7 +196,13 @@ lemma finite_divisorZeroIndex₀_dyadicShell
         {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) |
           ‖divisorZeroIndex₀_val p‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)} := by
     intro p hp
-    exact Real.dyadicShell_upper_bound hr0pos (hr0 p) hp
+    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p‖ / r0)⌋₊ = k := hp
+    change ‖divisorZeroIndex₀_val p‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)
+    apply le_of_lt
+    rw [mul_comm, ← div_lt_iff₀ hr0pos]
+    simpa only [← Real.rpow_natCast, hk', Nat.cast_add, Nat.cast_one] using
+      Real.lt_pow_natFloor_logb_add_one (b := (2 : ℝ)) (by norm_num)
+        (div_pos (hr0pos.trans_le (hr0 p)) hr0pos)
   have hfin :
       ({p : divisorZeroIndex₀ f (Set.univ : Set ℂ) |
         ‖divisorZeroIndex₀_val p‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)} : Set _).Finite := by
@@ -237,20 +245,29 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
   have : Fintype S := Fintype.ofFinite S
   have hk_upper : ∀ p : S, ‖divisorZeroIndex₀_val p.1‖ ≤ Rk := by
     intro p
-    have hk' : kfun p.1 = k := p.2
-    simpa [Rk, kfun] using
-      Real.dyadicShell_upper_bound hr0pos (hr0 p.1) hk'
+    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p.1‖ / r0)⌋₊ = k := p.2
+    change ‖divisorZeroIndex₀_val p.1‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)
+    apply le_of_lt
+    rw [mul_comm, ← div_lt_iff₀ hr0pos]
+    simpa only [← Real.rpow_natCast, hk', Nat.cast_add, Nat.cast_one] using
+      Real.lt_pow_natFloor_logb_add_one (b := (2 : ℝ)) (by norm_num)
+        (div_pos (hr0pos.trans_le (hr0 p.1)) hr0pos)
   have hk_lower : ∀ p : S, rk ≤ ‖divisorZeroIndex₀_val p.1‖ := by
     intro p
-    have hk' : kfun p.1 = k := p.2
-    simpa [rk, kfun] using
-      Real.dyadicShell_lower_bound hr0pos (hr0 p.1) hk'
+    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p.1‖ / r0)⌋₊ = k := p.2
+    change r0 * (2 : ℝ) ^ (k : ℝ) ≤ ‖divisorZeroIndex₀_val p.1‖
+    rw [mul_comm, ← le_div_iff₀ hr0pos]
+    simpa only [← Real.rpow_natCast, hk'] using
+      Real.pow_natFloor_logb_le_self (b := (2 : ℝ)) (by norm_num)
+        ((one_le_div hr0pos).2 (hr0 p.1))
   have htsum_le :
       (∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ)
         ≤ (Fintype.card S : ℝ) * (rk⁻¹ ^ τ) := by
-    exact Real.tsum_inv_rpow_le_card_mul_of_lower_bound
-      (a := fun p : S => ‖divisorZeroIndex₀_val p.1‖)
-      hrk_pos hτpos (fun _ => norm_nonneg _) hk_lower
+    rw [tsum_fintype]
+    have h := Finset.sum_le_sum (s := Finset.univ) fun p _ ↦
+      Real.rpow_le_rpow (inv_nonneg.mpr (norm_nonneg (divisorZeroIndex₀_val p.1)))
+        (inv_anti₀ hrk_pos (hk_lower p)) hτpos.le
+    simpa [Finset.sum_const, nsmul_eq_mul, mul_comm] using h
   have hmass_le_growth :
       (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |Rk| \ {0},
         (MeromorphicOn.divisor f Set.univ z : ℝ))
@@ -279,17 +296,25 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
       mul_le_mul_of_nonneg_right hcard_le_growth (Real.rpow_nonneg (inv_nonneg.2 hrk0) τ)
   have hpow_bound :
       (1 + |2 * Rk|) ^ ρ ≤ (1 + 4 * r0) ^ ρ * ((2 : ℝ) ^ ρ) ^ k := by
-    simpa [Rk] using
-      Real.one_add_abs_two_mul_dyadicRadius_rpow_le (r0 := r0) (ρ := ρ) k hr0pos hρ
+    dsimp only [Rk]
+    have hpow : (1 : ℝ) ≤ (2 : ℝ) ^ k := one_le_pow₀ (by norm_num)
+    rw [Real.rpow_pow_comm (by norm_num : (0 : ℝ) ≤ 2) ρ k,
+      ← Real.mul_rpow (by positivity) (by positivity)]
+    apply Real.rpow_le_rpow (by positivity) ?_ hρ
+    rw [Real.rpow_add_one (by norm_num : (2 : ℝ) ≠ 0), Real.rpow_natCast,
+      abs_of_nonneg (by positivity)]
+    nlinarith only [hpow]
   have hlog2pos : 0 < Real.log 2 := Real.log_pos (by norm_num : (1 : ℝ) < 2)
-  simpa [A, B, q, qσ, rk, Ctrail, mul_assoc, mul_left_comm, mul_comm] using
-    Real.dyadic_growth_mass_mul_inv_le_geometric
-      (C := Cgrow) (L := Real.log 2) (M := (1 + 4 * r0) ^ ρ)
-      (X := (1 + |2 * Rk|) ^ ρ)
-      (T := ∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ)
-      (Ctrail := Ctrail) (r0 := r0) (ρ := ρ) (τ := τ) (k := k)
-      hlog2pos hCgrow_pos.le hr0pos.le hpow_bound
-      (by simpa [rk] using htsum')
+  dsimp only [A, B, q, qσ, rk]
+  rw [← Real.rpow_neg_eq_inv_rpow, Real.mul_rpow hr0pos.le (by positivity),
+    Real.rpow_natCast, ← Real.rpow_pow_comm (by norm_num : (0 : ℝ) ≤ 2) (-τ) k,
+    Real.rpow_neg_eq_inv_rpow r0 τ, add_div, mul_div_right_comm] at htsum'
+  rw [sub_eq_add_neg, Real.rpow_add (by norm_num : (0 : ℝ) < 2), mul_pow]
+  have hs := mul_le_mul_of_nonneg_right hpow_bound
+    (by positivity : 0 ≤ (Cgrow / Real.log 2) * (r0⁻¹ : ℝ) ^ τ *
+      ((2 : ℝ) ^ (-τ)) ^ k)
+  nlinarith [mul_nonneg (Real.rpow_nonneg (inv_nonneg.mpr hr0pos.le) τ)
+    (pow_nonneg (Real.rpow_nonneg (by norm_num : (0 : ℝ) ≤ 2) (-τ)) k)]
 
 theorem summable_norm_inv_rpow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {ρ τ : ℝ}
     (hρ : 0 ≤ ρ) (hτ : ρ < τ) (hf : Differentiable ℂ f)
