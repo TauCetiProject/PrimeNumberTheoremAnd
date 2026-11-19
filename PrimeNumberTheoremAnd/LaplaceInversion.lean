@@ -707,27 +707,6 @@ theorem intervalIntegral_sin_div_kernel_scalar_mass_eq_scaled (T R : ℝ) :
           if v = 0 then (0 : ℂ) else (Real.sin v / v : ℂ) := by
           rfl
 
-/-- The scaled sine kernel is interval-integrable on finite intervals; its value
-at zero is again irrelevant. -/
-theorem intervalIntegrable_scaled_sin_div_kernel (T a b : ℝ) :
-    IntervalIntegrable
-      (fun u : ℝ => if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ))
-      volume a b := by
-  let g : ℝ → ℂ := fun u => (((T / π : ℝ) * Real.sinc (T * u) : ℝ) : ℂ)
-  have hg : IntervalIntegrable g volume a b := by
-    apply Continuous.intervalIntegrable
-    dsimp [g]
-    fun_prop
-  refine hg.congr_ae ?_
-  refine ae_restrict_of_ae ?_
-  filter_upwards [show ∀ᵐ u : ℝ ∂volume, u ≠ 0 by simp [ae_iff, measure_singleton]]
-    with u hu
-  by_cases hT : T = 0
-  · simp [g, hT, hu]
-  · have hTu : T * u ≠ 0 := mul_ne_zero hT hu
-    simp [g, hu, Real.sinc_of_ne_zero hTu]
-    field_simp [Real.pi_ne_zero, hT, hu]
-
 /-- Windowed bound for finite-height Fourier inversion. The mass term, local
 principal-value window, and far-field tail are separated so applications can
 supply uniform bounds for the first two and use the built-in tail estimate. -/
@@ -753,10 +732,14 @@ theorem norm_fourierInvTrunc_le_of_windowed_sin_div_bounds
     rw [fourierInvTrunc_fourier_eq_sinc_kernel (E := E) hf x T hT]
     simpa [K] using normalized_sinc_kernel_integral_comp_sub_left_sin_div_ae (E := E) f x T
   have hconst : IntervalIntegrable (fun u : ℝ => K u • f x) volume (-R) R := by
-    have h := intervalIntegrable_scaled_sin_div_kernel T (-R) R
-    constructor
-    · exact h.1.smul_const (f x)
-    · exact h.2.smul_const (f x)
+    let g : ℝ → E := fun u ↦ ((T / π * Real.sinc (T * u) : ℝ) : ℂ) • f x
+    refine ((show Continuous g by fun_prop).intervalIntegrable (-R) R).congr_ae ?_
+    refine ae_restrict_of_ae ?_
+    filter_upwards [show ∀ᵐ u : ℝ ∂volume, u ≠ 0 by simp [ae_iff, measure_singleton]] with u hu
+    by_cases hT0 : T = 0
+    · simp [g, K, hT0]
+    · simp [g, K, hu, Real.sinc_of_ne_zero (mul_ne_zero hT0 hu)]
+      field_simp [Real.pi_ne_zero, hT0, hu]
   have hsplit := intervalIntegral_sin_div_kernel_split (E := E) f x T R hconst
     (by simpa [K] using herr)
   have hwindow_bound : ‖∫ u in (-R)..R, K u • f (x - u)‖ ≤ M * B + L := by
@@ -1242,10 +1225,14 @@ theorem sinc_kernel_tendsto_of_windowed_pv_of_pos_radius
           (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (π * u) : ℂ)) • f x)
         volume (-R) R := by
     filter_upwards with T
-    have h := intervalIntegrable_scaled_sin_div_kernel T (-R) R
-    constructor
-    · exact h.1.smul_const (f x)
-    · exact h.2.smul_const (f x)
+    let g : ℝ → E := fun u ↦ ((T / π * Real.sinc (T * u) : ℝ) : ℂ) • f x
+    refine ((show Continuous g by fun_prop).intervalIntegrable (-R) R).congr_ae ?_
+    refine ae_restrict_of_ae ?_
+    filter_upwards [show ∀ᵐ u : ℝ ∂volume, u ≠ 0 by simp [ae_iff, measure_singleton]] with u hu
+    by_cases hT0 : T = 0
+    · simp [g, hT0, hu]
+    · simp [g, hu, Real.sinc_of_ne_zero (mul_ne_zero hT0 hu)]
+      field_simp [Real.pi_ne_zero, hT0, hu]
   exact sinc_kernel_tendsto_of_windowed_pv (E := E) hconst herrInt hmass herror htail
 
 /-- Windowed principal-value convergence from local quotient integrability and
