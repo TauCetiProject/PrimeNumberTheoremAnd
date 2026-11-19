@@ -649,7 +649,7 @@ theorem DifferentiableOn.lowerUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : �
   rw [mem_rectangle_iff (by simp [hσ]) (by simp [hTU])]
   simpa using by tauto
 
-@[blueprint
+attribute [blueprint
   "keyIdentity"
   (title := "keyIdentity")
   (statement := /--
@@ -659,14 +659,7 @@ theorem DifferentiableOn.lowerUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : �
   $$
   -/)
   (proof := /-- By ring. -/)
-  (latexEnv := "lemma")]
-lemma keyIdentity (x : ℝ) {s : ℂ} (s_ne_zero : s ≠ 0) (s_ne_neg_one : s ≠ -1) :
-    (x : ℂ) ^ s / (s * (s + 1))
-      = (x : ℂ) ^ s / s - (x : ℂ) ^ s / (s + 1) := by
-  have hs1 : s + 1 ≠ 0 := by
-    simpa only [ne_eq, add_eq_zero_iff_eq_neg] using s_ne_neg_one
-  field_simp [s_ne_zero, hs1]
-  ring
+  (latexEnv := "lemma")] inv_sub_inv
 
 
 variable {α β : Type*} [LinearOrder β] [TopologicalSpace β]
@@ -717,7 +710,16 @@ lemma diffBddAtZero {x : ℝ} (xpos : 0 < x) :
       [sdiff_mem_nhdsWithin_compl (isOpen_compl_singleton.mem_nhds
         (Set.mem_compl_singleton_iff.mpr (by norm_num : (0 : ℂ) ≠ -1))) {0}]
     with s hs
-    rw [Function.comp_apply, Function.comp_apply, keyIdentity _ hs.2 hs.1, cpow_zero]; ring_nf
+    have hs_ne_neg_one : s ≠ -1 := hs.1
+    have hs1 : s + 1 ≠ 0 := by
+      simpa only [ne_eq, add_eq_zero_iff_eq_neg] using hs_ne_neg_one
+    have hi := inv_sub_inv hs.2 hs1
+    have hpartial : (x : ℂ) ^ s / (s * (s + 1)) =
+        (x : ℂ) ^ s / s - (x : ℂ) ^ s / (s + 1) := by
+      simpa [div_eq_mul_inv, mul_sub] using
+        congrArg (fun w : ℂ ↦ (x : ℂ) ^ s * w) hi.symm
+    rw [Function.comp_apply, Function.comp_apply, hpartial, cpow_zero]
+    ring_nf
   have hx0 : (x : ℂ) ≠ 0 := slitPlane_ne_zero (.inl xpos)
   refine (Tendsto.sub ?_ (tendsto_nhdsWithin_of_tendsto_nhds ?_)).norm
   · convert hasDerivAt_iff_tendsto_slope.mp
@@ -761,7 +763,15 @@ lemma diffBddAtNegOne {x : ℝ} (xpos : 0 < x) :
       [sdiff_mem_nhdsWithin_compl (isOpen_compl_singleton.mem_nhds
         (Set.mem_compl_singleton_iff.mpr (by norm_num : (-1 : ℂ) ≠ 0))) {-1}]
     with s hs
-    rw [Function.comp_apply, Function.comp_apply, keyIdentity _ hs.1 hs.2]
+    have hs_ne_neg_one : s ≠ -1 := hs.2
+    have hs1 : s + 1 ≠ 0 := by
+      simpa only [ne_eq, add_eq_zero_iff_eq_neg] using hs_ne_neg_one
+    have hi := inv_sub_inv hs.1 hs1
+    have hpartial : (x : ℂ) ^ s / (s * (s + 1)) =
+        (x : ℂ) ^ s / s - (x : ℂ) ^ s / (s + 1) := by
+      simpa [div_eq_mul_inv, mul_sub] using
+        congrArg (fun w : ℂ ↦ (x : ℂ) ^ s * w) hi.symm
+    rw [Function.comp_apply, Function.comp_apply, hpartial]
     ring_nf
   have hx0 : (x : ℂ) ≠ 0 := slitPlane_ne_zero (.inl xpos)
   refine (Tendsto.sub (tendsto_nhdsWithin_of_tendsto_nhds ?_) ?_).norm
