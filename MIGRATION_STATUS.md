@@ -1,6 +1,6 @@
 # Migration implementation status
 
-Verified 19 November 2026. [ROADMAPS.md](ROADMAPS.md) is the concise report for human roadmap review. No roadmap review, revision or new draft currently blocks the planned migration. Implementation, review and adoption after merges remain in progress.
+Verified 19 November 2026. [ROADMAPS.md](ROADMAPS.md) is the concise report for human roadmap review. It lists seven groups of fork material that no existing roadmap covers and that need new roadmap sections before they can move to Tau Ceti. Implementation, review and adoption after merges remain in progress.
 
 The fork uses stock Lean `v4.36.0-rc2` and Mathlib [`048fffa`](https://github.com/leanprover-community/mathlib4/tree/048fffa1dbcd080d3058fab41d8c188168595c22) (both unchanged) and Tau Ceti [`0642eae`](https://github.com/TauCetiProject/TauCeti/tree/0642eae29e0a59ef798d04de325386445906e755), whose Mathlib pin is the same. The 64 tracked Lean files total **28,410 lines**, including comments and blanks. Four `Unused/` files total 2,727 lines and stay outside the migration; excluding them leaves **25,683 lines**. IEANTN remains excluded.
 
