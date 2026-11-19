@@ -20,14 +20,12 @@ The floor lemma chooses an exponent with the same natural floor, matching Weiers
 
 ## Main results
 
-* `Real.log_norm_le_log_one_add_norm`, `Real.log_nonneg_mul_inv_norm_of_norm_le` : norm/log
-  comparisons for growth bounds
+* `Real.log_nonneg_mul_inv_norm_of_norm_le` : norm/log comparison for growth bounds
 * `Real.norm_le_exp_mul_rpow_of_log_growth`, `Real.log_growth_of_norm_le_exp_mul_rpow` :
   convert between log-growth and exp bounds
 * `Real.sq_le_exp_const_mul_rpow` : absorb a quadratic factor into any positive exponential
   `rpow` margin
 * `Real.exists_between_self_and_floor_add_one_same_floor` : genus-preserving intermediate exponent
-* `Real.log_norm_le_of_log_one_add_growth_on_sphere` : sphere log-growth bound for Jensen's formula
 
 ## Tags
 
@@ -39,14 +37,6 @@ logarithm, exponential growth, finite order, Hadamard factorization
 namespace Real
 
 variable {α E : Type*} [SeminormedAddCommGroup E]
-
-/-- For nonzero norm, `log ‖w‖ ≤ log (1 + ‖w‖)`. -/
-theorem log_norm_le_log_one_add_norm (w : E) :
-    Real.log ‖w‖ ≤ Real.log (1 + ‖w‖) := by
-  by_cases h0 : ‖w‖ = 0
-  · simp [h0]
-  · have hpos : 0 < ‖w‖ := lt_of_le_of_ne (norm_nonneg w) (Ne.symm h0)
-    exact Real.log_le_log hpos (by linarith [norm_nonneg w])
 
 variable {F : Type*} [NormedAddCommGroup F]
 
@@ -144,15 +134,5 @@ theorem exists_between_self_and_floor_add_one_same_floor {ρ : ℝ} (hρ : 0 ≤
   have hτ0 : 0 ≤ τ := hρ.trans hτ.le
   exact ⟨τ, hτ, hτ', hτ0,
     (Nat.floor_eq_iff hτ0).mpr ⟨(Nat.floor_le hρ).trans hτ.le, hτ'⟩⟩
-
-open Metric Complex
-
-/-- On the sphere of radius `|R|`, a log `(1 + ‖f‖)` growth bound controls `log ‖f‖`. -/
-theorem log_norm_le_of_log_one_add_growth_on_sphere {f : ℂ → ℂ} {C ρ R : ℝ}
-    (hC : ∀ z : ℂ, log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) {z : ℂ}
-    (hz : z ∈ sphere (0 : ℂ) |R|) : log ‖f z‖ ≤ C * (1 + |R|) ^ ρ := by
-  have hz_norm : ‖z‖ = |R| := by
-    simpa [mem_sphere, dist_zero_right] using hz
-  simpa [hz_norm] using le_trans (log_norm_le_log_one_add_norm (f z)) (hC z)
 
 end Real

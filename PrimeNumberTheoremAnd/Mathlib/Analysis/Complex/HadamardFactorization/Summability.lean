@@ -181,39 +181,6 @@ lemma card_ball_le_divisorMassClosedBall₀
         Function.locallyFinsuppWithin.toClosedBall_apply,
         Function.locallyFinsuppWithin.restrict_apply, hDz]
 
-/-- A finite family of divisor indices contained in a closed ball has cardinality bounded by the
-divisor mass of that ball. -/
-lemma card_subtype_le_divisorMassClosedBall₀_of_norm_le
-    {f : ℂ → ℂ} (hf : Differentiable ℂ f)
-    {s : Set (divisorZeroIndex₀ f (Set.univ : Set ℂ))} [Fintype s]
-    {R : ℝ} (hR : 0 < R) (hs : ∀ p : s, ‖divisorZeroIndex₀_val p.1‖ ≤ R) :
-    (Fintype.card s : ℝ) ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
-        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
-  let Aball : Type :=
-    {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) // ‖divisorZeroIndex₀_val p‖ ≤ R}
-  have : Fintype Aball := by
-    have : Finite Aball := by
-      have : Metric.closedBall (0 : ℂ) R ⊆ (Set.univ : Set ℂ) := by simp
-      simpa [Aball] using
-        (finite_divisorZeroIndex₀_subtype_norm_le (f := f) (U := (Set.univ : Set ℂ))
-          (B := R) this)
-    exact Fintype.ofFinite _
-  have hinj : Function.Injective (fun p : s => (⟨p.1, hs p⟩ : Aball)) := by
-    intro p q hpq
-    apply Subtype.ext
-    exact congrArg (fun x : Aball => x.1) hpq
-  have hcard_le : Fintype.card s ≤ Fintype.card Aball :=
-    Fintype.card_le_of_injective _ hinj
-  have hAball : (Nat.card Aball : ℝ) ≤
-      (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
-        (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
-    simpa [Aball] using card_ball_le_divisorMassClosedBall₀ (f := f) hf hR
-  calc
-    (Fintype.card s : ℝ) ≤ (Fintype.card Aball : ℝ) := by exact_mod_cast hcard_le
-    _ = (Nat.card Aball : ℝ) := by simp [Nat.card_eq_fintype_card]
-    _ ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |R| \ {0},
-        (MeromorphicOn.divisor f Set.univ z : ℝ)) := hAball
-
 lemma finite_divisorZeroIndex₀_dyadicShell
     {f : ℂ → ℂ} {r0 : ℝ}
     (hr0pos : 0 < r0)
@@ -294,7 +261,13 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
       (Fintype.card S : ℝ) ≤ (∑ᶠ z ∈ Metric.closedBall (0 : ℂ) |Rk| \ {0},
         (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
     have hRk_pos : 0 < Rk := lt_of_lt_of_le (by norm_num) hk_ge_one
-    exact card_subtype_le_divisorMassClosedBall₀_of_norm_le (f := f) hf hRk_pos hk_upper
+    let Aball := {p : divisorZeroIndex₀ f Set.univ // ‖divisorZeroIndex₀_val p‖ ≤ Rk}
+    let : Finite Aball := finite_divisorZeroIndex₀_subtype_norm_le
+      (f := f) (U := Set.univ) Rk (by simp)
+    have h := Nat.card_le_card_of_injective (fun p : S => (⟨p.1, hk_upper p⟩ : Aball))
+      (fun p q h => Subtype.ext (congrArg (fun x : Aball => x.val) h))
+    simpa only [Nat.card_eq_fintype_card] using
+      (Nat.cast_le.mpr h).trans (card_ball_le_divisorMassClosedBall₀ hf hRk_pos)
   have htsum' :
       (∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ)
         ≤ ((Cgrow * (1 + |2 * Rk|) ^ ρ + Ctrail) / (Real.log 2)) * (rk⁻¹ ^ τ) := by

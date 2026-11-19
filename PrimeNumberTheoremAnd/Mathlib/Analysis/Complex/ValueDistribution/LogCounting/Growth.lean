@@ -8,6 +8,7 @@ module
 public import Mathlib.Analysis.Complex.CauchyIntegral
 public import Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Basic
 public import Mathlib.Analysis.SpecialFunctions.Integrability.Log
+import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.ExpGrowth
 public import Mathlib.MeasureTheory.Integral.CircleAverage
 
@@ -19,8 +20,6 @@ function. Used in Hadamard divisor summability and finite-order factorization.
 
 ## Main results
 
-* `Function.locallyFinsuppWithin.logCounting_divisor_le_of_log_growth` : log-growth of order `ρ`
-  controls log-counting on disks
 * `log_two_mul_massClosedBall₀_le_logCounting` :
   compare the native nonzero multiplicity sum with log-counting at twice the radius
 
@@ -34,45 +33,6 @@ logarithmic counting, Jensen's formula, finite order, Hadamard factorization
 open Filter Function MeromorphicOn Metric Real Set
 
 namespace Function.locallyFinsuppWithin
-
-/--
-A logarithmic growth bound on an entire function controls its divisor log-counting on a disk.
--/
-theorem logCounting_divisor_le_of_log_growth {f : ℂ → ℂ} {ρ C : ℝ} (hf : Differentiable ℂ f)
-    (hC : ∀ z : ℂ, log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) {R : ℝ} (hR0 : 0 < R) :
-    logCounting (divisor f (Set.univ : Set ℂ)) R
-      ≤ C * (1 + |R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖| := by
-  have hR : R ≠ 0 := ne_of_gt hR0
-  have hEq :=
-    logCounting_divisor_eq_circleAverage_sub_const
-      (fun z ↦ (hf.analyticAt z).meromorphicAt) hR
-  have hf_sphere : MeromorphicOn f (sphere (0 : ℂ) |R|) := by
-    intro z hz
-    exact (hf.analyticAt z).meromorphicAt
-  have hInt : CircleIntegrable (fun z : ℂ => log ‖f z‖) 0 R :=
-    MeromorphicOn.circleIntegrable_log_norm hf_sphere
-  have hbound_circle : ∀ z ∈ sphere (0 : ℂ) |R|,
-      log ‖f z‖ ≤ C * (1 + |R|) ^ ρ := by
-    intro z hz
-    exact log_norm_le_of_log_one_add_growth_on_sphere hC hz
-  have hCircleAvg_le :
-      circleAverage (fun z : ℂ => log ‖f z‖) 0 R ≤ C * (1 + |R|) ^ ρ :=
-    circleAverage_mono_on_of_le_circle (c := (0 : ℂ)) (R := R)
-      (f := fun z => log ‖f z‖) hInt hbound_circle
-  calc
-    logCounting (divisor f (Set.univ : Set ℂ)) R
-        = circleAverage (fun z : ℂ => log ‖f z‖) 0 R
-            - log ‖meromorphicTrailingCoeffAt f 0‖ := by
-            simpa [top_eq_univ] using hEq
-    _ ≤ circleAverage (fun z : ℂ => log ‖f z‖) 0 R
-          + |log ‖meromorphicTrailingCoeffAt f 0‖| := by
-          have :
-              -log ‖meromorphicTrailingCoeffAt f 0‖
-                ≤ |log ‖meromorphicTrailingCoeffAt f 0‖| :=
-            neg_le_abs (log ‖meromorphicTrailingCoeffAt f 0‖)
-          linarith
-    _ ≤ C * (1 + |R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖| := by
-          nlinarith [hCircleAvg_le]
 
 variable {E : Type*} [NormedAddCommGroup E] [ProperSpace E]
 
@@ -173,8 +133,13 @@ theorem massClosedBall₀_divisor_le_of_log_growth {f : ℂ → ℂ} {ρ C : ℝ
       logCounting (divisor f (Set.univ : Set ℂ)) (2 * R)
         ≤ C * (1 + |2 * R|) ^ ρ + |log ‖meromorphicTrailingCoeffAt f 0‖| := by
     have h2R0 : 0 < 2 * R := by nlinarith [hR0]
-    simpa using logCounting_divisor_le_of_log_growth (f := f) (ρ := ρ) (C := C) hf hC
-      (R := 2 * R) h2R0
+    have hm : Meromorphic f := fun z ↦ (hf.analyticAt z).meromorphicAt
+    rw [logCounting_divisor_eq_circleAverage_sub_const hm h2R0.ne', sub_eq_add_neg]
+    refine add_le_add (circleAverage_mono_on_of_le_circle
+      (MeromorphicOn.circleIntegrable_log_norm (fun z _ ↦ hm z)) ?_) (neg_le_abs _)
+    intro z hz
+    exact (le_max_right 0 (log ‖f z‖)).trans ((posLog_le_log_one_add (norm_nonneg _)).trans
+      ((mem_sphere_zero_iff_norm.mp hz) ▸ hC z))
   have hmul :
       (log 2) * (∑ᶠ z ∈ closedBall (0 : ℂ) |R| \ {0},
         (divisor f Set.univ z : ℝ))
