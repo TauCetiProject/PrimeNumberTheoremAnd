@@ -20,23 +20,6 @@ open Filter Function MeromorphicOn Metric Real Set
 
 namespace Function.locallyFinsuppWithin
 
-variable {E : Type*} [NormedAddCommGroup E]
-
-/-!
-### Support of `toClosedBall`
-
-On the closed ball of radius `|r|`, evaluation agrees with the original function; support points
-lie in that ball and correspond bijectively with support points of the original function inside it.
--/
-
-/-- Support inside the ball is unchanged by restriction to the closed ball. -/
-lemma mem_toClosedBall_support_of_mem_support_of_norm_le_abs
-    {D : locallyFinsupp E ℤ} {r : ℝ} {z : E} (hzD : z ∈ D.support) (hzR : ‖z‖ ≤ |r|) :
-    z ∈ (toClosedBall r D).support := by
-  rw [Function.mem_support]
-  rw [toClosedBall_eval_within D (by simpa only [mem_closedBall, dist_zero_right] using hzR)]
-  rwa [Function.mem_support] at hzD
-
 /-- Total multiplicity of nonzero support points inside the closed ball of radius `|R|`. -/
 noncomputable def massClosedBall₀ {E : Type*} [NormedAddCommGroup E] [ProperSpace E]
     (D : locallyFinsupp E ℤ) (R : ℝ) : ℝ := by

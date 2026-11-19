@@ -26,8 +26,8 @@ factorization conclusion itself.  It is step 1 of the intrinsic Hadamard pipelin
 
 ## Main results
 
-* `divisorMassClosedBall₀_le_of_growth` : zero mass in a ball is `O((1 + R)^ρ)` under
-  log-growth of order `ρ`
+* `Function.locallyFinsuppWithin.massClosedBall₀_divisor_le_of_log_growth` : zero mass in a ball
+  is `O((1 + R)^ρ)` under log-growth of order `ρ`
 * `summable_norm_inv_pow_divisorZeroIndex₀_of_growth` : growth implies convergence of the
   canonical product
 Jensen's formula for entire functions is
@@ -43,7 +43,7 @@ product.
 ## References
 
 * [tao246bComplexAnalysis], Theorem 2 and Proposition 8 (disk formulation; compare
-  `divisorMassClosedBall₀` and `logCounting`)
+  `massClosedBall₀` and `logCounting`)
 * [MR886677], §1 for disk automorphisms and disk canonical factors used in the counting background
 * [boas1954] and [levin1980] for the Jensen/counting estimates feeding the classical Hadamard
   product theorem
@@ -66,21 +66,7 @@ A bound on `log (1 + ‖f z‖)` controls `logCounting` of the divisor and yield
 -/
 
 open scoped Real
-
-/-- The total multiplicity of the nonzero divisor of `f` in the closed ball of radius `R`. -/
-noncomputable def divisorMassClosedBall₀ (f : ℂ → ℂ) (R : ℝ) : ℝ :=
-  Function.locallyFinsuppWithin.massClosedBall₀ (MeromorphicOn.divisor f (Set.univ : Set ℂ)) R
-
-lemma divisorMassClosedBall₀_le_of_growth {f : ℂ → ℂ} {ρ C : ℝ}
-    (hf : Differentiable ℂ f)
-    (hC : ∀ z : ℂ, Real.log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ)
-    {R : ℝ} (hR : 1 ≤ R) :
-    divisorMassClosedBall₀ f R
-      ≤ (C * (1 + |2 * R|) ^ ρ + |Real.log ‖meromorphicTrailingCoeffAt f 0‖|) /
-          Real.log 2 := by
-  simpa [divisorMassClosedBall₀] using
-    (Function.locallyFinsuppWithin.massClosedBall₀_divisor_le_of_log_growth
-      (f := f) (ρ := ρ) (C := C) hf hC hR)
+open Function.locallyFinsuppWithin (massClosedBall₀)
 
 /-!
 ### Dyadic-shell summability for divisor-indexed zeros
@@ -92,7 +78,7 @@ open scoped BigOperators
 lemma card_ball_le_divisorMassClosedBall₀
     {f : ℂ → ℂ} (hf : Differentiable ℂ f) {R : ℝ} (hR : 0 < R) :
     (Nat.card {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) // ‖divisorZeroIndex₀_val p‖ ≤ R} : ℝ)
-      ≤ divisorMassClosedBall₀ f R := by
+      ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
   set U : Set ℂ := (Set.univ : Set ℂ)
   set D : Function.locallyFinsuppWithin U ℤ := MeromorphicOn.divisor f U
   have :
@@ -120,8 +106,10 @@ lemma card_ball_le_divisorMassClosedBall₀
       have hz0_support : z0 ∈ (Function.locallyFinsuppWithin.toClosedBall R D).support := by
         have hz0_suppD : z0 ∈ D.support := by
           simp [z0, D]
-        exact Function.locallyFinsuppWithin.mem_toClosedBall_support_of_mem_support_of_norm_le_abs
-          hz0_suppD hz0_norm
+        rw [Function.mem_support,
+          Function.locallyFinsuppWithin.toClosedBall_eval_within D
+            (by simpa only [Metric.mem_closedBall, dist_zero_right] using hz0_norm)]
+        exact hz0_suppD
       exact (Set.Finite.mem_toFinset
         (Function.locallyFinsuppWithin.finiteSupport
           (Function.locallyFinsuppWithin.toClosedBall R D)
@@ -183,7 +171,7 @@ lemma card_ball_le_divisorMassClosedBall₀
       refine Finset.sum_le_sum ?_
       intro z hz
       exact htoNat_le z hz
-    _ = divisorMassClosedBall₀ f R := by
+    _ = massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
       rfl
 
 /-- A finite family of divisor indices contained in a closed ball has cardinality bounded by the
@@ -192,7 +180,7 @@ lemma card_subtype_le_divisorMassClosedBall₀_of_norm_le
     {f : ℂ → ℂ} (hf : Differentiable ℂ f)
     {s : Set (divisorZeroIndex₀ f (Set.univ : Set ℂ))} [Fintype s]
     {R : ℝ} (hR : 0 < R) (hs : ∀ p : s, ‖divisorZeroIndex₀_val p.1‖ ≤ R) :
-    (Fintype.card s : ℝ) ≤ divisorMassClosedBall₀ f R := by
+    (Fintype.card s : ℝ) ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
   let Aball : Type :=
     {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) // ‖divisorZeroIndex₀_val p‖ ≤ R}
   have : Fintype Aball := by
@@ -208,32 +196,12 @@ lemma card_subtype_le_divisorMassClosedBall₀_of_norm_le
     exact congrArg (fun x : Aball => x.1) hpq
   have hcard_le : Fintype.card s ≤ Fintype.card Aball :=
     Fintype.card_le_of_injective _ hinj
-  have hAball : (Nat.card Aball : ℝ) ≤ divisorMassClosedBall₀ f R := by
+  have hAball : (Nat.card Aball : ℝ) ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := by
     simpa [Aball] using card_ball_le_divisorMassClosedBall₀ (f := f) hf hR
   calc
     (Fintype.card s : ℝ) ≤ (Fintype.card Aball : ℝ) := by exact_mod_cast hcard_le
     _ = (Nat.card Aball : ℝ) := by simp [Nat.card_eq_fintype_card]
-    _ ≤ divisorMassClosedBall₀ f R := hAball
-
-lemma divisorZeroIndex₀_dyadicShell_upper_bound
-    {f : ℂ → ℂ} {r0 : ℝ}
-    (hr0pos : 0 < r0)
-    (hr0 : ∀ p : divisorZeroIndex₀ f (Set.univ : Set ℂ), r0 ≤ ‖divisorZeroIndex₀_val p‖)
-    {k : ℕ} {p : divisorZeroIndex₀ f (Set.univ : Set ℂ)}
-    (hp : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p‖ / r0)⌋₊ = k) :
-    ‖divisorZeroIndex₀_val p‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1) := by
-  exact Real.dyadicShell_upper_bound (r0 := r0) (x := ‖divisorZeroIndex₀_val p‖)
-    hr0pos (hr0 p) hp
-
-lemma divisorZeroIndex₀_dyadicShell_lower_bound
-    {f : ℂ → ℂ} {r0 : ℝ}
-    (hr0pos : 0 < r0)
-    (hr0 : ∀ p : divisorZeroIndex₀ f (Set.univ : Set ℂ), r0 ≤ ‖divisorZeroIndex₀_val p‖)
-    {k : ℕ} {p : divisorZeroIndex₀ f (Set.univ : Set ℂ)}
-    (hp : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p‖ / r0)⌋₊ = k) :
-    r0 * (2 : ℝ) ^ (k : ℝ) ≤ ‖divisorZeroIndex₀_val p‖ := by
-  exact Real.dyadicShell_lower_bound (r0 := r0) (x := ‖divisorZeroIndex₀_val p‖)
-    hr0pos (hr0 p) hp
+    _ ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) R := hAball
 
 lemma finite_divisorZeroIndex₀_dyadicShell
     {f : ℂ → ℂ} {r0 : ℝ}
@@ -248,7 +216,7 @@ lemma finite_divisorZeroIndex₀_dyadicShell
         {p : divisorZeroIndex₀ f (Set.univ : Set ℂ) |
           ‖divisorZeroIndex₀_val p‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)} := by
     intro p hp
-    exact divisorZeroIndex₀_dyadicShell_upper_bound hr0pos hr0 hp
+    exact Real.dyadicShell_upper_bound hr0pos (hr0 p) hp
   have hfin :
       ({p : divisorZeroIndex₀ f (Set.univ : Set ℂ) |
         ‖divisorZeroIndex₀_val p‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)} : Set _).Finite := by
@@ -293,12 +261,12 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
     intro p
     have hk' : kfun p.1 = k := p.2
     simpa [Rk, kfun] using
-      divisorZeroIndex₀_dyadicShell_upper_bound (f := f) hr0pos hr0 hk'
+      Real.dyadicShell_upper_bound hr0pos (hr0 p.1) hk'
   have hk_lower : ∀ p : S, rk ≤ ‖divisorZeroIndex₀_val p.1‖ := by
     intro p
     have hk' : kfun p.1 = k := p.2
     simpa [rk, kfun] using
-      divisorZeroIndex₀_dyadicShell_lower_bound (f := f) hr0pos hr0 hk'
+      Real.dyadicShell_lower_bound hr0pos (hr0 p.1) hk'
   have htsum_le :
       (∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ)
         ≤ (Fintype.card S : ℝ) * (rk⁻¹ ^ τ) := by
@@ -306,13 +274,12 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
       (a := fun p : S => ‖divisorZeroIndex₀_val p.1‖)
       hrk_pos hτpos (fun _ => norm_nonneg _) hk_lower
   have hmass_le_growth :
-      divisorMassClosedBall₀ f Rk
+      massClosedBall₀ (MeromorphicOn.divisor f Set.univ) Rk
         ≤ (Cgrow * (1 + |2 * Rk|) ^ ρ + Ctrail) / (Real.log 2) := by
     simpa [Ctrail, Rk] using
-      (divisorMassClosedBall₀_le_of_growth (f := f) (ρ := ρ) (C := Cgrow) hf hCgrow
-        (R := Rk) hk_ge_one)
+      Function.locallyFinsuppWithin.massClosedBall₀_divisor_le_of_log_growth hf hCgrow hk_ge_one
   have hcard_le_mass :
-      (Fintype.card S : ℝ) ≤ divisorMassClosedBall₀ f Rk := by
+      (Fintype.card S : ℝ) ≤ massClosedBall₀ (MeromorphicOn.divisor f Set.univ) Rk := by
     have hRk_pos : 0 < Rk := lt_of_lt_of_le (by norm_num) hk_ge_one
     exact card_subtype_le_divisorMassClosedBall₀_of_norm_le (f := f) hf hRk_pos hk_upper
   have htsum' :

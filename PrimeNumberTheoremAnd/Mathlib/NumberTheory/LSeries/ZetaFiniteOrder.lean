@@ -6,7 +6,7 @@ Authors: Matteo Cipollina
 module
 
 public import Mathlib.Analysis.Complex.Basic
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Complex.Trigonometric
 public import Mathlib.Analysis.SpecialFunctions.Exp
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Log.PosLog
@@ -321,7 +321,17 @@ theorem zeta_minus_pole_entire_growth :
               nlinarith [hmul, hC0]
             exact le_trans hΓ0 (Real.exp_le_exp.mpr hexp)
           have hcosw : ‖Complex.cos (π * w / 2)‖ ≤ Real.exp (2 * A ^ (2 : ℝ)) := by
-            have h1 := norm_cos_le_exp_abs_im (π * w / 2)
+            have h1 : ‖cos (π * w / 2)‖ ≤ Real.exp |(π * w / 2).im| := by
+              rw [cos, norm_div, norm_ofNat, div_le_iff₀ (by norm_num : (0 : ℝ) < 2)]
+              calc
+                ‖exp ((π * w / 2) * I) + exp (-(π * w / 2) * I)‖ ≤
+                    Real.exp |(π * w / 2).im| + Real.exp |(π * w / 2).im| :=
+                  norm_add_le_of_le
+                    (by simpa [norm_exp, mul_re] using
+                      Real.exp_le_exp.mpr (neg_le_abs (π * w / 2).im))
+                    (by simpa [norm_exp, mul_re] using
+                      Real.exp_le_exp.mpr (le_abs_self (π * w / 2).im))
+                _ = Real.exp |(π * w / 2).im| * 2 := by ring
             have him : |(π * w / 2).im| ≤ 2 * A ^ (2 : ℝ) := by
               have : |(π * w / 2).im| ≤ ‖π * w / 2‖ := Complex.abs_im_le_norm _
               have hnorm : ‖π * w / 2‖ = (Real.pi / 2) * ‖w‖ := by
