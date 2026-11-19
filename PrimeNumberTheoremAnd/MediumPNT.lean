@@ -1384,7 +1384,8 @@ theorem SmoothedChebyshevPull2 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
     · simp [z]; linarith
     · simpa [w] using σ₁_lt_one
 
-  have zero_over_box := DifferentiableOn.vanishesOnRectangle holoOn2 sub
+  have zero_over_box : RectangleIntegral (SmoothedChebyshevIntegrand SmoothingF ε X) z w = 0 :=
+    Complex.integral_boundary_rect_eq_zero_of_differentiableOn _ z w (holoOn2.mono sub)
   have splitting : I₃₇ SmoothingF ε T X σ₁ =
     I₃ SmoothingF ε T X σ₁ + I₅ SmoothingF ε X σ₁ + I₇ SmoothingF ε T X σ₁ := by
     unfold I₃₇ I₃ I₅ I₇

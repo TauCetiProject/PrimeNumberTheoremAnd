@@ -627,7 +627,9 @@ theorem DifferentiableOn.upperUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : �
   apply tendsto_nhds_unique (RectangleIntegral_tendsTo_UpperU htop hleft hright)
   apply EventuallyEq.tendsto
   filter_upwards [eventually_ge_atTop T]
-  refine fun _ hTU ↦ hf.vanishesOnRectangle fun _ ↦ ?_
+  refine fun U hTU ↦ Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _
+    (hf.mono fun _ ↦ ?_)
+  change _ ∈ Rectangle (σ + I * T) (σ' + I * U) → _
   rw [mem_rectangle_iff (by simp [hσ]) (by simp [hTU])]
   simpa using by tauto
 
@@ -641,7 +643,9 @@ theorem DifferentiableOn.lowerUIntegral_eq_zero {f : ℂ → ℂ} {σ σ' T : �
   apply tendsto_nhds_unique (RectangleIntegral_tendsTo_LowerU hbot hleft hright)
   apply EventuallyEq.tendsto
   filter_upwards [eventually_ge_atTop T]
-  refine fun _ hTU ↦ hf.vanishesOnRectangle fun _ ↦ ?_
+  refine fun U hTU ↦ Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _
+    (hf.mono fun _ ↦ ?_)
+  change _ ∈ Rectangle (σ - I * U) (σ' - I * T) → _
   rw [mem_rectangle_iff (by simp [hσ]) (by simp [hTU])]
   simpa using by tauto
 

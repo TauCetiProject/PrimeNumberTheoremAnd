@@ -147,7 +147,9 @@ attribute [blueprint
   -/)]
   Complex.differentiableOn_update_limUnder_of_bddAbove
 
-@[blueprint
+attribute [blueprint
+  "DifferentiableOn.vanishesOnRectangle"
+  (uses := ["RectangleIntegral"])
   (title := "DifferentiableOn.vanishesOnRectangle")
   (statement := /--
   If $f$ is holomorphic on a rectangle $z$ and $w$, then the
@@ -155,12 +157,7 @@ attribute [blueprint
   is $0$.
   -/)
   (proof := /-- This is in a Mathlib PR. -/)]
-theorem DifferentiableOn.vanishesOnRectangle [CompleteSpace E]
-    {U : Set ℂ} (f_holo : DifferentiableOn ℂ f U)
-    (hU : Rectangle z w ⊆ U) :
-    RectangleIntegral f z w = 0 :=
-  integral_boundary_rect_eq_zero_of_differentiableOn f z w
-    (f_holo.mono hU)
+  Complex.integral_boundary_rect_eq_zero_of_differentiableOn
 
 theorem RectangleIntegral_congr (h : Set.EqOn f g (RectangleBorder z w)) :
     RectangleIntegral f z w = RectangleIntegral g z w := by
@@ -374,13 +371,17 @@ lemma RectanglePullToNhdOfPole' [CompleteSpace E] {z₀ z₁ z₂ z₃ p : ℂ}
     Rectangle z₀ z₃ \ {p} := ?_
   all_goals try { apply rectangle_subset_punctured_rect <;> simp_all }
   have h₁ := RectangleIntegralVSplit' hbot' hbot
-  have h₂ := fHolo.vanishesOnRectangle hbot''
+  have h₂ : RectangleIntegral f (↑z₀.re + ↑z₀.im * I) (↑z₃.re + ↑z₁.im * I) = 0 :=
+    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono hbot'')
   have h₃ := RectangleIntegralVSplit' htop' htop
-  have h₄ := fHolo.vanishesOnRectangle htop''
+  have h₄ : RectangleIntegral f (↑z₀.re + ↑z₂.im * I) (↑z₃.re + ↑z₃.im * I) = 0 :=
+    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono htop'')
   have h₅ := RectangleIntegralHSplit' hleft' hleft
-  have h₆ := fHolo.vanishesOnRectangle hleft''
+  have h₆ : RectangleIntegral f (↑z₀.re + ↑z₁.im * I) (↑z₁.re + ↑z₂.im * I) = 0 :=
+    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono hleft'')
   have h₇ := RectangleIntegralHSplit' hright' hright
-  have h₈ := fHolo.vanishesOnRectangle hright''
+  have h₈ : RectangleIntegral f (↑z₂.re + ↑z₁.im * I) (↑z₃.re + ↑z₂.im * I) = 0 :=
+    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono hright'')
   simp only [re_add_im] at *
   linear_combination (norm := abel) h₁ + h₂ + h₃ + h₄ + h₅ + h₆ + h₇ + h₈
 
@@ -618,7 +619,9 @@ lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ
   have t3 : RectangleBorderIntegrable (fun s ↦ A / (s - p)) z w :=
     DifferentiableOn.rectangleBorderIntegrable' t2 pInRectInterior
   rw [RectangleIntegral', RectangleBorderIntegrable.add t1 t3, smul_add]
-  rw [gHolo.vanishesOnRectangle (by rfl), smul_zero, zero_add]
+  rw [show RectangleIntegral g z w = 0 from
+    Complex.integral_boundary_rect_eq_zero_of_differentiableOn g z w gHolo,
+    smul_zero, zero_add]
   exact ResidueTheoremInRectangle zRe_le_wRe zIm_le_wIm pInRectInterior
 
 lemma IsBigO_to_BddAbove {f : ℂ → ℂ} {p : ℂ}
