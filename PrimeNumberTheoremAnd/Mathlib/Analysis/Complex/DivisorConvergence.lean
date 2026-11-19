@@ -11,6 +11,9 @@ public import TauCeti.Analysis.Complex.CanonicalProduct.LogDeriv
 public import Mathlib.Analysis.Calculus.LogDerivUniformlyOn
 public import Mathlib.Analysis.Normed.Module.MultipliableUniformlyOn
 
+import Mathlib.Basic.Finite.Sigma
+import Mathlib.Data.Set.Finite.Lattice
+
 
 /-!
 # Convergence and holomorphy of divisor-indexed canonical products
@@ -34,44 +37,20 @@ namespace Complex.Hadamard
 ## Finiteness of “small” divisor indices
 -/
 
-lemma finite_divisorZeroIndex₀_subtype_norm_le {f : ℂ → ℂ} {U : Set ℂ} (B : ℝ)
-    (hBU : Metric.closedBall (0 : ℂ) B ⊆ U) :
-    Finite {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ B} := by
-  let D := MeromorphicOn.divisor f U
-  have hpts : (((Metric.closedBall (0 : ℂ) B) ∩ D.support) \ {0}).Finite :=
-    (MeromorphicOn.divisor_finite_inter_support_of_isCompact
-      (isCompact_closedBall _ _) hBU subset_rfl).sdiff
-  let pts : Set ℂ := ((Metric.closedBall (0 : ℂ) B) ∩ D.support) \ {0}
-  let : Fintype pts := hpts.fintype
-  let T := Σ z : pts, Fin (Int.toNat (D z.1))
-  refine Finite.of_surjective (fun p : T ↦
-    (⟨⟨⟨p.1.1, p.2⟩, by simpa using p.1.2.2⟩,
-      by simpa [Metric.mem_closedBall, dist_zero_right] using p.1.2.1.1⟩ :
-        {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ B})) ?_
-  intro p
-  refine ⟨⟨⟨divisorZeroIndex₀_val p.1, ?_⟩, p.1.1.2⟩, ?_⟩
-  · exact ⟨⟨by simpa [Metric.mem_closedBall, dist_zero_right] using p.2,
-      divisorZeroIndex₀_val_mem_divisor_support' p.1⟩,
-      by simp⟩
-  · rfl
-
 lemma divisorZeroIndex₀_norm_le_finite {f : ℂ → ℂ} {U : Set ℂ} (B : ℝ)
     (hBU : Metric.closedBall (0 : ℂ) B ⊆ U) :
     ({p : divisorZeroIndex₀ f U | ‖divisorZeroIndex₀_val p‖ ≤ B} : Set _).Finite := by
-  let s : Set (divisorZeroIndex₀ f U) := {p | ‖divisorZeroIndex₀_val p‖ ≤ B}
-  have : Finite (↥s) :=
-    finite_divisorZeroIndex₀_subtype_norm_le (f := f) (U := U) B hBU
-  exact Set.toFinite s
+  have hs := (MeromorphicOn.divisor_finite_inter_support_of_isCompact (f := f)
+    (isCompact_closedBall (0 : ℂ) B) hBU subset_rfl).sigma
+    (fun z _ ↦ Set.finite_univ (α := Fin (Int.toNat (MeromorphicOn.divisor f U z))))
+  refine (Set.Finite.preimage Subtype.val_injective.injOn hs).subset ?_
+  intro p hp
+  exact ⟨⟨(dist_zero_right _).trans_le hp,
+    divisorZeroIndex₀_val_mem_divisor_support' p⟩, Set.mem_univ _⟩
 
 /-!
 ## Uniform convergence on compact sets
 -/
-
-lemma norm_div_le_half_of_norm_le_of_two_mul_lt {z a : ℂ} {R : ℝ}
-    (hR : 0 < R) (hz : ‖z‖ ≤ R) (ha : (2 * R : ℝ) < ‖a‖) :
-    ‖z / a‖ ≤ (1 / 2 : ℝ) := by
-  rw [norm_div, div_le_iff₀ (by linarith [norm_nonneg z])]
-  linarith
 
 /-- The genus-one logarithmic-derivative zero terms are summable away from the zero set whenever
 the genus-one divisor product is summable. -/
@@ -123,7 +102,8 @@ theorem hasProdUniformlyOn_divisorCanonicalProduct_univ
     filter_upwards [h_big] with p hp z hzK
     have hzle : ‖z‖ ≤ R := hnormK z hzK
     have hz_div : ‖z / divisorZeroIndex₀_val p‖ ≤ (1 / 2 : ℝ) := by
-      exact norm_div_le_half_of_norm_le_of_two_mul_lt hRpos hzle hp
+      rw [norm_div, div_le_iff₀ (by linarith [norm_nonneg z])]
+      linarith
     have hE :
         ‖weierstrassFactor m (z / divisorZeroIndex₀_val p) - 1‖ ≤
           4 * ‖z / divisorZeroIndex₀_val p‖ ^ (m + 1) :=

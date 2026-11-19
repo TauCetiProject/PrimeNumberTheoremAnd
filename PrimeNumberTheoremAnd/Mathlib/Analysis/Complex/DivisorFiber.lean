@@ -6,7 +6,6 @@ Authors: Matteo Cipollina
 module
 
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorUnits
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Meromorphic.Order
 public import Mathlib.Analysis.Analytic.Order
@@ -109,8 +108,11 @@ lemma mem_divisorZeroIndex₀_fiberFinset_of_val_mem_ball
     (p : divisorZeroIndex₀ f (Set.univ : Set ℂ))
     (hp : divisorZeroIndex₀_val p ∈ Metric.ball z₀ ε) :
     p ∈ divisorZeroIndex₀_fiberFinset (f := f) z₀ := by
-  have : divisorZeroIndex₀_val p = z₀ :=
-    divisorZeroIndex₀_val_eq_of_mem_ball (f := f) (z₀ := z₀) (ε := ε) hball p hp
+  have : divisorZeroIndex₀_val p = z₀ := by
+    have hm : divisorZeroIndex₀_val p ∈
+        Metric.ball z₀ ε ∩ (MeromorphicOn.divisor f (Set.univ : Set ℂ)).support :=
+      ⟨hp, divisorZeroIndex₀_val_mem_divisor_support' p⟩
+    simpa only [hball, Set.mem_singleton_iff] using hm
   exact (mem_divisorZeroIndex₀_fiberFinset (f := f) (z₀ := z₀) p).2 this
 
 lemma mem_divisorZeroIndex₀_fiberFinset_iff_val_mem_ball
@@ -142,7 +144,13 @@ lemma weierstrassFactor_div_ne_zero_on_ball_of_not_mem_fiberFinset
     ∀ z ∈ Metric.ball z₀ ε, weierstrassFactor m (z / divisorZeroIndex₀_val p) ≠ 0 := by
   have hp' : divisorZeroIndex₀_val p ≠ z₀ :=
     (not_mem_divisorZeroIndex₀_fiberFinset_iff_val_ne (f := f) z₀ p).1 hp
-  exact weierstrassFactor_div_ne_zero_on_ball_of_val_ne (m := m) (f := f) (z₀ := z₀)
-    (ε := ε) hball p hp'
+  intro z hz hzero
+  have heq : z = divisorZeroIndex₀_val p :=
+    (div_eq_one_iff_eq (divisorZeroIndex₀_val_ne_zero p)).mp
+      ((_root_.Complex.weierstrassFactor_eq_zero_iff m).mp hzero)
+  have hm : divisorZeroIndex₀_val p ∈ Metric.ball z₀ ε ∩
+      (MeromorphicOn.divisor f (Set.univ : Set ℂ)).support :=
+    ⟨heq ▸ hz, divisorZeroIndex₀_val_mem_divisor_support' p⟩
+  exact hp' (by simpa only [hball, Set.mem_singleton_iff] using hm)
 
 end Complex.Hadamard

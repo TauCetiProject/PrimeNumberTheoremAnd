@@ -19,7 +19,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorIndex
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorPartialProductFactor
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorQuotientConvergence
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorQuotientRemovable
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorUnits
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Growth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Order

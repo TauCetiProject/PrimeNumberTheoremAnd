@@ -87,7 +87,7 @@ lemma card_ball_le_divisorMassClosedBall₀
       Fintype {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ R} := by
     have : Finite {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ R} := by
       have : Metric.closedBall (0 : ℂ) R ⊆ U := by simp [U]
-      simpa using (finite_divisorZeroIndex₀_subtype_norm_le (f := f) (U := U) (B := R) this)
+      exact (divisorZeroIndex₀_norm_le_finite (f := f) (U := U) R this).to_subtype
     exact Fintype.ofFinite _
   have hDnonneg : 0 ≤ D := by
     simpa [D, U] using (MeromorphicOn.AnalyticOnNhd.divisor_nonneg
@@ -279,8 +279,8 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
         (MeromorphicOn.divisor f Set.univ z : ℝ)) := by
     have hRk_pos : 0 < Rk := lt_of_lt_of_le (by norm_num) hk_ge_one
     let Aball := {p : divisorZeroIndex₀ f Set.univ // ‖divisorZeroIndex₀_val p‖ ≤ Rk}
-    let : Finite Aball := finite_divisorZeroIndex₀_subtype_norm_le
-      (f := f) (U := Set.univ) Rk (by simp)
+    let : Finite Aball :=
+      (divisorZeroIndex₀_norm_le_finite (f := f) (U := Set.univ) Rk (by simp)).to_subtype
     have h := Nat.card_le_card_of_injective (fun p : S => (⟨p.1, hk_upper p⟩ : Aball))
       (fun p q h => Subtype.ext (congrArg (fun x : Aball => x.val) h))
     simpa only [Nat.card_eq_fintype_card] using

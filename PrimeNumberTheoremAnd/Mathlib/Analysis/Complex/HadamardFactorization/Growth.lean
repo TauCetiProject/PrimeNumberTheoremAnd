@@ -186,18 +186,25 @@ theorem norm_inv_hadamardDenominator_le_exp_on_cartan_circle
             simpa [small] using (hsmall_fin.mem_toFinset.2 hp_mem)
           exact hp this
         exact lt_of_not_ge this
-      have hz' : ‖u / divisorZeroIndex₀_val p‖ ≤ (1 / 2 : ℝ) :=
-        norm_div_le_half_of_norm_le_of_two_mul_lt (z := u) (a := divisorZeroIndex₀_val p)
-          (R := 2 * R) (by nlinarith [hRpos]) (by rw [hur]; exact hr_le_2R)
-          (by nlinarith [hlarge])
+      have hz' : ‖u / divisorZeroIndex₀_val p‖ ≤ (1 / 2 : ℝ) := by
+        rw [norm_div, div_le_iff₀ (norm_pos_iff.mpr (divisorZeroIndex₀_val_ne_zero p))]
+        rw [hur]
+        nlinarith [hlarge]
       have hτ_le : τ ≤ (m + 1 : ℝ) := le_of_lt hτ_lt
       have hfar :
           ‖(weierstrassFactor m (u / divisorZeroIndex₀_val p))⁻¹‖ ≤
             Real.exp ((2 : ℝ) * (r / ap p) ^ τ) := by
-        simpa [ap] using
-          (norm_inv_weierstrassFactor_le_exp_far (m := m) (τ := τ) (r := r)
-              (u := u) (a := divisorZeroIndex₀_val p)
-              (hur := hur) (ha := divisorZeroIndex₀_val_ne_zero p) (hz := hz') hτ_le)
+        dsimp only [ap]
+        apply Real.le_exp_of_log_le
+        rw [norm_inv, Real.log_inv, ← hur, ← norm_div]
+        have hp : ‖u / divisorZeroIndex₀_val p‖ ^ (m + 1) ≤
+            (‖u / divisorZeroIndex₀_val p‖ : ℝ) ^ τ := by
+          rw [← Real.rpow_natCast]
+          exact Real.rpow_le_rpow_of_exponent_ge_of_imp
+            (norm_nonneg (u / divisorZeroIndex₀_val p))
+            (hz'.trans (by norm_num)) (by exact_mod_cast hτ_le)
+            (fun _ he ↦ False.elim ((by positivity : (0 : ℝ) < (m + 1 : ℕ)).ne' he))
+        nlinarith [log_norm_weierstrassFactor_ge_neg_two_pow (m := m) hz']
       simpa [fac, b, hp] using hfar
   have hb_le :
       ∀ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)),
