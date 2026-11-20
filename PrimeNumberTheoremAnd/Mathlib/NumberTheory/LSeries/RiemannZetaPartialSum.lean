@@ -33,15 +33,6 @@ noncomputable def zetaPartialSum (s : ℂ) (N : ℕ) : ℂ :=
 
 namespace ZetaPartialSum
 
-private lemma natCast_floor_eq_sub_fract (u : ℝ) (hu : 0 ≤ u) :
-    (Nat.floor u : ℂ) = (u : ℂ) - ((Int.fract u : ℝ) : ℂ) := by
-  have hfloorR : (Nat.floor u : ℝ) = (Int.floor u : ℝ) := by
-    simpa using natCast_floor_eq_intCast_floor (R := ℝ) (a := u) hu
-  have hfloorC : (Nat.floor u : ℂ) = ((Int.floor u : ℝ) : ℂ) := congrArg (fun x : ℝ => (x : ℂ)) hfloorR
-  have hIFR : (Int.floor u : ℝ) = u - Int.fract u := (eq_sub_iff_add_eq).2 (Int.floor_add_fract u)
-  have hIFC : ((Int.floor u : ℝ) : ℂ) = ((u - Int.fract u : ℝ) : ℂ) := congrArg (fun x : ℝ => (x : ℂ)) hIFR
-  exact hfloorC.trans (by simpa [sub_eq_add_neg] using hIFC)
-
 private lemma intervalIntegrable_mul_cpow_id (s : ℂ) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     IntervalIntegrable (fun u : ℝ => (u : ℂ) * (u : ℂ) ^ (-s - 1)) volume a b := by
   have hcont : ContinuousOn (fun u : ℝ => (u : ℂ) * (u : ℂ) ^ (-s - 1)) (Icc a b) :=
@@ -131,7 +122,12 @@ private lemma integral_split_fract (s : ℂ) (N : ℕ) (hN : 1 ≤ N) :
           apply intervalIntegral.integral_congr_ae
           filter_upwards with u hu
           rw [uIoc_of_le hab] at hu
-          simp [natCast_floor_eq_sub_fract u (le_trans zero_le_one (le_of_lt hu.1)), sub_eq_add_neg]
+          have hfloor : (Nat.floor u : ℂ) = (u : ℂ) - ((Int.fract u : ℝ) : ℂ) := by
+            have h := (natCast_floor_eq_intCast_floor (R := ℝ) (a := u)
+              (le_trans zero_le_one (le_of_lt hu.1))).trans
+              ((eq_sub_iff_add_eq).2 (Int.floor_add_fract u))
+            exact_mod_cast h
+          simp [hfloor, sub_eq_add_neg]
     _ = (∫ u in (1 : ℝ)..N, (u : ℂ) * (u : ℂ) ^ (-s - 1))
           - ∫ u in (1 : ℝ)..N, zetaAbelFractKernel s u := by
           rw [← intervalIntegral.integral_sub hI1 hI2]
