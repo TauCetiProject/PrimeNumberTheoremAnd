@@ -860,8 +860,18 @@ lemma rectangleIntegral'_toMeromorphicNFOn_eq {f : ℂ → ℂ} {z w : ℂ}
       constructor
       · simpa using hx
       · simp)
-  have htop := HIntegral_congr_codiscreteWithin h_eq (by simpa [R] using! mapsTo_rectangle_right_im z w)
-  have hright := VIntegral_congr_codiscreteWithin h_eq (by simpa [R] using! mapsTo_rectangle_right_re z w)
+  have htop := HIntegral_congr_codiscreteWithin
+    (c := w.im) (a := z.re) (b := w.re) h_eq (by
+      intro x hx
+      constructor
+      · simpa using hx
+      · simp)
+  have hright := VIntegral_congr_codiscreteWithin
+    (c := w.re) (a := z.im) (b := w.im) h_eq (by
+      intro y hy
+      constructor
+      · simp
+      · simpa using hy)
   have hleft := VIntegral_congr_codiscreteWithin
     (c := z.re) (a := z.im) (b := w.im) h_eq (by
       intro y hy
