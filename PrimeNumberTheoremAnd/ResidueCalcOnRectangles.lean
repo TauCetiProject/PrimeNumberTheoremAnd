@@ -326,7 +326,9 @@ lemma RectanglePullToNhdOfPole' [CompleteSpace E] {z₀ z₁ z₂ z₃ p : ℂ}
     (fHolo : DifferentiableOn ℂ f (Rectangle z₀ z₃ \ {p})) :
     RectangleIntegral f z₀ z₃ = RectangleIntegral f z₁ z₂ := by
   obtain ⟨hz₀_re, hz₀_im, hz₁_re, hz₁_im⟩ := h_orientation
-  have := rect_subset_iff.mp hz
+  have : z₁ ∈ Rectangle z₀ z₃ ∧ z₂ ∈ Rectangle z₀ z₃ :=
+    ⟨hz ⟨left_mem_uIcc, left_mem_uIcc⟩,
+      hz ⟨right_mem_uIcc, right_mem_uIcc⟩⟩
   rw [Rectangle, uIcc_of_le hz₀_re, uIcc_of_le hz₀_im] at this
   obtain ⟨⟨⟨_, _⟩, ⟨_, _⟩⟩, ⟨_, _⟩, ⟨_, _⟩⟩ := this
   obtain ⟨⟨_, _⟩, ⟨_, _⟩⟩ :=
