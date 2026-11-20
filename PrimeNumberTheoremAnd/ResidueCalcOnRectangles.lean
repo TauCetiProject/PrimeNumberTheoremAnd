@@ -207,10 +207,30 @@ theorem RectangleBorderIntegrable.add {f g : ℂ → E}
 omit [NormedSpace ℂ E] in
 theorem ContinuousOn.rectangleBorder_integrable (hf : ContinuousOn f (RectangleBorder z w)) :
     RectangleBorderIntegrable f z w :=
-  ⟨(hf.comp (by fun_prop) (mapsTo_rectangleBorder_left_im z w)).intervalIntegrable,
-    (hf.comp (by fun_prop) (mapsTo_rectangleBorder_right_im z w)).intervalIntegrable,
-    (hf.comp (by fun_prop) (mapsTo_rectangleBorder_right_re z w)).intervalIntegrable,
-    (hf.comp (by fun_prop) (mapsTo_rectangleBorder_left_re z w)).intervalIntegrable⟩
+  ⟨(hf.comp (by fun_prop) (by
+      intro x hx
+      refine Or.inl (Or.inl (Or.inl ?_))
+      constructor
+      · simpa using hx
+      · simp)).intervalIntegrable,
+    (hf.comp (by fun_prop) (by
+      intro x hx
+      refine Or.inl (Or.inr ?_)
+      constructor
+      · simpa using hx
+      · simp)).intervalIntegrable,
+    (hf.comp (by fun_prop) (by
+      intro y hy
+      refine Or.inr ?_
+      constructor
+      · simp
+      · simpa using hy)).intervalIntegrable,
+    (hf.comp (by fun_prop) (by
+      intro y hy
+      refine Or.inl (Or.inl (Or.inr ?_))
+      constructor
+      · simp
+      · simpa using hy)).intervalIntegrable⟩
 
 omit [NormedSpace ℂ E] in
 theorem ContinuousOn.rectangleBorderIntegrable (hf : ContinuousOn f (Rectangle z w)) :

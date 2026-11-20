@@ -109,26 +109,6 @@ lemma rectangle_mem_nhds_iff {z w p : ℂ} :
   simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
     interior_Icc]
 
-lemma mapsTo_rectangleBorder_left_re (z w : ℂ) :
-    MapsTo (fun (y : ℝ) => ↑z.re + ↑y * I) [[z.im, w.im]] (RectangleBorder z w) :=
-  (Set.mapsTo_image _ _).mono subset_rfl fun _ ↦
-    by simp_all [verticalSegment_eq, RectangleBorder]
-
-lemma mapsTo_rectangleBorder_right_re (z w : ℂ) :
-    MapsTo (fun (y : ℝ) => ↑w.re + ↑y * I) [[z.im, w.im]] (RectangleBorder z w) :=
-  (Set.mapsTo_image _ _).mono subset_rfl fun _ ↦
-    by simp_all [verticalSegment_eq, RectangleBorder]
-
-lemma mapsTo_rectangleBorder_left_im (z w : ℂ) :
-    MapsTo (fun (x : ℝ) => ↑x + z.im * I) [[z.re, w.re]] (RectangleBorder z w) :=
-  (Set.mapsTo_image _ _).mono subset_rfl fun _ ↦
-    by simp_all [horizontalSegment_eq, RectangleBorder]
-
-lemma mapsTo_rectangleBorder_right_im (z w : ℂ) :
-    MapsTo (fun (x : ℝ) => ↑x + w.im * I) [[z.re, w.re]] (RectangleBorder z w) :=
-  (Set.mapsTo_image _ _).mono subset_rfl fun _ ↦
-    by simp_all [horizontalSegment_eq, RectangleBorder]
-
 theorem not_mem_rectangleBorder_of_rectangle_mem_nhds {z w p : ℂ}
     (hp : Rectangle z w ∈ 𝓝 p) :
     p ∉ RectangleBorder z w := by
