@@ -854,10 +854,20 @@ lemma rectangleIntegral'_toMeromorphicNFOn_eq {f : ℂ → ℂ} {z w : ℂ}
   have h_eq : {s : ℂ | f s = fNF s} ∈ Filter.codiscreteWithin R := by
     simpa [Filter.EventuallyEq, Filter.Eventually, fNF] using
       (toMeromorphicNFOn_eqOn_codiscrete (f := f) (U := R) f_mero)
-  have hbot := HIntegral_congr_codiscreteWithin h_eq (by simpa [R] using! mapsTo_rectangle_left_im z w)
+  have hbot := HIntegral_congr_codiscreteWithin
+    (c := z.im) (a := z.re) (b := w.re) h_eq (by
+      intro x hx
+      constructor
+      · simpa using hx
+      · simp)
   have htop := HIntegral_congr_codiscreteWithin h_eq (by simpa [R] using! mapsTo_rectangle_right_im z w)
   have hright := VIntegral_congr_codiscreteWithin h_eq (by simpa [R] using! mapsTo_rectangle_right_re z w)
-  have hleft := VIntegral_congr_codiscreteWithin h_eq (by simpa [R] using! mapsTo_rectangle_left_re z w)
+  have hleft := VIntegral_congr_codiscreteWithin
+    (c := z.re) (a := z.im) (b := w.im) h_eq (by
+      intro y hy
+      constructor
+      · simp
+      · simpa using hy)
   unfold RectangleIntegral'; congr 1; unfold RectangleIntegral
   rw [hbot, htop, hright, hleft]
 

@@ -109,17 +109,9 @@ lemma rectangle_mem_nhds_iff {z w p : ℂ} :
   simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
     interior_Icc]
 
-lemma mapsTo_rectangle_left_re (z w : ℂ) :
-    MapsTo (fun (y : ℝ) => ↑z.re + ↑y * I) [[z.im, w.im]] (Rectangle z w) :=
-  fun _ hx ↦ ⟨by simp, by simp [hx]⟩
-
 lemma mapsTo_rectangle_right_re (z w : ℂ) :
     MapsTo (fun (y : ℝ) => ↑w.re + ↑y * I) [[z.im, w.im]] (Rectangle z w) :=
   fun _ hx ↦ ⟨by simp, by simp [hx]⟩
-
-lemma mapsTo_rectangle_left_im (z w : ℂ) :
-    MapsTo (fun (x : ℝ) => ↑x + z.im * I) [[z.re, w.re]] (Rectangle z w) :=
-  fun _ hx ↦ ⟨by simp [hx], by simp⟩
 
 lemma mapsTo_rectangle_right_im (z w : ℂ) :
     MapsTo (fun (x : ℝ) => ↑x + w.im * I) [[z.re, w.re]] (Rectangle z w) :=
