@@ -172,10 +172,6 @@ variable {f : W21}
 noncomputable def norm (f : ℝ → ℂ) : ℝ :=
     (∫ v, ‖f v‖) + (4 * π ^ 2)⁻¹ * (∫ v, ‖deriv (deriv f) v‖)
 
-lemma norm_nonneg {f : ℝ → ℂ} : 0 ≤ norm f :=
-  add_nonneg (integral_nonneg (fun t => by simp))
-    (mul_nonneg (by positivity) (integral_nonneg (fun t => by simp)))
-
 noncomputable instance : Norm W21 where norm := norm ∘ W1.toFun
 
 noncomputable instance : Coe 𝓢(ℝ, ℂ) W21 where coe := W1.of_Schwartz
