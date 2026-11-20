@@ -430,17 +430,16 @@ lemma sum_mobius_floor (x : ℝ) (hx : 1 ≤ x) : ∑ n ∈ Icc 1 ⌊x⌋₊, (�
   · simpa [moebius_mul_coe_zeta, ArithmeticFunction.one_apply]
 
 
-lemma ArithmeticFunction.moebius_pmul_log_mul_zeta :
-    (μ : ArithmeticFunction ℝ).pmul ArithmeticFunction.log * ArithmeticFunction.zeta = -Λ := by
-  ext n
-  rw [coe_mul_zeta_apply]
-  simp_rw [pmul_apply, intCoe_apply]
-  rw [sum_moebius_mul_log_eq]
-  rfl
-
 lemma ArithmeticFunction.moebius_pmul_log_eq_moebius_mul_neg_vonMangoldt :
     (μ : ArithmeticFunction ℝ).pmul ArithmeticFunction.log = μ * -Λ := by
-  rw [← moebius_pmul_log_mul_zeta, mul_comm, mul_assoc, coe_zeta_mul_coe_moebius, mul_one]
+  have h :
+      (μ : ArithmeticFunction ℝ).pmul ArithmeticFunction.log * ArithmeticFunction.zeta = -Λ := by
+    ext n
+    rw [coe_mul_zeta_apply]
+    simp_rw [pmul_apply, intCoe_apply]
+    rw [sum_moebius_mul_log_eq]
+    rfl
+  rw [← h, mul_comm, mul_assoc, coe_zeta_mul_coe_moebius, mul_one]
 
 lemma sum_mu_Lambda (x : ℝ) : ∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) * log n = - ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * Chebyshev.psi (x/k) := by
   rw [Iic_eq_Icc, bot_eq_zero, ← add_sum_Ioc_eq_sum_Icc (by simp), ← add_sum_Ioc_eq_sum_Icc (by simp)]
@@ -469,8 +468,6 @@ lemma M_log_identity (x : ℝ) (hx : 1 ≤ x) : M x * log x = ∑ k ∈ Iic ⌊x
   linarith [sum_mu_Lambda x]
 
 noncomputable def R (x : ℝ) : ℝ := Chebyshev.psi x - x
-
-lemma R_isLittleO : R =o[atTop] id := Chebyshev.isEquivalent_psi_id
 
 lemma sum_mobius_div_isBigO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, (μ k : ℝ) * (x / k)) =O[atTop] id := by
   have h_abs : ∀ x : ℝ, 1 ≤ x → |∑ n ∈ Iic ⌊x⌋₊, (μ n : ℝ) / n| ≤ 1 := by
@@ -537,7 +534,7 @@ lemma sum_abs_R_isLittleO : (fun x : ℝ => ∑ k ∈ Iic ⌊x⌋₊, |R (x / k)
   have h_eps : ∀ ε > 0, ∃ x₀ : ℝ, ∀ x ≥ x₀, (∑ k ∈ Finset.Icc 1 ⌊x⌋₊, |R (x / k)|) ≤ ε * x * Real.log x := by
     intro ε hε_pos
     obtain ⟨A, hA⟩ : ∃ A : ℝ, 0 < A ∧ ∀ y ≥ A, |R y| ≤ (ε / 2) * y := by
-      have := R_isLittleO
+      have : R =o[atTop] id := Chebyshev.isEquivalent_psi_id
       rw [Asymptotics.isLittleO_iff] at this
       norm_num at *
       exact Exists.elim (this (half_pos hε_pos)) fun A hA => ⟨Max.max A 1, by positivity, fun y hy => by simpa only [abs_of_nonneg (by linarith [le_max_right A 1] : 0 ≤ y)] using hA y (le_trans (le_max_left A 1) hy)⟩
