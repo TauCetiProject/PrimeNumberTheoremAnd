@@ -47,14 +47,6 @@ lemma RectSubRect' {z₀ z₁ z₂ z₃ : ℂ} (x₀_le_x₁ : z₀.re ≤ z₁.
     Set.prod_mono (Icc_subset_Icc x₀_le_x₁ x₂_le_x₃)
       (Icc_subset_Icc y₀_le_y₁ y₂_le_y₃)
 
-lemma rectangleBorder_subset_rectangle (z w : ℂ) : RectangleBorder z w ⊆ Rectangle z w := by
-  intro x hx
-  obtain ⟨⟨h | h⟩ | h⟩ | h := hx
-  · exact ⟨h.1, h.2 ▸ left_mem_uIcc⟩
-  · exact ⟨h.1 ▸ left_mem_uIcc, h.2⟩
-  · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
-  · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩
-
 lemma rectangle_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hz : z₀.re ≤ z₁.re ∧ z₁.re ≤ z₂.re ∧ z₂.re ≤ z₃.re ∧
       z₀.im ≤ z₁.im ∧ z₁.im ≤ z₂.im ∧ z₂.im ≤ z₃.im)
@@ -75,7 +67,14 @@ lemma rectangleBorder_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hp : p.re ≠ z₁.re ∧ p.re ≠ z₂.re ∧ p.im ≠ z₁.im ∧ p.im ≠ z₂.im) :
     RectangleBorder z₁ z₂ ⊆ Rectangle z₀ z₃ \ {p} :=
   Set.subset_sdiff.mpr ⟨
-    (rectangleBorder_subset_rectangle _ _).trans (by apply RectSubRect' <;> tauto),
+    (show RectangleBorder z₁ z₂ ⊆ Rectangle z₁ z₂ from by
+      intro x hx
+      obtain ⟨⟨h | h⟩ | h⟩ | h := hx
+      · exact ⟨h.1, h.2 ▸ left_mem_uIcc⟩
+      · exact ⟨h.1 ▸ left_mem_uIcc, h.2⟩
+      · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
+      · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩).trans
+      (by apply RectSubRect' <;> tauto),
     by
       refine disjoint_singleton_right.mpr ?_
       intro hborder

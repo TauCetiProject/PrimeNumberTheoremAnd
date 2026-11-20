@@ -235,14 +235,26 @@ theorem ContinuousOn.rectangleBorder_integrable (hf : ContinuousOn f (RectangleB
 omit [NormedSpace ℂ E] in
 theorem ContinuousOn.rectangleBorderIntegrable (hf : ContinuousOn f (Rectangle z w)) :
     RectangleBorderIntegrable f z w :=
-  ContinuousOn.rectangleBorder_integrable (hf.mono (rectangleBorder_subset_rectangle z w))
+  ContinuousOn.rectangleBorder_integrable (hf.mono (by
+    intro x hx
+    obtain ⟨⟨h | h⟩ | h⟩ | h := hx
+    · exact ⟨h.1, h.2 ▸ left_mem_uIcc⟩
+    · exact ⟨h.1 ▸ left_mem_uIcc, h.2⟩
+    · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
+    · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩))
 
 omit [NormedSpace ℂ E] in
 theorem ContinuousOn.rectangleBorderNoPIntegrable
     (hf : ContinuousOn f (Rectangle z w \ {p})) (pNotOnBorder : p ∉ RectangleBorder z w) :
     RectangleBorderIntegrable f z w := by
   refine ContinuousOn.rectangleBorder_integrable (hf.mono (Set.subset_sdiff.mpr ?_))
-  exact ⟨rectangleBorder_subset_rectangle z w, disjoint_singleton_right.mpr pNotOnBorder⟩
+  exact ⟨(by
+    intro x hx
+    obtain ⟨⟨h | h⟩ | h⟩ | h := hx
+    · exact ⟨h.1, h.2 ▸ left_mem_uIcc⟩
+    · exact ⟨h.1 ▸ left_mem_uIcc, h.2⟩
+    · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
+    · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩), disjoint_singleton_right.mpr pNotOnBorder⟩
 
 theorem DifferentiableOn.rectangleBorderIntegrable'
     (hf : DifferentiableOn ℂ f (Rectangle z w \ {p})) (hp : Rectangle z w ∈ nhds p) :
@@ -622,7 +634,13 @@ lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ
     fun s hs => by rw [Pi.add_apply, ← principalPart hs, Pi.sub_apply, sub_add_cancel]
   have : Set.EqOn f (g + (fun s ↦ A / (s - p))) (RectangleBorder z w) :=
     principalPart'.mono <| Set.subset_sdiff.mpr
-      ⟨rectangleBorder_subset_rectangle z w,
+      ⟨(by
+        intro x hx
+        obtain ⟨⟨h | h⟩ | h⟩ | h := hx
+        · exact ⟨h.1, h.2 ▸ left_mem_uIcc⟩
+        · exact ⟨h.1 ▸ left_mem_uIcc, h.2⟩
+        · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
+        · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩),
         disjoint_singleton_right.mpr
           (not_mem_rectangleBorder_of_rectangle_mem_nhds pInRectInterior)⟩
   rw [RectangleIntegral'_congr this]
