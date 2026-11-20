@@ -34,9 +34,6 @@ def RectangleBorder (z w : ℂ) : Set ℂ :=
 
 def Square (p : ℂ) (c : ℝ) : Set ℂ := Rectangle (-c - c * I + p) (c + c * I + p)
 
-lemma square_neg (p : ℂ) (c : ℝ) : Square p (-c) = Square p c := by
-  simp [Square, Rectangle, uIcc_comm]
-
 
 set_option linter.style.multiGoal false in
 lemma RectSubRect {x₀ x₁ x₂ x₃ y₀ y₁ y₂ y₃ : ℝ} (x₀_le_x₁ : x₀ ≤ x₁)
@@ -137,7 +134,8 @@ theorem Complex.nhds_hasBasis_square (p : ℂ) : (𝓝 p).HasBasis (0 < ·) (Squ
 lemma square_mem_nhds (p : ℂ) {c : ℝ} (hc : c ≠ 0) :
     Square p c ∈ 𝓝 p := by
   wlog hc_pos : 0 < c generalizing c with h
-  · rw [← square_neg]
+  · rw [(show Square p c = Square p (-c) by
+      simp [Square, Rectangle, uIcc_comm])]
     exact h (neg_ne_zero.mpr hc) <| neg_pos.mpr <| hc.lt_of_le <| not_lt.mp hc_pos
   exact (nhds_hasBasis_square p).mem_of_mem hc_pos
 
