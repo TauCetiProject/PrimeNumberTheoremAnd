@@ -52,21 +52,3 @@ theorem sin_div_error_pointwise_bound
             exact mul_le_mul hscalar hdiff (norm_nonneg _) hupper_nonneg
       _ = D / Real.pi := by
             field_simp [Real.pi_ne_zero, abs_pos.mpr hu]
-
-/-- Interval form of `sin_div_error_pointwise_bound`: integrating the pointwise bound over
-`[-1, 1]` controls the windowed error integral by `(D / π) · vol (Ioc (-1) 1)`. -/
-theorem sin_div_error_interval_bound
-    {g : ℝ → ℂ} {D x T : ℝ}
-    (hgdiff : Differentiable ℝ g)
-    (hderiv : ∀ y : ℝ, ‖deriv g y‖ ≤ D) :
-    ‖∫ u in (-(1 : ℝ))..(1 : ℝ),
-        (if u = 0 then (0 : ℂ) else (Real.sin (T * u) / (Real.pi * u) : ℂ)) •
-          (g (x - u) - g x)‖ ≤
-      (D / Real.pi) * (volume.real (Set.Ioc (-(1 : ℝ)) (1 : ℝ))) := by
-  rw [intervalIntegral.integral_of_le (by norm_num : (-(1 : ℝ)) ≤ 1)]
-  refine norm_setIntegral_le_of_norm_le_const (μ := volume)
-    (s := Set.Ioc (-(1 : ℝ)) (1 : ℝ)) ?_ ?_
-  · simp [Real.volume_Ioc]
-  · intro u _hu
-    exact sin_div_error_pointwise_bound (g := g) (D := D) (x := x) (T := T) (u := u)
-      hgdiff hderiv
