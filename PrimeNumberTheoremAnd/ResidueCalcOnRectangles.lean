@@ -173,20 +173,6 @@ theorem RectangleIntegral'_congr (h : Set.EqOn f g (RectangleBorder z w)) :
     RectangleIntegral' f z w = RectangleIntegral' g z w := by
   rw [RectangleIntegral', RectangleIntegral_congr h]
 
-theorem rectangleIntegral_symm (f : ℂ → E) (z w : ℂ) :
-    RectangleIntegral f z w = RectangleIntegral f w z := by
-  simp_rw [RectangleIntegral, HIntegral, VIntegral, intervalIntegral.integral_symm w.re,
-    intervalIntegral.integral_symm w.im, sub_neg_eq_add, smul_neg, sub_neg_eq_add,
-    ← sub_eq_add_neg, neg_add_eq_sub, sub_add_eq_add_sub]
-
-theorem rectangleIntegral_symm_re (f : ℂ → E) (z w : ℂ) :
-    RectangleIntegral f (w.re + z.im * I) (z.re + w.im * I) = -RectangleIntegral f z w := by
-  simp only [RectangleIntegral, add_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im,
-    mul_one, sub_self, add_zero, add_im, mul_im, zero_add, neg_sub, ← sub_eq_zero, sub_zero]
-  simp only [HIntegral]
-  rw [intervalIntegral.integral_symm w.re z.re, intervalIntegral.integral_symm w.re z.re]
-  abel
-
 def RectangleBorderIntegrable (f : ℂ → E) (z w : ℂ) : Prop :=
     IntervalIntegrable (fun x => f (x + z.im * I)) volume z.re w.re ∧
     IntervalIntegrable (fun x => f (x + w.im * I)) volume z.re w.re ∧
@@ -496,25 +482,6 @@ private lemma rectangleIntegral'_eq_native_sum_residue
       2 * (π : ℂ) * I * ∑ p ∈ S, TauCeti.Contour.residue f p := h
   rw [RectangleIntegral', hraw, smul_eq_mul, one_div, ← mul_assoc,
     inv_mul_cancel₀ Complex.two_pi_I_ne_zero, one_mul]
-
-theorem RectangleIntegral.const_smul (f : ℂ → E) (z w c : ℂ) :
-    RectangleIntegral (fun s => c • f s) z w = c • RectangleIntegral f z w := by
-  simp [RectangleIntegral, HIntegral, VIntegral, smul_add, smul_sub, smul_smul, mul_comm]
-
-theorem RectangleIntegral.const_mul' (f : ℂ → E) (z w c : ℂ) :
-    RectangleIntegral' (fun s => c • f s) z w = c • RectangleIntegral' f z w := by
-  simp [RectangleIntegral', RectangleIntegral.const_smul, smul_smul]
-  ring_nf
-
-theorem RectangleIntegral.translate (f : ℂ → E) (z w p : ℂ) :
-    RectangleIntegral (fun s => f (s - p)) z w = RectangleIntegral f (z - p) (w - p) := by
-  simp_rw [RectangleIntegral, HIntegral, VIntegral, sub_re, sub_im,
-    ← intervalIntegral.integral_comp_sub_right]
-  congr <;> ext <;> congr 1 <;> simp [Complex.ext_iff]
-
-theorem RectangleIntegral.translate' (f : ℂ → E) (z w p : ℂ) :
-    RectangleIntegral' (fun s => f (s - p)) z w = RectangleIntegral' f (z - p) (w - p) := by
-  simp_rw [RectangleIntegral', RectangleIntegral.translate]
 
 lemma Complex.inv_re_add_im : (x + y * I)⁻¹ = (x - I * y) / (x ^ 2 + y ^ 2) := by
   rw [Complex.inv_def, div_eq_mul_inv]
