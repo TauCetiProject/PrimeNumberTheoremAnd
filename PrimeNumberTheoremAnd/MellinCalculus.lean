@@ -32,20 +32,6 @@ open Complex Topology Filter Real MeasureTheory Set
 
 variable {𝕂 : Type*} [RCLike 𝕂]
 
-lemma MeasureTheory.integral_comp_div_I0i_haar
-    (f : ℝ → 𝕂) {a : ℝ} (ha : 0 < a) :
-    ∫ (y : ℝ) in Ioi 0, f (a / y) / y = ∫ (y : ℝ) in Ioi 0, f y / y := by
-  have h (g : ℝ → 𝕂) : ∫ y in Ioi 0, g y / y = ∫ y, g y ∂TauCeti.multHaar := by
-    rw [TauCeti.integral_multHaar_eq_setIntegral]
-    simp [RCLike.real_smul_eq_coe_mul, div_eq_inv_mul]
-  have hinv : MeasurePreserving Inv.inv TauCeti.multHaar TauCeti.multHaar :=
-    ⟨measurable_inv, TauCeti.map_multHaar_inv⟩
-  have hmul : MeasurePreserving (a * ·) TauCeti.multHaar TauCeti.multHaar :=
-    ⟨measurable_const_mul a, TauCeti.map_multHaar_mul_left ha⟩
-  simp_rw [h, div_eq_mul_inv a]
-  rw [hinv.integral_comp measurableEmbedding_inv (fun y ↦ f (a * y)),
-    hmul.integral_comp (measurableEmbedding_mulLeft₀ ha.ne') f]
-
 blueprint_comment /--
 \label{PartialIntegration}
 
@@ -601,7 +587,13 @@ lemma Smooth1Properties_below {ν : ℝ → ℝ} (suppν : ν.support ⊆ Icc (1
     _ = ∫ (y : ℝ) in Ioi 0,
         indicator (Ioc 0 1) (fun y ↦ DeltaSpike ν ε (x / y) / ↑y) y := ?_
     _ = ∫ (y : ℝ) in Ioi 0, DeltaSpike ν ε (x / y) / y := ?_
-    _ = _ := integral_comp_div_I0i_haar (fun y ↦ DeltaSpike ν ε y) xpos
+    _ = _ := by
+      have hhaar := ((⟨measurable_const_mul x, TauCeti.map_multHaar_mul_left xpos⟩ :
+        MeasurePreserving (x * ·) TauCeti.multHaar TauCeti.multHaar).comp
+          ⟨measurable_inv, TauCeti.map_multHaar_inv⟩).integral_comp
+            ((measurableEmbedding_mulLeft₀ xpos.ne').comp measurableEmbedding_inv) (DeltaSpike ν ε)
+      simpa [TauCeti.integral_multHaar_eq_setIntegral, smul_eq_mul,
+        div_eq_mul_inv, mul_comm] using hhaar
   · rw [setIntegral_congr_fun (by simp)]
     intro y hy
     by_cases h : y ≤ 1 <;> simp [indicator, mem_Ioi.mp hy, h]
@@ -750,8 +742,14 @@ lemma Smooth1LeOne {ν : ℝ → ℝ} (νnonneg : ∀ x > 0, 0 ≤ ν x)
     (mass_one : ∫ x in Ioi 0, ν x / x = 1) {ε : ℝ} (εpos : 0 < ε) {x : ℝ} (xpos : 0 < x) :
     Smooth1 ν ε x ≤ 1 := by
   unfold Smooth1 MellinConvolution DeltaSpike
-  have := (MeasureTheory.integral_comp_div_I0i_haar (DeltaSpike ν ε) xpos).trans
-    (DeltaSpikeMass mass_one εpos)
+  have : (∫ y in Ioi 0, DeltaSpike ν ε (x / y) / y) = 1 := by
+    rw [← DeltaSpikeMass mass_one εpos]
+    have hhaar := ((⟨measurable_const_mul x, TauCeti.map_multHaar_mul_left xpos⟩ :
+      MeasurePreserving (x * ·) TauCeti.multHaar TauCeti.multHaar).comp
+        ⟨measurable_inv, TauCeti.map_multHaar_inv⟩).integral_comp
+          ((measurableEmbedding_mulLeft₀ xpos.ne').comp measurableEmbedding_inv) (DeltaSpike ν ε)
+    simpa [TauCeti.integral_multHaar_eq_setIntegral, smul_eq_mul,
+      div_eq_mul_inv, mul_comm] using hhaar
   simp only [DeltaSpike] at this
   calc
     _ = ∫ (y : ℝ) in Ioi 0,
