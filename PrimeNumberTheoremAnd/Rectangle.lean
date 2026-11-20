@@ -35,26 +35,17 @@ def RectangleBorder (z w : ℂ) : Set ℂ :=
 def Square (p : ℂ) (c : ℝ) : Set ℂ := Rectangle (-c - c * I + p) (c + c * I + p)
 
 
-set_option linter.style.multiGoal false in
-lemma RectSubRect {x₀ x₁ x₂ x₃ y₀ y₁ y₂ y₃ : ℝ} (x₀_le_x₁ : x₀ ≤ x₁)
-    (x₁_le_x₂ : x₁ ≤ x₂) (x₂_le_x₃ : x₂ ≤ x₃) (y₀_le_y₁ : y₀ ≤ y₁)
-    (y₁_le_y₂ : y₁ ≤ y₂) (y₂_le_y₃ : y₂ ≤ y₃) :
-    Rectangle (x₁ + y₁ * I) (x₂ + y₂ * I) ⊆
-      Rectangle (x₀ + y₀ * I) (x₃ + y₃ * I) := by
+lemma RectSubRect' {z₀ z₁ z₂ z₃ : ℂ} (x₀_le_x₁ : z₀.re ≤ z₁.re)
+    (x₁_le_x₂ : z₁.re ≤ z₂.re) (x₂_le_x₃ : z₂.re ≤ z₃.re)
+    (y₀_le_y₁ : z₀.im ≤ z₁.im) (y₁_le_y₂ : z₁.im ≤ z₂.im)
+    (y₂_le_y₃ : z₂.im ≤ z₃.im) :
+    Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃ := by
   apply reProdIm_subset_iff.mpr
   simpa [uIcc_of_le x₁_le_x₂, uIcc_of_le y₁_le_y₂,
     uIcc_of_le (x₀_le_x₁.trans (x₁_le_x₂.trans x₂_le_x₃)),
     uIcc_of_le (y₀_le_y₁.trans (y₁_le_y₂.trans y₂_le_y₃))] using
     Set.prod_mono (Icc_subset_Icc x₀_le_x₁ x₂_le_x₃)
       (Icc_subset_Icc y₀_le_y₁ y₂_le_y₃)
-
-lemma RectSubRect' {z₀ z₁ z₂ z₃ : ℂ} (x₀_le_x₁ : z₀.re ≤ z₁.re)
-    (x₁_le_x₂ : z₁.re ≤ z₂.re) (x₂_le_x₃ : z₂.re ≤ z₃.re)
-    (y₀_le_y₁ : z₀.im ≤ z₁.im) (y₁_le_y₂ : z₁.im ≤ z₂.im)
-    (y₂_le_y₃ : z₂.im ≤ z₃.im) :
-    Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃ := by
-  rw [← re_add_im z₀, ← re_add_im z₁, ← re_add_im z₂, ← re_add_im z₃]
-  exact RectSubRect x₀_le_x₁ x₁_le_x₂ x₂_le_x₃ y₀_le_y₁ y₁_le_y₂ y₂_le_y₃
 
 lemma rectangleBorder_subset_rectangle (z w : ℂ) : RectangleBorder z w ⊆ Rectangle z w := by
   intro x hx
