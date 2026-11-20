@@ -33,11 +33,6 @@ section lemmas
 
 noncomputable def funscale {E : Type*} (g : ℝ → E) (R x : ℝ) : E := g (R⁻¹ • x)
 
-omit [NormedSpace ℝ E] in
-lemma tendsto_funscale {f : ℝ → E} (hf : ContinuousAt f 0) (x : ℝ) :
-    Tendsto (fun R => funscale f R x) atTop (𝓝 (f 0)) :=
-  hf.tendsto.comp (by simpa using tendsto_inv_atTop_zero.mul_const x)
-
 end lemmas
 
 namespace CS
@@ -103,7 +98,9 @@ lemma hasDerivAt_scale (f : CS (n + 1) E) (R x : ℝ) :
   convert hasDerivAt (f.scale R) x ; rw [deriv_scale'] ; rfl
 
 lemma tendsto_scale (f : CS n E) (x : ℝ) : Tendsto (fun R => f.scale R x) atTop (𝓝 (f 0)) := by
-  apply (tendsto_funscale f.continuous.continuousAt x).congr'
+  have hlimit : Tendsto (fun R : ℝ => funscale f R x) atTop (𝓝 (f 0)) :=
+    f.continuous.continuousAt.tendsto.comp (by simpa using tendsto_inv_atTop_zero.mul_const x)
+  apply hlimit.congr'
   filter_upwards [eventually_ne_atTop 0] with R hR ; simp [scale, hR]
 
 end CS
