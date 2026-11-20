@@ -107,7 +107,15 @@ lemma verticalIntegral_sub_verticalIntegral_eq_squareIntegral
   apply RectanglePullToNhdOfPole'
   · simpa using ⟨by linarith, by linarith, by linarith⟩
   · exact square_mem_nhds p (ne_of_gt hc0)
-  · apply RectSubRect' <;> simpa using by linarith
+  · apply reProdIm_subset_iff.mpr
+    refine Set.prod_mono (uIcc_subset_uIcc ?_ ?_) (uIcc_subset_uIcc ?_ ?_)
+    all_goals
+      apply mem_uIcc_of_le
+      all_goals
+        simp only [add_re, add_im, sub_re, sub_im, neg_re, neg_im, ofReal_re, ofReal_im,
+          mul_re, mul_im, I_re, I_im, mul_zero, zero_mul, mul_one, zero_sub, sub_zero,
+          add_zero, zero_add]
+        linarith
   · refine hf.mono (Set.sdiff_subset_sdiff ?_ subset_rfl)
     simpa [Rectangle, uIcc_of_lt (hσ.1.trans hσ.2)] using! fun x ⟨hx, _⟩ ↦ ⟨hx, trivial⟩
 

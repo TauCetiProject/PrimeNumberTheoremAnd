@@ -35,17 +35,6 @@ def RectangleBorder (z w : ℂ) : Set ℂ :=
 def Square (p : ℂ) (c : ℝ) : Set ℂ := Rectangle (-c - c * I + p) (c + c * I + p)
 
 
-lemma RectSubRect' {z₀ z₁ z₂ z₃ : ℂ} (x₀_le_x₁ : z₀.re ≤ z₁.re)
-    (x₁_le_x₂ : z₁.re ≤ z₂.re) (x₂_le_x₃ : z₂.re ≤ z₃.re)
-    (y₀_le_y₁ : z₀.im ≤ z₁.im) (y₁_le_y₂ : z₁.im ≤ z₂.im)
-    (y₂_le_y₃ : z₂.im ≤ z₃.im) :
-    Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃ := by
-  apply reProdIm_subset_iff.mpr
-  simpa [uIcc_of_le x₁_le_x₂, uIcc_of_le y₁_le_y₂,
-    uIcc_of_le (x₀_le_x₁.trans (x₁_le_x₂.trans x₂_le_x₃)),
-    uIcc_of_le (y₀_le_y₁.trans (y₁_le_y₂.trans y₂_le_y₃))] using
-    Set.prod_mono (Icc_subset_Icc x₀_le_x₁ x₂_le_x₃)
-      (Icc_subset_Icc y₀_le_y₁ y₂_le_y₃)
 
 lemma rectangle_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hz : z₀.re ≤ z₁.re ∧ z₁.re ≤ z₂.re ∧ z₂.re ≤ z₃.re ∧
@@ -53,7 +42,13 @@ lemma rectangle_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hp : (p.re < z₁.re ∧ p.re < z₂.re) ∨ (p.im < z₁.im ∧ p.im < z₂.im) ∨
       (z₁.re < p.re ∧ z₂.re < p.re) ∨ (z₁.im < p.im ∧ z₂.im < p.im)) :
     Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃ \ {p} :=
-  Set.subset_sdiff.mpr ⟨by apply RectSubRect' <;> tauto, by
+  Set.subset_sdiff.mpr ⟨by
+      rcases hz with ⟨hx01, hx12, hx23, hy01, hy12, hy23⟩
+      exact reProdIm_subset_iff.mpr (Set.prod_mono
+        (uIcc_subset_uIcc (mem_uIcc_of_le hx01 (hx12.trans hx23))
+          (mem_uIcc_of_le (hx01.trans hx12) hx23))
+        (uIcc_subset_uIcc (mem_uIcc_of_le hy01 (hy12.trans hy23))
+          (mem_uIcc_of_le (hy01.trans hy12) hy23))), by
     refine disjoint_singleton_right.mpr (not_and_or.mpr ?_)
     obtain h | h | h | h := hp
     · exact Or.inl (notMem_uIcc_of_lt h.1 h.2)
@@ -74,7 +69,13 @@ lemma rectangleBorder_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
       · exact ⟨h.1 ▸ left_mem_uIcc, h.2⟩
       · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
       · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩).trans
-      (by apply RectSubRect' <;> tauto),
+      (by
+      rcases hz with ⟨hx01, hx12, hx23, hy01, hy12, hy23⟩
+      exact reProdIm_subset_iff.mpr (Set.prod_mono
+        (uIcc_subset_uIcc (mem_uIcc_of_le hx01 (hx12.trans hx23))
+          (mem_uIcc_of_le (hx01.trans hx12) hx23))
+        (uIcc_subset_uIcc (mem_uIcc_of_le hy01 (hy12.trans hy23))
+          (mem_uIcc_of_le (hy01.trans hy12) hy23)))),
     by
       refine disjoint_singleton_right.mpr ?_
       intro hborder
@@ -131,7 +132,15 @@ lemma square_mem_nhds (p : ℂ) {c : ℝ} (hc : c ≠ 0) :
 
 lemma square_subset_square {p : ℂ} {c₁ c₂ : ℝ} (hc₁ : 0 < c₁) (hc : c₁ ≤ c₂) :
     Square p c₁ ⊆ Square p c₂ := by
-  apply RectSubRect' <;> simpa using by linarith
+  apply reProdIm_subset_iff.mpr
+  refine Set.prod_mono (uIcc_subset_uIcc ?_ ?_) (uIcc_subset_uIcc ?_ ?_)
+  all_goals
+    apply mem_uIcc_of_le
+    all_goals
+      simp only [add_re, add_im, sub_re, sub_im, neg_re, neg_im, ofReal_re, ofReal_im,
+        mul_re, mul_im, I_re, I_im, mul_zero, mul_one, sub_zero,
+        add_zero, zero_add]
+      linarith
 
 lemma SmallSquareInRectangle {z w p : ℂ} (pInRectInterior : Rectangle z w ∈ nhds p) :
     ∀ᶠ (c : ℝ) in 𝓝[>]0, Square p c ⊆ Rectangle z w := by
