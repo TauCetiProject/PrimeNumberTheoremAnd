@@ -67,18 +67,6 @@ lemma rectangleBorder_subset_rectangle (z w : ℂ) : RectangleBorder z w ⊆ Rec
   · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
   · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩
 
-/-- Note: try using `by simp` for `h`. -/
-lemma rectangle_disjoint_singleton {z w p : ℂ}
-    (h : (p.re < z.re ∧ p.re < w.re) ∨ (p.im < z.im ∧ p.im < w.im) ∨
-      (z.re < p.re ∧ w.re < p.re) ∨ (z.im < p.im ∧ w.im < p.im)) :
-    Disjoint (Rectangle z w) {p} := by
-  refine disjoint_singleton_right.mpr (not_and_or.mpr ?_)
-  obtain h | h | h | h := h
-  · exact Or.inl (notMem_uIcc_of_lt h.1 h.2)
-  · exact Or.inr (notMem_uIcc_of_lt h.1 h.2)
-  · exact Or.inl (notMem_uIcc_of_gt h.1 h.2)
-  · exact Or.inr (notMem_uIcc_of_gt h.1 h.2)
-
 lemma rectangleBorder_disjoint_singleton {z w p : ℂ}
     (h : p.re ≠ z.re ∧ p.re ≠ w.re ∧ p.im ≠ z.im ∧ p.im ≠ w.im) :
     Disjoint (RectangleBorder z w) {p} := by
@@ -93,7 +81,13 @@ lemma rectangle_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hp : (p.re < z₁.re ∧ p.re < z₂.re) ∨ (p.im < z₁.im ∧ p.im < z₂.im) ∨
       (z₁.re < p.re ∧ z₂.re < p.re) ∨ (z₁.im < p.im ∧ z₂.im < p.im)) :
     Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃ \ {p} :=
-  Set.subset_sdiff.mpr ⟨by apply RectSubRect' <;> tauto, rectangle_disjoint_singleton hp⟩
+  Set.subset_sdiff.mpr ⟨by apply RectSubRect' <;> tauto, by
+    refine disjoint_singleton_right.mpr (not_and_or.mpr ?_)
+    obtain h | h | h | h := hp
+    · exact Or.inl (notMem_uIcc_of_lt h.1 h.2)
+    · exact Or.inr (notMem_uIcc_of_lt h.1 h.2)
+    · exact Or.inl (notMem_uIcc_of_gt h.1 h.2)
+    · exact Or.inr (notMem_uIcc_of_gt h.1 h.2)⟩
 
 lemma rectangleBorder_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hz : z₀.re ≤ z₁.re ∧ z₁.re ≤ z₂.re ∧ z₂.re ≤ z₃.re ∧
