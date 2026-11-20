@@ -67,14 +67,6 @@ lemma rectangleBorder_subset_rectangle (z w : ℂ) : RectangleBorder z w ⊆ Rec
   · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
   · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩
 
-lemma rectangleBorder_disjoint_singleton {z w p : ℂ}
-    (h : p.re ≠ z.re ∧ p.re ≠ w.re ∧ p.im ≠ z.im ∧ p.im ≠ w.im) :
-    Disjoint (RectangleBorder z w) {p} := by
-  refine disjoint_singleton_right.mpr ?_
-  simp_rw [RectangleBorder, Set.mem_union, not_or]
-  exact ⟨⟨⟨fun hc ↦ h.2.2.1 hc.2, fun hc ↦ h.1 hc.1⟩, fun hc ↦ h.2.2.2 hc.2⟩,
-    fun hc ↦ h.2.1 hc.1⟩
-
 lemma rectangle_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     (hz : z₀.re ≤ z₁.re ∧ z₁.re ≤ z₂.re ∧ z₂.re ≤ z₃.re ∧
       z₀.im ≤ z₁.im ∧ z₁.im ≤ z₂.im ∧ z₂.im ≤ z₃.im)
@@ -96,7 +88,14 @@ lemma rectangleBorder_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
     RectangleBorder z₁ z₂ ⊆ Rectangle z₀ z₃ \ {p} :=
   Set.subset_sdiff.mpr ⟨
     (rectangleBorder_subset_rectangle _ _).trans (by apply RectSubRect' <;> tauto),
-    rectangleBorder_disjoint_singleton hp⟩
+    by
+      refine disjoint_singleton_right.mpr ?_
+      intro hborder
+      obtain ⟨⟨hc | hc⟩ | hc⟩ | hc := hborder
+      · exact hp.2.2.1 hc.2
+      · exact hp.1 hc.1
+      · exact hp.2.2.2 hc.2
+      · exact hp.2.1 hc.1⟩
 
 lemma rectangle_mem_nhds_iff {z w p : ℂ} :
     Rectangle z w ∈ 𝓝 p ↔ p ∈ (Set.uIoo z.re w.re) ×ℂ (Set.uIoo z.im w.im) := by
@@ -106,12 +105,20 @@ lemma rectangle_mem_nhds_iff {z w p : ℂ} :
 theorem not_mem_rectangleBorder_of_rectangle_mem_nhds {z w p : ℂ}
     (hp : Rectangle z w ∈ 𝓝 p) :
     p ∉ RectangleBorder z w := by
-  refine Set.disjoint_right.mp (rectangleBorder_disjoint_singleton ?_) rfl
   have h1 := rectangle_mem_nhds_iff.mp hp
-  exact ⟨ne_of_mem_of_not_mem h1.1 left_notMem_uIoo,
-    ne_of_mem_of_not_mem h1.1 right_notMem_uIoo,
-    ne_of_mem_of_not_mem h1.2 left_notMem_uIoo,
-    ne_of_mem_of_not_mem h1.2 right_notMem_uIoo⟩
+  have hne : p.re ≠ z.re ∧ p.re ≠ w.re ∧ p.im ≠ z.im ∧ p.im ≠ w.im :=
+    ⟨ne_of_mem_of_not_mem h1.1 left_notMem_uIoo,
+      ne_of_mem_of_not_mem h1.1 right_notMem_uIoo,
+      ne_of_mem_of_not_mem h1.2 left_notMem_uIoo,
+      ne_of_mem_of_not_mem h1.2 right_notMem_uIoo⟩
+  refine Set.disjoint_right.mp (show Disjoint (RectangleBorder z w) {p} from ?_) rfl
+  refine disjoint_singleton_right.mpr ?_
+  intro hborder
+  obtain ⟨⟨hc | hc⟩ | hc⟩ | hc := hborder
+  · exact hne.2.2.1 hc.2
+  · exact hne.1 hc.1
+  · exact hne.2.2.2 hc.2
+  · exact hne.2.1 hc.1
 
 theorem Complex.nhds_hasBasis_square (p : ℂ) : (𝓝 p).HasBasis (0 < ·) (Square p ·) := by
   suffices
