@@ -140,7 +140,11 @@ theorem tendsto_truncated_vertical_shift_with_simple_pole
     · simp only [sub_im, ofReal_im, mul_im, I_re, zero_mul, I_im, ofReal_re, one_mul,
         zero_add, zero_sub, add_im]
       linarith
-    · rw [rectangle_mem_nhds_iff]
+    · rw [(show Rectangle ((σ : ℂ) - I * (T : ℂ)) ((σ' : ℂ) + I * (T : ℂ)) ∈ 𝓝 p ↔
+            p ∈ (uIoo ((σ : ℂ) - I * (T : ℂ)).re ((σ' : ℂ) + I * (T : ℂ)).re) ×ℂ
+              (uIoo ((σ : ℂ) - I * (T : ℂ)).im ((σ' : ℂ) + I * (T : ℂ)).im) from by
+          simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
+            interior_Icc])]
       simp only [mem_reProdIm, sub_re, ofReal_re, mul_re, I_re, zero_mul, I_im, ofReal_im,
         mul_zero, sub_self, sub_zero, add_re, add_zero, sub_im, mul_im, one_mul, zero_add,
         zero_sub, add_im]

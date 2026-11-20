@@ -85,29 +85,6 @@ lemma rectangleBorder_subset_punctured_rect {z₀ z₁ z₂ z₃ p : ℂ}
       · exact hp.2.2.2 hc.2
       · exact hp.2.1 hc.1⟩
 
-lemma rectangle_mem_nhds_iff {z w p : ℂ} :
-    Rectangle z w ∈ 𝓝 p ↔ p ∈ (Set.uIoo z.re w.re) ×ℂ (Set.uIoo z.im w.im) := by
-  simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
-    interior_Icc]
-
-theorem not_mem_rectangleBorder_of_rectangle_mem_nhds {z w p : ℂ}
-    (hp : Rectangle z w ∈ 𝓝 p) :
-    p ∉ RectangleBorder z w := by
-  have h1 := rectangle_mem_nhds_iff.mp hp
-  have hne : p.re ≠ z.re ∧ p.re ≠ w.re ∧ p.im ≠ z.im ∧ p.im ≠ w.im :=
-    ⟨ne_of_mem_of_not_mem h1.1 left_notMem_uIoo,
-      ne_of_mem_of_not_mem h1.1 right_notMem_uIoo,
-      ne_of_mem_of_not_mem h1.2 left_notMem_uIoo,
-      ne_of_mem_of_not_mem h1.2 right_notMem_uIoo⟩
-  refine Set.disjoint_right.mp (show Disjoint (RectangleBorder z w) {p} from ?_) rfl
-  refine disjoint_singleton_right.mpr ?_
-  intro hborder
-  obtain ⟨⟨hc | hc⟩ | hc⟩ | hc := hborder
-  · exact hne.2.2.1 hc.2
-  · exact hne.1 hc.1
-  · exact hne.2.2.2 hc.2
-  · exact hne.2.1 hc.1
-
 theorem Complex.nhds_hasBasis_square (p : ℂ) : (𝓝 p).HasBasis (0 < ·) (Square p ·) := by
   suffices
       (𝓝 p.re ×ˢ 𝓝 p.im).HasBasis (0 < ·)

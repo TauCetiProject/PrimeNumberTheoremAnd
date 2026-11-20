@@ -245,7 +245,14 @@ theorem ContinuousOn.rectangleBorderNoPIntegrable
 theorem DifferentiableOn.rectangleBorderIntegrable'
     (hf : DifferentiableOn ℂ f (Rectangle z w \ {p})) (hp : Rectangle z w ∈ nhds p) :
     RectangleBorderIntegrable f z w :=
-  hf.continuousOn.rectangleBorderNoPIntegrable (not_mem_rectangleBorder_of_rectangle_mem_nhds hp)
+  hf.continuousOn.rectangleBorderNoPIntegrable (by
+    have hfront : RectangleBorder z w = frontier (Rectangle z w) := by
+      ext q
+      simp only [RectangleBorder, Complex.frontier_rectangle, Set.mem_union,
+        Complex.mem_reProdIm, Set.mem_insert_iff, Set.mem_singleton_iff]
+      tauto
+    rw [hfront]
+    exact disjoint_left.mp disjoint_interior_frontier (mem_interior_iff_mem_nhds.mpr hp))
 
 theorem DifferentiableOn.rectangleBorderIntegrable (hf : DifferentiableOn ℂ f (Rectangle z w)) :
     RectangleBorderIntegrable f z w := hf.continuousOn.rectangleBorderIntegrable
@@ -350,7 +357,12 @@ lemma RectanglePullToNhdOfPole' [CompleteSpace E] {z₀ z₁ z₂ z₃ p : ℂ}
   rw [Rectangle, uIcc_of_le hz₀_re, uIcc_of_le hz₀_im] at this
   obtain ⟨⟨⟨_, _⟩, ⟨_, _⟩⟩, ⟨_, _⟩, ⟨_, _⟩⟩ := this
   obtain ⟨⟨_, _⟩, ⟨_, _⟩⟩ :=
-    (uIoo_of_le hz₁_re) ▸ (uIoo_of_le hz₁_im) ▸ rectangle_mem_nhds_iff.mp hp
+    (uIoo_of_le hz₁_re) ▸ (uIoo_of_le hz₁_im) ▸
+      (show Rectangle z₁ z₂ ∈ 𝓝 p ↔
+          p ∈ (uIoo z₁.re z₂.re) ×ℂ
+            (uIoo z₁.im z₂.im) from by
+        simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
+          interior_Icc]).mp hp
   obtain ⟨_, _, _, _⟩ := show
       p.re < z₂.re ∧ p.re < z₃.re ∧ p.im < z₂.im ∧ p.im < z₃.im from
     ⟨by linarith, by linarith, by linarith, by linarith⟩
@@ -549,8 +561,12 @@ lemma ResidueTheoremAtOrigin' {z w c : ℂ}
     (h1 : z.re < 0) (h2 : z.im < 0) (h3 : 0 < w.re) (h4 : 0 < w.im) :
     RectangleIntegral (fun s => c / s) z w = 2 * I * π * c := by
   have hp : Rectangle z w ∈ 𝓝 (0 : ℂ) := by
-    rw [rectangle_mem_nhds_iff, uIoo_of_le (h1.trans h3).le,
-      uIoo_of_le (h2.trans h4).le]
+    rw [(show Rectangle z w ∈ 𝓝 (0 : ℂ) ↔
+          (0 : ℂ) ∈ (uIoo z.re w.re) ×ℂ
+            (uIoo z.im w.im) from by
+        simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
+          interior_Icc]),
+      uIoo_of_le (h1.trans h3).le, uIoo_of_le (h2.trans h4).le]
     exact ⟨⟨h1, h3⟩, h2, h4⟩
   have h := ResidueTheoremInRectangle (c := c) (h1.trans h3).le (h2.trans h4).le hp
   simp only [RectangleIntegral', smul_eq_mul, sub_zero, one_div] at h
@@ -609,7 +625,15 @@ lemma ResidueTheoremOnRectangleWithSimplePole {f g : ℂ → ℂ} {z w p A : ℂ
         · exact ⟨h.1, h.2 ▸ right_mem_uIcc⟩
         · exact ⟨h.1 ▸ right_mem_uIcc, h.2⟩),
         disjoint_singleton_right.mpr
-          (not_mem_rectangleBorder_of_rectangle_mem_nhds pInRectInterior)⟩
+          (by
+            have hfront : RectangleBorder z w = frontier (Rectangle z w) := by
+              ext q
+              simp only [RectangleBorder, Complex.frontier_rectangle, Set.mem_union,
+                Complex.mem_reProdIm, Set.mem_insert_iff, Set.mem_singleton_iff]
+              tauto
+            rw [hfront]
+            exact disjoint_left.mp disjoint_interior_frontier
+              (mem_interior_iff_mem_nhds.mpr pInRectInterior))⟩
   rw [RectangleIntegral'_congr this]
   have t1 : RectangleBorderIntegrable g z w :=
     gHolo.rectangleBorderIntegrable

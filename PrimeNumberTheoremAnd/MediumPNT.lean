@@ -1213,7 +1213,11 @@ theorem SmoothedChebyshevPull1 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
 
     have pInRectangleInterior :
         (Rectangle (σ₁ - ↑T * I) (1 + (Real.log X)⁻¹ + T * I) ∈ nhds 1) := by
-      refine rectangle_mem_nhds_iff.mpr ?_
+      refine (show Rectangle (σ₁ - ↑T * I) (1 + (Real.log X)⁻¹ + T * I) ∈ nhds (1 : ℂ) ↔
+            (1 : ℂ) ∈ (uIoo (σ₁ - ↑T * I).re (1 + (Real.log X)⁻¹ + T * I).re) ×ℂ
+              (uIoo (σ₁ - ↑T * I).im (1 + (Real.log X)⁻¹ + T * I).im) from by
+          simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
+            interior_Icc]).mpr ?_
       refine mem_reProdIm.mpr ?_
       simp only [sub_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self,
         sub_zero, ofReal_inv, add_re, one_re, inv_re, normSq_ofReal, div_self_mul_self', add_zero,
