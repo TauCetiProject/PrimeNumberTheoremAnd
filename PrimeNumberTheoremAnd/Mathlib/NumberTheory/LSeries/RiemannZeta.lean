@@ -24,7 +24,7 @@ and convexity bounds in `RiemannZetaConvexity`.
 
 * `verticalLine`, `verticalLine_re`
 * `Nat.Primes.inv_one_add_rpow_le_inv_norm_one_sub_cpow_neg_vertical`
-* `norm_riemannZeta_eulerProduct`, `tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine`
+* `tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine`
 -/
 
 @[expose] public section
@@ -58,16 +58,6 @@ end Nat.Primes
 section RiemannZetaEulerProduct
 
 open Nat.Primes
-
-theorem norm_riemannZeta_eulerProduct (s : ℂ) (hs : 1 < s.re) :
-    ‖riemannZeta s‖ = ∏' p : Nat.Primes, (‖1 - ((p : ℕ) : ℂ) ^ (-s)‖)⁻¹ := by
-  calc
-    ‖riemannZeta s‖ = ‖∏' p : Nat.Primes, (1 - ((p : ℕ) : ℂ) ^ (-s))⁻¹‖ := by
-      rw [riemannZeta_eulerProduct_tprod hs]
-    _ = ∏' p : Nat.Primes, ‖(1 - ((p : ℕ) : ℂ) ^ (-s))⁻¹‖ := by
-      exact Multipliable.norm_tprod (riemannZeta_eulerProduct_hasProd hs).multipliable
-    _ = ∏' p : Nat.Primes, (‖1 - ((p : ℕ) : ℂ) ^ (-s)‖)⁻¹ := by
-      congr 1; ext p; simp [norm_inv]
 
 /-- On the vertical line `re s = σ > 1`, the real product `∏_p (1 + p^{-σ})^{-1}` is dominated
 by the Euler product at `σ + it`. -/

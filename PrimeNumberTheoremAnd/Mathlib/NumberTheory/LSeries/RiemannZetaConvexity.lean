@@ -53,7 +53,7 @@ theorem norm_riemannZeta_ratio_le_on_verticalLine (σ t : ℝ) (hσ : 1 < σ) :
     _ ≤ ∏' p : Nat.Primes, (‖1 - ((p : ℕ) : ℂ) ^ (-verticalLine σ t)‖)⁻¹ :=
         tprod_inv_one_add_real_le_riemannZeta_norm_on_verticalLine σ t hσ
     _ = ‖riemannZeta (verticalLine σ t)‖ := by
-      simpa [verticalLine] using (norm_riemannZeta_eulerProduct (verticalLine σ t) hs).symm
+      simpa only [norm_inv] using (riemannZeta_eulerProduct_hasProd hs).norm.tprod_eq
 
 /-- Convexity input at `σ = 3/2`: `‖ζ 3 / ζ (3/2)‖ ≤ ‖ζ (3/2 + it)‖`. -/
 theorem norm_riemannZeta_ratio_le_on_vertical_line (t : ℝ) :
