@@ -18,7 +18,7 @@ linter.flexible = true
 [[require]]
 name = "LeanArchitect"
 git = "https://github.com/hanwenzhu/LeanArchitect.git"
-rev = "v4.36.0-rc2"
+rev = "v4.37.0-rc1"
 
 [[require]]
 name = "checkdecls"
@@ -27,12 +27,12 @@ git = "https://github.com/PatrickMassot/checkdecls.git"
 [[require]]
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
-rev = "048fffa1dbcd080d3058fab41d8c188168595c22"
+rev = "31ce06eaadf4a200c0e1407c5f10953cf606b8f8"
 
 [[require]]
 name = "TauCeti"
 git = "https://github.com/TauCetiProject/TauCeti.git"
-rev = "0642eae29e0a59ef798d04de325386445906e755"
+rev = "1d440956ee37b2b8f52fb6fcfa25fb33ee04d640"
 
 [[lean_lib]]
 name = "PrimeNumberTheoremAnd"

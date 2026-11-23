@@ -95,7 +95,7 @@ theorem divisorCanonicalProduct_one_eq_native {f : ℂ → ℂ}
     intro p hp hp0
     apply hp
     simp [F, hp0]
-  have hprod : HasProd (fun p : divisorZeroIndex₀ f Set.univ ↦ F p.1)
+  have hprod : HasProd (fun p : divisorZeroIndex₀ f Set.univ ↦ F p.val)
       (divisorCanonicalProduct 1 f Set.univ z) := by
     exact (hasProdLocallyUniformlyOn_divisorCanonicalProduct_univ 1 f hsum).hasProd
       (Set.mem_univ z)

@@ -15,6 +15,7 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
 import Mathlib.NumberTheory.LSeries.WeakPNT
 import TauCeti.NumberTheory.SelbergSieve.Bounds
+import TauCeti.NumberTheory.SelbergSieve.CoprimeDiagonal
 
 open Sieve SelbergSieve BoundingSieve
 open Filter Asymptotics
@@ -163,7 +164,7 @@ theorem boudingSum_ge :
     (primeInterSieve x y z hz).toBoundingSieve (Real.sqrt z) (Real.sqrt_nonneg z)
     (by
       intro p hp hpz
-      exact hp.dvd_primorial_iff.mpr (Nat.le_floor (hpz.trans hsqrt)))
+      exact hp.dvd_primorial_iff.mpr (Nat.le_floor (hpz.le.trans hsqrt)))
     (by
       intro p hp _
       simp only [primeInterSieve, ArithmeticFunction.pdiv_apply,

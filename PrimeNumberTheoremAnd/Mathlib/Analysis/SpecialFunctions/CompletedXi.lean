@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import TauCeti.NumberTheory.LFunctions.Zeros.Completion.RiemannZeta
+public import TauCeti.NumberTheory.LFunctions.Zeros.Completion.RiemannZeta.Basic
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Deligne
 public import Mathlib.NumberTheory.LSeries.RiemannZeta
 

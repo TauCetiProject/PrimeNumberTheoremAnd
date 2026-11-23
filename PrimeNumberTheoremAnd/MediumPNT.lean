@@ -366,12 +366,11 @@ theorem SmoothedChebyshevDirichlet {SmoothingF : ℝ → ℝ}
     rw [mul_div_assoc, mul_assoc]
     congr
     rw [(div_eq_iff ?_).mpr]
-    · have := @mul_cpow_ofReal_nonneg (a := X / (n : ℝ)) (b := (n : ℝ)) (r := σ + I * t) ?_ ?_
+    · have := ofReal_mul_cpow (a := X / (n : ℝ)) ?_ ((n : ℝ) : ℂ) (σ + I * t)
       · push_cast at this ⊢
         rw [← this, div_mul_cancel₀]
         · simp only [ne_eq, Nat.cast_eq_zero, n_ne_zero, not_false_eq_true]
       · apply div_nonneg (by linarith : 0 ≤ X); simp
-      · simp
     · simp only [ne_eq, cpow_eq_zero_iff, Nat.cast_eq_zero, n_ne_zero, false_and,
         not_false_eq_true]
   · conv => rw [← mul_assoc, div_mul]; lhs; lhs; rhs; simp

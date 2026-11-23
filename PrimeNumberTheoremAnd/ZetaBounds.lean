@@ -11,7 +11,7 @@ public import Mathlib.MeasureTheory.Order.Group.Lattice
 public import Mathlib.NumberTheory.Harmonic.Bounds
 public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.NumberTheory.Harmonic.ZetaAsymp
-public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
+public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDeriv.NearOne
 public import TauCeti.Analysis.SpecialFunctions.Integrals.MellinWeight
 public import Mathlib.Analysis.Complex.RealDeriv
 public import TauCeti.Analysis.Asymptotics.Sum.EulerMaclaurin

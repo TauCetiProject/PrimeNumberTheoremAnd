@@ -500,7 +500,7 @@ theorem isMultiplicative_powR {ν : ℂ} : IsMultiplicative (powR ν) := by
   have hmn_pos : m * n ≠ 0 := Nat.mul_ne_zero hm.ne' hn.ne'
   simp only [hm.ne', hn.ne', hmn_pos, ite_false]
   push_cast
-  exact Complex.natCast_mul_natCast_cpow m n ν
+  exact Complex.natCast_mul_cpow m n ν
 
 @[blueprint
   "sigmaR_eq_zeta_mul_powR"
@@ -684,7 +684,7 @@ private lemma ramanujan_product_sigma_summable (α β s : ℂ)
 private lemma ramanujan_geom_weighted_relation {a x : ℂ}
     (h : Summable (fun k : ℕ ↦ (∑ i ∈ range (k + 1), a ^ i) * x ^ k)) (hx : ‖x‖ < 1) :
     (1 - a*x) * (∑' k : ℕ, (∑ i ∈ range (k + 1), a ^ i) * x ^ k) = (1-x)⁻¹ := by
-  have H := h.hasSum.sub_smul_eq_of_linearRec₁ (D := a*x)
+  have H := sub_eq_of_eq_add' <| h.hasSum.eq_smul_add_of_linearRec₁ (D := a*x)
     (hasSum_geometric_of_norm_lt_one hx) (by simp) (fun r ↦ ?_)
   · simpa only [smul_eq_mul, sub_mul, one_mul] using H
   · change (∑ i ∈ range (r+1+1), a^i) * x^(r+1) =
@@ -717,7 +717,7 @@ private lemma ramanujan_geom_product_sum {a b x : ℂ}
   have HA := ramanujan_geom_weighted_relation ha hx
   have HB := ramanujan_geom_weighted_relation hb hx
   have HG : (1-x) * (1-x)⁻¹ = 1 := mul_inv_cancel₀ hx0
-  have H := h.hasSum.sub_smul_eq_of_linearRec₁ (D := a*b*x)
+  have H := sub_eq_of_eq_add' <| h.hasSum.eq_smul_add_of_linearRec₁ (D := a*b*x)
     ((ha.hasSum.add hb.hasSum).sub (hasSum_geometric_of_norm_lt_one hx))
     (by simp) (fun r ↦ ?_)
   · apply (eq_div_iff (mul_ne_zero (mul_ne_zero (mul_ne_zero hx0 hax) hbx) habx)).2
@@ -1182,12 +1182,12 @@ lemma two_pow_omega_tsum_prime_pow {s : ℂ} (hs : 1 < s.re)
     rw [div_eq_mul_inv, ← tsum_geometric_of_norm_lt_one]
     · rw [← tsum_mul_left]; congr; ext n; rw [← Complex.cpow_nat_mul]; ring_nf
       rw [← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero)]; ring_nf
-    · rw [Complex.norm_cpow_of_ne_zero] <;> norm_num [p.2.ne_zero]
-      exact lt_of_lt_of_le (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.2.one_lt) (neg_lt_zero.mpr (by linarith))) (by norm_num)
+    · rw [Complex.norm_cpow_of_ne_zero] <;> norm_num [p.property.ne_zero]
+      exact lt_of_lt_of_le (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.property.one_lt) (neg_lt_zero.mpr (by linarith))) (by norm_num)
   simp only [h_rw, h_term_eval, geo_series_rw, tsum_mul_left]
   rw [eq_div_iff, add_mul, one_mul, ← mul_div_assoc, div_mul_cancel₀]
   · ring_nf
-  all_goals (exact Complex.one_sub_prime_cpow_ne_zero p.2 hs)
+  all_goals (exact Complex.one_sub_prime_cpow_ne_zero p.property hs)
 
 @[blueprint
   "Complex.one_add_prime_cpow_ne_zero"
@@ -1289,11 +1289,11 @@ lemma zeta_pow_two (s : ℂ) (hs : 1 < s.re) :
     mul_comm, ← riemannZeta_eulerProduct_tprod hs',
     two_pow_omega_LSeries_eulerProduct_tprod s hs, ← Multipliable.tprod_mul, tprod_congr]
   · intro p
-    have hsub := Complex.one_sub_prime_cpow_ne_zero p.2 hs
+    have hsub := Complex.one_sub_prime_cpow_ne_zero p.property hs
     have hsq : 1 - ((p : ℂ) ^ (-s)) ^ 2 ≠ 0 := by
       rw [show 1 - ((p : ℂ) ^ (-s)) ^ 2 = (1 - (p : ℂ) ^ (-s)) * (1 + (p : ℂ) ^ (-s)) from by ring]
-      exact mul_ne_zero hsub (Complex.one_add_prime_cpow_ne_zero p.2 hs)
-    rw [show (-(2 * s) : ℂ) = -s + -s from by ring, Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.2.ne_zero)]
+      exact mul_ne_zero hsub (Complex.one_add_prime_cpow_ne_zero p.property hs)
+    rw [show (-(2 * s) : ℂ) = -s + -s from by ring, Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.property.ne_zero)]
     field_simp
     ring
   · exact ⟨LSeries (fun n ↦ 2 ^ (ω n)) s, two_pow_omega_LSeries_eulerProduct_hasProd s hs⟩
@@ -1321,14 +1321,14 @@ private lemma LSeriesSummable_tau_sq {s : ℂ} (hs : 1 < s.re) :
 private lemma tau_sq_tsum_prime_pow {s : ℂ} (hs : 1 < s.re) (p : Primes) :
     sumOnPrimePows (LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s) p =
       (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) ^ 2 := by
-  have hsub : 1 - (p : ℂ) ^ (-s) ≠ 0 := Complex.one_sub_prime_cpow_ne_zero p.2 hs
+  have hsub : 1 - (p : ℂ) ^ (-s) ≠ 0 := Complex.one_sub_prime_cpow_ne_zero p.property hs
   set x : ℂ := (p : ℂ) ^ (-s)
   have hx : ‖x‖ < 1 := by
     dsimp only [x]
-    rw [Complex.norm_cpow_of_ne_zero (Nat.cast_ne_zero.mpr p.2.ne_zero)]
+    rw [Complex.norm_cpow_of_ne_zero (Nat.cast_ne_zero.mpr p.property.ne_zero)]
     · norm_num
       exact lt_of_lt_of_le
-        (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.2.one_lt) (neg_lt_zero.mpr (by linarith)))
+        (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.property.one_lt) (neg_lt_zero.mpr (by linarith)))
         (by norm_num)
   have hx0 : 1 - x ≠ 0 := by simpa [x] using hsub
   have h_term (e : ℕ) :
@@ -1403,14 +1403,14 @@ lemma zeta_pow_three_eq (s : ℂ) (hs : 1 < s.re) :
     · exact ⟨LSeries (fun n ↦ (τ (n ^ 2) : ℂ)) s, tau_sq_LSeries_eulerProduct_hasProd s hs⟩
   rw [hRHS, ← riemannZeta_eulerProduct_tprod hs, ← mulζ.tprod_pow 3]
   refine tprod_congr fun p ↦ ?_
-  have hsub := Complex.one_sub_prime_cpow_ne_zero p.2 hs
-  have hadd := Complex.one_add_prime_cpow_ne_zero p.2 hs
+  have hsub := Complex.one_sub_prime_cpow_ne_zero p.property hs
+  have hadd := Complex.one_add_prime_cpow_ne_zero p.property hs
   have hsq : 1 - ((p : ℂ) ^ (-s)) ^ 2 ≠ 0 := by
     rw [show 1 - ((p : ℂ) ^ (-s)) ^ 2 =
         (1 - (p : ℂ) ^ (-s)) * (1 + (p : ℂ) ^ (-s)) from by ring]
     exact mul_ne_zero hsub hadd
   rw [show (-(2 * s) : ℂ) = -s + -s from by ring,
-    Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.2.ne_zero)]
+    Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.property.ne_zero)]
   field_simp
   ring
 
@@ -1453,7 +1453,7 @@ private lemma zeta_cube_divisor_pair_term (s : ℂ) (n : ℕ) :
   have hm : m ≠ 0 := by rintro rfl; simp at H; exact hn H.symm
   rw [LSeries.term_of_ne_zero hd, LSeries.term_of_ne_zero hm]
   simp only [Pi.one_apply, one_div]
-  rw [← H, Nat.cast_mul, Complex.natCast_mul_natCast_cpow, Nat.cast_pow,
+  rw [← H, Nat.cast_mul, Complex.natCast_mul_cpow, Nat.cast_pow,
     ← Complex.natCast_cpow_natCast_mul d 2 s]
   simp only [div_eq_mul_inv, mul_inv_rev]
   ring_nf
@@ -1491,7 +1491,7 @@ lemma zeta_pow_three_eq_alt (s : ℂ) (hs : 1 < s.re) :
     simpa only [LSeriesHasSum, ← zeta_cube_divisor_pair_term] using H
   exact (zeta_pow_three_eq s hs).trans H'.LSeries_eq.symm
 
-attribute [blueprint
+@[blueprint
   "LSeriesSummable_moebius_sq"
   (title := "LSeriesSummable-moebius-sq")
   (statement := /--
@@ -1500,7 +1500,9 @@ attribute [blueprint
   (proof := /--
     This follows by comparison test against the Riemann zeta function.
   -/)]
-  TauCeti.LSeriesSummable_moebius_sq
+theorem LSeriesSummable_moebius_sq {s : ℂ} (hs : 1 < s.re) :
+    LSeriesSummable (fun n ↦ (ArithmeticFunction.moebius n : ℂ) ^ 2) s :=
+  TauCeti.LSeriesSummable_moebius_sq_iff.mpr hs
 
 @[blueprint
   "powOfMultiplicative_isMultiplicative"

@@ -1,7 +1,7 @@
 # PrimeNumberTheoremAnd
 
 This is the Tau Ceti migration fork of [PNT+](https://github.com/AlexKontorovich/PrimeNumberTheoremAnd).
-It uses stock Lean **v4.36.0-rc2** and pins Tau Ceti and its matching Mathlib revision in
+It uses stock Lean **v4.37.0-rc1** and pins Tau Ceti and its matching Mathlib revision in
 [lake-manifest.json](lake-manifest.json). See [ROADMAPS.md](ROADMAPS.md) for approved migration
 targets, pending roadmap proposals, and scope that still needs human-written specifications.
 

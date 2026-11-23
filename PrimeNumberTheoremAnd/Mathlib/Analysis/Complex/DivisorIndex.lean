@@ -45,11 +45,11 @@ abbrev divisorZeroIndex₀ (f : ℂ → ℂ) (U : Set ℂ) : Type :=
 
 /-- The underlying point of a (nonzero) divisor index. -/
 abbrev divisorZeroIndex₀_val {f : ℂ → ℂ} {U : Set ℂ} (p : divisorZeroIndex₀ f U) : ℂ :=
-  p.1.1
+  p.val.1
 
 @[simp]
 lemma divisorZeroIndex₀_val_ne_zero {f : ℂ → ℂ} {U : Set ℂ} (p : divisorZeroIndex₀ f U) :
-    divisorZeroIndex₀_val p ≠ 0 := p.2
+    divisorZeroIndex₀_val p ≠ 0 := p.property
 
 /-- A (nonzero) divisor index has nonzero multiplicity at its underlying point. -/
 @[simp]
@@ -60,7 +60,7 @@ lemma divisorZeroIndex₀_val_mem_divisor_support {f : ℂ → ℂ} {U : Set ℂ
       Int.toNat (MeromorphicOn.divisor f U (divisorZeroIndex₀_val p)) ≠ 0 := by
     intro h0
     have q0 : Fin 0 := by
-      simpa [divisorZeroIndex₀_val, h0] using p.1.2
+      simpa [divisorZeroIndex₀_val, h0] using p.val.2
     exact Fin.elim0 q0
   intro hdiv
   have : Int.toNat (MeromorphicOn.divisor f U (divisorZeroIndex₀_val p)) = 0 := by

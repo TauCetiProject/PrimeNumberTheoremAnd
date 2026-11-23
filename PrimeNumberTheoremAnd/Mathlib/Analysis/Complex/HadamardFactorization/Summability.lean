@@ -97,13 +97,13 @@ lemma card_ball_le_divisorMassClosedBall₀
           (isCompact_closedBall (0 : ℂ) |R|)).toFinset
   let S : Finset ℂ := SR.filter fun z : ℂ => z ≠ 0
   let T : Type :=
-    Σ z : S, Fin (Int.toNat (D z.1))
+    Σ z : S, Fin (Int.toNat (D z.val))
   let φ :
       {p : divisorZeroIndex₀ f U // ‖divisorZeroIndex₀_val p‖ ≤ R} → T := fun p =>
-    let z0 : ℂ := divisorZeroIndex₀_val p.1
+    let z0 : ℂ := divisorZeroIndex₀_val p.val
     have hz0_memSR : z0 ∈ SR := by
       have hz0_norm : ‖z0‖ ≤ |R| := by
-        have : ‖z0‖ ≤ R := p.2
+        have : ‖z0‖ ≤ R := p.property
         simpa [abs_of_pos hR] using this
       have hz0_support : z0 ∈ (Function.locallyFinsuppWithin.toClosedBall R D).support := by
         have hz0_suppD : z0 ∈ D.support := by
@@ -116,15 +116,15 @@ lemma card_ball_le_divisorMassClosedBall₀
         (Function.locallyFinsuppWithin.finiteSupport
           (Function.locallyFinsuppWithin.toClosedBall R D)
             (isCompact_closedBall (0 : ℂ) |R|))).2 hz0_support
-    have hz0_ne0 : z0 ≠ 0 := divisorZeroIndex₀_val_ne_zero p.1
+    have hz0_ne0 : z0 ≠ 0 := divisorZeroIndex₀_val_ne_zero p.val
     have hz0_memS : z0 ∈ S := Finset.mem_filter.2 ⟨hz0_memSR, hz0_ne0⟩
     ⟨⟨z0, hz0_memS⟩, by
-        simpa [z0, divisorZeroIndex₀_val, D] using p.1.1.2⟩
+        simpa [z0, divisorZeroIndex₀_val, D] using p.val.val.2⟩
   have hφ_inj : Function.Injective φ := by
     intro p q hpq
     have hσ := (Sigma.mk.inj_iff).1 hpq
     have hzS : (φ p).1 = (φ q).1 := hσ.1
-    have hz : divisorZeroIndex₀_val p.1 = divisorZeroIndex₀_val q.1 := by
+    have hz : divisorZeroIndex₀_val p.val = divisorZeroIndex₀_val q.val := by
       simpa [φ] using congrArg Subtype.val hzS
     apply Subtype.ext
     apply Subtype.ext
@@ -138,21 +138,21 @@ lemma card_ball_le_divisorMassClosedBall₀
       (Fintype.card T : ℝ) =
         (S.sum fun z : ℂ => (Int.toNat (D z) : ℝ)) := by
     have hNat :
-        Fintype.card T = ∑ z : S, Int.toNat (D z.1) := by
+        Fintype.card T = ∑ z : S, Int.toNat (D z.val) := by
       have h1 :
-          Fintype.card T = ∑ z : S, Fintype.card (Fin (Int.toNat (D z.1))) := by
-        change Fintype.card (Sigma (fun z : S => Fin (Int.toNat (D z.1))))
-            = ∑ z : S, Fintype.card (Fin (Int.toNat (D z.1)))
-        exact (Fintype.card_sigma (ι := S) (α := fun z : S => Fin (Int.toNat (D z.1))))
+          Fintype.card T = ∑ z : S, Fintype.card (Fin (Int.toNat (D z.val))) := by
+        change Fintype.card (Sigma (fun z : S => Fin (Int.toNat (D z.val))))
+            = ∑ z : S, Fintype.card (Fin (Int.toNat (D z.val)))
+        exact (Fintype.card_sigma (ι := S) (α := fun z : S => Fin (Int.toNat (D z.val))))
       simpa using h1
     have hR :
-        (Fintype.card T : ℝ) = ∑ z : S, (Int.toNat (D z.1) : ℝ) := by
+        (Fintype.card T : ℝ) = ∑ z : S, (Int.toNat (D z.val) : ℝ) := by
       exact_mod_cast hNat
     have hR' :
-        (Fintype.card T : ℝ) = S.attach.sum (fun z : S => (Int.toNat (D z.1) : ℝ)) := by
+        (Fintype.card T : ℝ) = S.attach.sum (fun z : S => (Int.toNat (D z.val) : ℝ)) := by
       simpa [Finset.univ_eq_attach] using hR
     calc
-      (Fintype.card T : ℝ) = S.attach.sum (fun z : S => (Int.toNat (D z.1) : ℝ)) := hR'
+      (Fintype.card T : ℝ) = S.attach.sum (fun z : S => (Int.toNat (D z.val) : ℝ)) := hR'
       _ = S.sum (fun z : ℂ => (Int.toNat (D z) : ℝ)) := by
             simpa using (Finset.sum_attach (s := S) (f := fun z : ℂ => (Int.toNat (D z) : ℝ)))
   have htoNat_le : ∀ z ∈ S, (Int.toNat (D z) : ℝ) ≤ (D z : ℝ) := by
@@ -232,7 +232,7 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
     let B : ℝ := ((Ctrail / Real.log 2) + 1) * (r0⁻¹) ^ τ
     let q : ℝ := (2 : ℝ) ^ (ρ - τ)
     let qσ : ℝ := (2 : ℝ) ^ (-τ)
-    (∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ) ≤ A * q ^ k + B * qσ ^ k := by
+    (∑' p : S, ‖divisorZeroIndex₀_val p.val‖⁻¹ ^ τ) ≤ A * q ^ k + B * qσ ^ k := by
   classical
   intro kfun S Ctrail A B q qσ
   let rk : ℝ := r0 * (2 : ℝ) ^ (k : ℝ)
@@ -243,29 +243,29 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
     simpa [S, kfun] using (finite_divisorZeroIndex₀_dyadicShell
       (f := f) hr0pos hr0 k).to_subtype
   have : Fintype S := Fintype.ofFinite S
-  have hk_upper : ∀ p : S, ‖divisorZeroIndex₀_val p.1‖ ≤ Rk := by
+  have hk_upper : ∀ p : S, ‖divisorZeroIndex₀_val p.val‖ ≤ Rk := by
     intro p
-    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p.1‖ / r0)⌋₊ = k := p.2
-    change ‖divisorZeroIndex₀_val p.1‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)
+    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p.val‖ / r0)⌋₊ = k := p.property
+    change ‖divisorZeroIndex₀_val p.val‖ ≤ r0 * (2 : ℝ) ^ ((k : ℝ) + 1)
     apply le_of_lt
     rw [mul_comm, ← div_lt_iff₀ hr0pos]
     simpa only [← Real.rpow_natCast, hk', Nat.cast_add, Nat.cast_one] using
       Real.lt_pow_natFloor_logb_add_one (b := (2 : ℝ)) (by norm_num)
-        (div_pos (hr0pos.trans_le (hr0 p.1)) hr0pos)
-  have hk_lower : ∀ p : S, rk ≤ ‖divisorZeroIndex₀_val p.1‖ := by
+        (div_pos (hr0pos.trans_le (hr0 p.val)) hr0pos)
+  have hk_lower : ∀ p : S, rk ≤ ‖divisorZeroIndex₀_val p.val‖ := by
     intro p
-    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p.1‖ / r0)⌋₊ = k := p.2
-    change r0 * (2 : ℝ) ^ (k : ℝ) ≤ ‖divisorZeroIndex₀_val p.1‖
+    have hk' : ⌊Real.logb 2 (‖divisorZeroIndex₀_val p.val‖ / r0)⌋₊ = k := p.property
+    change r0 * (2 : ℝ) ^ (k : ℝ) ≤ ‖divisorZeroIndex₀_val p.val‖
     rw [mul_comm, ← le_div_iff₀ hr0pos]
     simpa only [← Real.rpow_natCast, hk'] using
       Real.pow_natFloor_logb_le_self (b := (2 : ℝ)) (by norm_num)
-        ((one_le_div hr0pos).2 (hr0 p.1))
+        ((one_le_div hr0pos).2 (hr0 p.val))
   have htsum_le :
-      (∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ)
+      (∑' p : S, ‖divisorZeroIndex₀_val p.val‖⁻¹ ^ τ)
         ≤ (Fintype.card S : ℝ) * (rk⁻¹ ^ τ) := by
     rw [tsum_fintype]
     have h := Finset.sum_le_sum (s := Finset.univ) fun p _ ↦
-      Real.rpow_le_rpow (inv_nonneg.mpr (norm_nonneg (divisorZeroIndex₀_val p.1)))
+      Real.rpow_le_rpow (inv_nonneg.mpr (norm_nonneg (divisorZeroIndex₀_val p.val)))
         (inv_anti₀ hrk_pos (hk_lower p)) hτpos.le
     simpa [Finset.sum_const, nsmul_eq_mul, mul_comm] using h
   have hmass_le_growth :
@@ -281,12 +281,12 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
     let Aball := {p : divisorZeroIndex₀ f Set.univ // ‖divisorZeroIndex₀_val p‖ ≤ Rk}
     let : Finite Aball :=
       (divisorZeroIndex₀_norm_le_finite (f := f) (U := Set.univ) Rk (by simp)).to_subtype
-    have h := Nat.card_le_card_of_injective (fun p : S => (⟨p.1, hk_upper p⟩ : Aball))
+    have h := Nat.card_le_card_of_injective (fun p : S => (⟨p.val, hk_upper p⟩ : Aball))
       (fun p q h => Subtype.ext (congrArg (fun x : Aball => x.val) h))
     simpa only [Nat.card_eq_fintype_card] using
       (Nat.cast_le.mpr h).trans (card_ball_le_divisorMassClosedBall₀ hf hRk_pos)
   have htsum' :
-      (∑' p : S, ‖divisorZeroIndex₀_val p.1‖⁻¹ ^ τ)
+      (∑' p : S, ‖divisorZeroIndex₀_val p.val‖⁻¹ ^ τ)
         ≤ ((Cgrow * (1 + |2 * Rk|) ^ ρ + Ctrail) / (Real.log 2)) * (rk⁻¹ ^ τ) := by
     have hcard_le_growth :
         (Fintype.card S : ℝ) ≤

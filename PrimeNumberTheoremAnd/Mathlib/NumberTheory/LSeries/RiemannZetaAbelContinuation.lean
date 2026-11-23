@@ -127,9 +127,9 @@ theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
 theorem norm_zetaAbelContinuationFormula_le (s : ℂ) (hs_re : 0 < s.re) :
     ‖zetaAbelContinuationFormula s‖ ≤ 1 + ‖1 / (s - 1)‖ + ‖s‖ / s.re := by
   have hI : ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ ≤ 1 / s.re := by
-    have h := TauCeti.norm_integral_mul_cpow_le_of_bound
+    have h := TauCeti.norm_integral_mul_cpow_le_of_bound one_pos
       (g := fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ)) (C := 1) (fun u _ ↦ ?_) hs_re
-    · simpa only [zetaAbelFractKernel, neg_add', sub_eq_add_neg] using h
+    · simpa only [zetaAbelFractKernel, neg_add', sub_eq_add_neg, Real.one_rpow, one_mul] using h
     · simpa only [norm_real, Real.norm_eq_abs, Int.abs_fract] using (Int.fract_lt_one u).le
   have hint : ‖s‖ * ‖∫ u in Ioi (1 : ℝ), zetaAbelFractKernel s u‖ ≤ ‖s‖ / s.re := by
     simpa only [mul_one_div] using mul_le_mul_of_nonneg_left hI (norm_nonneg s)

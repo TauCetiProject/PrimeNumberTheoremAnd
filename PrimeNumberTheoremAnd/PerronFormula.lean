@@ -95,7 +95,7 @@ lemma verticalIntegral_sub_verticalIntegral_eq_squareIntegral
   have : Icc σ σ' ×ℂ univ ∈ 𝓝 p := by
     rw [← mem_interior_iff_mem_nhds, Complex.interior_reProdIm, interior_Icc, interior_univ]
     refine ⟨⟨?_, ?_⟩, trivial⟩ <;> linarith
-  obtain ⟨c', hc'0, hc'⟩ := ((nhds_hasBasis_square p).1 _).mp this
+  obtain ⟨c', hc'0, hc'⟩ := ((nhds_hasBasis_square p).mem_iff' _).mp this
   filter_upwards [Ioo_mem_nhdsGT hc'0] with c ⟨hc0, hcc'⟩
   have hsub : Square p c ⊆ Icc σ σ' ×ℂ univ := (square_subset_square hc0 hcc'.le).trans hc'
   apply tendsto_nhds_unique (RectangleIntegral_tendsTo_VerticalIntegral hbot htop hleft hright)
@@ -352,6 +352,17 @@ lemma limitOfConstantLeft {a : ℝ → ℂ} {σ : ℝ} (σlt : σ ≤ -3 / 2)
 
 
 
+/-- The Perron kernel `x ^ s / (s * (s + 1))` is integrable on every vertical line avoiding its
+poles `0` and `-1`. -/
+private theorem integrable_cpow_div_mul_add_one {c x : ℝ} (hc : c ≠ 0) (hc1 : c ≠ -1)
+    (hx : 0 ≤ x) :
+    Integrable (fun t : ℝ ↦ (x : ℂ) ^ ((c : ℂ) + t * I) /
+      (((c : ℂ) + t * I) * ((c : ℂ) + t * I + 1))) := by
+  have hc1' : c + 1 ≠ 0 := fun h ↦ hc1 (by linarith)
+  have h := TauCeti.integrable_and_integral_norm_cpow_div_ascPochhammer_le 1 le_rfl hx
+    (abs_pos.mpr hc) (abs_pos.mpr hc1') le_rfl (by simp) (by intro k hk hk1; omega)
+  simpa [ascPochhammer_succ_eval, ascPochhammer_zero] using h.1
+
 namespace Perron
 
 variable {x σ σ' σ'' T : ℝ}
@@ -606,9 +617,9 @@ lemma contourPull {σ' σ'' : ℝ} (xpos : 0 < x) (hσ0 : 0 ∉ [[σ', σ'']])
     VerticalIntegral (f x) σ' = VerticalIntegral (f x) σ'' := by
   refine verticalIntegral_eq_verticalIntegral ((isHolomorphicOn xpos).mono ?_)
     (tendsto_zero_Lower xpos σ' σ'') (tendsto_zero_Upper xpos σ' σ'')
-    (TauCeti.integrable_cpow_div_mul_add_one
+    (integrable_cpow_div_mul_add_one
       (fun h ↦ hσ0 (h ▸ left_mem_uIcc)) (fun h ↦ hσ1 (h ▸ left_mem_uIcc)) xpos.le)
-    (TauCeti.integrable_cpow_div_mul_add_one
+    (integrable_cpow_div_mul_add_one
       (fun h ↦ hσ0 (h ▸ right_mem_uIcc)) (fun h ↦ hσ1 (h ▸ right_mem_uIcc)) xpos.le)
   rintro ⟨x, y⟩ ⟨hx, hy⟩ ⟨hc | hc⟩ <;> simp_all [Complex.ext_iff]
 
@@ -681,7 +692,7 @@ lemma bddAbove_square_of_tendsto {f : ℂ → β} {x : ℂ}
     (hf : Tendsto f (𝓝[≠] x) (𝓝 y)) :
     ∀ᶠ (c : ℝ) in 𝓝[>] 0, BddAbove (f '' (Square x c \ {x})) := by
   obtain ⟨t, ht, htf⟩ := Filter.isBoundedUnder_iff_eventually_bddAbove.mp hf.isBoundedUnder_le
-  obtain ⟨ε, hε0, hε⟩ := nhdsWithin_hasBasis (nhds_hasBasis_square x) {x}ᶜ |>.1 t |>.mp htf
+  obtain ⟨ε, hε0, hε⟩ := nhdsWithin_hasBasis (nhds_hasBasis_square x) {x}ᶜ |>.mem_iff' t |>.mp htf
   filter_upwards [Ioo_mem_nhdsGT hε0] with ε' ⟨hε'0, hε'⟩
   exact ht.mono <| Set.image_mono <|
     (Set.sdiff_subset_sdiff (square_subset_square hε'0 hε'.le) subset_rfl).trans hε
@@ -919,8 +930,8 @@ lemma residuePull1 (x_gt_one : 1 < x) (σ_pos : 0 < σ) :
   have := (residueAtZero xpos).and <| verticalIntegral_sub_verticalIntegral_eq_squareIntegral
     (by simpa using ⟨by linarith, by linarith⟩) hf
     (tendsto_zero_Lower xpos _ _) (tendsto_zero_Upper xpos _ _)
-    (TauCeti.integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
-    (TauCeti.integrable_cpow_div_mul_add_one (by linarith) (by linarith) xpos.le)
+    (integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
+    (integrable_cpow_div_mul_add_one (by linarith) (by linarith) xpos.le)
   obtain ⟨c, hcf, hc⟩ := this.exists_mem
   obtain ⟨ε, hε, hεc⟩ := Metric.mem_nhdsWithin_iff.mp hcf
   obtain hε := hc (ε/2)
@@ -953,8 +964,8 @@ lemma residuePull2 (x_gt_one : 1 < x) :
   have := (residueAtNegOne xpos).and <| verticalIntegral_sub_verticalIntegral_eq_squareIntegral
     (by simpa using ⟨by linarith, by linarith⟩) hf
     (tendsto_zero_Lower xpos _ _) (tendsto_zero_Upper xpos _ _)
-    (TauCeti.integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
-    (TauCeti.integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
+    (integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
+    (integrable_cpow_div_mul_add_one (by norm_num) (by norm_num) xpos.le)
   obtain ⟨c, hcf, hc⟩ := this.exists_mem
   obtain ⟨ε, hε, hεc⟩ := Metric.mem_nhdsWithin_iff.mp hcf
   replace hε := hc (ε/2)

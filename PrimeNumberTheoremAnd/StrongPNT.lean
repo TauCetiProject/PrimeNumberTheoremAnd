@@ -17,8 +17,8 @@ public import TauCeti.Analysis.Complex.BranchLogRoot
 public import Mathlib.Analysis.Complex.JensenFormula
 public import TauCeti.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Convex.SimplyConnected
-public import TauCeti.NumberTheory.LSeries.RiemannZeta
-public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDerivNearOne
+public import TauCeti.NumberTheory.LSeries.RiemannZeta.Basic
+public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDeriv.NearOne
 public import TauCeti.NumberTheory.LSeries.ThreeFourOne
 public import Mathlib.NumberTheory.LSeries.ZetaZeros
 public import PrimeNumberTheoremAnd.MediumPNT
