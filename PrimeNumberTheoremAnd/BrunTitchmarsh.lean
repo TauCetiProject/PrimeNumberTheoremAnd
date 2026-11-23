@@ -16,6 +16,7 @@ public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
 import Mathlib.NumberTheory.LSeries.WeakPNT
 import TauCeti.NumberTheory.SelbergSieve.Bounds
 import TauCeti.NumberTheory.SelbergSieve.CoprimeDiagonal
+import TauCeti.Data.Nat.Interval
 
 open Sieve SelbergSieve BoundingSieve
 open Filter Asymptotics
@@ -102,20 +103,8 @@ theorem primesBetween_le_siftedSum_add :
 
 section Remainder
 
-theorem card_Ioc_filter_dvd (d a b : ℕ) (_hd : d ≠ 0) :
-    (Finset.filter (fun x ↦ d ∣ x) (Finset.Ioc a b)).card =
-      b / d - a / d := by
-  rcases le_total a b with h | h
-  · have := Finset.card_union_of_disjoint (Finset.disjoint_filter_filter
-      (s := Finset.Ioc 0 a) (t := Finset.Ioc a b) (p := (d ∣ ·)) (q := (d ∣ ·))
-      (Finset.Ioc_disjoint_Ioc_of_le le_rfl))
-    rw [← Finset.filter_union, Finset.Ioc_union_Ioc_eq_Ioc (Nat.zero_le a) h,
-      Nat.Ioc_filter_dvd_card_eq_div, Nat.Ioc_filter_dvd_card_eq_div] at this
-    omega
-  · simp [Finset.Ioc_eq_empty_of_le h, Nat.div_le_div_right h]
-
 include hx in
-theorem multSum_eq (d : ℕ) (hd : d ≠ 0) :
+theorem multSum_eq (d : ℕ) (_hd : d ≠ 0) :
     multSum (s := toBoundingSieve (self := primeInterSieve x y z hz)) d =
       ↑(⌊x + y⌋₊ / d - (⌈x⌉₊ - 1) / d) := by
   unfold multSum
@@ -123,7 +112,7 @@ theorem multSum_eq (d : ℕ) (hd : d ≠ 0) :
   simp only [Finset.sum_boole, Nat.cast_inj]
   trans ↑(Finset.Ioc (Nat.ceil x - 1) (Nat.floor (x+y)) |>.filter (d ∣ ·) |>.card)
   · rw [← Finset.Icc_add_one_left_eq_Ioc, Nat.sub_add_cancel (Nat.one_le_ceil_iff.mpr hx)]
-  · rw [BrunTitchmarsh.card_Ioc_filter_dvd _ _ _ hd]
+  · rw [Nat.Ioc_filter_dvd_card]
 
 include hx in
 theorem rem_eq (d : ℕ) (hd : d ≠ 0) :

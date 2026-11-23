@@ -17,6 +17,11 @@ public import TauCeti.NumberTheory.LSeries.Liouville
 public import TauCeti.NumberTheory.LSeries.Moebius
 public import TauCeti.NumberTheory.LSeries.Totient
 import TauCeti.NumberTheory.ArithmeticFunction.Zeta
+public import TauCeti.NumberTheory.ArithmeticFunction.Sigma.Complex
+public import TauCeti.NumberTheory.LSeries.TwoPowOmega
+import TauCeti.NumberTheory.LSeries.Divisor.Basic
+import TauCeti.NumberTheory.LSeries.Divisor.PowerSum
+import TauCeti.NumberTheory.LSeries.Zeta.Pow
 
 
 @[expose] public section
@@ -209,12 +214,8 @@ attribute [blueprint
   -/)]
 theorem LSeries_tau_eq_riemannZeta_sq {s : ℂ} (hs : 1 < s.re) :
     LSeries (↗τ) s = riemannZeta s ^ 2 := by
-  have h1 : LSeries (↗(ζ * ζ)) s = LSeries (↗((ζ : ArithmeticFunction ℂ) * ζ)) s := by
-    congr 1; ext n; simp only [← natCoe_mul, natCoe_apply]
-  have h2 : LSeries (↗((ζ : ArithmeticFunction ℂ) * ζ)) s = LSeries (↗ζ) s * LSeries (↗ζ) s :=
-    LSeries_mul' (LSeriesSummable_zeta_iff.mpr hs) (LSeriesSummable_zeta_iff.mpr hs)
-  rw [tau, ← zeta_mul_pow_eq_sigma, pow_zero_eq_zeta, h1, h2,
-    LSeries_zeta_eq_riemannZeta hs, pow_two]
+  rw [← (LSeriesHasSum_zeta_pow 2 hs).LSeries_eq, tau, ← zeta_mul_pow_eq_sigma,
+    pow_zero_eq_zeta, ← sq]
 
 blueprint_comment /--
 \label{d}
@@ -260,17 +261,8 @@ blueprint_comment /--
   Since $d_k$ is defined as the $k$-fold Dirichlet convolution of $\zeta$, and we know that the L-series of $\zeta$ converges for $\Re(s) > 1$, it follows that the L-series of $d_k$ also converges for $\Re(s) > 1$. This is because the convolution of functions with convergent L-series will also have a convergent L-series in the same region. Therefore, we can conclude that $L(d_k, s)$ is summable for $\Re(s) > 1$.
   -/)]
 theorem LSeriesSummable_zeta_pow (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
-      LSeriesSummable (↗((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ)) s := by
-  induction k with
-  | zero =>
-    simp only [pow_zero, natCoe_one, one_eq_delta]
-    exact (hasSum_single 1 fun n hn => by simp [LSeries.term_delta, hn]).summable
-  | succ k ih =>
-    rw [(LSeriesSummable_congr s (fun {n} _ =>
-      show ((ζ ^ (k + 1) : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) n =
-        (((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) * ζ) n by
-        rw [pow_succ, natCoe_mul]))]
-    exact LSeriesSummable_mul ih (LSeriesSummable_zeta_iff.mpr hs)
+      LSeriesSummable (↗((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ)) s :=
+  (LSeriesHasSum_zeta_pow k hs).LSeriesSummable
 
 /-- The L-series of a convolution power of zeta equals the corresponding power of Riemann zeta. -/
 @[blueprint
@@ -281,23 +273,8 @@ theorem LSeriesSummable_zeta_pow (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
   From the definition of $d_k$ as the $k$-fold Dirichlet convolution of $\zeta$, we can express $d_k$ as $\zeta^k$. The L-series of a Dirichlet convolution corresponds to the product of the L-series of the individual functions. Since $L(\zeta, s)$ is the Riemann zeta function $\zeta(s)$, it follows that $L(d_k, s) = L(\zeta^k, s) = (L(\zeta, s))^k = \zeta(s)^k$ for $\Re(s) > 1$ where the series converges.
   -/)]
 theorem LSeries_zeta_pow_eq_riemannZeta_pow (k : ℕ) {s : ℂ} (hs : 1 < s.re) :
-    LSeries (↗(ζ ^ k : ArithmeticFunction ℕ)) s = riemannZeta s ^ k := by
-  change LSeries (↗((ζ ^ k : ArithmeticFunction ℕ) : ArithmeticFunction ℂ)) s = riemannZeta s ^ k
-  induction k with
-  | zero =>
-    simp only [pow_zero, natCoe_one, one_eq_delta]
-    exact congr_fun LSeries_delta s
-  | succ j ih =>
-    have hζ : LSeriesSummable (↗(ζ : ArithmeticFunction ℂ)) s :=
-      LSeriesSummable_zeta_iff.mpr hs
-    rw [show riemannZeta s ^ (j + 1) = riemannZeta s ^ j * riemannZeta s from pow_succ _ _,
-      LSeries_congr (fun {n} _ =>
-        show ((ζ ^ (j + 1) : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) n =
-          (((ζ ^ j : ArithmeticFunction ℕ) : ArithmeticFunction ℂ) * ζ) n by
-          rw [pow_succ, natCoe_mul]) s,
-        LSeries_mul' (LSeriesSummable_zeta_pow j hs) hζ, ih]
-    congr 1
-    exact LSeries_zeta_eq_riemannZeta hs
+    LSeries (↗(ζ ^ k : ArithmeticFunction ℕ)) s = riemannZeta s ^ k :=
+  (LSeriesHasSum_zeta_pow k hs).LSeries_eq
 
 
 blueprint_comment /--
@@ -474,14 +451,13 @@ lemma sigmaR_one (s : ℂ) :
     σᴿ s 1 = 1 := by
   simp only [sigmaR_apply, divisors_one, sum_singleton, cast_one, Complex.one_cpow]
 
-@[blueprint
+attribute [blueprint
   "powR"
   (title := "powR")
   (statement := /-- Arithmetic function with complex parameter $\nu$. Evaluates as $n\mapsto n^{\nu}$ for $n\neq 0$ and $0$ at $n=0$. -/)]
-noncomputable def powR (ν : ℂ) : ArithmeticFunction ℂ :=
-  ⟨fun n ↦ if n = 0 then 0 else (n : ℂ) ^ ν, by grind⟩
+  TauCeti.ArithmeticFunction.cpow
 
-@[blueprint
+attribute [blueprint
   "isMultiplicative_powR"
   (title := "isMultiplicative-powR")
   (statement := /--
@@ -490,17 +466,7 @@ noncomputable def powR (ν : ℂ) : ArithmeticFunction ℂ :=
   (proof := /--
     This immediately follows from the fact that exponentiation with a fixed power is a homomorphism.
   -/)]
-theorem isMultiplicative_powR {ν : ℂ} : IsMultiplicative (powR ν) := by
-  refine ⟨by simp [powR], fun {m n : ℕ} mCn => ?_⟩
-  simp only [powR, ArithmeticFunction.coe_mk]
-  rcases Nat.eq_zero_or_pos m with rfl | hm
-  · simp only [zero_mul, ↓reduceIte, mul_ite, mul_zero, ite_self]
-  rcases Nat.eq_zero_or_pos n with rfl | hn
-  · simp only [mul_zero, ↓reduceIte]
-  have hmn_pos : m * n ≠ 0 := Nat.mul_ne_zero hm.ne' hn.ne'
-  simp only [hm.ne', hn.ne', hmn_pos, ite_false]
-  push_cast
-  exact Complex.natCast_mul_cpow m n ν
+  TauCeti.ArithmeticFunction.isMultiplicative_cpow
 
 @[blueprint
   "sigmaR_eq_zeta_mul_powR"
@@ -509,13 +475,11 @@ theorem isMultiplicative_powR {ν : ℂ} : IsMultiplicative (powR ν) := by
   (proof := /--
   The function $\sigma^R(\nu)$ is defined as the sum of the $\nu$-th powers of the divisors of $n$. The function $\text{pow}^R(\nu)$ is defined as $n \mapsto n^\nu$ for $n \neq 0$ and $0$ for $n = 0$. The Dirichlet convolution of $\zeta$ (the constant function $1$) and $\text{pow}^R(\nu)$ is exactly $\sigma^R(\nu)$, since for each divisor $d$ of $n$, we have $(\zeta * \text{pow}^R(\nu))(n) = \sum_{d|n} 1 \cdot d^\nu = \sigma^R(\nu)(n)$. Thus, we have $\sigma^R(\nu) = \zeta * \text{pow}^R(\nu)$.
   -/)]
-lemma sigmaR_eq_zeta_mul_powR (ν : ℂ) : sigmaR ν = (zeta : ArithmeticFunction ℂ) * powR ν := by
+lemma sigmaR_eq_zeta_mul_powR (ν : ℂ) :
+    sigmaR ν = (zeta : ArithmeticFunction ℂ) * TauCeti.ArithmeticFunction.cpow ν := by
+  rw [← TauCeti.ArithmeticFunction.sigmaC_eq_zeta_mul_cpow]
   ext n
-  by_cases hn : n = 0
-  · simp [hn]
-  rw [sigmaR_apply, coe_zeta_mul_apply]
-  exact Finset.sum_congr rfl fun d hd => by
-    simp only [powR, coe_mk, ite_eq_right (Nat.pos_of_mem_divisors hd).ne']
+  rw [sigmaR_apply, TauCeti.ArithmeticFunction.sigmaC_apply]
 
 @[blueprint
   "isMultiplicative_sigmaR"
@@ -531,7 +495,7 @@ lemma sigmaR_eq_zeta_mul_powR (ν : ℂ) : sigmaR ν = (zeta : ArithmeticFunctio
 lemma isMultiplicative_sigmaR {s : ℂ} :
     IsMultiplicative (σᴿ s) := by
   rw [sigmaR_eq_zeta_mul_powR]
-  exact isMultiplicative_zeta.natCast.mul  isMultiplicative_powR
+  exact isMultiplicative_zeta.natCast.mul (TauCeti.ArithmeticFunction.isMultiplicative_cpow s)
 
 @[blueprint
   "sigmaR_eq_prod_primeFactors_sum_range_factorization_pow_mul"
@@ -563,16 +527,8 @@ lemma sigmaR_eq_prod_primeFactors_sum_range_factorization_pow_mul {n : ℕ} {s :
   The function $\text{pow}^R(\nu)$ is defined as $n \mapsto n^\nu$ for $n \neq 0$ and $0$ for $n = 0$. The L-series of $\text{pow}^R(\nu)$ at $s$ is given by the sum $\sum_{n=1}^{\infty} n^{\nu - s}$. This series converges to the Riemann zeta function $\zeta(s - \nu)$ for $\Re(s - \nu) > 1$, since the zeta function is defined as $\zeta(s) = \sum_{n=1}^{\infty} n^{-s}$ for $\Re(s) > 1$. Therefore, we have $L(\text{pow}^R(\nu), s) = \zeta(s - \nu)$ under the condition that $\Re(s - \nu) > 1$.
   -/)]
 lemma LSeries_powR_eq (ν : ℂ) {s : ℂ} (hs : 1 < (s - ν).re) :
-    LSeries (powR ν) s = riemannZeta (s - ν) := by
-  rw [← ArithmeticFunction.LSeries_zeta_eq_riemannZeta hs]
-  unfold LSeries
-  apply tsum_congr
-  intro n
-  by_cases hn : n = 0
-  · simp [hn]
-  · simp only [LSeries.term_of_ne_zero hn, powR, coe_mk, ↓reduceIte,
-      zeta_apply, hn, Nat.cast_one]
-    rw [Complex.cpow_sub _ _ (Nat.cast_ne_zero.mpr hn), one_div_div]
+    LSeries (TauCeti.ArithmeticFunction.cpow ν) s = riemannZeta (s - ν) :=
+  TauCeti.LSeries.LSeries_cpow (by rw [Complex.sub_re] at hs; linarith)
 
 @[blueprint
   "abscissa_powR_le"
@@ -581,11 +537,10 @@ lemma LSeries_powR_eq (ν : ℂ) {s : ℂ} (hs : 1 < (s - ν).re) :
   (proof := /--
   We apply \ref{LSeries.abscissaOfAbsConv_le_of_le_const_mul_rpow} which states that if there exists a constant $C$ such that $\|f(n)\| \leq C \cdot n^r$ for all $n$ sufficiently large, then the abscissa of absolute convergence of $L(f, s)$ is at most $r + 1$. In our case, we can take $f(n) = n^\nu$ and observe that $\|n^\nu\| = n^{\Re(\nu)}$. Thus, we can choose $C = 1$ and $r = \Re(\nu)$, which gives us the desired result that the abscissa of absolute convergence of $L(\text{pow}^R(\nu), s)$ is at most $\Re(\nu) + 1$.
   -/)]
-lemma abscissa_powR_le (ν : ℂ) : LSeries.abscissaOfAbsConv (powR ν) ≤ ν.re + 1 := by
-  apply LSeries.abscissaOfAbsConv_le_of_le_const_mul_rpow
-  refine ⟨1, fun n hn ↦ ?_⟩
-  simp only [powR, coe_mk, hn, ↓reduceIte, one_mul]
-  exact le_of_eq (Complex.norm_natCast_cpow_of_pos (Nat.pos_of_ne_zero hn) ν)
+lemma abscissa_powR_le (ν : ℂ) :
+    LSeries.abscissaOfAbsConv (TauCeti.ArithmeticFunction.cpow ν) ≤ ν.re + 1 := by
+  rw [TauCeti.LSeries.abscissaOfAbsConv_cpow, add_comm]
+  exact_mod_cast le_rfl
 
 /-- `ζ(s)ζ(s - ν) = Σ σ_ν(n) n^(-s)` for `Re(s) > 1` and `Re(s - ν) > 1`. -/
 @[blueprint
@@ -597,13 +552,8 @@ lemma abscissa_powR_le (ν : ℂ) : LSeries.abscissaOfAbsConv (powR ν) ≤ ν.r
   -/)]
 theorem LSeries_sigma_eq_riemannZeta_mul (ν : ℂ) {s : ℂ} (hs : 1 < s.re) (hsν : 1 < (s - ν).re) :
     LSeries (↗(σᴿ ν)) s = riemannZeta s * riemannZeta (s - ν) := by
-  rw [← ArithmeticFunction.LSeries_zeta_eq_riemannZeta hs, ← LSeries_powR_eq ν hsν, sigmaR_eq_zeta_mul_powR];
-  apply ArithmeticFunction.LSeries_mul
-  · apply (ArithmeticFunction.abscissaOfAbsConv_zeta.trans_lt _)
-    exact_mod_cast hs
-  · apply lt_of_le_of_lt (abscissa_powR_le ν)
-    rw[Complex.sub_re] at hsν
-    exact_mod_cast (by linarith)
+  rw [sigmaR_eq_zeta_mul_powR, ← TauCeti.ArithmeticFunction.sigmaC_eq_zeta_mul_cpow]
+  exact TauCeti.LSeries.LSeries_sigmaC (max_lt hs (by rw [Complex.sub_re] at hsν; linarith))
 
 /-- The native fourth divisor-function coefficient dominates the squared divisor count. -/
 private lemma ramanujan_square_le_choose (k : ℕ) : (k + 1) ^ 2 ≤ (k + 3).choose 3 := by
@@ -733,14 +683,9 @@ private lemma ramanujan_geom_product_sum {a b x : ℂ}
 
 private lemma ramanujan_sigma_summable {α s : ℂ} (h1 : 1 < s.re) (h2 : 1 < (s - α).re) :
     LSeriesSummable (sigmaR α) s := by
-  have hp : LSeriesSummable (powR α) s := by
-    apply LSeriesSummable_of_abscissaOfAbsConv_lt_re
-    apply (abscissa_powR_le α).trans_lt
-    exact_mod_cast (show α.re+1 < s.re from by rw [Complex.sub_re] at h2; linarith)
-  have hz : LSeriesSummable (zeta : ArithmeticFunction ℂ) s :=
-    LSeriesSummable_zeta_iff.mpr h1
-  have H := ArithmeticFunction.LSeriesSummable_mul hz hp
-  simpa only [← sigmaR_eq_zeta_mul_powR] using H
+  rw [sigmaR_eq_zeta_mul_powR, ← TauCeti.ArithmeticFunction.sigmaC_eq_zeta_mul_cpow]
+  exact TauCeti.LSeries.LSeriesSummable_sigmaC_iff.mpr
+    (max_lt h1 (by rw [Complex.sub_re] at h2; linarith))
 
 private lemma ramanujan_sigma_term_prime_power (p : ℕ) (hp : p.Prime) (α s : ℂ) (k : ℕ) :
     LSeries.term (sigmaR α) s (p^k) =
@@ -972,72 +917,10 @@ Baby Rankin-Selberg:
 lemma zeta_mul_tau_square_eq (s : ℂ) (hs : 1 < s.re) :
     riemannZeta s * LSeries (fun n ↦ τ (n ^ 2)) s
       = LSeries (fun n ↦ (τ n) ^ 2) s := by
-  have hzf_mul : ((ζ : ArithmeticFunction ℕ) * tauSq).IsMultiplicative :=
-    isMultiplicative_zeta.mul isMultiplicative_tauSq
-  -- (a) Convolution identity  ζ * tauSq = sqTau  in  ArithmeticFunction ℕ.
-  have hconv : (ζ : ArithmeticFunction ℕ) * tauSq = sqTau := by
-    ext n
-    rcases eq_or_ne n 0 with rfl | hn
-    · simp
-    rw [hzf_mul.multiplicative_factorization _ hn,
-        prod_factorization_eq_prod_primeFactors,
-        isMultiplicative_sqTau.multiplicative_factorization _ hn,
-        prod_factorization_eq_prod_primeFactors]
-    refine Finset.prod_congr rfl fun p hp ↦ ?_
-    have hp' := Nat.prime_of_mem_primeFactors hp
-    set k := n.factorization p
-    rw [show (ζ : ArithmeticFunction ℕ) * tauSq = tauSq * ζ from mul_comm _ _,
-        mul_zeta_apply, sum_divisors_prime_pow hp']
-    have key : ∀ j ∈ Finset.range (k + 1), tauSq (p ^ j) = 2 * j + 1 := by
-      intro j _
-      change τ ((p ^ j) ^ 2) = 2 * j + 1
-      rw [← pow_mul, mul_comm j 2, sigma_zero_apply_prime_pow hp']
-    rw [Finset.sum_congr rfl key, sum_two_mul_add_one]
-    change (k + 1) ^ 2 = τ (p ^ k) ^ 2
-    rw [sigma_zero_apply_prime_pow hp']
-  -- (b) Summability of  ↗tauSq  at  s  via domination by  ↗((ζ ^ 3 : ArithmeticFunction ℕ)).
-  have hsumm : LSeriesSummable (↗(tauSq : ArithmeticFunction ℂ)) s := by
-    refine Summable.of_norm_bounded ((LSeriesSummable_zeta_pow 3 hs).norm) ?_
-    intro n
-    by_cases hn : n = 0
-    · simp [hn, LSeries.term]
-    rw [LSeries.term_of_ne_zero hn, LSeries.term_of_ne_zero hn,
-        norm_div, norm_div]
-    gcongr
-    change ‖((tauSq n : ℕ) : ℂ)‖ ≤ ‖(((ζ ^ 3 : ArithmeticFunction ℕ) n : ℕ) : ℂ)‖
-    simp only [Complex.norm_natCast, Nat.cast_le]
-    exact tau_sq_le_zeta_pow_three n
-  -- (c) Lift to L-series.
-  have h1 : LSeries (↗((ζ : ArithmeticFunction ℂ) * (tauSq : ArithmeticFunction ℂ))) s
-          = LSeries (↗(ζ : ArithmeticFunction ℂ)) s
-              * LSeries (↗(tauSq : ArithmeticFunction ℂ)) s :=
-    LSeries_mul' (LSeriesSummable_zeta_iff.mpr hs) hsumm
-  have h2 : LSeries (↗(((ζ : ArithmeticFunction ℕ) * tauSq : ArithmeticFunction ℕ)
-                       : ArithmeticFunction ℂ)) s
-          = LSeries (↗((ζ : ArithmeticFunction ℂ)
-                         * (tauSq : ArithmeticFunction ℂ))) s := by
-    apply LSeries_congr
-    intro n _hn
-    simp [natCoe_mul]
-  have key : LSeries (↗(sqTau : ArithmeticFunction ℂ)) s
-           = riemannZeta s * LSeries (↗(tauSq : ArithmeticFunction ℂ)) s := by
-    rw [← hconv, h2, h1]
-    congr 1
-    exact LSeries_zeta_eq_riemannZeta hs
-  -- Bridge original goal's cast forms to AF form.
-  have lhs_bridge : LSeries (fun n : ℕ ↦ ((τ (n ^ 2) : ℕ) : ℂ)) s
-                  = LSeries (↗(tauSq : ArithmeticFunction ℂ)) s := by
-    apply LSeries_congr
-    intro n _hn
-    rfl
-  have rhs_bridge : LSeries (fun n : ℕ ↦ ((τ n : ℕ) : ℂ) ^ 2) s
-                  = LSeries (↗(sqTau : ArithmeticFunction ℂ)) s := by
-    apply LSeries_congr
-    intro n _hn
-    change ((τ n : ℕ) : ℂ) ^ 2 = (((τ n) ^ 2 : ℕ) : ℂ)
-    push_cast
-    rfl
-  rw [lhs_bridge, rhs_bridge, key]
+  simp only [tau, sigma_zero_apply]
+  rw [(TauCeti.LSeriesHasSum_card_divisors_comp_sq hs).LSeries_eq,
+    (TauCeti.LSeriesHasSum_card_divisors_sq hs).LSeries_eq]
+  ring
   
 blueprint_comment /--
 The zeta-cubed identity can also be deduced by cancelling a zeta factor from the Ramanujan formula
@@ -1085,20 +968,8 @@ Termwise norm domination gives absolute convergence by Mathlib's `Summable.of_no
     This follows by comparison test against the $L$-series with coefficients given by $\sigma_0(n)$.
   -/)]
 lemma LSeriesSummable_two_pow_omega {s : ℂ} (hs : 1 < s.re) :
-    LSeriesSummable (fun n ↦ 2 ^ (ω n)) s := by
-  have hgf : ∀ (n : ℕ), ‖LSeries.term (fun n ↦ 2 ^ ω n) s n‖ ≤ ‖LSeries.term (fun n ↦ σ 0 n) s n‖ := by
-    intro n
-    by_cases hn : n = 0
-    · simp only [LSeries.term, hn, ↓reduceIte, norm_zero, Std.le_refl]
-    · simp only [LSeries.term, hn, ↓reduceIte, Complex.norm_div, norm_pow, Complex.norm_ofNat,
-        RCLike.norm_natCast]
-      exact div_le_div_of_nonneg_right (by exact_mod_cast two_pow_omega_le_sigma_zero hn) (norm_nonneg _)
-  apply Summable.of_norm_bounded ?_ hgf
-  rw [summable_norm_iff, ← LSeriesSummable]
-  convert LSeriesSummable_zeta_pow 2 hs using 1;
-  exact funext fun n => by
-    rw [pow_two, ← zeta_mul_pow_eq_sigma, pow_zero_eq_zeta]
-    rfl
+    LSeriesSummable (fun n ↦ 2 ^ (ω n)) s :=
+  TauCeti.LSeriesSummable_two_pow_cardDistinctFactors_iff.mpr hs
 
 blueprint_comment /--
 Dirichlet-series terms preserve multiplicativity on coprime inputs, using
@@ -1165,29 +1036,8 @@ lemma sumOnPrimePows_apply (f : ℕ → ℂ) (p : Primes) :
     convergence as $1<\Re(s)$.
   -/)]
 lemma two_pow_omega_tsum_prime_pow {s : ℂ} (hs : 1 < s.re)
-    (p : Primes) : sumOnPrimePows (LSeries.term (fun n ↦ 2 ^ (ω n)) s) p = (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) := by
-  have h_rw : sumOnPrimePows (LSeries.term (fun n ↦ 2 ^ (ω n)) s) p = 1 + ∑' e : ℕ, LSeries.term (fun n : ℕ => 2 ^ (ω n)) s (p.val ^ (e + 1)) := by
-    rw [sumOnPrimePows_apply, Summable.tsum_eq_zero_add];
-    · unfold LSeries.term
-      simp [Nat.Prime.ne_zero p.prop]
-    · have := LSeriesSummable_two_pow_omega hs;
-      convert! this.comp_injective (show Function.Injective (fun e : ℕ => p.val ^ e) from fun a b h => Nat.pow_right_injective p.prop.one_lt h) using 1
-  have h_term_eval : ∀ e : ℕ, LSeries.term (fun n : ℕ => 2 ^ ω n) s (p.val ^ (e + 1)) = 2 * (p.val : ℂ) ^ (-(e + 1) * s) := by
-    intro e
-    simp only [neg_mul, LSeries.term, Nat.pow_eq_zero, ne_eq, cast_pow, Nat.Prime.ne_zero p.prop, false_and, ↓reduceIte]
-    rw [ArithmeticFunction.cardDistinctFactors_apply_prime_pow p.prop, pow_one]
-    · simp only [Complex.cpow_neg, div_eq_mul_inv, ← Complex.natCast_cpow_natCast_mul, cast_add, cast_one]
-    · linarith
-  have geo_series_rw : ∑' e : ℕ, (p.val : ℂ) ^ (-(e + 1) * s) = (p.val : ℂ) ^ (-s) / (1 - (p.val : ℂ) ^ (-s)) := by
-    rw [div_eq_mul_inv, ← tsum_geometric_of_norm_lt_one]
-    · rw [← tsum_mul_left]; congr; ext n; rw [← Complex.cpow_nat_mul]; ring_nf
-      rw [← Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.prop.ne_zero)]; ring_nf
-    · rw [Complex.norm_cpow_of_ne_zero] <;> norm_num [p.property.ne_zero]
-      exact lt_of_lt_of_le (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.property.one_lt) (neg_lt_zero.mpr (by linarith))) (by norm_num)
-  simp only [h_rw, h_term_eval, geo_series_rw, tsum_mul_left]
-  rw [eq_div_iff, add_mul, one_mul, ← mul_div_assoc, div_mul_cancel₀]
-  · ring_nf
-  all_goals (exact Complex.one_sub_prime_cpow_ne_zero p.property hs)
+    (p : Primes) : sumOnPrimePows (LSeries.term (fun n ↦ 2 ^ (ω n)) s) p = (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) :=
+  TauCeti.tsum_term_prime_pow_two_pow_cardDistinctFactors (zero_lt_one.trans hs)
 
 @[blueprint
   "Complex.one_add_prime_cpow_ne_zero"
@@ -1213,7 +1063,7 @@ lemma Complex.one_add_prime_cpow_ne_zero {p : ℕ} (hp : Nat.Prime p) {s : ℂ} 
     exact this
   linarith [Complex.norm_prime_cpow_le_one_half ⟨p, hp⟩ hs]
 
-@[blueprint
+attribute [blueprint
   "two_pow_omega_LSeries_eulerProduct_hasProd"
   (title := "two-pow-omega-LSeries-eulerProduct-hasProd")
   (statement := /--
@@ -1227,16 +1077,7 @@ lemma Complex.one_add_prime_cpow_ne_zero {p : ℕ} (hp : Nat.Prime p) {s : ℂ} 
   (proof := /--
     Immediately follows from Lemmas \ref{two-pow-omega-LSeries.term-IsMultiplicative} and \ref{two-pow-omega-tsum-prime-pow}.
   -/)]
-lemma two_pow_omega_LSeries_eulerProduct_hasProd (s : ℂ) (hs : 1 < s.re) :
-    HasProd (fun (p : Primes) ↦ (1 + ↑↑p ^ (-s)) / (1 - ↑↑p ^ (-s))) (L (fun n ↦ (2 ^ ω n)) s) := by
-  convert! EulerProduct.eulerProduct_hasProd _ _ _ (LSeries.term_zero (fun n ↦ (2 ^ ω n)) s) using 1;
-  · funext p; exact Eq.symm (two_pow_omega_tsum_prime_pow hs p)
-  · simp only [ne_eq, one_ne_zero, not_false_eq_true, LSeries.term_of_ne_zero,
-      cardDistinctFactors_one, pow_zero, cast_one, Complex.one_cpow, div_self]
-  · intro _ _ mCn; exact TauCeti.LSeries.term_mul_of_coprime (fun ha hb hab => by
-      simpa [toArithmeticFunction, ha, hb, mul_ne_zero ha hb] using
-        two_pow_omega_isMultiplicative.map_mul_of_coprime hab) mCn
-  · convert! (LSeriesSummable_two_pow_omega hs).norm using 1
+  TauCeti.LSeries_two_pow_cardDistinctFactors_eulerProduct_hasProd
 
 @[blueprint
   "two_pow_omega_LSeries_eulerProduct_tprod"
@@ -1254,13 +1095,9 @@ lemma two_pow_omega_LSeries_eulerProduct_hasProd (s : ℂ) (hs : 1 < s.re) :
   -/)]
 lemma two_pow_omega_LSeries_eulerProduct_tprod (s : ℂ) (hs : 1 < s.re) :
     LSeries (fun n ↦ 2 ^ (ω n)) s = ∏' (p : Primes), (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) := by
-  exact (two_pow_omega_LSeries_eulerProduct_hasProd s hs).tprod_eq.symm
+  exact (TauCeti.LSeries_two_pow_cardDistinctFactors_eulerProduct_hasProd hs).tprod_eq.symm
 
-/--
-Zeta squared:
-`ζ(s)^2 = ζ(2*s) * ∑_n (2^omega(n)) n^(-s)`,
-where omega is the number of distinct prime factors. -/
-@[blueprint
+attribute [blueprint
   "zeta_pow_two"
   (title := "zeta pow two")
   (statement := /--
@@ -1280,24 +1117,7 @@ where omega is the number of distinct prime factors. -/
     $$\zeta(2s)\left(\sum_{1\leq n}2^{\omega(n)}n^{-s}\right)=\prod_p\frac{1+p^{-s}}{(1-p^{-s})(1-p^{-2s})}=\prod_p\frac{1}{(1-p^{-s})^2}$$
     by the difference of squares. This is exactly the Euler product for $\zeta(s)^2$ mentioned earlier.
   -/)]
-lemma zeta_pow_two (s : ℂ) (hs : 1 < s.re) :
-    riemannZeta s ^ 2 =
-    riemannZeta (2 * s) * LSeries (fun n ↦ 2 ^ (ω n)) s := by
-  have hs' : 1 < (2 * s).re := by rw [Complex.mul_re]; norm_num; linarith
-  have mulable := (riemannZeta_eulerProduct_hasProd hs).multipliable
-  rw [sq, ← riemannZeta_eulerProduct_tprod hs, ← Multipliable.tprod_mul mulable mulable,
-    mul_comm, ← riemannZeta_eulerProduct_tprod hs',
-    two_pow_omega_LSeries_eulerProduct_tprod s hs, ← Multipliable.tprod_mul, tprod_congr]
-  · intro p
-    have hsub := Complex.one_sub_prime_cpow_ne_zero p.property hs
-    have hsq : 1 - ((p : ℂ) ^ (-s)) ^ 2 ≠ 0 := by
-      rw [show 1 - ((p : ℂ) ^ (-s)) ^ 2 = (1 - (p : ℂ) ^ (-s)) * (1 + (p : ℂ) ^ (-s)) from by ring]
-      exact mul_ne_zero hsub (Complex.one_add_prime_cpow_ne_zero p.property hs)
-    rw [show (-(2 * s) : ℂ) = -s + -s from by ring, Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.property.ne_zero)]
-    field_simp
-    ring
-  · exact ⟨LSeries (fun n ↦ 2 ^ (ω n)) s, two_pow_omega_LSeries_eulerProduct_hasProd s hs⟩
-  · exact ⟨riemannZeta (2 * s), riemannZeta_eulerProduct_hasProd hs'⟩
+  TauCeti.riemannZeta_sq_eq_mul_LSeries_two_pow_cardDistinctFactors
 
 /-- Local evaluation: $\tau((p^e)^2)=\tau(p^{2e})=2e+1$. -/
 private lemma tau_sq_apply_prime_pow {p e : ℕ} (hp : p.Prime) :
@@ -1306,16 +1126,8 @@ private lemma tau_sq_apply_prime_pow {p e : ℕ} (hp : p.Prime) :
 
 private lemma LSeriesSummable_tau_sq {s : ℂ} (hs : 1 < s.re) :
     LSeriesSummable (fun n ↦ (τ (n ^ 2) : ℂ)) s := by
-  have hgf : ∀ n, ‖LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s n‖ ≤
-      ‖LSeries.term (fun n ↦ ((ζ ^ 3 : ArithmeticFunction ℕ) n : ℂ)) s n‖ := by
-    intro n
-    by_cases hn : n = 0
-    · simp [LSeries.term, hn]
-    · simp only [LSeries.term, hn, ↓reduceIte, Complex.norm_div, RCLike.norm_natCast]
-      exact div_le_div_of_nonneg_right (by exact_mod_cast tau_sq_le_zeta_pow_three n) (norm_nonneg _)
-  apply Summable.of_norm_bounded ?_ hgf
-  rw [summable_norm_iff, ← LSeriesSummable]
-  exact LSeriesSummable_zeta_pow 3 hs
+  simpa only [tau, sigma_zero_apply] using
+    (TauCeti.LSeriesHasSum_card_divisors_comp_sq hs).LSeriesSummable
 
 /-- Local Euler factor: $\sum_e \tau((p^e)^2)\,p^{-es}=(1+p^{-s})/(1-p^{-s})^2$. -/
 private lemma tau_sq_tsum_prime_pow {s : ℂ} (hs : 1 < s.re) (p : Primes) :
@@ -1389,30 +1201,8 @@ Zeta cubed:
   -/)]
 lemma zeta_pow_three_eq (s : ℂ) (hs : 1 < s.re) :
     riemannZeta s ^ 3 = riemannZeta (2 * s) * LSeries (fun n ↦ τ (n ^ 2)) s := by
-  have hs' : 1 < (2 * s).re := by rw [Complex.mul_re]; norm_num; linarith
-  have mulζ := (riemannZeta_eulerProduct_hasProd hs).multipliable
-  change riemannZeta s ^ 3 = riemannZeta (2 * s) * LSeries (fun n ↦ (τ (n ^ 2) : ℂ)) s
-  have hRHS :
-      riemannZeta (2 * s) * LSeries (fun n ↦ (τ (n ^ 2) : ℂ)) s =
-        ∏' p : Primes,
-          (1 - (p : ℂ) ^ (-(2 * s)))⁻¹ *
-            ((1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) ^ 2) := by
-    rw [← riemannZeta_eulerProduct_tprod hs', tau_sq_LSeries_eulerProduct_tprod s hs,
-      ← Multipliable.tprod_mul]
-    · exact ⟨riemannZeta (2 * s), riemannZeta_eulerProduct_hasProd hs'⟩
-    · exact ⟨LSeries (fun n ↦ (τ (n ^ 2) : ℂ)) s, tau_sq_LSeries_eulerProduct_hasProd s hs⟩
-  rw [hRHS, ← riemannZeta_eulerProduct_tprod hs, ← mulζ.tprod_pow 3]
-  refine tprod_congr fun p ↦ ?_
-  have hsub := Complex.one_sub_prime_cpow_ne_zero p.property hs
-  have hadd := Complex.one_add_prime_cpow_ne_zero p.property hs
-  have hsq : 1 - ((p : ℂ) ^ (-s)) ^ 2 ≠ 0 := by
-    rw [show 1 - ((p : ℂ) ^ (-s)) ^ 2 =
-        (1 - (p : ℂ) ^ (-s)) * (1 + (p : ℂ) ^ (-s)) from by ring]
-    exact mul_ne_zero hsub hadd
-  rw [show (-(2 * s) : ℂ) = -s + -s from by ring,
-    Complex.cpow_add _ _ (Nat.cast_ne_zero.mpr p.property.ne_zero)]
-  field_simp
-  ring
+  simpa only [tau, sigma_zero_apply] using
+    TauCeti.riemannZeta_pow_three_eq_mul_LSeries_card_divisors_comp_sq hs
 
 /-- The coefficient at n is the native product-series sum over the fiber d²m=n.
 The zero fiber is infinite, but every Dirichlet term in it is zero. -/

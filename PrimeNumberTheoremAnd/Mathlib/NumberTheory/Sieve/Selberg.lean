@@ -183,108 +183,28 @@ private lemma _helper {k m d : ℕ} (hkd : k ∣ d) (hk : k ∈ divisors P) (hm 
       exact (Nat.gcd_mul_of_coprime_of_dvd h.2 hkd).symm
     · exact h.1
 
-theorem selbergBoundingSum_ge {d : ℕ} (hdP : d ∣ P) :
-    S ≥ γ d * ↑(μ d) * S := by
-  calc
-  _ = (∑ k ∈ divisors P, ∑ l ∈ divisors P, if k = d.gcd l ∧ l ^ 2 ≤ y then g l else 0) := by
-    simp only [truncatedSelbergSum_def, Real.le_sqrt (Nat.cast_nonneg _) (zero_le_one.trans hy)]
-    rw [sum_comm, sum_congr rfl]; intro l _
-    simp_rw [ite_and]
-    rw [sum_ite_eq_of_mem']
-    · rw [mem_divisors]
-      exact ⟨(Nat.gcd_dvd_left d l).trans (hdP), prodPrimes_ne_zero⟩
-  _ = (∑ k ∈ divisors P,
-          if k ∣ d then
-            g k * ∑ m ∈ divisors P, if (k * m) ^ 2 ≤ y ∧ m.Coprime d then g m else 0
-          else 0) := by
-    apply sum_congr rfl; intro k hk
-    rw [mul_sum]
-    split_ifs with hkd
-    swap
-    · rw [sum_eq_zero]; intro l _
-      rw [ite_eq_right]
-      push Not; intro h; exfalso
-      rw [h] at hkd
-      exact hkd <| Nat.gcd_dvd_left d l
-    rw [sum_mul_subst k P, sum_congr rfl]
-    · intro m hm
-      rw [mul_ite_zero, ← ite_and]
-      apply if_ctx_congr _ _ fun _ => rfl
-      · exact_mod_cast s._helper hkd hk hm
-      · intro h
-        apply (@BoundingSieve.selbergTerms_isMultiplicative _).map_mul_of_coprime
-        rw [gcd_comm]; apply h.2.coprime_dvd_right hkd
-    · intro l _ hkl; apply ite_eq_right
-      push Not; intro h; exfalso
-      rw [h] at hkl; exact hkl (Nat.gcd_dvd_right d l)
-  _ ≥ (∑ k ∈ divisors P, if k ∣ d
-          then g k * ∑ m ∈ divisors P, if (d * m) ^ 2 ≤ y ∧ m.Coprime d then g m else 0
-          else 0 ) := by
-    apply sum_le_sum; intro k _
-    split_ifs with hkd
-    swap
-    · rfl
-    apply mul_le_mul le_rfl _ _ (le_of_lt <| @BoundingSieve.selbergTerms_pos _ k <| hkd.trans hdP)
-    · apply sum_le_sum; intro m hm
-      split_ifs with h h' h'
-      · rfl
-      · exfalso; apply h'
-        refine ⟨?_, h.2⟩
-        · trans ((d*m)^2:ℝ)
-          · norm_cast; gcongr
-            refine Nat.le_of_dvd ?_ hkd
-            apply Nat.pos_of_ne_zero; apply ne_zero_of_dvd_ne_zero prodPrimes_ne_zero hdP
-          exact h.1
-      · refine le_of_lt <| @BoundingSieve.selbergTerms_pos _ m <| dvd_of_mem_divisors hm
-      · rfl
-    apply sum_nonneg; intro m hm
-    split_ifs
-    · apply le_of_lt <| @BoundingSieve.selbergTerms_pos _ m <| dvd_of_mem_divisors hm
-    · rfl
-  _ = _ := by
-    conv => enter [1, 2, k]; rw [← ite_zero_mul]
-    rw [←sum_mul, BoundingSieve.sum_divisors_selbergTerms_eq_selbergTerms_mul_nu_inv hdP]
-    trans (S * S⁻¹ * (μ d:ℝ)^2 * (ν d)⁻¹ * g d * (∑ m ∈ divisors P, if (d*m) ^ 2 ≤ y ∧
-      Coprime m d then g m else 0))
-    · rw [mul_inv_cancel₀, ←Int.cast_pow, moebius_sq_eq_one_of_squarefree]
-      · ring
-      · exact Squarefree.squarefree_of_dvd hdP s.prodPrimes_squarefree
-      · exact (s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy)).ne'
-    dsimp only [selbergWeights]; rw [ite_eq_left hdP]
-    ring
-
 theorem selberg_bound_weights (d : ℕ) : |γ d| ≤ 1 := by
-  by_cases hdP : d ∣ P
-  swap
-  · rw [selbergWeights, ite_eq_right hdP]; simp only [zero_le_one, abs_zero]
-  have : 1*S ≥ γ d * ↑(μ d) * S := by
-    rw[one_mul]
-    exact s.selbergBoundingSum_ge hdP
-  replace this : γ d * μ d ≤ 1 := by
-    exact le_of_mul_le_mul_of_pos_right this
-      (s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy))
-  convert this using 1
-  rw [← abs_of_nonneg <| s.selbergWeights_mul_mu_nonneg d hdP,
-    abs_mul, ←Int.cast_abs, abs_moebius_eq_one_of_squarefree <|
-    (s.prodPrimes_squarefree.squarefree_of_dvd hdP), Int.cast_one, mul_one]
+  rw [s.selbergWeights_eq_boundingSieve_selbergWeights]
+  exact s.toBoundingSieve.abs_selbergWeights_le_one _ d
+
+theorem selbergBoundingSum_ge {d : ℕ} (_hdP : d ∣ P) :
+    S ≥ γ d * ↑(μ d) * S := by
+  have hμ : |(μ d : ℝ)| ≤ 1 := by exact_mod_cast abs_moebius_le_one
+  have h : γ d * μ d ≤ 1 := (le_abs_self _).trans <| by
+    rw [abs_mul]; nlinarith [s.selberg_bound_weights d, abs_nonneg (γ d), abs_nonneg (μ d : ℝ)]
+  exact mul_le_of_le_one_left
+    (s.toBoundingSieve.truncatedSelbergSum_pos (Real.one_le_sqrt.mpr hy)).le h
 
 
 theorem selberg_bound_simple :
     siftedSum (s := s.toBoundingSieve) ≤
       X / S +
         ∑ d ∈ divisors P, if (d : ℝ) ≤ y then (3:ℝ) ^ ω d * |R d| else 0 := by
-  have hγ := s.selbergWeights_eq_boundingSieve_selbergWeights
-  calc
-    siftedSum ≤ X * mainSum μ⁺ + errSum μ⁺ :=
-      BoundingSieve.siftedSum_le_mainSum_errSum_of_upperMoebius μ⁺
-        (BoundingSieve.upperMoebius_lambdaSquared γ
-          (hγ ▸ selbergWeights_one _ (Real.one_le_sqrt.mpr hy)))
-    _ ≤ _ := ?_
-  gcongr
-  · rw [selbergMuPlus, hγ, mainSum_lambdaSquared_selbergWeights, div_eq_mul_inv]
-  · refine errSum_lambdaSquared_le_sum_three_pow_cardDistinctFactors _ γ y
-      (fun d _ => s.selberg_bound_weights d) (fun d hdP hd => ?_)
-    rw [hγ, selbergWeights_eq_zero_of_lt _ _ _
-      ((Real.sqrt_lt' (Nat.cast_pos.mpr (Nat.pos_of_mem_divisors hdP))).mpr (lt_of_not_ge hd))]
+  refine (s.toBoundingSieve.siftedSum_le_totalMass_div_truncatedSelbergSum_add_errSum
+    (Real.one_le_sqrt.mpr hy)).trans (add_le_add le_rfl ?_)
+  refine errSum_lambdaSquared_le_sum_three_pow_cardDistinctFactors _ _ y
+    (fun d _ ↦ s.toBoundingSieve.abs_selbergWeights_le_one _ d) fun d hd hdy ↦ ?_
+  exact selbergWeights_eq_zero_of_lt _ _ _ ((Real.sqrt_lt' (Nat.cast_pos.mpr
+    (Nat.pos_of_mem_divisors hd))).mpr (lt_of_not_ge hdy))
 
 end SelbergSieve

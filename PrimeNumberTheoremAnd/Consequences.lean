@@ -11,6 +11,7 @@ public import PrimeNumberTheoremAnd.Defs
 public import TauCeti.Analysis.Asymptotics.Lemmas
 public import TauCeti.Analysis.SpecialFunctions.LogIntegral
 public import TauCeti.NumberTheory.PrimeCounting
+import TauCeti.NumberTheory.NthPrime
 
 
 
@@ -238,47 +239,6 @@ theorem pi_alt : ∃ c : ℝ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) ∧
     have : log x ≠ 0 := by simp_all
     field
 
-lemma pi_nth_prime_asymp :
-    (fun n ↦ (Nat.nth Nat.Prime n) / (log (Nat.nth Nat.Prime n))) ~[atTop] (fun (n : ℕ) ↦ (n : ℝ)) := by
-  trans (fun (n : ℕ) ↦ ( n + 1 : ℝ))
-  · have : Tendsto (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) atTop atTop := by
-      apply tendsto_natCast_atTop_iff.mpr
-        ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
-    convert! Nat.isEquivalent_primeCounting.comp_tendsto this |>.symm
-    simp only [Function.comp_apply, floor_natCast]
-    rw [Nat.primeCounting_nth_prime]
-    norm_cast
-  · apply IsEquivalent.add_isLittleO (by rfl)
-    exact isLittleO_const_id_atTop (1 : ℝ) |>.natCast_atTop
-
-lemma log_nth_prime_asymp : (fun n ↦ log (Nat.nth Nat.Prime n)) ~[atTop] (fun n ↦ log n) := by
-  have := pi_nth_prime_asymp.log tendsto_natCast_atTop_atTop
-  · apply IsEquivalent.trans _ this
-    apply IsEquivalent.congr_right (v := (fun n ↦ log (Nat.nth Nat.Prime n) - log (log (Nat.nth Nat.Prime n))))
-    swap
-    · filter_upwards with n
-      rw [log_div]
-      · exact_mod_cast prime_nth_prime n |>.ne_zero
-      · apply log_ne_zero.mpr ⟨?_, ?_, ?_⟩
-        <;> norm_cast<;> linarith [prime_nth_prime n |>.two_le]
-    symm
-    apply IsEquivalent.sub_isLittleO (by rfl)
-    apply IsLittleO.comp_tendsto isLittleO_log_id_atTop
-    have : Tendsto (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) atTop atTop := by
-      apply tendsto_natCast_atTop_iff.mpr
-        ((nth_strictMono infinite_setOfPred_prime).tendsto_atTop)
-    apply tendsto_log_atTop.comp this
-
-lemma nth_prime_asymp : (fun n ↦ ((Nat.nth Nat.Prime n) : ℝ)) ~[atTop] (fun n ↦ n * log n) := by
-  have := pi_nth_prime_asymp.mul log_nth_prime_asymp
-  convert! this using 1
-  ext n
-  simp only [Pi.mul_apply]
-  have : log (Nat.nth Nat.Prime n) ≠ 0 :=by
-    apply log_ne_zero.mpr ⟨?_, ?_, ?_⟩
-      <;> norm_cast<;> linarith [prime_nth_prime n |>.two_le]
-  field
-
 @[blueprint
   (title := "pn-asymptotic")
   (statement := /--
@@ -305,7 +265,7 @@ theorem pn_asymptotic : ∃ c : ℕ → ℝ, c =o[atTop] (fun _ ↦ (1 : ℝ)) �
   · simp
   simp only [div_one]
   unfold c
-  have := isEquivalent_iff_tendsto_one ?_|>.mp nth_prime_asymp
+  have := isEquivalent_iff_tendsto_one ?_|>.mp Nat.isEquivalent_nth_prime
   swap
   · filter_upwards [eventually_ge_atTop 2] with n hn
     simp
