@@ -790,27 +790,6 @@ lemma residue_analyticAt_eq_zero {f : ℂ → ℂ} {p : ℂ} (hf : AnalyticAt �
     hf.continuousAt.continuousWithinAt.tendsto
   simpa using hsub.mul hf'
 
-lemma simplePole_sub_residue_isBigO_one {f : ℂ → ℂ} {p : ℂ}
-    (hf : MeromorphicAt f p) (hord : meromorphicOrderAt f p = (-1 : ℤ)) :
-    (f - (fun z ↦ residue f p / (z - p))) =O[nhdsWithin p {p}ᶜ] (1 : ℂ → ℂ) := by
-  obtain ⟨g, hg_analytic, hg_ne, hg_eq⟩ := (meromorphicOrderAt_eq_int_iff hf).1 hord
-  have hres : residue f p = g p :=
-    residue_eq_of_tendsto (hg_analytic.continuousAt.continuousWithinAt.tendsto.congr'
-      (show (fun z ↦ (z - p) * f z) =ᶠ[nhdsWithin p {p}ᶜ] g from by
-        filter_upwards [hg_eq, self_mem_nhdsWithin] with z hz hz_ne
-        simp [hz, sub_ne_zero.mpr hz_ne]).symm)
-  have hdslope : (fun z ↦ (z - p)⁻¹ * (g z - g p)) =O[nhdsWithin p {p}ᶜ] (1 : ℂ → ℂ) := by
-    have hcont : ContinuousAt (dslope g p) p :=
-      continuousAt_dslope_same.2 hg_analytic.differentiableAt
-    have hbig : dslope g p =O[nhds p] (1 : ℂ → ℂ) :=
-      hcont.norm.isBoundedUnder_le.isBigO_one ℂ
-    have hbig_ne : dslope g p =O[nhdsWithin p {p}ᶜ] (1 : ℂ → ℂ) :=
-      IsBigO.mono hbig inf_le_left
-    simpa [slope] using! hbig_ne.congr' (dslope_eventuallyEq_slope_nhdsNE (f := g) (a := p)) .rfl
-  refine hdslope.congr' ?_ .rfl
-  filter_upwards [hg_eq, self_mem_nhdsWithin] with z hz hz_ne
-  simp [hz, hres, div_eq_mul_inv, sub_eq_add_neg]; ring
-
 -- If two functions `f g : ℂ → ℂ` agree on a `codiscreteWithin R` full set, and `φ : ℝ → ℂ` is
 -- an analytic non-constant path mapping `[a,b]` into `R`, then `∫ f(φ x) dx = ∫ g(φ x) dx`.
 -- (a.e. agreement along the preimage suffices for interval integrals)

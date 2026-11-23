@@ -23,16 +23,14 @@ import TauCeti.Analysis.SpecialFunctions.Complex.Log.Taylor
 
 Tau Ceti's Weierstrass elementary factors
 `E_m(z) = (1 - z) * exp (∑_{k=1}^m z^k / k)` (`Complex.weierstrassFactor`) come with their
-normalization, simple zero and the sharp bound `‖E_m(z) - 1‖ ≤ ‖z‖^(m+1)` on the closed unit
-disk. This file adds the logarithmic-tail formula, lower bounds for `log ‖E_m(z)‖` and locally
+normalization, simple zero, the sharp bound `‖E_m(z) - 1‖ ≤ ‖z‖^(m+1)` on the closed unit
+disk and lower bounds for `log ‖E_m(z)‖`. This file adds the logarithmic-tail formula and locally
 uniform convergence of products of scaled factors of arbitrary genus.
 
 ## Main results
 
 * `Complex.weierstrassFactor_eq_exp_neg_tail`: on `‖z‖ < 1` with `z ≠ 1`,
   `E_m z = exp (-∑' k, z ^ (m + 1 + k) / (m + 1 + k))`
-* `Complex.log_norm_weierstrassFactor_ge_log_norm_one_sub_nat_mul_max_one_norm_pow`: a crude lower
-  bound for `log ‖E_m(z)‖` used in minimum-modulus arguments
 -/
 
 public section
@@ -64,69 +62,6 @@ lemma weierstrassFactor_eq_exp_neg_tail (m : ℕ) {z : ℂ} (hz : ‖z‖ < 1) (
       _ = log (1 - z) + (-log (1 - z)) - tail := by rw [hdecomp]
       _ = -tail := by ring
   simpa only [tail] using congrArg Complex.exp hsum
-
-/-!
-## Lower bounds on `Real.log ‖weierstrassFactor m z‖`
-
-Auxiliary inequalities for minimum-modulus / Cartan-type arguments in Hadamard factorization.
--/
-
-lemma log_norm_weierstrassFactor_ge_neg_two_pow {m : ℕ} {z : ℂ} (hz : ‖z‖ ≤ (1 / 2 : ℝ)) :
-    (-2 : ℝ) * ‖z‖ ^ (m + 1) ≤ Real.log ‖weierstrassFactor m z‖ := by
-  let tail : ℂ := ∑' k, z ^ (m + 1 + k) / (m + 1 + k)
-  have hz_lt : ‖z‖ < (1 : ℝ) := lt_of_le_of_lt hz (by norm_num)
-  have hz1 : z ≠ (1 : ℂ) := by
-    intro h
-    have : (1 : ℝ) ≤ (1 / 2 : ℝ) := by
-      simpa [h] using hz
-    norm_num at this
-  have hEq : weierstrassFactor m z = Complex.exp (-tail) :=
-    weierstrassFactor_eq_exp_neg_tail m hz_lt hz1
-  have hlog :
-      Real.log ‖weierstrassFactor m z‖ = (-tail).re := by
-    simp [hEq, Complex.norm_exp, Real.log_exp]
-  have hre : (-tail).re ≥ -‖tail‖ := by
-    simpa [norm_neg] using neg_le_of_abs_le (Complex.abs_re_le_norm (-tail))
-  have htail : ‖∑' k, z ^ (m + 1 + k) / (m + 1 + k)‖ ≤ 2 * ‖z‖ ^ (m + 1) := by
-    refine (tsum_of_norm_bounded (f := fun k : ℕ ↦ z ^ (m + 1 + k) / (m + 1 + k))
-      ((hasSum_geometric_of_lt_one (norm_nonneg z) hz_lt).mul_left (‖z‖ ^ (m + 1))) ?_).trans ?_
-    · intro k
-      simp only [norm_div, norm_mul, norm_pow, ← Nat.cast_add_one, ← Nat.cast_add, norm_natCast,
-        pow_add]
-      exact div_le_self (by positivity) (by norm_cast; omega)
-    · rw [← div_eq_mul_inv, div_le_iff₀ (by linarith)]
-      nlinarith [mul_le_mul_of_nonneg_right hz (pow_nonneg (norm_nonneg z) (m + 1))]
-  have : (-tail).re ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
-    calc
-      (-tail).re ≥ -‖tail‖ := hre
-      _ ≥ (-2 : ℝ) * ‖z‖ ^ (m + 1) := by
-            nlinarith [htail]
-  simpa [hlog, mul_assoc, mul_left_comm, mul_comm] using this
-
-lemma log_norm_weierstrassFactor_ge_log_norm_one_sub_nat_mul_max_one_norm_pow
-    (m : ℕ) (z : ℂ) :
-    Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m) ≤ Real.log ‖weierstrassFactor m z‖ := by
-  calc
-    Real.log ‖1 - z‖ - (m : ℝ) * max 1 (‖z‖ ^ m)
-        ≤ Real.log ‖1 - z‖ - ‖logTaylor (m + 1) (-z)‖ := by
-          gcongr
-          rw [← norm_neg, neg_logTaylor_succ_neg_eq_sum]
-          refine (norm_sum_le _ _).trans ?_
-          refine (Finset.sum_le_card_nsmul _ _ (max 1 (‖z‖ ^ m)) fun k hk ↦ ?_).trans_eq (by simp)
-          rw [norm_div, norm_pow, ← Nat.cast_add_one, norm_natCast, Nat.cast_add_one]
-          refine (div_le_self (by positivity) (le_add_of_nonneg_left (Nat.cast_nonneg k))).trans ?_
-          rw [← (one_pow m : (1 : ℝ) ^ m = 1), ← max_pow_of_nonneg zero_le_one (norm_nonneg z)]
-          exact (pow_le_pow_left₀ (norm_nonneg _) (le_max_right _ _) _).trans
-            (pow_le_pow_right₀ (le_max_left _ _) (Nat.succ_le_iff.mpr (Finset.mem_range.mp hk)))
-    _ ≤ Real.log ‖weierstrassFactor m z‖ := by
-      by_cases hz : z = 1
-      · simp [hz]
-      have hne : ‖1 - z‖ ≠ 0 := norm_ne_zero_iff.mpr (sub_ne_zero.mpr (Ne.symm hz))
-      rw [weierstrassFactor_def, norm_mul, Complex.norm_exp,
-        Real.log_mul hne (Real.exp_pos _).ne', Real.log_exp]
-      simpa only [Complex.neg_re, sub_eq_add_neg] using
-        sub_le_sub_left (Complex.re_le_norm (logTaylor (m + 1) (-z)))
-          (Real.log ‖1 - z‖)
 
 /-! ## Locally uniform convergence of products of scaled factors -/
 

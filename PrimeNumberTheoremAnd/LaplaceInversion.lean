@@ -778,31 +778,6 @@ theorem norm_fourierInvTrunc_le_of_windowed_sin_div_bounds
       linarith
     _ = M * B + L + (1 / (π * R)) * ∫ u : ℝ, ‖f u‖ := by ring
 
-/-- Uniform finite-tail control for the one-sided sinc integral. -/
-theorem norm_intervalIntegral_sinc_tail_le {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
-    ‖∫ x in a..b, Real.sinc x‖ ≤ 3 * a⁻¹ := by
-  have ha_pos : 0 < a := zero_lt_one.trans_le ha
-  have hpos (t : ℝ) (ht : t ∈ Set.Icc a b) : 0 < t := ha_pos.trans_le ht.1
-  obtain ⟨c, _hc, hmean⟩ :=
-    exists_eq_const_mul_intervalIntegral_of_nonneg_of_antitoneOn
-      (f := fun t : ℝ => t⁻¹) (g := Real.sin) hab
-      (inv_nonneg.mpr (ha_pos.trans_le hab).le)
-      (fun x hx y _hy hxy => inv_anti₀ (hpos x hx) hxy)
-      (Real.continuous_sin.intervalIntegrable a b)
-  have heq : (∫ x in a..b, Real.sinc x) = ∫ x in a..b, x⁻¹ * Real.sin x := by
-    apply intervalIntegral.integral_congr
-    intro x hx
-    rw [Real.sinc_of_ne_zero (hpos x ((Set.uIcc_of_le hab) ▸ hx)).ne']
-    ring
-  have hsin : ‖∫ x in a..c, Real.sin x‖ ≤ 2 := by
-    rw [integral_sin]
-    refine (norm_sub_le _ _).trans ?_
-    simpa only [Real.norm_eq_abs, one_add_one_eq_two] using
-      add_le_add (Real.abs_cos_le_one a) (Real.abs_cos_le_one c)
-  rw [heq, hmean, norm_mul, Real.norm_eq_abs, abs_of_pos (inv_pos.mpr ha_pos)]
-  exact (mul_le_mul_of_nonneg_left hsin (inv_nonneg.mpr ha_pos.le)).trans
-    (by nlinarith [inv_nonneg.mpr ha_pos.le])
-
 /-- Uniform finite-tail control for the damped one-sided sinc integral. -/
 theorem norm_intervalIntegral_exp_neg_mul_sinc_tail_le
     {a R B : ℝ} (ha : 0 < a) (hR : 1 ≤ R) (hRB : R ≤ B) :

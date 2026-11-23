@@ -11,8 +11,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 public import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import TauCeti.Analysis.SpecialFunctions.Complex.Exp.LogDeriv
 import TauCeti.Analysis.Complex.Hadamard.OrderOne
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
+public import TauCeti.NumberTheory.LFunctions.Zeros.Completion.RiemannXi
 public import TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValues
 
@@ -62,8 +61,9 @@ formula for `Λ₀(1)` together with explicit numerical bounds.  Therefore the o
   obtained from the xi no-monomial factorization
 * `completedRiemannZeta₀_hadamard_factorization_reindex`, `_sequence` : reindexed enumerations
 
-The order-one estimate from `ZetaFiniteOrder` is the finite-order input to
-`hadamard_factorization_of_order`.
+The order-one estimate `completedRiemannZeta₀_entireOfOrderAtMost_one` is the finite-order input
+to `hadamard_factorization_of_order`. Riemann's entire `ξ` is Tau Ceti's
+`TauCeti.LFunctions.riemannXi`.
 
 ## References
 
@@ -81,7 +81,7 @@ Riemann zeta function, Hadamard factorization, canonical product, entire functio
 
 noncomputable section
 
-open Complex Set
+open Complex Set TauCeti.LFunctions
 
 open scoped BigOperators
 
@@ -104,7 +104,7 @@ theorem riemannXi_entireOfOrderAtMost_one :
   convert hxi using 1
   funext z
   simp only [Polynomial.eval_mul, Polynomial.eval_X, Polynomial.eval_sub, Polynomial.eval_C,
-    riemannXi]
+    riemannXi_def]
   ring
 
 /-! ### Logarithmic-derivative identities -/
@@ -313,7 +313,7 @@ theorem riemannXi_hadamard_factorization_reindex
   simpa using
     (Complex.Hadamard.hadamard_factorization_of_order_reindex
       (f := riemannXi) (ρ := (1 : ℝ))
-      (by norm_num) riemannXi_nontrivial
+      (by norm_num) ⟨0, by simp⟩
       riemannXi_entireOfOrderAtMost_one e)
 
 /-- Reindexed divisor Hadamard factorization for `ξ`, with the origin monomial removed. -/
@@ -338,7 +338,7 @@ theorem riemannXi_hadamard_factorization_sequence
   simpa using
     (Complex.Hadamard.hadamard_factorization_of_order_sequence
       (f := riemannXi) (ρ := (1 : ℝ))
-      (by norm_num) riemannXi_nontrivial
+      (by norm_num) ⟨0, by simp⟩
       riemannXi_entireOfOrderAtMost_one e)
 
 /-- Sequence-indexed Hadamard factorization for `ξ`, with the origin monomial removed. -/

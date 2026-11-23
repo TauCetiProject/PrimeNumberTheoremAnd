@@ -15,7 +15,7 @@ import TauCeti.NumberTheory.LSeries.Moebius
 /-!
 # Bounds for the Riemann zeta function
 
-Strip bounds for `riemannZeta`, used in `ZetaFiniteOrder`. Euler-product input is in
+Strip bounds for `riemannZeta`. Euler-product input is in
 `PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta`.
 
 ## Main results

@@ -517,41 +517,6 @@ lemma vertIntBoundLeft (xpos : 0 < x) :
       apply le_of_eq; congr; norm_cast
 
 
-theorem isTheta_uniformlyOn_uIcc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
-    (fun (σ, (y : ℝ)) ↦ f x (σ + y * I)) =Θ[𝓟 [[σ', σ'']] ×ˢ (atBot ⊔ atTop)]
-    ((fun y ↦ 1 / y^2) ∘ Prod.snd) := by
-  set l := 𝓟 [[σ', σ'']] ×ˢ (atBot ⊔ atTop : Filter ℝ) with hl
-  refine IsTheta.div (isTheta_norm_left.mp ?_) ?_
-  · suffices (fun (σ, _y) ↦ |x| ^ σ) =Θ[l] fun _ ↦ (1 : ℝ) by
-      simpa [Complex.norm_cpow_of_ne_zero <| ofReal_ne_zero.mpr (ne_of_gt xpos),
-        arg_ofReal_of_nonneg xpos.le] using this
-    have hcont : ContinuousOn (fun σ : ℝ ↦ |x| ^ σ) [[σ', σ'']] :=
-      continuousOn_const.rpow continuousOn_id fun _ _ ↦
-        Or.inl <| ne_of_gt (abs_pos_of_pos xpos)
-    exact ⟨(hcont.isBigO_principal isCompact_uIcc (by norm_num)).comp_tendsto tendsto_fst,
-      (hcont.isBigO_rev_principal isCompact_uIcc
-        (fun i _ ↦ ne_of_gt <| rpow_pos_of_pos (abs_pos_of_pos xpos) _) (1 : ℝ)).comp_tendsto
-          tendsto_fst⟩
-  -- The uniform little-o helpers previously used here were written by Lawrence Wu.
-  · have h_c {c : ℂ} : (fun (_ : ℝ × ℝ) ↦ c) =o[l] Prod.snd := by
-      rewrite [hl, Filter.prod_sup, isLittleO_sup]
-      exact ⟨(isLittleO_const_id_atBot c).comp_tendsto tendsto_snd,
-        (isLittleO_const_id_atTop c).comp_tendsto tendsto_snd⟩
-    have h_yI : (fun ((_σ, y) : ℝ × ℝ) ↦ y * I) =Θ[l] Prod.snd :=
-      IsTheta.of_norm_eventuallyEq_norm (by simp)
-    have h_σ_yI : (fun (σy : ℝ × ℝ) ↦ σy.1 + σy.2 * I) =Θ[l] Prod.snd := by
-      refine IsLittleO.add_isTheta ?_ h_yI
-      exact ((continuous_ofReal.continuousOn.isBigO_principal isCompact_uIcc
-        (by norm_num : ‖(1 : ℂ)‖ ≠ 0)).comp_tendsto tendsto_fst).trans_isLittleO h_c
-    simp_rw [sq]; exact h_σ_yI.mul (h_σ_yI.add_isLittleO h_c)
-
-theorem isTheta_uniformlyOn_uIoc {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) :
-    (fun (σ, (y : ℝ)) ↦ f x (σ + y * I)) =Θ[𝓟 (uIoc σ' σ'') ×ˢ (atBot ⊔ atTop)]
-    fun (_, y) ↦ 1 / y^2 := by
-  refine (𝓟 (uIoc σ' σ'')).eq_or_neBot.casesOn (fun hbot ↦ by simp [hbot]) (fun _ ↦ ?_)
-  have : NeBot (atBot (α := ℝ) ⊔ atTop) := sup_neBot.mpr (Or.inl atBot_neBot)
-  exact (isTheta_uniformlyOn_uIcc xpos σ' σ'').mono (by simpa using! Ioc_subset_Icc_self)
-
 blueprint_comment /--
 \label{isIntegrable}
   Let $x>0$ and $\sigma\in\R$. Then
@@ -568,10 +533,12 @@ theorem horizontal_integral_isBigO {x : ℝ} (xpos : 0 < x) (σ' σ'' : ℝ) (μ
     _ =Θ[atBot ⊔ atTop] fun (y : ℝ) ↦ ∫ (σ : ℝ) in uIoc σ' σ'', g (σ, y) ∂μ :=
         IsTheta.of_norm_eventuallyEq_norm <| univ_mem'
           fun _ ↦ intervalIntegral.norm_intervalIntegral_eq _ _ _ _
-    _ =O[atBot ⊔ atTop] fun y ↦ 1 / y^2 :=
-      (isTheta_uniformlyOn_uIoc xpos σ' σ'').isBigO.set_integral_isBigO
-        (g := fun x => 1 / (x ^ 2))
-        measure_Ioc_lt_top
+    _ =O[atBot ⊔ atTop] fun y ↦ 1 / y^2 := by
+      have h := TauCeti.isTheta_cpow_div_ascPochhammer 1 xpos (K := uIoc σ' σ'')
+        (isCompact_uIcc.isBounded.subset uIoc_subset_uIcc)
+      simp only [ascPochhammer_succ_eval, ascPochhammer_zero, Polynomial.eval_one, Nat.cast_zero,
+        Nat.cast_one, add_zero, one_mul] at h
+      exact h.isBigO.set_integral_isBigO (g := fun x => 1 / (x ^ 2)) measure_Ioc_lt_top
 
 
 @[blueprint

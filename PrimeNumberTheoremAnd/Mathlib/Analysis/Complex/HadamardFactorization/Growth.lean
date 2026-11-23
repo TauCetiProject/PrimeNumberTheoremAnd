@@ -204,7 +204,7 @@ theorem norm_inv_hadamardDenominator_le_exp_on_cartan_circle
             (norm_nonneg (u / divisorZeroIndex₀_val p))
             (hz'.trans (by norm_num)) (by exact_mod_cast hτ_le)
             (fun _ he ↦ False.elim ((by positivity : (0 : ℝ) < (m + 1 : ℕ)).ne' he))
-        nlinarith [log_norm_weierstrassFactor_ge_neg_two_pow (m := m) hz']
+        nlinarith [neg_log_norm_weierstrassFactor_le_two_mul m hz']
       simpa [fac, b, hp] using hfar
   have hb_le :
       ∀ s : Finset (divisorZeroIndex₀ f (Set.univ : Set ℂ)),

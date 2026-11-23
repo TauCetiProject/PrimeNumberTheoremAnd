@@ -25,7 +25,6 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Orde
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Summability
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
 import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.WeierstrassFactor
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.CompletedXi
 import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import Mathlib.MeasureTheory.Integral.IntegrableOn
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
@@ -34,7 +33,6 @@ import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValues
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.ZetaFiniteOrder
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
 import PrimeNumberTheoremAnd.MediumPNT

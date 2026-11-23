@@ -11,6 +11,7 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorizati
 public import TauCeti.Analysis.Complex.GrowthOrder
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
 import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
+import TauCeti.Analysis.Complex.GrowthOrder.Logarithmic
 import Mathlib.Analysis.SpecialFunctions.Log.PosLog
 public import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
 
@@ -87,57 +88,9 @@ theorem of_orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
     (hf : Differentiable ℂ f) (h : TauCeti.OrderLE f ρ) :
     EntireOfOrderAtMost ρ f := by
   refine ⟨hf, fun ε hε ↦ ?_⟩
-  let τ := ρ + ε
-  have hτ : 0 ≤ τ := by dsimp [τ]; linarith
-  let g : ℂ → ℝ := fun z ↦ Real.exp (‖z‖ ^ τ)
-  have hgcont : Continuous g := by
-    dsimp [g]
-    fun_prop (disch := positivity)
-  have hquotcont : Continuous (fun z ↦ ‖f z‖ / g z) :=
-    hf.continuous.norm.div hgcont (fun z ↦ Real.exp_ne_zero _)
-  have hO : (fun z ↦ ‖f z‖ / g z) =O[cocompact ℂ] (1 : ℂ → ℝ) := by
-    rw [← Metric.cobounded_eq_cocompact]
-    exact (div_isBoundedUnder_of_isBigO (h.isBigO (by dsimp [τ]; linarith)).norm_left).isBigO_const
-      one_ne_zero
-  obtain ⟨C, hC, hbound⟩ := (hquotcont.isBounded_range_iff_isBigO.mpr hO).exists_pos_norm_le
-  refine ⟨C + 1, by positivity, fun z ↦ ?_⟩
-  have hratio := hbound _ (Set.mem_range_self z)
-  rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)] at hratio
-  have hfz : ‖f z‖ ≤ C * g z := (div_le_iff₀ (Real.exp_pos _)).mp hratio
-  have hp : ‖z‖ ^ τ ≤ (1 + ‖z‖) ^ τ :=
-    Real.rpow_le_rpow (norm_nonneg _) (by linarith) hτ
-  have hB : 1 ≤ (1 + ‖z‖) ^ τ := Real.one_le_rpow (by linarith [norm_nonneg z]) hτ
-  calc
-    ‖f z‖ ≤ C * g z := hfz
-    _ ≤ Real.exp C * Real.exp ((1 + ‖z‖) ^ τ) :=
-      mul_le_mul (by linarith [Real.add_one_le_exp C])
-        (Real.exp_le_exp.mpr hp) (by positivity) (by positivity)
-    _ = Real.exp (C + (1 + ‖z‖) ^ τ) := (Real.exp_add _ _).symm
-    _ ≤ Real.exp ((C + 1) * (1 + ‖z‖) ^ τ) := by
-      apply Real.exp_le_exp.mpr
-      nlinarith [mul_le_mul_of_nonneg_left hB hC.le]
-
-/-- The global exponential bound supplies Tau Ceti’s native order predicate at nonnegative order. -/
-theorem orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
-    (h : EntireOfOrderAtMost ρ f) : TauCeti.OrderLE f ρ := by
-  rw [TauCeti.orderLE_def]
-  intro p hp
-  let τ := (ρ + p) / 2
-  have hρτ : ρ < τ := by dsimp [τ]; linarith
-  have hτp : τ < p := by dsimp [τ]; linarith
-  have hτ : 0 ≤ τ := hρ.trans hρτ.le
-  obtain ⟨C, hC, hbound⟩ := h.exists_bound (sub_pos.mpr hρτ)
-  have hbound' (z : ℂ) : ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ τ) := by
-    simpa only [add_sub_cancel] using hbound z
-  refine (IsBigO.of_bound 1 ?_).trans (TauCeti.isBigO_exp_mul_norm_rpow (C * 2 ^ τ) hτp)
-  filter_upwards [tendsto_norm_cobounded_atTop.eventually (eventually_ge_atTop (1 : ℝ))]
-    with z hz
-  have hbase : 1 + ‖z‖ ≤ 2 * ‖z‖ := by linarith
-  have hpow : (1 + ‖z‖) ^ τ ≤ 2 ^ τ * ‖z‖ ^ τ := by
-    simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2) (norm_nonneg z)] using
-      Real.rpow_le_rpow (by positivity) hbase hτ
-  simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
-    (hbound' z).trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
+  obtain ⟨C, hC, hb⟩ := h.exists_log_one_add_norm_le_rpow hf.continuous
+    (B := ρ + ε) (by linarith) (by linarith)
+  exact ⟨C, hC, fun z ↦ (le_add_of_nonneg_left zero_le_one).trans (Real.le_exp_of_log_le (hb z))⟩
 
 /-- A finite-order bound gives a logarithmic growth bound at any larger exponent. -/
 theorem exists_log_growth {ρ τ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)
@@ -154,6 +107,15 @@ theorem exists_log_growth {ρ τ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMo
   have hlog := (Real.log_one_add_le_posLog (x := ‖f z‖)).trans (add_le_add hp le_rfl)
   simp only [Real.posLog_apply, Real.log_exp, max_eq_right hP] at hlog
   nlinarith [Real.log_le_sub_one_of_pos (by norm_num : (0 : ℝ) < 2)]
+
+/-- The global exponential bound supplies Tau Ceti’s native order predicate at nonnegative order. -/
+theorem orderLE {ρ : ℝ} {f : ℂ → ℂ} (hρ : 0 ≤ ρ)
+    (h : EntireOfOrderAtMost ρ f) : TauCeti.OrderLE f ρ := by
+  rw [TauCeti.orderLE_def]
+  intro p hp
+  obtain ⟨C, -, hC⟩ := h.exists_log_growth (τ := (ρ + p) / 2) (by linarith) (by linarith)
+  exact (TauCeti.orderLE_of_eventually_log_one_add_norm_le_mul_rpow
+    (.of_forall hC)).isBigO (by linarith)
 
 /-- Finite order is invariant under translation of the input. -/
 theorem comp_add_const {ρ : ℝ} {f : ℂ → ℂ} (h : EntireOfOrderAtMost ρ f)

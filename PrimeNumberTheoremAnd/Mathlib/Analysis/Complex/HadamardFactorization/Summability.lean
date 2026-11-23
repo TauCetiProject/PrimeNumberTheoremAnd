@@ -17,6 +17,7 @@ import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
 import Mathlib.Topology.Algebra.InfiniteSum.Order
 import TauCeti.Analysis.SpecialFunctions.Log.Base
 import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
+import TauCeti.Analysis.Complex.GrowthOrder.Logarithmic
 
 /-!
 # Divisor summability from logarithmic growth
@@ -317,28 +318,15 @@ lemma tsum_divisorZeroIndex₀_dyadicShell_inv_rpow_le_geometric_of_growth
     (pow_nonneg (Real.rpow_nonneg (by norm_num : (0 : ℝ) ≤ 2) (-τ)) k)]
 
 theorem summable_norm_inv_rpow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {ρ τ : ℝ}
-    (hρ : 0 ≤ ρ) (hτ : ρ < τ) (hf : Differentiable ℂ f)
+    (_hρ : 0 ≤ ρ) (hτ : ρ < τ) (hf : Differentiable ℂ f)
     (hgrowth : ∃ C > 0, ∀ z : ℂ, Real.log (1 + ‖f z‖) ≤ C * (1 + ‖z‖) ^ ρ) :
     Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
       ‖divisorZeroIndex₀_val p‖⁻¹ ^ τ) := by
-  obtain ⟨C, hC, hgrowth⟩ := hgrowth
-  have hord : TauCeti.OrderLE f ρ := by
-    rw [TauCeti.orderLE_def]
-    intro p hp
-    refine (Asymptotics.IsBigO.of_bound 1 ?_).trans (TauCeti.isBigO_exp_mul_norm_rpow (C * 2 ^ ρ) hp)
-    filter_upwards [tendsto_norm_cobounded_atTop.eventually (eventually_ge_atTop (1 : ℝ))]
-      with z hz
-    have hpow : (1 + ‖z‖) ^ ρ ≤ 2 ^ ρ * ‖z‖ ^ ρ := by
-      simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2) (norm_nonneg z)] using
-        Real.rpow_le_rpow (by positivity) (by linarith : 1 + ‖z‖ ≤ 2 * ‖z‖) hρ
-    have hnorm : ‖f z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ ρ) := by
-      exact (le_add_of_nonneg_left (by norm_num : (0 : ℝ) ≤ 1)).trans
-        (Real.le_exp_of_log_le (hgrowth z))
-    simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
-      hnorm.trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
-  have hs := summable_norm_rpow_divisorZeroIndex₀_of_summable_divisor hf
-    (hord.summable_divisor_mul_norm_rpow hf hτ)
-  simpa only [Real.rpow_neg_eq_inv_rpow] using hs
+  obtain ⟨C, -, hC⟩ := hgrowth
+  simpa only [Real.rpow_neg_eq_inv_rpow] using
+    summable_norm_rpow_divisorZeroIndex₀_of_summable_divisor hf
+      ((TauCeti.orderLE_of_eventually_log_one_add_norm_le_mul_rpow
+        (.of_forall hC)).summable_divisor_mul_norm_rpow hf hτ)
 
 /-- Natural-power form of the divisor summability theorem. -/
 theorem summable_norm_inv_pow_divisorZeroIndex₀_of_growth {f : ℂ → ℂ} {ρ : ℝ}
