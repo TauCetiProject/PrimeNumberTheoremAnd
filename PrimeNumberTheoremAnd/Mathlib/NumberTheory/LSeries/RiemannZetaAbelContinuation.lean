@@ -101,7 +101,7 @@ theorem riemannZeta_abel_integral (s : ℂ) (hs : 1 < s.re) :
   have hK : IntegrableOn (zetaAbelFractKernel s) (Ioi 1) := by
     change IntegrableOn (fun u : ℝ ↦ ((Int.fract u : ℝ) : ℂ) * (u : ℂ) ^ (-s - 1)) (Ioi 1)
     simpa only [neg_add', sub_eq_add_neg] using
-      TauCeti.integrableOn_mul_cpow_of_isBigO hL hO (zero_lt_one.trans hs)
+      TauCeti.integrableOn_mul_cpow_of_isBigO one_pos hL hO (zero_lt_one.trans hs)
   have hsum : (fun n : ℕ ↦ ∑ k ∈ Finset.Icc 1 n, ‖(1 : ℕ → ℂ) k‖) =O[atTop]
       fun n ↦ (n : ℝ) ^ (1 : ℝ) :=
     Asymptotics.isBigO_of_le _ fun n ↦ by simp
@@ -163,7 +163,7 @@ theorem analyticOn_zetaAbelContinuationFormula :
     refine .of_bound 1 (Eventually.of_forall fun u ↦ ?_)
     simpa only [Real.rpow_zero, norm_one, one_mul, norm_real, Real.norm_eq_abs,
       Int.abs_fract] using (Int.fract_lt_one u).le
-  have hI := (TauCeti.differentiableOn_integral_mul_cpow_of_isBigO hO).analyticAt
+  have hI := (TauCeti.differentiableOn_integral_mul_cpow_of_isBigO one_pos hO).analyticAt
     ((isOpen_lt continuous_const Complex.continuous_re).mem_nhds hs_re)
   refine analyticAt_const.add (analyticAt_const.div (analyticAt_id.sub analyticAt_const) ?_) |>.sub
     (analyticAt_id.mul ?_)

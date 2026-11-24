@@ -1588,7 +1588,7 @@ lemma IBound_aux1 (X₀ : ℝ) (X₀pos : X₀ > 0) {k : ℝ} (k_pos : 0 < k) : 
   -- When X is small, use the extreme value theorem.
   obtain ⟨C, hC⟩ := Asymptotics.isBigO_principal.mp
     (hO.isBigO_principal_Ici_of_continuousOn hf continuousOn_id
-      (fun X hX ↦ ne_of_gt (X₀pos.trans_le hX)))
+      (fun X hX ↦ norm_ne_zero_iff.2 (X₀pos.trans_le hX).ne'))
   refine ⟨max C 1, le_max_right _ _, fun X hX ↦ ?_⟩
   have hX0 : 0 < X := X₀pos.trans_le hX
   have hb := hC X hX

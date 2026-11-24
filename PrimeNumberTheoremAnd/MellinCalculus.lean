@@ -865,8 +865,9 @@ lemma MellinOfSmooth1a {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
     convert hasMellin_one_Ioc hs using 1
     funext x
     simp [g, Set.indicator, Set.mem_Ioc]
-  have := (TauCeti.hasMellin_integral_mul_div hg.1 hf).2
-  change 𝓜 (MellinConvolution g f') s = 𝓜 g s * 𝓜 f' s at this
+  have := (TauCeti.hasMellin_mellinConv hg.1 hf).2
+  rw [show TauCeti.mellinConv g f' = MellinConvolution g f' from
+    funext (TauCeti.mellinConv_def g f')] at this
 
   convert! this using 1
   · congr; funext x; convert! integral_ofReal.symm
