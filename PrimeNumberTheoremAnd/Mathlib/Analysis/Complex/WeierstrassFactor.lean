@@ -13,6 +13,7 @@ public import Mathlib.Analysis.Complex.CauchyIntegral
 public import Mathlib.Analysis.Normed.Group.Bounded
 public import Mathlib.Analysis.Normed.Module.MultipliableUniformlyOn
 public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import TauCeti.Analysis.Complex.CanonicalProduct.PrimaryProduct
 
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.SpecificLimits.Basic
@@ -121,46 +122,11 @@ lemma hasProdUniformlyOn_weierstrassFactor_div_of_bound {K : Set ℂ} (hK : IsCo
   simpa using hsumm.hasProdUniformlyOn_nat_one_add (K := K)
     (f := fun n z ↦ weierstrassFactor (m n) (z / a n) - 1) hK hbound hcts
 
-lemma hasProdLocallyUniformlyOn_weierstrassFactor_div {s : Set ℂ} (hs : IsOpen s)
-    {m : ℕ → ℕ} {a : ℕ → ℂ}
-    (hsmall : ∀ R ≥ 0, ∀ᶠ n in Filter.atTop, R ≤ ‖a n‖ / 2)
-    (hsumm : ∀ R ≥ 0, Summable (fun n : ℕ ↦ 4 * R ^ (m n + 1) / ‖a n‖ ^ (m n + 1))) :
-    HasProdLocallyUniformlyOn (fun n z ↦ weierstrassFactor (m n) (z / a n))
-      (fun z ↦ ∏' n, weierstrassFactor (m n) (z / a n)) s := by
-  apply hasProdLocallyUniformlyOn_of_forall_compact hs
-  intro K hKs hK
-  obtain ⟨R, hR⟩ : ∃ R, ∀ z ∈ K, ‖z‖ ≤ R := by
-    by_cases hKe : K.Nonempty
-    · obtain ⟨z, hzK, hzmax⟩ := hK.exists_isMaxOn hKe continuous_norm.continuousOn
-      exact ⟨‖z‖, fun w hw ↦ (isMaxOn_iff.mp hzmax) w hw⟩
-    · exact ⟨0, fun z hz ↦ False.elim <| hKe ⟨z, hz⟩⟩
-  let R' := max R 0
-  have hR'0 : 0 ≤ R' := le_max_right _ _
-  have hR' : ∀ z ∈ K, ‖z‖ ≤ R' := by
-    intro z hz
-    exact (hR z hz).trans (le_max_left _ _)
-  exact hasProdUniformlyOn_weierstrassFactor_div_of_bound hK hR'
-    (hsmall R' hR'0) (hsumm R' hR'0)
-
 lemma hasProdLocallyUniformlyOn_weierstrassFactor_div_of_summable_inv_pow {m : ℕ} {a : ℕ → ℂ}
-    (h_sum : Summable (fun n : ℕ => ‖a n‖⁻¹ ^ (m + 1))) (h_nonzero : ∀ n, a n ≠ 0) :
+    (h_sum : Summable (fun n : ℕ => ‖a n‖⁻¹ ^ (m + 1))) (_h_nonzero : ∀ n, a n ≠ 0) :
     HasProdLocallyUniformlyOn (fun n z ↦ weierstrassFactor m (z / a n))
-      (fun z ↦ ∏' n, weierstrassFactor m (z / a n)) Set.univ := by
-  simpa using
-    hasProdLocallyUniformlyOn_weierstrassFactor_div (s := (Set.univ : Set ℂ)) isOpen_univ
-      (m := fun _ => m) (a := a)
-      (by
-        intro R hR
-        have hpow : Summable (fun n : ℕ => (‖a n‖ ^ (m + 1))⁻¹) := by
-          simpa only [inv_pow] using h_sum
-        have ht := hpow.tendsto_atTop_of_pos (f := fun n => ‖a n‖ ^ (m + 1))
-          (fun n => pow_pos (norm_pos_iff.mpr (h_nonzero n)) (m + 1))
-        filter_upwards [ht.eventually_ge_atTop ((R * 2) ^ (m + 1))] with n hn
-        exact (le_div_iff₀ (by norm_num)).2
-          ((pow_le_pow_iff_left₀ (by positivity) (norm_nonneg _) (Nat.succ_ne_zero m)).1 hn))
-      (by
-        intro R _hR
-        simpa [div_eq_mul_inv, inv_pow, mul_assoc, mul_left_comm, mul_comm] using
-          h_sum.mul_left (4 * R ^ (m + 1)))
+      (fun z ↦ ∏' n, weierstrassFactor m (z / a n)) Set.univ :=
+  hasProdLocallyUniformlyOn_weierstrassFactor_div (p := fun _ ↦ m) fun R _ ↦
+    (h_sum.mul_left (R ^ (m + 1))).congr fun n ↦ by rw [div_pow, div_eq_mul_inv, inv_pow]
 
 end Complex
