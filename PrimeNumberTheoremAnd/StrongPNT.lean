@@ -18,11 +18,15 @@ public import Mathlib.Analysis.Complex.JensenFormula
 public import TauCeti.Analysis.Meromorphic.Divisor
 public import TauCeti.Analysis.Convex.SimplyConnected
 public import TauCeti.NumberTheory.LSeries.RiemannZeta.Basic
+import TauCeti.NumberTheory.LSeries.RiemannZeta.Bounds
+import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDeriv.Bounds
+import TauCeti.NumberTheory.LFunctions.Zeros.ZeroFreeRegion.RiemannZeta
 public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDeriv.NearOne
 public import TauCeti.NumberTheory.LSeries.ThreeFourOne
 public import Mathlib.NumberTheory.LSeries.ZetaZeros
 public import PrimeNumberTheoremAnd.MediumPNT
 public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
+public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelContinuation
 
 
 @[expose] public section
@@ -954,7 +958,7 @@ We have that
     $$\zeta(s)=\zeta_1(s)$$
     for all $s\in S$ with $S=\{s\in\mathbb{C}:0<\mathfrak{R}s,\,s\neq 1\}$.
 
-This is the canonical full right-half-plane identity \texttt{riemannZeta\_eq\_zetaAbelContinuationFormula}. The named formula also follows from Lemmas \ref{Zeta1AltFormula} and \ref{Zeta0EqZeta}.
+This is the canonical full right-half-plane identity \texttt{TauCeti.riemannZeta\_eq\_one\_add\_inv\_sub\_integral\_fract}. The named formula also follows from Lemmas \ref{Zeta1AltFormula} and \ref{Zeta0EqZeta}.
 -/
 
 @[blueprint "GlobalBound"
@@ -980,48 +984,11 @@ This is the canonical full right-half-plane identity \texttt{riemannZeta\_eq\_ze
 theorem GlobalBound
     {s : ℂ} (hs : ‖s‖ ≤ 1) {t : ℝ} (ht : |t| ≥ 2) :
     ‖ζ (s + 3 / 2 + I * t)‖ ≤ 7 + 2 * |t| := by
-  have sReLB : -1 ≤ s.re := by linarith [abs_le.mp ((Complex.abs_re_le_norm s).trans hs)]
-  have hz : s + 3 / 2 + I * ↑t ∈ {s | 0 < s.re ∧ s ≠ 1} := by
-    simp only [ne_eq, Complex.ext_iff, one_re, one_im, not_and, mem_ofPred_eq, add_re, div_ofNat_re,
-      re_ofNat, mul_re, I_re, ofReal_re, zero_mul, I_im, ofReal_im, mul_zero, sub_self, add_zero,
-      add_im, div_ofNat_im, im_ofNat, zero_div, mul_im, one_mul, zero_add]
-    refine ⟨by linarith, fun hs => ?_⟩
-    cases abs_cases t <;>  linarith [abs_le.mp (Complex.abs_re_le_norm s),
-      abs_le.mp (Complex.abs_im_le_norm s)]
-  let z : ℂ := s + 3 / 2 + I * ↑t
-  have hz_re : (1 / 2 : ℝ) ≤ z.re := by
-    simp only [z, add_re, div_ofNat_re, re_ofNat, mul_re, I_re, ofReal_re, zero_mul,
-      I_im, ofReal_im, mul_zero, sub_self, add_zero]
-    linarith
-  have hz_im : 1 ≤ |z.im| := by
-    have H : |t| - |s.im| ≤ |s.im + t| := by
-      simpa only [abs_neg, sub_neg_eq_add, add_comm] using abs_sub_abs_le_abs_sub t (-s.im)
-    have hs_im := (Complex.abs_im_le_norm s).trans hs
-    simp only [z, add_im, div_ofNat_im, im_ofNat, zero_div, mul_im, I_re, ofReal_im,
-      mul_zero, I_im, ofReal_re, one_mul, add_zero, zero_add]
-    linarith
-  have hdist : 1 ≤ ‖z - 1‖ := hz_im.trans (by
-    simpa only [sub_im, one_im, sub_zero] using Complex.abs_im_le_norm (z - 1))
-  have hpole : ‖1 / (z - 1)‖ ≤ 1 := by
-    simpa only [one_div, norm_inv] using inv_le_one_of_one_le₀ hdist
-  have hratio : ‖z‖ / z.re ≤ 2 * ‖z‖ := by
-    calc
-      ‖z‖ / z.re ≤ ‖z‖ / (1 / 2 : ℝ) :=
-        div_le_div_of_nonneg_left (norm_nonneg z) (by norm_num) hz_re
-      _ = 2 * ‖z‖ := by ring
-  have z_norm : ‖s + 3 / 2 + I * ↑t‖ ≤ 5 / 2 + |t| := by
-    have It_norm : ‖I * (↑t : ℂ)‖ = |t| :=
-      by rw [norm_mul, norm_I, one_mul, Complex.norm_real, Real.norm_eq_abs]
-    have threeHalves_norm : ‖(3 / 2 : ℂ)‖ = 3 / 2 :=
-      by rw [norm_div, Complex.norm_ofNat, Complex.norm_ofNat]
-    apply le_trans
-      (norm_add_le_of_le (norm_add_le_of_le hs (le_of_eq threeHalves_norm)) (le_of_eq It_norm))
-    linarith
-  change ‖ζ z‖ ≤ 7 + 2 * |t|
-  rw [riemannZeta_eq_zetaAbelContinuationFormula z hz.1 hz.2]
-  exact (norm_zetaAbelContinuationFormula_le z hz.1).trans (by
-    change ‖z‖ ≤ 5 / 2 + |t| at z_norm
-    linarith)
+  have hz : s + 3 / 2 + I * t ∈ Metric.closedBall (3 / 2 + t * I : ℂ) 1 := by
+    rw [Metric.mem_closedBall, dist_eq_norm]
+    convert hs using 2
+    ring
+  linarith [TauCeti.norm_riemannZeta_le_linear ht hz, abs_nonneg t]
 
 
 
@@ -1040,11 +1007,7 @@ lemma norm_zeta_strict_mono_ofReal {a b : ℝ} (hb : 1 < b) (hab : b < a) :
   open scoped ComplexOrder in
   rw [← Complex.re_eq_norm.2 (riemannZeta_pos_of_one_lt (hb.trans hab)).le,
     ← Complex.re_eq_norm.2 (riemannZeta_pos_of_one_lt hb).le]
-  refine hasSum_lt (i := 1) (fun n => ?_) ?_
-    (TauCeti.hasSum_nat_add_one_rpow_neg_riemannZeta_re (hb.trans hab))
-    (TauCeti.hasSum_nat_add_one_rpow_neg_riemannZeta_re hb)
-  · exact Real.rpow_le_rpow_of_exponent_le (by simp) (by linarith)
-  · exact Real.rpow_lt_rpow_of_exponent_lt (by norm_num) (by linarith)
+  exact TauCeti.strictAntiOn_riemannZeta_re hb (hb.trans hab) hab
 
 
 
@@ -1370,32 +1333,14 @@ lemma ShiftTwoBound :
         ∀ (t : ℝ), |t| ≥ 2 →
           (ZeroWindow (2 * t)).Finite →
     -(ζ' (1 + δ + 2 * I * t) / ζ (1 + δ + 2 * I * t)).re ≤ C * log |t| := by
-  obtain ⟨C, hC, SumBound⟩ := SumBoundI
-  refine ⟨C * 2, by positivity, ?_⟩
-  intro δ hd t ht finiteZeros
-  suffices h1 : -(ζ' (1 + δ + 2 * I * t) / ζ (1 + δ + 2 * I * t)).re ≤ C * log |2 * t| by
-    refine le_trans h1 ?_
-    rw [mul_assoc C, abs_mul, Real.log_mul (by norm_num) (by linarith [ht]), two_mul]
-    exact mul_le_mul (by rfl) (add_le_add (log_le_log (by norm_num) (by norm_num [ht])) (by rfl))
-      (add_nonneg (Real.log_nonneg (by norm_num)) (Real.log_nonneg (by linarith [ht]))) hC.le
-  have ht' : |2 * t| ≥ 2 := by
-    simp only [abs_mul, abs_ofNat, ofNat_pos, le_mul_iff_one_le_right]
-    linarith
-  have SumBound := SumBound δ hd _ ht' finiteZeros; rw [← Complex.norm_neg', neg_sub] at SumBound
-  refine le_trans ?_ (le_trans (Complex.re_le_norm _) SumBound)
-  simp only [ofReal_mul, ofReal_ofNat, sub_re, re_sum, ← mul_assoc, mul_comm]
-  rw [sub_eq_add_neg, le_add_iff_nonneg_left]
-  refine Finset.sum_nonneg (fun ρ hρ => ?_); simp only [ZeroWindow, ofReal_mul, ofReal_ofNat,
-    Finite.mem_toFinset, mem_ofPred_eq] at hρ
-  have hρ_re: ρ.re ≤ 1 := by
-    by_contra hre; simp only [not_le] at hre
-    exact riemannZeta_ne_zero_of_one_lt_re hre hρ.1
-  simp only [div_re, natCast_re, sub_re, add_re, one_re, ofReal_re, mul_re, I_re, zero_mul, I_im,
-    ofReal_im, mul_zero, sub_self, re_ofNat, mul_im, ← sq, ne_eq, OfNat.ofNat_ne_zero,
-    not_false_eq_true, zero_pow, one_mul, zero_add, im_ofNat, add_zero, normSq_apply, sub_im,
-    add_im, one_im, natCast_im, zero_div]
-  exact div_nonneg (mul_nonneg (cast_nonneg' _) (by linarith [hd.1]))
-    (add_nonneg (sq_nonneg _) (sq_nonneg _))
+  obtain ⟨A, hA, h⟩ := TauCeti.exists_neg_re_logDeriv_riemannZeta_le
+  refine ⟨3 * A, by positivity, fun δ hδ t ht _ ↦ ?_⟩
+  have hs := @h (1 + δ + 2 * I * t) (by simp; linarith [hδ.1]) (by simp [abs_mul]; linarith)
+  have h2 : Real.log (2 * |t| + 3) ≤ 3 * Real.log |t| := by
+    rw [← Real.log_rpow (by linarith)]; exact Real.log_le_log (by linarith) (by norm_cast; nlinarith [mul_nonneg (mul_nonneg (abs_nonneg t) (sub_nonneg.2 ht)) (by linarith : (0:ℝ) ≤ |t| + 2)])
+  simp only [logDeriv_apply, add_im, mul_im, ofReal_im, ofReal_re, I_im, I_re, one_im] at hs
+  norm_num [abs_mul] at hs
+  nlinarith
 
 
 
@@ -1467,67 +1412,14 @@ lemma ShiftOneBound :
             ∀ (ρ : ℂ), ζ ρ = 0 →
               t = ρ.im →
     -(ζ' (1 + δ + I * t) / ζ (1 + δ + I * t)).re ≤ C * Real.log |t| - 1 / (1 + δ - ρ.re) := by
-  obtain ⟨C, hC, SumBound⟩ := SumBoundI
-  refine ⟨7 + C, by linarith, ?_⟩
-  intro δ hd t ht finiteZeros ρ hρzero hρim
-  have SumBound := SumBound δ hd t ht finiteZeros; rw [← Complex.norm_neg', neg_sub] at SumBound
-  have SumBound := le_trans (Complex.re_le_norm _) SumBound
-  have hρre : ρ.re < 1 := lt_of_not_ge fun h => riemannZeta_ne_zero_of_one_le_re h hρzero
-  have ρ_ne_one : ρ ≠ 1 := by rintro rfl; simp only [one_re, lt_self_iff_false] at hρre
-  have hTermNonneg {ρ' : ℂ} (hρ' : ρ' ∈ finiteZeros.toFinset) :
-    0 ≤ ((analyticOrderNatAt ζ ρ') / (1 + ↑δ + I * ↑t - ρ')).re := by
-    simp only [div_re, natCast_re, add_re, one_re, ofReal_re, sub_re, mul_re, I_re, zero_mul, I_im,
-      ofReal_im, mul_zero, sub_self, natCast_im, add_im, one_im, add_zero, sub_im, mul_im,
-      one_mul, zero_add, zero_div]
-    refine div_nonneg (mul_nonneg (by positivity) ?_) (normSq_nonneg _)
-    by_contra h; push Not at h
-    simp only [ZeroWindow, Finite.mem_toFinset, mem_ofPred_eq] at hρ'
-    exact riemannZeta_ne_zero_of_one_le_re (by linarith [hd.1]) hρ'.1
-  by_cases hρZt : ρ ∈ finiteZeros.toFinset
-  · have obvious : C * log |t| ≤ (7 + C) * log |t| := mul_le_mul (by linarith) (by rfl)
-      (Real.log_nonneg (by linarith)) (by linarith)
-    have SumBound := le_trans SumBound obvious
-    rw [← Finset.insert_erase hρZt, ← Finset.singleton_union, ← Finset.sdiff_singleton_eq_erase,
-      Finset.sum_union (by simp), Finset.sum_singleton] at SumBound
-    simp only [sub_re, add_re, re_sum, add_sub_assoc] at SumBound
-    rw [div_re] at SumBound
-    simp only [natCast_re, add_re, one_re, ofReal_re, sub_re, mul_re, I_re, zero_mul, I_im, add_im,
-      ofReal_im, mul_zero, sub_self, zero_sub, natCast_im, one_im, add_zero, sub_im, mul_im, ← hρim,
-      one_mul, zero_add, zero_div, normSq_apply, mul_div_assoc, div_self_mul_self',
-      ← one_div] at SumBound
-    refine le_sub_left_of_add_le (le_trans (add_le_add ?_ ?_) SumBound)
-    · rw [← mul_div_assoc, mul_one]
-      refine div_le_div_of_nonneg_right ?_ (by linarith [hd.1])
-      simp only [one_le_cast, Nat.one_le_iff_ne_zero, analyticOrderNatAt, ne_eq, ENat.toNat_eq_zero,
-        analyticOrderAt_eq_zero, not_or, not_not]
-      refine ⟨⟨analyticOn_riemannZeta ρ ρ_ne_one, hρzero⟩,
-        analyticOn_riemannZeta.analyticOrderAt_ne_top_of_isPreconnected
-          (isConnected_compl_singleton_of_one_lt_rank (by simp) 1).isPreconnected (x := 2)
-          (by norm_num) ρ_ne_one (by simp [analyticOrderAt_eq_zero.2 (Or.inr
-            (riemannZeta_ne_zero_of_one_lt_re (s := 2) (by norm_num)))])⟩
-    · simp only [← add_sub_assoc, neg_le_sub_iff_le_add, le_add_iff_nonneg_left]
-      refine Finset.sum_nonneg (fun ρ' hρ' => hTermNonneg ?_)
-      simp only [Finset.mem_sdiff] at hρ'
-      exact hρ'.1
-  · have logBound : -(ζ' (1 + ↑δ + I * ↑t) / ζ (1 + ↑δ + I * ↑t)).re ≤ C * Real.log |t| := by
-      refine le_trans ?_ SumBound
-      rw [sub_eq_add_neg, add_re, neg_re, re_sum, le_add_iff_nonneg_left]
-      exact Finset.sum_nonneg (fun ρ' hρ' => hTermNonneg hρ')
-    have invBound : 1 / (1 + δ - ρ.re) ≤ 7 * Real.log |t| := by
-      suffices h1 : 1 / (1 + δ - ρ.re) ≤ 4 by
-        have explicitEstimate : 4 ≤ 7 * Real.log 2 := by linarith [Real.log_two_gt_d9]
-        exact le_trans h1 (le_trans explicitEstimate ((mul_le_mul_iff_of_pos_left ofNat_pos').mpr
-          (Real.log_le_log ofNat_pos' ht)))
-      simp only [ZeroWindow, Finite.mem_toFinset, mem_ofPred_eq, hρzero, true_and, not_le] at hρZt
-      rw [← Complex.re_add_im ρ, hρim] at hρZt
-      ring_nf at hρZt
-      have : - (3 : ℂ) / 2 + ρ.re = (((ρ.re - 3 / 2) : ℝ) : ℂ) := by
-        simp only [ofReal_sub, ofReal_div, ofReal_ofNat, neg_add_eq_sub, neg_div, neg_add_eq_sub]
-      rw [this, Complex.norm_real, Real.norm_eq_abs] at hρZt
-      have hρreImproved : ρ.re < 3 / 4 := by rcases lt_abs.mp hρZt with _ | _ <;> linarith
-      rw [one_div_le (by linarith [hd.1]) four_pos]
-      linarith [hd.1]
-    linarith
+  obtain ⟨A, hA, h⟩ := TauCeti.exists_neg_re_logDeriv_riemannZeta_add_sub_inv_le
+  refine ⟨3 * A, by positivity, fun δ hδ t ht _ ρ hρ htρ ↦ ?_⟩
+  subst htρ
+  have hs := h (σ := 1 + δ) (by linarith [hδ.1]) (by linarith) hρ
+  have h2 : Real.log (|ρ.im| + 3) ≤ 3 * Real.log |ρ.im| := by
+    rw [← Real.log_rpow (by linarith)]; exact Real.log_le_log (by linarith) (by norm_cast; nlinarith [mul_nonneg (mul_nonneg (abs_nonneg ρ.im) (sub_nonneg.2 ht)) (by linarith : (0:ℝ) ≤ |ρ.im| + 2)])
+  rw [logDeriv_apply, show ((1 + δ : ℝ) : ℂ) + ρ.im * I = 1 + δ + I * ρ.im by push_cast; ring] at hs
+  rw [one_div]; nlinarith
 
 
 
@@ -1548,13 +1440,9 @@ lemma ShiftZeroBound :
     ∃ (C : ℝ), C ≥ 1 ∧
       ∀ (δ : ℝ), δ ∈ Ioo 0 1 →
         -(ζ' (1 + δ) / ζ (1 + δ)).re ≤ 1 / δ + C := by
-  obtain ⟨C, hC⟩ := TauCeti.exists_norm_neg_logDeriv_riemannZeta_one_add_sub_inv_le
-  refine ⟨max 1 C, le_max_left _ _, fun δ hδ => ?_⟩
-  have hb := (Complex.re_le_norm _).trans (hC δ hδ.1 hδ.2.le)
-  have hb' : -(ζ' (1 + δ) / ζ (1 + δ)).re - 1 / δ ≤ C := by
-    simpa only [Complex.sub_re, Complex.neg_re, ← Complex.ofReal_inv, Complex.ofReal_re,
-      logDeriv_apply, one_div] using hb
-  linarith only [hb', le_max_right (1 : ℝ) C]
+  obtain ⟨C, -, h⟩ := TauCeti.exists_neg_re_logDeriv_riemannZeta_one_add_le
+  exact ⟨max 1 C, le_max_left _ _, fun δ hδ ↦ by
+    simpa [logDeriv_apply] using (h hδ.1 hδ.2.le).trans (by gcongr; exact le_max_right _ _)⟩
 
 
 attribute [blueprint "vonMangoldtLSeriesSummable"
@@ -1636,89 +1524,19 @@ theorem ZeroInequality : ∃ (E : ℝ), E ∈ Ioo (0 : ℝ) (1 / 14 : ℝ) ∧
       ∀ (σ : ℝ), σ = ρ.re →
         ∀ (t : ℝ), t = ρ.im → |t| ≥ 2 →
           σ ≤ 1 - E / log |t| := by
-  obtain ⟨A, Age, ShiftZero⟩ := ShiftZeroBound
-  obtain ⟨B, Bpos, ShiftOne⟩ := ShiftOneBound
-  obtain ⟨C, Cpos, ShiftTwo⟩ := ShiftTwoBound
-  set D : ℝ := 5 * A + 4 * B + C with D_def
-  set E : ℝ := (14 * D)⁻¹ with E_def
-  have Dge1 : 1 ≤ D := by linarith
-  refine ⟨E, ⟨?_, ?_⟩, fun ρ hρzero σ ρre t ρim ht => ?_⟩
-  · rw [E_def, mul_inv_rev, mul_pos_iff_of_pos_right (inv_pos.mpr ofNat_pos'), inv_pos]
-    linarith
-  · rw [E_def, one_div, inv_lt_inv₀ (by linarith) (by linarith)]
-    linarith
-  · set δ : ℝ := 1 / (2 * D * Real.log |t|) with δ_def
-    have δrange : δ ∈ Ioo 0 1 := by
-      simp only [mem_Ioo, δ_def, one_div_pos]
-      rw [div_lt_one (by nlinarith [Real.log_le_log zero_lt_two ht, Real.log_two_gt_d9])]
-      exact ⟨by nlinarith [Real.log_le_log zero_lt_two ht, Real.log_two_gt_d9],
-        by nlinarith [Real.log_le_log zero_lt_two ht, Real.log_two_gt_d9]⟩
-    have hL (k : ℕ) : HasSum (fun n ↦ (LSeries.term (fun n ↦ (Λ n : ℂ)) (1 + δ + k * I * t) n).re)
-        (-(ζ' (1 + δ + k * I * t) / ζ (1 + δ + k * I * t))).re := by
-      have hs : 1 < (1 + δ + k * I * t : ℂ).re := by simp [δrange.1]
-      rw [← neg_div, ← ArithmeticFunction.LSeries_vonMangoldt_eq_deriv_riemannZeta_div hs]
-      exact Complex.hasSum_re (ArithmeticFunction.LSeriesSummable_vonMangoldt hs).hasSum
-    have hnonneg : 0 ≤ 3 * -(ζ' (1 + δ) / ζ (1 + δ)).re +
-        4 * -(ζ' (1 + δ + I * t) / ζ (1 + δ + I * t)).re +
-        -(ζ' (1 + δ + 2 * I * t) / ζ (1 + δ + 2 * I * t)).re := by
-      have h := (((hL 0).mul_left 3).add ((hL 1).mul_left 4)).add (hL 2)
-      simp only [CharP.cast_eq_zero, zero_mul, add_zero, cast_one, one_mul, cast_ofNat,
-        neg_re] at h
-      refine h.nonneg fun n ↦ ?_
-      rcases eq_or_ne n 0 with rfl | hn
-      · simp
-      set a : ℂ := Λ n / (n : ℂ) ^ (1 + δ : ℂ)
-      set w : ℂ := (n : ℂ) ^ (-(I * t))
-      have hk (k : ℕ) : LSeries.term (fun n ↦ (Λ n : ℂ)) (1 + δ + k * I * t) n = a * w ^ k := by
-        rw [LSeries.term_of_ne_zero hn, ← cpow_nat_mul]
-        simp only [a, div_eq_mul_inv, ← cpow_neg]
-        rw [mul_assoc (Λ n : ℂ), ← cpow_add _ _ (Nat.cast_ne_zero.mpr hn)]
-        ring_nf
-      have hk0 := hk 0; have hk1 := hk 1; have hk2 := hk 2
-      simp only [CharP.cast_eq_zero, zero_mul, add_zero, pow_zero, mul_one, cast_one, one_mul,
-        cast_ofNat] at hk0 hk1 hk2
-      have ha : a = ((Λ n / (n : ℝ) ^ (1 + δ) : ℝ) : ℂ) := by
-        simp only [a, ofReal_div, ofReal_cpow (Nat.cast_nonneg n)]; push_cast; rfl
-      have hw := TauCeti.LSeries.threeFourOneCombination_nonneg (z := w)
-        (by simp [w, norm_natCast_cpow_of_pos (Nat.pos_of_ne_zero hn)])
-      rw [TauCeti.LSeries.threeFourOneCombination_def] at hw
-      rw [hk0, hk1, hk2, ha]
-      simp only [pow_one, re_ofReal_mul, ofReal_re]
-      nlinarith [mul_nonneg (by positivity : 0 ≤ Λ n / (n : ℝ) ^ (1 + δ)) hw]
-    have ZeroWindowOneFinite : (ZeroWindow t).Finite := ZeroWindowFinite ht
-    have ZeroWindowTwoFinite : (ZeroWindow (2 * t)).Finite := by
-      apply ZeroWindowFinite
-      simp only [abs_mul, abs_ofNat, ge_iff_le, ofNat_pos, le_mul_iff_one_le_right]
-      linarith
-    have ShiftZero := ShiftZero δ δrange
-    have ShiftOne := ShiftOne δ δrange t ht ZeroWindowOneFinite ρ hρzero ρim
-    have ShiftTwo := ShiftTwo δ δrange t ht ZeroWindowTwoFinite
-    suffices h1 : 4 / (1 + δ - σ) ≤ 3 / δ + D * Real.log |t| by
-      simp only [δ_def, div_eq_mul_inv, mul_inv_rev, one_mul, inv_inv] at h1
-      rw [mul_inv_le_iff₀] at h1
-      · ring_nf at h1; field_simp at h1; ring_nf at h1; field_simp at h1
-        rw [mul_div_cancel_left₀ _
-          (Real.log_ne_zero_of_pos_of_ne_one (by linarith) (by linarith))] at h1
-        rw [E_def, ← inv_mul', le_sub_comm,
-          inv_le_iff_one_le_mul₀' (mul_pos (by linarith) (Real.log_pos (by linarith)))]
-        linarith
-      · rw [add_sub_right_comm]
-        apply add_pos_of_nonneg_of_pos
-        · by_contra hσ; simp only [sub_nonneg, not_le, ρre] at hσ
-          exact (riemannZeta_ne_zero_of_one_lt_re hσ) hρzero
-        · exact mul_pos (inv_pos.mpr (Real.log_pos (by linarith))) (by positivity)
-    suffices h2 :  0 ≤ 3 / δ + 3 * A - 4 / (1 + δ - σ) + 4 * B * Real.log |t| + C * Real.log |t| by
-      simp only [sub_eq_neg_add, add_assoc, le_neg_add_iff_add_le, add_zero, ge_iff_le] at ⊢ h2
-      apply le_trans h2
-      simp only [← add_assoc, D_def, add_mul, add_le_add_iff_right, add_le_add_iff_left]
-      nlinarith [Real.log_le_log zero_lt_two ht, Real.log_two_gt_d9]
-    calc 0 ≤ 3 * -(ζ' (1 + δ) / ζ (1 + δ)).re +
-          4 * -(ζ' (1 + δ + I * t) / ζ (1 + δ + I * t)).re +
-          -(ζ' (1 + δ + 2 * I * t) / ζ (1 + δ + 2 * I * t)).re := hnonneg
-      _ ≤ 3 / δ + 3 * A - 4 / (1 + δ - σ) + 4 * B * Real.log |t| + C * Real.log |t| := by
-          rw [← ρre] at ShiftOne
-          ring_nf at ShiftZero ShiftOne ShiftTwo ⊢
-          linarith
+  obtain ⟨c, hc, h⟩ := TauCeti.LFunctions.riemannZeta_zeroFreeRegion
+  refine ⟨min (1 / 15) (c / 3), ⟨by positivity, by linarith [min_le_left (1 / 15 : ℝ) (c / 3)]⟩,
+    fun ρ hρ σ hσ t ht ht2 ↦ ?_⟩
+  subst hσ ht
+  have hρ1 : ρ ≠ 1 := by rintro rfl; simp at ht2; linarith
+  have hlt := lt_of_not_ge fun hle ↦ h ρ hρ1 hle hρ
+  have hL : 0 < Real.log |ρ.im| := Real.log_pos (by linarith)
+  have h2 : Real.log (|ρ.im| + 3) ≤ 3 * Real.log |ρ.im| := by
+    rw [← Real.log_rpow (by linarith)]; exact Real.log_le_log (by linarith) (by norm_cast; nlinarith [mul_nonneg (mul_nonneg (abs_nonneg ρ.im) (sub_nonneg.2 ht2)) (by linarith : (0:ℝ) ≤ |ρ.im| + 2)])
+  have h3 : min (1 / 15) (c / 3) / Real.log |ρ.im| ≤ c / Real.log (|ρ.im| + 3) := calc
+    _ ≤ c / (3 * Real.log |ρ.im|) := by rw [← div_div]; gcongr; exact min_le_right _ _
+    _ ≤ _ := div_le_div_of_nonneg_left hc.le (Real.log_pos (by linarith)) h2
+  linarith
 
 
 

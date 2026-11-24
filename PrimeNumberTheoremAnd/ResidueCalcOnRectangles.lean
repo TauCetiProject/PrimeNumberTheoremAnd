@@ -8,9 +8,8 @@ public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.Analysis.Meromorphic.NormalForm
 public import TauCeti.Analysis.Contour.Residue.SimplePole
 public import PrimeNumberTheoremAnd.Rectangle
-import TauCeti.Analysis.Contour.Residue.Cycle
-import TauCeti.Analysis.Contour.Curve.Rectangle
-import TauCeti.Analysis.Contour.Winding.Number.Rectangle
+import TauCeti.Analysis.Contour.Residue.Rectangle
+import TauCeti.Analysis.Contour.Cauchy.Rectangle
 
 
 @[expose] public section
@@ -257,165 +256,28 @@ theorem DifferentiableOn.rectangleBorderIntegrable'
 theorem DifferentiableOn.rectangleBorderIntegrable (hf : DifferentiableOn ℂ f (Rectangle z w)) :
     RectangleBorderIntegrable f z w := hf.continuousOn.rectangleBorderIntegrable
 
-/-- Given `x₀ a x₁ : ℝ`, and `y₀ y₁ : ℝ` and a function
-`f : ℂ → ℂ` so that both `(t : ℝ) ↦ f(t + y₀ * I)` and
-`(t : ℝ) ↦ f(t + y₁ * I)` are integrable over both
-`t ∈ Icc x₀ a` and `t ∈ Icc a x₁`, we have that
-`RectangleIntegral f (x₀ + y₀ * I) (x₁ + y₁ * I)` is the sum of
-`RectangleIntegral f (x₀ + y₀ * I) (a + y₁ * I)` and
-`RectangleIntegral f (a + y₀ * I) (x₁ + y₁ * I)`. -/
-lemma RectangleIntegralHSplit {a x₀ x₁ y₀ y₁ : ℝ}
-    (f_int_x₀_a_bot : IntervalIntegrable (fun x => f (↑x + ↑y₀ * I)) volume x₀ a)
-    (f_int_a_x₁_bot : IntervalIntegrable (fun x => f (↑x + ↑y₀ * I)) volume a x₁)
-    (f_int_x₀_a_top : IntervalIntegrable (fun x => f (↑x + ↑y₁ * I)) volume x₀ a)
-    (f_int_a_x₁_top : IntervalIntegrable (fun x => f (↑x + ↑y₁ * I)) volume a x₁) :
-    RectangleIntegral f (x₀ + y₀ * I) (x₁ + y₁ * I) =
-      RectangleIntegral f (x₀ + y₀ * I) (a + y₁ * I) +
-      RectangleIntegral f (a + y₀ * I) (x₁ + y₁ * I) := by
-  dsimp [RectangleIntegral, HIntegral, VIntegral]
-  simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im, Complex.I_re,
-    Complex.I_im, mul_one, mul_zero, add_zero, zero_add, sub_self]
-  have h₁ := integral_add_adjacent_intervals f_int_x₀_a_bot f_int_a_x₁_bot
-  have h₂ := integral_add_adjacent_intervals f_int_x₀_a_top f_int_a_x₁_top
-  have h₁' :
-      (∫ (x : ℝ) in x₀..a, f (↑x + ↑y₀ * I)) +
-          ∫ (x : ℝ) in a..x₁, f (↑y₀ * I + ↑x) =
-        ∫ (x : ℝ) in x₀..x₁, f (↑x + ↑y₀ * I) := by
-    simpa [add_comm] using h₁
-  have h₂' :
-      (∫ (x : ℝ) in x₀..a, f (↑x + ↑y₁ * I)) +
-          ∫ (x : ℝ) in a..x₁, f (↑y₁ * I + ↑x) =
-        ∫ (x : ℝ) in x₀..x₁, f (↑x + ↑y₁ * I) := by
-    simpa [add_comm] using h₂
-  rw [← h₁', ← h₂']
-  have hcomm₁ :
-      ∫ (x : ℝ) in a..x₁, f (↑y₀ * I + ↑x) =
-        ∫ (x : ℝ) in a..x₁, f (↑x + ↑y₀ * I) := by
-    apply intervalIntegral.integral_congr
-    intro x _
-    exact congrArg f (by ring)
-  have hcomm₂ :
-      ∫ (x : ℝ) in a..x₁, f (↑y₁ * I + ↑x) =
-        ∫ (x : ℝ) in a..x₁, f (↑x + ↑y₁ * I) := by
-    apply intervalIntegral.integral_congr
-    intro x _
-    exact congrArg f (by ring)
-  rw [hcomm₁, hcomm₂]
-  abel
-
-lemma RectangleIntegralHSplit' {a x₀ x₁ y₀ y₁ : ℝ}
-    (ha : a ∈ [[x₀, x₁]])
-    (hf : RectangleBorderIntegrable f (↑x₀ + ↑y₀ * I) (↑x₁ + ↑y₁ * I)) :
-    RectangleIntegral f (x₀ + y₀ * I) (x₁ + y₁ * I) =
-      RectangleIntegral f (x₀ + y₀ * I) (a + y₁ * I) +
-      RectangleIntegral f (a + y₀ * I) (x₁ + y₁ * I) :=
-  RectangleIntegralHSplit
-    (IntervalIntegrable.mono (by simpa using hf.1) (uIcc_subset_uIcc left_mem_uIcc ha) le_rfl)
-    (IntervalIntegrable.mono (by simpa using hf.1) (uIcc_subset_uIcc ha right_mem_uIcc) le_rfl)
-    (IntervalIntegrable.mono (by simpa using hf.2.1) (uIcc_subset_uIcc left_mem_uIcc ha) le_rfl)
-    (IntervalIntegrable.mono (by simpa using hf.2.1) (uIcc_subset_uIcc ha right_mem_uIcc) le_rfl)
-
-lemma RectangleIntegralVSplit {b x₀ x₁ y₀ y₁ : ℝ}
-    (f_int_y₀_b_left : IntervalIntegrable (fun y => f (x₀ + y * I)) volume y₀ b)
-    (f_int_b_y₁_left : IntervalIntegrable (fun y => f (x₀ + y * I)) volume b y₁)
-    (f_int_y₀_b_right : IntervalIntegrable (fun y => f (x₁ + y * I)) volume y₀ b)
-    (f_int_b_y₁_right : IntervalIntegrable (fun y => f (x₁ + y * I)) volume b y₁) :
-    RectangleIntegral f (x₀ + y₀ * I) (x₁ + y₁ * I) =
-      RectangleIntegral f (x₀ + y₀ * I) (x₁ + b * I) +
-      RectangleIntegral f (x₀ + b * I) (x₁ + y₁ * I) := by
-  dsimp [RectangleIntegral, HIntegral, VIntegral]
-  simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im, Complex.I_re,
-    Complex.I_im, mul_one, mul_zero, add_zero, zero_add, sub_self]
-  have h₁ := integral_add_adjacent_intervals f_int_y₀_b_left f_int_b_y₁_left
-  have h₂ := integral_add_adjacent_intervals f_int_y₀_b_right f_int_b_y₁_right
-  rw [← h₁, ← h₂]
-  module
-
-lemma RectangleIntegralVSplit' {b x₀ x₁ y₀ y₁ : ℝ}
-    (hb : b ∈ [[y₀, y₁]])
-    (hf : RectangleBorderIntegrable f (↑x₀ + ↑y₀ * I) (↑x₁ + ↑y₁ * I)) :
-    RectangleIntegral f (x₀ + y₀ * I) (x₁ + y₁ * I) =
-      RectangleIntegral f (x₀ + y₀ * I) (x₁ + b * I) +
-      RectangleIntegral f (x₀ + b * I) (x₁ + y₁ * I) :=
-  RectangleIntegralVSplit
-    (IntervalIntegrable.mono (by simpa using hf.2.2.2) (uIcc_subset_uIcc left_mem_uIcc hb) le_rfl)
-    (IntervalIntegrable.mono (by simpa using hf.2.2.2) (uIcc_subset_uIcc hb right_mem_uIcc) le_rfl)
-    (IntervalIntegrable.mono (by simpa using hf.2.2.1) (uIcc_subset_uIcc left_mem_uIcc hb) le_rfl)
-    (IntervalIntegrable.mono (by simpa using hf.2.2.1) (uIcc_subset_uIcc hb right_mem_uIcc) le_rfl)
-
-set_option linter.style.multiGoal false in
 lemma RectanglePullToNhdOfPole' [CompleteSpace E] {z₀ z₁ z₂ z₃ p : ℂ}
     (h_orientation : z₀.re ≤ z₃.re ∧ z₀.im ≤ z₃.im ∧
       z₁.re ≤ z₂.re ∧ z₁.im ≤ z₂.im)
     (hp : Rectangle z₁ z₂ ∈ 𝓝 p) (hz : Rectangle z₁ z₂ ⊆ Rectangle z₀ z₃)
     (fHolo : DifferentiableOn ℂ f (Rectangle z₀ z₃ \ {p})) :
     RectangleIntegral f z₀ z₃ = RectangleIntegral f z₁ z₂ := by
-  obtain ⟨hz₀_re, hz₀_im, hz₁_re, hz₁_im⟩ := h_orientation
-  have : z₁ ∈ Rectangle z₀ z₃ ∧ z₂ ∈ Rectangle z₀ z₃ :=
-    ⟨hz ⟨left_mem_uIcc, left_mem_uIcc⟩,
-      hz ⟨right_mem_uIcc, right_mem_uIcc⟩⟩
-  rw [Rectangle, uIcc_of_le hz₀_re, uIcc_of_le hz₀_im] at this
-  obtain ⟨⟨⟨_, _⟩, ⟨_, _⟩⟩, ⟨_, _⟩, ⟨_, _⟩⟩ := this
-  obtain ⟨⟨_, _⟩, ⟨_, _⟩⟩ :=
-    (uIoo_of_le hz₁_re) ▸ (uIoo_of_le hz₁_im) ▸
-      (show Rectangle z₁ z₂ ∈ 𝓝 p ↔
-          p ∈ (uIoo z₁.re z₂.re) ×ℂ
-            (uIoo z₁.im z₂.im) from by
-        simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
-          interior_Icc]).mp hp
-  obtain ⟨_, _, _, _⟩ := show
-      p.re < z₂.re ∧ p.re < z₃.re ∧ p.im < z₂.im ∧ p.im < z₃.im from
-    ⟨by linarith, by linarith, by linarith, by linarith⟩
-  obtain ⟨_, _, _, _⟩ := show
-      z₀.re < p.re ∧ z₁.re < p.re ∧ z₀.im < p.im ∧ z₁.im < p.im from
-    ⟨by linarith, by linarith, by linarith, by linarith⟩
-  have fCont := fHolo.continuousOn
-  have hbot : RectangleBorderIntegrable f (↑z₀.re + ↑z₀.im * I)
-      (↑z₃.re + ↑z₃.im * I) := ?_
-  have htop : RectangleBorderIntegrable f (↑z₀.re + ↑z₁.im * I)
-      (↑z₃.re + ↑z₃.im * I) := ?_
-  have hleft : RectangleBorderIntegrable f (↑z₀.re + ↑z₁.im * I)
-      (↑z₃.re + ↑z₂.im * I) := ?_
-  have hright : RectangleBorderIntegrable f (↑z₁.re + ↑z₁.im * I)
-      (↑z₃.re + ↑z₂.im * I) := ?_
-  all_goals try {
-    refine ContinuousOn.rectangleBorder_integrable
-      (fCont.mono (rectangleBorder_subset_punctured_rect ?_ ?_))
-    · simp_all
-    · simpa using ⟨by linarith, by linarith, by linarith, by linarith⟩
-  }
-  have hbot' : z₁.im ∈ [[z₀.im, z₃.im]] := ?_
-  have htop' : z₂.im ∈ [[z₁.im, z₃.im]] := ?_
-  have hleft' : z₁.re ∈ [[z₀.re, z₃.re]] := ?_
-  have hright' : z₂.re ∈ [[z₁.re, z₃.re]] := ?_
-  all_goals try {
-    rw [Set.uIcc_of_le]
-    constructor
-    all_goals assumption
-  }
-  have hbot'' : Rectangle (↑z₀.re + ↑z₀.im * I) (↑z₃.re + ↑z₁.im * I) ⊆
-    Rectangle z₀ z₃ \ {p} := ?_
-  have htop'' : Rectangle (↑z₀.re + ↑z₂.im * I) (↑z₃.re + ↑z₃.im * I) ⊆
-    Rectangle z₀ z₃ \ {p} := ?_
-  have hleft'' : Rectangle (↑z₀.re + ↑z₁.im * I) (↑z₁.re + ↑z₂.im * I) ⊆
-    Rectangle z₀ z₃ \ {p} := ?_
-  have hright'' : Rectangle (↑z₂.re + ↑z₁.im * I) (↑z₃.re + ↑z₂.im * I) ⊆
-    Rectangle z₀ z₃ \ {p} := ?_
-  all_goals try { apply rectangle_subset_punctured_rect <;> simp_all }
-  have h₁ := RectangleIntegralVSplit' hbot' hbot
-  have h₂ : RectangleIntegral f (↑z₀.re + ↑z₀.im * I) (↑z₃.re + ↑z₁.im * I) = 0 :=
-    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono hbot'')
-  have h₃ := RectangleIntegralVSplit' htop' htop
-  have h₄ : RectangleIntegral f (↑z₀.re + ↑z₂.im * I) (↑z₃.re + ↑z₃.im * I) = 0 :=
-    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono htop'')
-  have h₅ := RectangleIntegralHSplit' hleft' hleft
-  have h₆ : RectangleIntegral f (↑z₀.re + ↑z₁.im * I) (↑z₁.re + ↑z₂.im * I) = 0 :=
-    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono hleft'')
-  have h₇ := RectangleIntegralHSplit' hright' hright
-  have h₈ : RectangleIntegral f (↑z₂.re + ↑z₁.im * I) (↑z₃.re + ↑z₂.im * I) = 0 :=
-    Complex.integral_boundary_rect_eq_zero_of_differentiableOn f _ _ (fHolo.mono hright'')
-  simp only [re_add_im] at *
-  linear_combination (norm := abel) h₁ + h₂ + h₃ + h₄ + h₅ + h₆ + h₇ + h₈
+  obtain ⟨h0re, h0im, h1re, h1im⟩ := h_orientation
+  have key (a b : ℂ) (hre : a.re ≤ b.re) (him : a.im ≤ b.im) (hab : Rectangle a b ⊆ Rectangle z₀ z₃)
+      (r : ℝ) (hr : 0 < r) (hball : Metric.closedBall p r ⊆ Ioo a.re b.re ×ℂ Ioo a.im b.im) :
+      RectangleIntegral f a b = ∮ z in C(p, r), f z := by
+    have hd := fHolo.mono (sdiff_subset_sdiff_left hab)
+    simpa [RectangleIntegral, HIntegral, VIntegral] using
+      TauCeti.Contour.rectangle_boundary_integral_eq_sum_circleIntegral (P := {p}) hre him hr
+        (by simpa using hball) (by simp)
+        (by simpa [Rectangle, uIcc_of_le hre, uIcc_of_le him] using hd.continuousOn)
+        (by rw [Finset.coe_singleton]
+            exact hd.mono (sdiff_subset_sdiff_left (interior_rectangle hre him ▸ interior_subset)))
+  obtain ⟨r, hr, hball⟩ := Metric.nhds_basis_closedBall.mem_iff.1
+    (interior_rectangle h1re h1im ▸ interior_mem_nhds.2 hp)
+  rw [key z₀ z₃ h0re h0im subset_rfl r hr (hball.trans
+    (interior_rectangle h0re h0im ▸ interior_rectangle h1re h1im ▸ interior_mono hz)),
+    key z₁ z₂ h1re h1im hz r hr hball]
 
 blueprint_comment /--
 The next lemma allows to zoom a big rectangle down to a small
@@ -472,28 +334,12 @@ private lemma rectangleIntegral'_eq_native_sum_residue
     (hf : DifferentiableOn ℂ f (Rectangle z w \ (S : Set ℂ)))
     (hmero : ∀ p ∈ S, MeromorphicAt f p) :
     RectangleIntegral' f z w = ∑ p ∈ S, TauCeti.Contour.residue f p := by
-  let D := TauCeti.Contour.PolarPartDecomposition.ofMeromorphic hf hmero
-  have hoff : ∀ x ∈ frontier (Rectangle z w), x ∉ (S : Set ℂ) := by
-    intro x hx hxS
-    exact disjoint_left.1 disjoint_interior_frontier (hS x hxS) hx
-  have hcont : ContinuousOn f (frontier (Rectangle z w)) :=
-    hf.continuousOn.mono fun x hx ↦
-      ⟨(isClosed_rectangle z w).frontier_subset hx, hoff x hx⟩
-  have h := D.intervalIntegral_deriv_smul_eq_analyticRemainder_add_sum
-    (isPiecewiseC1On_rectBoundary z w) (fun _ _ ↦ rectBoundary_mem_rectangle _)
-    (by simp) (fun _ _ ↦ hoff _ (rectBoundary_mem_frontier _))
-  rw [integral_rectBoundary hcont,
-    integral_rectBoundary (D.analyticRemainder_differentiableOn.continuousOn.mono
-      (isClosed_rectangle z w).frontier_subset),
-    integral_boundary_rect_eq_zero_of_differentiableOn
-      D.analyticRemainder z w D.analyticRemainder_differentiableOn, zero_add] at h
-  rw [Finset.sum_congr rfl (fun p hp ↦ by
-    rw [TauCeti.Contour.windingNumber_rectBoundary_eq_one (by
-      simpa only [interior_rectangle hre him] using hS p hp), one_mul])] at h
-  have hraw : RectangleIntegral f z w =
-      2 * (π : ℂ) * I * ∑ p ∈ S, TauCeti.Contour.residue f p := h
-  rw [RectangleIntegral', hraw, smul_eq_mul, one_div, ← mul_assoc,
-    inv_mul_cancel₀ Complex.two_pi_I_ne_zero, one_mul]
+  rw [interior_rectangle hre him] at hS
+  have h := TauCeti.Contour.rectangle_boundary_integral_eq_residues hre him hS
+    (by simpa [Rectangle, uIcc_of_le hre, uIcc_of_le him] using hf.continuousOn)
+    (hf.mono (sdiff_subset_sdiff_left (interior_rectangle hre him ▸ interior_subset))) hmero
+  simp only [RectangleIntegral', RectangleIntegral, HIntegral, VIntegral, smul_eq_mul, h]
+  field_simp
 
 lemma Complex.inv_re_add_im : (x + y * I)⁻¹ = (x - I * y) / (x ^ 2 + y ^ 2) := by
   rw [Complex.inv_def, div_eq_mul_inv]
