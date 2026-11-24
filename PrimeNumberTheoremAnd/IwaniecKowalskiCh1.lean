@@ -836,70 +836,6 @@ Formal theorem: `TauCeti.riemannZeta_pow_four_eq_mul_LSeries_divisor_sq`,
 in `TauCeti.NumberTheory.LSeries.Divisor`.
 -/
 
-class IsCoprimePreserving (f : ℕ → ℕ) : Prop where
-  map_coprime : ∀ {m n : ℕ}, Nat.Coprime m n → Nat.Coprime (f m) (f n)
-
-instance instIsCoprimePreservingPow (k : ℕ) :
-    IsCoprimePreserving (· ^ k : ℕ → ℕ) :=
-  ⟨fun h ↦ h.pow k k⟩
-
-/-- The monoid hom `powMonoidHom k` preserves coprimality (specialization). -/
-instance instIsCoprimePreservingPowMonoidHom (k : ℕ) :
-    IsCoprimePreserving ((powMonoidHom k : ℕ →* ℕ) : ℕ → ℕ) :=
-  inferInstanceAs (IsCoprimePreserving (· ^ k : ℕ → ℕ))
-
-lemma IsMultiplicative.of_map_mulHom {f h : ArithmeticFunction ℕ}
-    (hf : f.IsMultiplicative) (g : ℕ →* ℕ) (hh : ∀ n, h n = g (f n)) :
-    h.IsMultiplicative := by
-  refine ⟨by rw [hh, hf.1, g.map_one], fun {m n} hmn => ?_⟩
-  rw [hh, hh, hh, hf.2 hmn, g.map_mul]
-
-lemma IsMultiplicative.of_comp_mulHom {f h : ArithmeticFunction ℕ}
-    (hf : f.IsMultiplicative) (g : ℕ →* ℕ)
-    [hg : IsCoprimePreserving (g : ℕ → ℕ)]
-    (hh : ∀ n, h n = f (g n)) : h.IsMultiplicative := by
-  refine ⟨by rw [hh, g.map_one, hf.1], fun {m n} hmn => ?_⟩
-  rw [hh, hh, hh, g.map_mul, hf.2 (hg.map_coprime hmn)]
-
-/-- `∑_{j=0}^{k} (2j+1) = (k+1)²`. -/
-lemma sum_two_mul_add_one (k : ℕ) :
-    ∑ j ∈ Finset.range (k + 1), (2 * j + 1) = (k + 1) ^ 2 := by
-  induction k with
-  | zero => simp
-  | succ n ih => rw [Finset.sum_range_succ, ih]; ring
-
-/-- The arithmetic function `n ↦ τ(n²)`. -/
-abbrev tauSq : ArithmeticFunction ℕ := ⟨fun n ↦ τ (n ^ 2), by simp⟩
-
-/-- The arithmetic function `n ↦ τ(n)²`. -/
-abbrev sqTau : ArithmeticFunction ℕ := ⟨fun n ↦ (τ n) ^ 2, by simp⟩
-
-lemma isMultiplicative_tauSq : tauSq.IsMultiplicative :=
-  IsMultiplicative.of_comp_mulHom (isMultiplicative_sigma (k := 0)) (powMonoidHom 2) (fun _ ↦ rfl)
-
-lemma isMultiplicative_sqTau : sqTau.IsMultiplicative :=
-  IsMultiplicative.of_map_mulHom (isMultiplicative_sigma (k := 0)) (powMonoidHom 2) (fun _ ↦ rfl)
-
-/-- `τ(n²) ≤ d_3(n)` pointwise.  Used for L-series summability of `n ↦ τ(n²)`. -/
-lemma tau_sq_le_zeta_pow_three (n : ℕ) : tauSq n ≤ (ζ ^ 3 : ArithmeticFunction ℕ) n := by
-  rcases eq_or_ne n 0 with rfl | hn
-  · change τ ((0 : ℕ) ^ 2) ≤ _
-    simp
-  rw [isMultiplicative_tauSq.multiplicative_factorization _ hn,
-      prod_factorization_eq_prod_primeFactors,
-      (isMultiplicative_zeta.pow (k := 3)).multiplicative_factorization _ hn,
-      prod_factorization_eq_prod_primeFactors]
-  refine Finset.prod_le_prod₀ (fun _ _ ↦ Nat.zero_le _) fun p hp ↦ ?_
-  have hp' := Nat.prime_of_mem_primeFactors hp
-  set k := n.factorization p
-  change τ ((p ^ k) ^ 2) ≤ (ζ ^ 3 : ArithmeticFunction ℕ) (p ^ k)
-  rw [← pow_mul, mul_comm k 2, sigma_zero_apply_prime_pow hp',
-      zeta_pow_succ_apply_prime_pow 2 _ hp']
-  change 2 * k + 1 ≤ Nat.choose (k + 2) 2
-  rw [Nat.choose_two_right, show k + 2 - 1 = k + 1 from rfl,
-      Nat.le_div_iff_mul_le (by norm_num : (0:ℕ) < 2)]
-  nlinarith [Nat.zero_le k, sq_nonneg k]
-
 /--
 Baby Rankin-Selberg:
 `ζ(s)∑τ(n^2)n^-s = ∑τ(n)^2 n^-s`. -/
@@ -1119,68 +1055,10 @@ attribute [blueprint
   -/)]
   TauCeti.riemannZeta_sq_eq_mul_LSeries_two_pow_cardDistinctFactors
 
-/-- Local evaluation: $\tau((p^e)^2)=\tau(p^{2e})=2e+1$. -/
-private lemma tau_sq_apply_prime_pow {p e : ℕ} (hp : p.Prime) :
-    τ ((p ^ e) ^ 2) = 2 * e + 1 := by
-  rw [← pow_mul, mul_comm e, sigma_zero_apply_prime_pow hp]
-
 private lemma LSeriesSummable_tau_sq {s : ℂ} (hs : 1 < s.re) :
     LSeriesSummable (fun n ↦ (τ (n ^ 2) : ℂ)) s := by
   simpa only [tau, sigma_zero_apply] using
     (TauCeti.LSeriesHasSum_card_divisors_comp_sq hs).LSeriesSummable
-
-/-- Local Euler factor: $\sum_e \tau((p^e)^2)\,p^{-es}=(1+p^{-s})/(1-p^{-s})^2$. -/
-private lemma tau_sq_tsum_prime_pow {s : ℂ} (hs : 1 < s.re) (p : Primes) :
-    sumOnPrimePows (LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s) p =
-      (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) ^ 2 := by
-  have hsub : 1 - (p : ℂ) ^ (-s) ≠ 0 := Complex.one_sub_prime_cpow_ne_zero p.property hs
-  set x : ℂ := (p : ℂ) ^ (-s)
-  have hx : ‖x‖ < 1 := by
-    dsimp only [x]
-    rw [Complex.norm_cpow_of_ne_zero (Nat.cast_ne_zero.mpr p.property.ne_zero)]
-    · norm_num
-      exact lt_of_lt_of_le
-        (Real.rpow_lt_rpow_of_exponent_lt (mod_cast p.property.one_lt) (neg_lt_zero.mpr (by linarith)))
-        (by norm_num)
-  have hx0 : 1 - x ≠ 0 := by simpa [x] using hsub
-  have h_term (e : ℕ) :
-      LSeries.term (fun n ↦ (τ (n ^ 2) : ℂ)) s (p.val ^ e) =
-        (2 * (e : ℂ) + 1) * x ^ e := by
-    rw [TauCeti.LSeries.term_pow p.val p.prop.ne_zero e, tau_sq_apply_prime_pow p.prop]
-    push_cast
-    rfl
-  have hid : 2 * (x / (1 - x) ^ 2) + (1 - x)⁻¹ = (1 + x) / (1 - x) ^ 2 := by
-    field_simp [hx0]
-    ring
-  have hsum' :
-      HasSum (fun e : ℕ ↦ 2 * ((e : ℂ) * x ^ e) + x ^ e)
-        (2 * (x / (1 - x) ^ 2) + (1 - x)⁻¹) :=
-    ((hasSum_coe_mul_geometric_of_norm_lt_one hx).mul_left (2 : ℂ)).add
-      (hasSum_geometric_of_norm_lt_one hx)
-  have hfun : (fun e : ℕ ↦ (2 * (e : ℂ) + 1) * x ^ e) =
-      (fun e : ℕ ↦ 2 * ((e : ℂ) * x ^ e) + x ^ e) := by
-    ext e; ring
-  have hsum : HasSum (fun e : ℕ ↦ (2 * (e : ℂ) + 1) * x ^ e)
-      ((1 + x) / (1 - x) ^ 2) := by
-    rw [hfun, ← hid]
-    exact hsum'
-  simpa [sumOnPrimePows_apply, h_term] using hsum.tsum_eq
-
-private lemma tau_sq_LSeries_eulerProduct_hasProd (s : ℂ) (hs : 1 < s.re) :
-    HasProd (fun p : Primes ↦ (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) ^ 2)
-      (LSeries (fun n ↦ (τ (n ^ 2) : ℂ)) s) := by
-  convert! EulerProduct.eulerProduct_hasProd _ _ _
-      (LSeries.term_zero (fun n ↦ (τ (n ^ 2) : ℂ)) s) using 1
-  · funext p; exact Eq.symm (tau_sq_tsum_prime_pow hs p)
-  · simp [LSeries.term, tau]
-  · intro _ _ hmn; exact TauCeti.LSeries.term_mul_of_coprime (fun _ _ hab => by
-      exact_mod_cast isMultiplicative_tauSq.map_mul_of_coprime hab) hmn
-  · convert! (LSeriesSummable_tau_sq hs).norm using 1
-
-private lemma tau_sq_LSeries_eulerProduct_tprod (s : ℂ) (hs : 1 < s.re) :
-    LSeries (fun n ↦ (τ (n ^ 2) : ℂ)) s =
-      ∏' p : Primes, (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) ^ 2 := by
-  exact (tau_sq_LSeries_eulerProduct_hasProd s hs).tprod_eq.symm
 
 /--
 Zeta cubed:
