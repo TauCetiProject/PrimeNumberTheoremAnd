@@ -13,6 +13,7 @@ public import PrimeNumberTheoremAnd.ZetaBounds
 public import TauCeti.Analysis.Complex.Conformal.Reflection.LogDeriv
 import TauCeti.Analysis.Asymptotics.Lemmas
 import TauCeti.NumberTheory.LSeries.SmoothedSum.Basic
+import TauCeti.NumberTheory.LSeries.SmoothedSum.Contour
 
 
 @[expose] public section
@@ -708,6 +709,9 @@ Use the compactness of the rectangle and the fact that holomorphic functions are
 
 @[blueprint
   (title := "SmoothedChebyshevPull1")
+  (proofUses := ["Smooth1Nonneg", "ResidueMult", "Smooth1Properties_above", "Smooth1ContinuousAt",
+    "Smooth1LeOne", "RectangleIntegral", "VerticalIntegral", -"SmoothedChebyshevDirichlet",
+    -"DeltaSpike", -"MellinConvolution"])
   (statement := /--
   We have that
   $$\psi_{\epsilon}(X) =
@@ -735,166 +739,87 @@ theorem SmoothedChebyshevPull1 {SmoothingF : ℝ → ℝ} {ε : ℝ} (ε_pos : 0
       I₈ SmoothingF ε T X σ₁ +
       I₉ SmoothingF ε X T
       + 𝓜 (fun x ↦ (Smooth1 SmoothingF ε x : ℂ)) 1 * X := by
-  unfold SmoothedChebyshev
-  unfold VerticalIntegral'
-  have X_eq_gt_one : 1 < 1 + (Real.log X)⁻¹ := by
-    nth_rewrite 1 [← add_zero 1]
-    bound
-  have X_eq_lt_two : (1 + (Real.log X)⁻¹) < 2 := by
-    rw[← one_add_one_eq_two]
-    gcongr
-    exact inv_lt_one_of_one_lt₀ <| logt_gt_one X_gt.le
-  have X_eq_le_two : 1 + (Real.log X)⁻¹ ≤ 2 := X_eq_lt_two.le
-  rw [verticalIntegral_split_three (a := -T) (b := T)]
-  swap
-  · exact SmoothedChebyshevPull1_aux_integrable ε_pos ε_lt_one X_gt X_eq_gt_one
-      X_eq_le_two suppSmoothingF SmoothingFnonneg mass_one ContDiffSmoothingF
-  · have temp : ↑(1 + (Real.log X)⁻¹) = (1 : ℂ) + ↑(Real.log X)⁻¹ := by simp
-    unfold I₁
-    simp only [smul_eq_mul, mul_add, temp, sub_eq_add_neg, add_assoc, add_left_cancel_iff]
-    unfold I₉
-    nth_rewrite 6 [add_comm]
-    simp only [← add_assoc]
-    rw [add_right_cancel_iff,
-        ← add_right_inj (1 / (2 * ↑π * I) *
-          -VIntegral (SmoothedChebyshevIntegrand SmoothingF ε X) (1 + (Real.log X)⁻¹) (-T) T),
-        ← mul_add, ← sub_eq_neg_add, sub_self, mul_zero]
-    unfold VIntegral I₂ I₃₇ I₈
-    simp only [smul_eq_mul, temp, ← add_assoc, ← mul_neg, ← mul_add]
-    let fTempRR : ℝ → ℝ → ℂ := fun x ↦ fun y ↦
-      SmoothedChebyshevIntegrand SmoothingF ε X ((x : ℝ) + (y : ℝ) * I)
-    let fTempC : ℂ → ℂ := fun z ↦ fTempRR z.re z.im
-    have : ∫ (y : ℝ) in -T..T,
-        SmoothedChebyshevIntegrand SmoothingF ε X (1 + ↑(Real.log X)⁻¹ + ↑y * I) =
-        ∫ (y : ℝ) in -T..T, fTempRR (1 + (Real.log X)⁻¹) y := by
-        unfold fTempRR
-        simp only [temp]
-    rw[this]
-    have : ∫ (σ₀ : ℝ) in σ₁..1 + (Real.log X)⁻¹,
-        SmoothedChebyshevIntegrand SmoothingF ε X (↑σ₀ - ↑T * I) =
-        ∫ (x : ℝ) in σ₁..1 + (Real.log X)⁻¹, fTempRR x (-T) := by
-        unfold fTempRR
-        simp only [ofReal_neg, neg_mul, sub_eq_add_neg]
-    rw[this]
-    have : ∫ (t : ℝ) in -T..T,
-        SmoothedChebyshevIntegrand SmoothingF ε X (↑σ₁ + ↑t * I) =
-        ∫ (y : ℝ) in -T..T, fTempRR σ₁ y := rfl
-    rw[this]
-    have : ∫ (σ₀ : ℝ) in σ₁..1 + (Real.log X)⁻¹,
-        SmoothedChebyshevIntegrand SmoothingF ε X (↑σ₀ + ↑T * I) =
-        ∫ (x : ℝ) in σ₁..1 + (Real.log X)⁻¹, fTempRR x T := rfl
-    rw[this]
-    have : (((I * -∫ (y : ℝ) in -T..T, fTempRR (1 + (Real.log X)⁻¹) y) +
-        -∫ (x : ℝ) in σ₁..1 + (Real.log X)⁻¹, fTempRR x (-T)) +
-        I * ∫ (y : ℝ) in -T..T, fTempRR σ₁ y) +
-        ∫ (x : ℝ) in σ₁..1 + (Real.log X)⁻¹, fTempRR x T =
-        -(2 * ↑π * I) * RectangleIntegral' fTempC (σ₁ - T * I) (1 + ↑(Real.log X)⁻¹ + T * I) := by
-        unfold RectangleIntegral' RectangleIntegral HIntegral VIntegral fTempC
-        simp only [mul_neg, one_div, mul_inv_rev, inv_I, neg_mul, sub_im, ofReal_im, mul_im,
-          ofReal_re, I_im, mul_one, I_re, mul_zero, add_zero, zero_sub, ofReal_neg, add_re,
-          neg_re, mul_re, sub_self, neg_zero, add_im, neg_im, zero_add, sub_re, sub_zero,
-          ofReal_inv, one_re, inv_re, normSq_ofReal, div_self_mul_self', one_im, inv_im,
-          zero_div, ofReal_add, ofReal_one, smul_eq_mul, neg_neg]
-        ring_nf
-        simp only [I_sq, neg_mul, one_mul, ne_eq, ofReal_eq_zero, pi_ne_zero, not_false_eq_true,
-          mul_inv_cancel_right₀, sub_neg_eq_add, I_pow_three]
-        ring_nf
-    rw[this]
-    field_simp
-    rw[mul_comm, eq_comm, neg_add_eq_zero]
-
-    have pInRectangleInterior :
-        (Rectangle (σ₁ - ↑T * I) (1 + (Real.log X)⁻¹ + T * I) ∈ nhds 1) := by
-      refine (show Rectangle (σ₁ - ↑T * I) (1 + (Real.log X)⁻¹ + T * I) ∈ nhds (1 : ℂ) ↔
-            (1 : ℂ) ∈ (uIoo (σ₁ - ↑T * I).re (1 + (Real.log X)⁻¹ + T * I).re) ×ℂ
-              (uIoo (σ₁ - ↑T * I).im (1 + (Real.log X)⁻¹ + T * I).im) from by
-          simp_rw [← mem_interior_iff_mem_nhds, Rectangle, Complex.interior_reProdIm, uIoo, uIcc,
-            interior_Icc]).mpr ?_
-      refine mem_reProdIm.mpr ?_
-      simp only [sub_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self,
-        sub_zero, ofReal_inv, add_re, one_re, inv_re, normSq_ofReal, div_self_mul_self', add_zero,
-        sub_im, mul_im, zero_sub, add_im, one_im, inv_im, neg_zero, zero_div, zero_add]
-      constructor
-      · unfold uIoo
-        rw [min_eq_left (by linarith), max_eq_right (by linarith)]
-        exact mem_Ioo.mpr ⟨σ₁_lt_one, (by linarith)⟩
-      · unfold uIoo
-        rw [min_eq_left (by linarith), max_eq_right (by linarith)]
-        exact mem_Ioo.mpr ⟨(by linarith), (by linarith)⟩
-
-    apply ResidueTheoremOnRectangleWithSimplePole'
-    · simp; linarith
-    · simp; linarith
-    · simp only [one_div]
-      exact pInRectangleInterior
-    · apply DifferentiableOn.mul
-      · apply DifferentiableOn.mul
-        · simp only [re_add_im]
-          have : (fun z ↦ -ζ' z / ζ z) = -(ζ' / ζ) := by ext; simp; ring
-          rw [this]
-          apply DifferentiableOn.neg
-          apply holoOn.mono
-          apply Set.sdiff_subset_sdiff_left
-          apply reProdIm_subset_iff'.mpr
-          left
-          simp only [sub_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self,
-            sub_zero, one_div, ofReal_inv, add_re, one_re, inv_re, normSq_ofReal,
-            div_self_mul_self', add_zero, sub_im, mul_im, zero_sub, add_im, one_im, inv_im,
-            neg_zero, zero_div, zero_add]
-          constructor <;> apply uIcc_subset_Icc <;> constructor <;> linarith
-        · intro s hs
-          apply DifferentiableAt.differentiableWithinAt
-          simp only [re_add_im]
-          apply Smooth1MellinDifferentiable ContDiffSmoothingF suppSmoothingF ⟨ε_pos, ε_lt_one⟩
-            SmoothingFnonneg mass_one
-          have := mem_reProdIm.mp hs.1 |>.1
-          simp only [sub_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self,
-            sub_zero, one_div, ofReal_inv, add_re, one_re, inv_re, normSq_ofReal,
-            div_self_mul_self', add_zero] at this
-          rw [uIcc_of_le (by linarith)] at this
-          linarith [this.1]
-      · intro s hs
-        apply DifferentiableAt.differentiableWithinAt
-        simp only [re_add_im]
-        apply DifferentiableAt.const_cpow (by fun_prop)
-        left
-        norm_cast
-        linarith
-    · let U : Set ℂ := Rectangle (σ₁ - ↑T * I) (1 + (Real.log X)⁻¹ + T * I)
-      let f : ℂ → ℂ := fun z ↦ -ζ' z / ζ z
-      let g : ℂ → ℂ := fun z ↦ 𝓜 (fun x ↦ ↑(Smooth1 SmoothingF ε x)) z * ↑X ^ z
-      unfold fTempC fTempRR SmoothedChebyshevIntegrand
-      simp only [re_add_im]
-      have g_holc : DifferentiableOn ℂ g U := by
-        intro u uInU
-        apply DifferentiableAt.differentiableWithinAt
-        simp only [g]
-        apply DifferentiableAt.mul
-        · apply Smooth1MellinDifferentiable ContDiffSmoothingF suppSmoothingF ⟨ε_pos, ε_lt_one⟩
-            SmoothingFnonneg mass_one
-          simp only [ofReal_inv, U] at uInU
-          unfold Rectangle at uInU
-          rw[Complex.mem_reProdIm] at uInU
-          have := uInU.1
-          simp only [sub_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im, I_im, mul_one, sub_self,
-            sub_zero, add_re, one_re, inv_re, normSq_ofReal, div_self_mul_self', add_zero] at this
-          rw [uIcc_of_le (by linarith)] at this
-          linarith [this.1]
-        · unfold HPow.hPow instHPow
-          apply DifferentiableAt.const_cpow differentiableAt_fun_id
-          left
-          norm_cast
-          linarith
-      have f_near_p : (f - fun (z : ℂ) => 1 * (z - 1)⁻¹) =O[nhdsWithin 1 {1}ᶜ] (1 : ℂ → ℂ) := by
-        simp only [one_mul, f]
-        change (fun s : ℂ ↦ -deriv riemannZeta s / riemannZeta s - (s - 1)⁻¹)
-          =O[nhdsWithin 1 {1}ᶜ] (fun _ ↦ (1 : ℂ))
-        simpa only [neg_add, sub_eq_add_neg, neg_div]
-          using log_deriv_riemannZeta_add_inv_sub_bounded.neg_left
-      convert ResidueMult g_holc pInRectangleInterior f_near_p using 1
-      ext
-      simp [f, g]
-      ring
+  have X_pos : 0 < X := by linarith
+  obtain ⟨σ₀, hσ₀def⟩ : ∃ σ₀ : ℝ, σ₀ = 1 + (Real.log X)⁻¹ := ⟨_, rfl⟩
+  have hσ₀ : 1 < σ₀ := hσ₀def ▸ lt_add_of_pos_right 1 (inv_pos.mpr (by linarith [logt_gt_one X_gt.le]))
+  have hσ₀2 : σ₀ ≤ 2 := by rw [hσ₀def]; linarith [inv_lt_one_of_one_lt₀ (logt_gt_one X_gt.le)]
+  have hne {s : ℂ} (h : s.re ≠ 1 ∨ s.im ≠ 0) : s ≠ 1 := by
+    rintro rfl; rcases h with h | h <;> simp at h
+  -- `-ζ'/ζ - 1/(s - 1)`, with its removable singularity at `1` filled in
+  set g : ℂ → ℂ := fun s ↦ -(ζ' s / ζ s + (s - 1)⁻¹) with hg
+  set G := Function.update g 1 (limUnder (nhdsWithin 1 {1}ᶜ) g) with hG
+  have hGg {s : ℂ} (hs : s ≠ 1) : G s + 1 / (s - 1) = -ζ' s / ζ s := by
+    rw [hG, Function.update_of_ne hs, hg]; ring
+  have hgd : DifferentiableOn ℂ g (Icc σ₁ σ₀ ×ℂ Icc (-T) T \ {1}) := by
+    refine ((holoOn.mono (Set.sdiff_subset_sdiff_left (reProdIm_subset_iff'.mpr
+      (Or.inl ⟨Icc_subset_Icc_right hσ₀2, subset_rfl⟩)))).add ((differentiableOn_id.sub_const
+        1).inv fun s hs ↦ sub_ne_zero.mpr hs.2)).neg.congr fun s _ ↦ ?_
+    simp [hg]
+  have hU : Ioo σ₁ σ₀ ×ℂ Ioo (-T) T ∈ nhds (1 : ℂ) :=
+    (isOpen_Ioo.reProdIm isOpen_Ioo).mem_nhds (by rw [mem_reProdIm]; simp [σ₁_lt_one, hσ₀, T_pos])
+  have hGd : DifferentiableOn ℂ G (Ioo σ₁ σ₀ ×ℂ Ioo (-T) T) :=
+    differentiableOn_update_limUnder_of_isLittleO hU (hgd.mono (Set.sdiff_subset_sdiff_left
+      (reProdIm_subset_iff'.mpr (Or.inl ⟨Ioo_subset_Icc_self, Ioo_subset_Icc_self⟩))))
+      (log_deriv_riemannZeta_add_inv_sub_bounded.neg_left.sub
+        (Asymptotics.isBigO_const_one ℂ (g 1) _)).isBoundedUnder_le.isLittleO_sub_self_inv
+  have hGc : ContinuousOn G (Icc σ₁ σ₀ ×ℂ Icc (-T) T) := by
+    intro s hs
+    rcases eq_or_ne s 1 with rfl | hs1
+    · exact (hGd.differentiableAt hU).continuousAt.continuousWithinAt
+    · exact (continuousWithinAt_sdiff_singleton.mp (hgd s ⟨hs, hs1⟩).continuousWithinAt).congr_of_eventuallyEq
+        (eventually_nhdsWithin_of_eventually_nhds ((eventually_ne_nhds hs1).mono
+          fun z hz ↦ Function.update_of_ne hz _ _)) (Function.update_of_ne hs1 _ _)
+  have hM : 𝓜 (fun x ↦ (Smooth1 SmoothingF ε x : ℂ)) =
+      𝓜 (fun x ↦ (TauCeti.smoothCutoff SmoothingF ε x : ℂ)) :=
+    funext fun s ↦ setIntegral_congr_fun measurableSet_Ioi fun x hx ↦ by
+      simp only [Smooth1_eq_smoothCutoff (mem_Ioi.mp hx)]
+  set F := SmoothedChebyshevIntegrand SmoothingF ε X with hF
+  set f : ℂ → ℂ := fun s ↦ (G s + 1 / (s - 1)) *
+    𝓜 (fun y ↦ (TauCeti.smoothCutoff SmoothingF ε y : ℂ)) s * (X : ℂ) ^ s with hfdef
+  have hf {s : ℂ} (hs : s.re ≠ 1 ∨ s.im ≠ 0) : f s = F s := by
+    simp only [hfdef, hF, SmoothedChebyshevIntegrand, hGg (hne hs), hM]
+  have hsum := TauCeti.LSeries.tsum_mul_smoothCutoff_eq_residue_add_contour
+    (a := fun n ↦ (Λ n : ℂ)) (r := 1) (f := f) ContDiffSmoothingF.contDiffOn
+    (inter_subset_left.trans suppSmoothingF) ε_pos X_pos.le σ₁_pos σ₁_lt_one hσ₀ T_pos
+    (ArithmeticFunction.LSeriesSummable_vonMangoldt (by rw [ofReal_re]; exact hσ₀)) hGc hGd
+    (fun t ↦ by
+      rw [ArithmeticFunction.LSeries_vonMangoldt_eq_deriv_riemannZeta_div (by simp [hσ₀]),
+        hGg (hne (by simp [hσ₀.ne']))]) fun s ↦ rfl
+  have hint := SmoothedChebyshevPull1_aux_integrable ε_pos ε_lt_one X_gt hσ₀ hσ₀2
+    suppSmoothingF SmoothingFnonneg mass_one ContDiffSmoothingF
+  have hA : ∫ t in {t : ℝ | T < |t|}, f (σ₀ + t * I) =
+      (∫ t in Iic (-T), F (σ₀ + t * I)) + ∫ t in Ici T, F (σ₀ + t * I) := by
+    have hset : {t : ℝ | T < |t|} = Iio (-T) ∪ Ioi T := by
+      ext t
+      change T < |t| ↔ t ∈ Iio (-T) ∪ Ioi T
+      rw [lt_abs, lt_neg, or_comm]
+      exact Iff.rfl
+    rw [setIntegral_congr_fun (measurableSet_lt measurable_const continuous_abs.measurable)
+      fun t _ ↦ hf (by simp [hσ₀.ne']), hset, setIntegral_union (Set.disjoint_left.mpr
+        fun t h1 h2 ↦ by simp only [mem_Iio, mem_Ioi] at h1 h2; linarith) measurableSet_Ioi
+      hint.integrableOn hint.integrableOn, integral_Iic_eq_integral_Iio,
+      integral_Ici_eq_integral_Ioi]
+  have hB : ∫ t in (-T)..T, f (σ₁ + t * I) = ∫ t in (-T)..T, F (σ₁ + t * I) :=
+    intervalIntegral.integral_congr fun t _ ↦ hf (by simp [σ₁_lt_one.ne])
+  have hC : ∫ σ in σ₁..σ₀, f (σ + T * I) = ∫ σ in σ₁..σ₀, F (σ + T * I) :=
+    intervalIntegral.integral_congr fun σ _ ↦ hf (by simp [T_pos.ne'])
+  have hD : ∫ σ in σ₁..σ₀, f (σ - T * I) = ∫ σ in σ₁..σ₀, F (σ - T * I) :=
+    intervalIntegral.integral_congr fun σ _ ↦ hf (by simp [T_pos.ne'])
+  have hterm (n : ℕ) : (Λ n : ℂ) * (Smooth1 SmoothingF ε (n / X) : ℂ) =
+      (Λ n : ℂ) * (TauCeti.smoothCutoff SmoothingF ε (n / X) : ℂ) := by
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp
+    · rw [Smooth1_eq_smoothCutoff (div_pos (Nat.cast_pos.mpr hn) X_pos)]
+  rw [SmoothedChebyshevDirichlet ContDiffSmoothingF SmoothingFnonneg suppSmoothingF mass_one X_gt
+    ε_pos ε_lt_one, ofReal_tsum]
+  simp only [ofReal_mul]
+  rw [tsum_congr hterm, hsum, hA, hB, hC, hD, ← hM]
+  subst hσ₀def
+  unfold I₁ I₂ I₃₇ I₈ I₉
+  rw [← hF]
+  push_cast
+  field_simp
+  ring_nf
 
 lemma verticalIntegral_split_three_finite {s a b e σ : ℝ} {f : ℂ → ℂ}
     (hf : IntegrableOn (fun t : ℝ ↦ f (σ + t * I)) (Icc s e))

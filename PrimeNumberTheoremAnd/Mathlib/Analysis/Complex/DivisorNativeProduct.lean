@@ -5,7 +5,7 @@ Authors: OpenAI Codex
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorFiber
 public import TauCeti.Analysis.Complex.CanonicalProduct.Divisor
 
 /-!
@@ -85,33 +85,44 @@ private theorem tprod_finite_fibers {ι : Type*} (m : ι → ℕ) (a : ι → �
       intro i
       simp only [tprod_fintype, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
-/-- The general divisor product at genus one agrees with Tau Ceti's native divisor product. -/
-theorem divisorCanonicalProduct_one_eq_native {f : ℂ → ℂ}
+/-- The general divisor product multiplies each finite multiplicity fiber into one power. -/
+private theorem divisorCanonicalProduct_eq_tprod_divisor {m : ℕ} {f : ℂ → ℂ}
     (hsum : Summable (fun p : divisorZeroIndex₀ f Set.univ ↦
-      ‖divisorZeroIndex₀_val p‖⁻¹ ^ 2)) (z : ℂ) :
-    divisorCanonicalProduct 1 f Set.univ z = TauCeti.divisorProductOne f z := by
-  let F : divisorZeroIndex f Set.univ → ℂ := fun p ↦ weierstrassFactor 1 (z / p.1)
+      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) (z : ℂ) :
+    divisorCanonicalProduct m f Set.univ z = ∏' w : ℂ, weierstrassFactor m (z / w) ^
+      (MeromorphicOn.divisor f Set.univ w).toNat := by
+  let F : divisorZeroIndex f Set.univ → ℂ := fun p ↦ weierstrassFactor m (z / p.1)
   have hs : mulSupport F ⊆ {p : divisorZeroIndex f Set.univ | p.1 ≠ 0} := by
     intro p hp hp0
     apply hp
     simp [F, hp0]
   have hprod : HasProd (fun p : divisorZeroIndex₀ f Set.univ ↦ F p.val)
-      (divisorCanonicalProduct 1 f Set.univ z) := by
-    exact (hasProdLocallyUniformlyOn_divisorCanonicalProduct_univ 1 f hsum).hasProd
-      (Set.mem_univ z)
-  have hfull : HasProd F (divisorCanonicalProduct 1 f Set.univ z) :=
+      (divisorCanonicalProduct m f Set.univ z) :=
+    (hasProdLocallyUniformlyOn_divisorCanonicalProduct_univ m f hsum).hasProd (Set.mem_univ z)
+  have hfull : HasProd F (divisorCanonicalProduct m f Set.univ z) :=
     (hasProd_subtype_iff_of_mulSupport_subset hs).mp hprod
-  have hgroup := tprod_finite_fibers
+  exact hfull.tprod_eq.symm.trans (tprod_finite_fibers
     (fun w : ℂ ↦ (MeromorphicOn.divisor f Set.univ w).toNat)
-    (fun w : ℂ ↦ weierstrassFactor 1 (z / w)) hfull.multipliable
-  calc
-    divisorCanonicalProduct 1 f Set.univ z = ∏' p, F p := hfull.tprod_eq.symm
-    _ = ∏' w : ℂ, weierstrassFactor 1 (z / w) ^
-        (MeromorphicOn.divisor f Set.univ w).toNat := hgroup
-    _ = TauCeti.divisorProductOne f z := by
-      rw [TauCeti.divisorProductOne_eq_tprod]
-      apply tprod_congr
-      intro w
-      rw [div_eq_mul_inv, mul_comm]
+    (fun w : ℂ ↦ weierstrassFactor m (z / w)) hfull.multipliable)
+
+/-- For an entire function, the divisor product of genus `m` is the product over all nonzero
+complex numbers of the primary factors raised to the analytic orders. -/
+theorem divisorCanonicalProduct_eq_tprod_analyticOrderNatAt {m : ℕ} {f : ℂ → ℂ}
+    (hf : Differentiable ℂ f)
+    (hsum : Summable (fun p : divisorZeroIndex₀ f Set.univ ↦
+      ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1))) (z : ℂ) :
+    divisorCanonicalProduct m f Set.univ z =
+      ∏' α : {a : ℂ // a ≠ 0}, weierstrassFactor m (z / α) ^ analyticOrderNatAt f α := by
+  rw [divisorCanonicalProduct_eq_tprod_divisor hsum, ← tprod_subtype_eq_of_mulSupport_subset
+    (s := {a : ℂ | a ≠ 0}) fun w hw hw0 ↦ hw (by simp [show w = 0 from hw0])]
+  exact tprod_congr fun α ↦ by rw [divisor_univ_eq_analyticOrderNatAt_int hf, Int.toNat_natCast]
+
+/-- The general divisor product at genus one agrees with Tau Ceti's native divisor product. -/
+theorem divisorCanonicalProduct_one_eq_native {f : ℂ → ℂ}
+    (hsum : Summable (fun p : divisorZeroIndex₀ f Set.univ ↦
+      ‖divisorZeroIndex₀_val p‖⁻¹ ^ 2)) (z : ℂ) :
+    divisorCanonicalProduct 1 f Set.univ z = TauCeti.divisorProductOne f z := by
+  rw [divisorCanonicalProduct_eq_tprod_divisor hsum, TauCeti.divisorProductOne_eq_tprod]
+  exact tprod_congr fun w ↦ by rw [div_eq_mul_inv, mul_comm]
 
 end Complex.Hadamard

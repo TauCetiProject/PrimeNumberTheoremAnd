@@ -14,39 +14,34 @@ import TauCeti.Analysis.Normed.Ring.InfiniteProd
 import TauCeti.Analysis.Complex.CanonicalProduct.GoodCircle
 import Mathlib.Topology.Algebra.InfiniteSum.Group
 public import TauCeti.Analysis.Complex.GrowthOrder.Exponential
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorNativeProduct
+import TauCeti.Analysis.Complex.Hadamard.FiniteOrder
+import TauCeti.Analysis.Complex.CanonicalProduct.PrimaryProduct
+import TauCeti.Analysis.Complex.GrowthOrder.Logarithmic
+import TauCeti.Analysis.Complex.GrowthOrder.Zero.Summability
+import TauCeti.Analysis.Normed.Group.SummableNormInvRpow
 
 /-!
 # Hadamard factorization from a logarithmic growth bound
 
-Assembles the Hadamard quotient, divisor summability, Cartan bounds, and exponential-polynomial
-growth into `hadamard_factorization_of_growth`. The pipeline is:
+`hadamard_factorization_of_growth` states Tau Ceti's finite-order Hadamard factorization
+(`TauCeti.finite_order_hadamard`) for the divisor-indexed product `divisorCanonicalProduct`: an
+entire `f` with a logarithmic growth bound of order `ρ` factors as `exp(P) · z^k · ∏ E_m`. Tau Ceti
+supplies the factorization over all nonzero complex numbers and the degree bound on its exponent;
+`divisorCanonicalProduct_eq_tprod_analyticOrderNatAt` identifies the products.
 
-1. `Summability` — Jensen / `logCounting` bounds imply divisor-indexed product convergence
-2. `HadamardFactorization` — entire zero-free Hadamard quotient `H = f / (z^k · ∏ E_m)`
-3. This file — good-circle bounds on `H`, then native exponential-order polynomial rigidity
-4. `Order` — upgrade to `EntireOfOrderAtMost` and genus `⌊ρ⌋`
-
-All products use `divisorCanonicalProduct` centered at `0` with multiplicities from
-`MeromorphicOn.divisor`.
-
-Compared with Tao's proof of the finite-order Hadamard theorem, this file replaces the
-good-circle averaging argument by Cartan's good-circle estimate
-`Complex.exists_mem_Ioc_forall_norm_eq_exp_neg_le_norm_tprod_weierstrassFactor_div` from Tau Ceti.
-The purpose is the same:
-obtain sufficiently many circles on which the canonical product is not too small, so the zero-free
-Hadamard quotient has polynomial exponential growth.  Thus the route is:
-Jensen/zero counting (Tao Theorem 2 and Proposition 8) → canonical-product convergence (forward
-Exercise 19 input) → Cartan minimum-modulus alternative to the good-circle step → finite-order
-Hadamard (Theorem 22).
+`hadamardQuotient_norm_le_exp_rpow_of_growth` bounds the zero-free quotient
+`H = f / (z^k · ∏ E_m)` on the circles of Cartan's good-circle estimate
+`Complex.exists_mem_Ioc_forall_norm_eq_exp_neg_le_norm_tprod_weierstrassFactor_div` from Tau Ceti,
+in place of Tao's good-circle averaging step, and extends the bound to discs by Mathlib's
+`Complex.norm_le_of_forall_mem_frontier_norm_le`.
 
 ## Main results
 
 * `hadamard_factorization_of_growth` : entire `f` with log-growth of order `ρ` is a Weierstrass
   product times `exp(P)`
-* `TauCeti.OrderLE.exists_eq_cexp_polynomial_eval_of_forall_ne_zero` : its zero-free quotient
-  is a polynomial exponential
-* the good-circle bounds extend to discs by Mathlib’s
-  `Complex.norm_le_of_forall_mem_frontier_norm_le`
+* `hadamardQuotient_norm_le_exp_rpow_of_growth` : the zero-free quotient has exponential growth
+  of any order larger than `ρ`
 
 ## References
 
@@ -125,11 +120,8 @@ theorem hadamardQuotient_norm_le_exp_rpow_of_growth {f H : ℂ → ℂ} {ρ τ :
   rw [mul_assoc, ← Real.mul_rpow (by norm_num) (by positivity)]
   exact mul_le_mul_of_nonneg_left (Real.rpow_le_rpow (by linarith) hr3 hτ_nonneg) (by linarith)
 
-/-- Hadamard factorization from a global logarithmic growth bound.
-
-The minimum-modulus step in this proof is supplied by Cartan's good-circle estimate; this is an
-alternative to Tao's good-circle averaging step, with the same role in bounding the zero-free
-Hadamard quotient. -/
+/-- Hadamard factorization from a global logarithmic growth bound, from Tau Ceti's factorization
+over the nonzero complex numbers and its degree bound for the exponent. -/
 theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 ≤ ρ)
     (hentire : Differentiable ℂ f)
     (hnot : ∃ z : ℂ, f z ≠ 0)
@@ -141,48 +133,16 @@ theorem hadamard_factorization_of_growth {f : ℂ → ℂ} {ρ : ℝ} (hρ : 0 �
           Complex.exp (Polynomial.eval z P) *
             z ^ (analyticOrderNatAt f 0) *
             divisorCanonicalProduct (Nat.floor ρ) f (Set.univ : Set ℂ) z := by
-  set m : ℕ := Nat.floor ρ
-  have h_sum :
-      Summable (fun p : divisorZeroIndex₀ f (Set.univ : Set ℂ) =>
-        ‖divisorZeroIndex₀_val p‖⁻¹ ^ (m + 1)) := by
-    simpa [m] using
-      (summable_norm_inv_pow_divisorZeroIndex₀_of_growth (f := f) (ρ := ρ)
-        hρ hentire hgrowth)
-  rcases exists_entire_nonzero_hadamardQuotient (m := m) (f := f) hentire hnot h_sum with
-    ⟨H, hH_entire, hH_ne, hfactor⟩
-  obtain ⟨τ, hτ, hτ_lt⟩ := exists_between (Nat.lt_floor_add_one (a := ρ))
-  have hτ_nonneg : 0 ≤ τ := hρ.trans hτ.le
-  have hfloorτ' : Nat.floor τ = Nat.floor ρ :=
-    (Nat.floor_eq_iff hτ_nonneg).mpr ⟨(Nat.floor_le hρ).trans hτ.le, hτ_lt⟩
-  have hfloorτ : Nat.floor τ = m := by
-    simpa [m] using hfloorτ'
-  have hmρ : (m : ℝ) ≤ ρ := by
-    have := Nat.floor_le hρ
-    simpa [m] using this
-  have hH_bound_rpow :
-      ∃ C > 0, ∀ z : ℂ, ‖H z‖ ≤ Real.exp (C * (1 + ‖z‖) ^ τ) :=
-    hadamardQuotient_norm_le_exp_rpow_of_growth (f := f) (H := H) (ρ := ρ) (τ := τ)
-      (m := m) hρ hmρ hτ hτ_lt hτ_nonneg hentire hH_entire hnot h_sum hgrowth hfactor
-  obtain ⟨C, hC, hbound⟩ := hH_bound_rpow
-  have horder : TauCeti.OrderLE H τ := by
-    apply TauCeti.orderLE_def.mpr
-    intro p hp
-    refine (IsBigO.of_bound 1 ?_).trans
-      (TauCeti.isBigO_exp_mul_norm_rpow (C * 2 ^ τ) hp)
-    filter_upwards [eventually_cobounded_le_norm (1 : ℝ)] with z hz
-    have hpow : (1 + ‖z‖) ^ τ ≤ 2 ^ τ * ‖z‖ ^ τ := by
-      simpa only [Real.mul_rpow (by norm_num : (0 : ℝ) ≤ 2) (norm_nonneg z)] using
-        Real.rpow_le_rpow (by positivity) (by linarith : 1 + ‖z‖ ≤ 2 * ‖z‖) hτ_nonneg
-    simpa only [Real.norm_eq_abs, Real.abs_exp, one_mul, mul_assoc] using
-      (hbound z).trans (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hpow hC.le))
-  obtain ⟨P, hP, hHP⟩ :=
-    horder.exists_eq_cexp_polynomial_eval_of_forall_ne_zero hH_entire hH_ne
-  have hPnat : P.natDegree ≤ m := by simpa only [hfloorτ] using hP
-  refine ⟨P, ?_, ?_⟩
-  · have : P.degree ≤ m := Polynomial.degree_le_of_natDegree_le hPnat
-    simpa [m] using this
-  · intro z
-    have hH' : H z = Complex.exp (Polynomial.eval z P) := by simpa using (hHP z)
-    simpa [hH', mul_assoc, mul_left_comm, mul_comm, m] using (hfactor z)
+  obtain ⟨C, hC0, hC⟩ := hgrowth
+  have h := TauCeti.orderLE_of_eventually_log_one_add_norm_le_mul_rpow (.of_forall hC)
+  have hρn : ρ < ⌊ρ⌋₊ + 1 := Nat.lt_floor_add_one ρ
+  have hsum := h.summable_analyticOrderNatAt_mul_norm_inv_rpow hentire hρn
+  obtain ⟨g, hg, hfg⟩ := hentire.exists_eq_pow_mul_exp_mul_tprod_nonzero_weierstrassFactor_div_pow
+    hnot (p := fun _ ↦ ⌊ρ⌋₊) fun R _ ↦ hsum.natCast_mul_div_pow_succ (by positivity) le_rfl R
+  obtain ⟨P, hP, rfl⟩ := h.exists_eq_polynomial_eval_of_eq_pow_mul_exp_mul_tprod hentire hρn hg hfg
+  refine ⟨P, Polynomial.degree_le_of_natDegree_le hP, fun z ↦ ?_⟩
+  rw [hfg z, divisorCanonicalProduct_eq_tprod_analyticOrderNatAt hentire
+    (summable_norm_inv_pow_divisorZeroIndex₀_of_growth hρ hentire ⟨C, hC0, hC⟩) z]
+  ring
 
 end Complex.Hadamard
