@@ -32,7 +32,7 @@ rev = "31ce06eaadf4a200c0e1407c5f10953cf606b8f8"
 [[require]]
 name = "TauCeti"
 git = "https://github.com/TauCetiProject/TauCeti.git"
-rev = "5b5d5152e4ad63b4ce6da9c1ba84c74226026aa4"
+rev = "4db95028a48e52f7e46e0222e6879f6c2a03b7ff"
 
 [[lean_lib]]
 name = "PrimeNumberTheoremAnd"
