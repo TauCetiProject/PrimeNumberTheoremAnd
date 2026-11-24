@@ -20,6 +20,7 @@ public import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 import Mathlib.Analysis.Asymptotics.SpecificAsymptotics
 import TauCeti.Analysis.Asymptotics.Lemmas
 import TauCeti.NumberTheory.LFunctions.Zeros.ZeroFreeRegion.RiemannZeta
+import TauCeti.NumberTheory.LSeries.RiemannZeta.LogUpperBound
 
 
 @[expose] public section
@@ -895,35 +896,6 @@ lemma UpperBnd_aux2 {A σ t : ℝ} (t_ge : 3 < |t|) (σ_ge : 1 - A / Real.log |t
     ← mul_assoc, inv_mul_cancel₀, one_mul]
   apply Real.log_ne_zero.mpr; split_ands <;> linarith
 
-lemma UpperBnd_aux3 {A C σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2))
-    (σ_ge : 1 - A / Real.log |t| ≤ σ) (t_gt : 3 < |t|) (hC : 2 ≤ C) : let N := ⌊|t|⌋₊;
-    ‖∑ n ∈ Finset.range (N + 1), (n : ℂ) ^ (-(σ + t * I))‖ ≤
-      Real.exp A * C * Real.log |t| := by
-  intro N
-  obtain ⟨Npos, N_le_t, _, _, σPos, _⟩ := UpperBnd_aux hA t_gt σ_ge
-  have logt_gt := logt_gt_one t_gt.le
-  have (n : ℕ) (hn : n ∈ Finset.range (N + 1)) := ZetaBnd_aux2 (n := n) hA.1 σPos ?_ σ_ge
-  · replace := norm_sum_le_of_le (Finset.range (N + 1)) this
-    rw [← Finset.sum_mul, mul_comm _ (Real.exp A)] at this
-    rw [mul_assoc]
-    apply le_trans this <| (mul_le_mul_iff_right₀ A.exp_pos).mpr ?_
-    have : 1 + Real.log (N : ℝ) ≤ C * Real.log |t| := by
-      by_cases hN : N = 1
-      · simp only [hN, Nat.cast_one, Real.log_one, add_zero]
-        have : 2 * 1 ≤ C * Real.log |t| := mul_le_mul hC logt_gt.le (by linarith) (by linarith)
-        linarith
-      · rw [(by ring : C * Real.log |t| = Real.log |t| + (C - 1) * Real.log |t|),
-          ← one_mul <| Real.log (N: ℝ)]
-        apply add_le_add logt_gt.le
-        refine mul_le_mul (by linarith) ?_ (by positivity) (by linarith)
-        exact Real.log_le_log (by positivity) N_le_t
-    refine le_trans ?_ this
-    convert! harmonic_eq_sum_Icc ▸ harmonic_le_one_add_log N
-    · simp only [Rat.cast_sum, Rat.cast_inv, Rat.cast_natCast, Finset.range_eq_Ico]
-      rw [Finset.sum_eq_sum_Ico_succ_bot (by omega)]; simp; rfl
-  · simp only [Finset.mem_range] at hn
-    linarith [(by exact_mod_cast (by omega : n ≤ N) : (n : ℝ) ≤ N)]
-
 lemma Nat.self_div_floor_bound {t : ℝ} (t_ge : 1 ≤ |t|) : let N := ⌊|t|⌋₊;
     (|t| / N) ∈ Icc 1 2 := by
   intro N
@@ -969,49 +941,9 @@ lemma UpperBnd_aux6 {σ t : ℝ} (t_ge : 3 < |t|) (hσ : σ ∈ Ioc (1 / 2) 2)
     convert! bnd using 1
     rw [← Real.div_rpow (by positivity) (by positivity), Real.rpow_neg_eq_inv_rpow, inv_div]
 
-lemma ZetaUpperBnd' {A σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2)) (t_gt : 3 < |t|)
-    (hσ : σ ∈ Icc (1 - A / Real.log |t|) 2) :
-    let C := Real.exp A * (5 + 8 * 2); -- the 2 comes from ZetaBnd_aux1
-    let N := ⌊|t|⌋₊;
-    let s := σ + t * I;
-    ‖∑ n ∈ Finset.range (N + 1), 1 / (n : ℂ) ^ s‖ + ‖(N : ℂ) ^ (1 - s) / (1 - s)‖
-    + ‖(N : ℂ) ^ (-s) / 2‖
-    + ‖s * ∫ (x : ℝ) in Ioi (N : ℝ), (⌊x⌋ + 1 / 2 - x) / (x : ℂ) ^ (s + 1)‖
-    ≤ C * Real.log |t| := by
-  intros C N s
-  obtain ⟨Npos, N_le_t, logt_gt, σ_gt, σPos, neOne⟩ := UpperBnd_aux hA t_gt hσ.1
-  replace σ_gt : 1 / 2 < σ := by linarith [hA.2]
-  calc
-    _ ≤ Real.exp A * 2 * Real.log |t| + ‖N ^ (1 - s) / (1 - s)‖ + ‖(N : ℂ) ^ (-s) / 2‖ +
-      ‖s * ∫ x in Ioi (N : ℝ), (⌊x⌋ + 1 / 2 - x) / (x : ℂ) ^ (s + 1)‖ := ?_
-    _ ≤ Real.exp A * 2 * Real.log |t| + ‖N ^ (1 - s) / (1 - s)‖ + ‖(N : ℂ) ^ (-s) / 2‖ +
-      2 * |t| * N ^ (-σ) / σ  := ?_
-    _ = Real.exp A * 2 * Real.log |t| + N ^ (1 - σ) / ‖(1 - s)‖ + N ^ (-σ) / 2 +
-      2 * |t| * N ^ (-σ) / σ  := ?_
-    _ ≤ Real.exp A * 2 * Real.log |t| + |t| ^ (1 - σ) * 2 +
-        |t| ^ (1 - σ) + 2 * |t| * (8 * |t| ^ (-σ)) := ?_
-    _ = Real.exp A * 2 * Real.log |t| + (3 + 8 * 2) * |t| ^ (1 - σ) := ?_
-    _ ≤ Real.exp A * 2 * Real.log |t| + (3 + 8 * 2) * Real.exp A * 1 := ?_
-    _ ≤ Real.exp A * 2 * Real.log |t| + (3 + 8 * 2) * Real.exp A * Real.log |t| := ?_
-    _ = _ := by ring
-  · simp only [add_le_add_iff_right, one_div, ← cpow_neg]
-    convert UpperBnd_aux3 (C := 2) hA hσ.1 t_gt le_rfl using 1
-  · simp only [add_le_add_iff_left]; exact ZetaBnd_aux1 N (by linarith) ⟨σPos, hσ.2⟩ (by linarith)
-  · simp only [norm_div, RCLike.norm_ofNat, s]
-    congr <;> (convert norm_natCast_cpow_of_pos Npos _; simp)
-  · have ⟨h₁, h₂, h₃⟩ := UpperBnd_aux6 t_gt ⟨σ_gt, hσ.2⟩ neOne Npos N_le_t
-    gcongr
-    rw [mul_div_assoc]
-    gcongr
-  · ring_nf; conv => lhs; rhs; lhs; rw [mul_comm |t|]
-    rw [← Real.rpow_add_one (by positivity)]; ring_nf
-  · simp only [Real.log_abs, add_le_add_iff_left, mul_one]
-    exact mul_le_mul_iff_right₀ (by positivity) |>.mpr <| UpperBnd_aux2 t_gt hσ.1
-  · simp only [add_le_add_iff_left]
-    apply mul_le_mul_iff_right₀ (by norm_num [Real.exp_pos]) |>.mpr <| logt_gt.le
-
 @[blueprint
   (title := "ZetaUpperBnd")
+  (proofUses := ["ZetaBnd_aux2", "riemannZeta0", "ZetaBnd_aux1", "Zeta0EqZeta"])
   (statement := /--
   For any $s = \sigma + tI \in \C$, $1/2 \le \sigma\le 2, 3 < |t|$
   and any $0 < A < 1$ sufficiently small, and $1-A/\log |t| \le \sigma$, we have
@@ -1048,14 +980,26 @@ lemma ZetaUpperBnd' {A σ t : ℝ} (hA : A ∈ Ioc 0 (1 / 2)) (t_gt : 3 < |t|)
 lemma ZetaUpperBnd :
     ∃ (A : ℝ) (_ : A ∈ Ioc 0 (1 / 2)) (C : ℝ) (_ : 0 < C), ∀ (σ : ℝ) (t : ℝ) (_ : 3 < |t|)
     (_ : σ ∈ Icc (1 - A / Real.log |t|) 2), ‖ζ (σ + t * I)‖ ≤ C * Real.log |t| := by
-  let A := (1 / 2 : ℝ)
-  let C := Real.exp A * (5 + 8 * 2) -- the 2 comes from ZetaBnd_aux1
-  refine ⟨A, ⟨by norm_num, by norm_num⟩, C, (by positivity), ?_⟩
-  intro σ t t_gt ⟨σ_ge, σ_le⟩
-  obtain ⟨Npos, _, _, _, σPos, neOne⟩ := UpperBnd_aux ⟨by norm_num, by norm_num⟩ t_gt σ_ge
-  rw [← Zeta0EqZeta Npos (by simp [σPos]) neOne]
-  apply le_trans (by apply norm_add₄_le) ?_
-  convert! ZetaUpperBnd' ⟨by norm_num, le_rfl⟩ t_gt ⟨σ_ge, σ_le⟩ using 1; simp
+  obtain ⟨C, hC⟩ := TauCeti.exists_norm_riemannZeta_le_mul_log 1
+  refine ⟨1 / 2, ⟨by norm_num, le_rfl⟩, 2 * max C 1, by positivity, fun σ t ht hσ ↦ ?_⟩
+  have hlog : 0 < Real.log |t| := Real.log_pos (by linarith)
+  have hlog2 : 0 < Real.log (|t| + 2) := Real.log_pos (by linarith)
+  have h2 : Real.log (|t| + 2) ≤ 2 * Real.log |t| := by
+    rw [show 2 * Real.log |t| = Real.log (|t| ^ 2) by rw [Real.log_pow]; norm_num]
+    exact Real.log_le_log (by positivity) (by nlinarith)
+  have hre : (σ + t * I : ℂ).re = σ := by simp
+  have him : (σ + t * I : ℂ).im = t := by simp
+  have hσ' : 1 - 1 / Real.log (|t| + 2) ≤ (σ + t * I : ℂ).re := by
+    rw [hre]
+    refine le_trans (sub_le_sub_left ?_ 1) hσ.1
+    rw [div_le_div_iff₀ hlog hlog2]
+    linarith
+  have h := hC (σ + t * I) (by rw [him]; linarith) (by rw [him]; exact hσ')
+  rw [him] at h
+  calc ‖ζ (σ + t * I)‖ ≤ max C 1 * Real.log (|t| + 2) :=
+        h.trans (mul_le_mul_of_nonneg_right (le_max_left _ _) hlog2.le)
+    _ ≤ max C 1 * (2 * Real.log |t|) := by gcongr
+    _ = 2 * max C 1 * Real.log |t| := by ring
 
 lemma norm_complex_log_ofNat (n : ℕ) : ‖(n : ℂ).log‖ = (n : ℝ).log := by
   have := Complex.ofReal_log (x := (n : ℝ)) (Nat.cast_nonneg n)

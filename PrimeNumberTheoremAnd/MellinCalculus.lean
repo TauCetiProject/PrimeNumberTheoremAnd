@@ -825,15 +825,6 @@ lemma Smooth1ContinuousAt {SmoothingF : ℝ → ℝ}
 
 
 
-lemma Smooth1MellinConvergent {Ψ : ℝ → ℝ} {ε : ℝ} (_diffΨ : ContDiff ℝ 1 Ψ)
-    (suppΨ : Ψ.support ⊆ Icc (1 / 2) 2) (hε : ε ∈ Ioo 0 1)
-    (_Ψnonneg : ∀ x > 0, 0 ≤ Ψ x) (mass_one : ∫ x in Ioi 0, Ψ x / x = 1)
-    {s : ℂ} (hs : 0 < s.re) : MellinConvergent (fun x ↦ (Smooth1 Ψ ε x : ℂ)) s := by
-  refine (integrableOn_congr_fun (fun x hx ↦ ?_) measurableSet_Ioi).mpr
-    (TauCeti.hasMellin_smoothCutoff (inter_subset_left.trans suppΨ)
-      (Integrable.of_integral_ne_zero (mass_one ▸ one_ne_zero)) hε.1 hs).1
-  simp only [Smooth1_eq_smoothCutoff (mem_Ioi.mp hx)]
-
 lemma Smooth1MellinDifferentiable {Ψ : ℝ → ℝ} {ε : ℝ} (diffΨ : ContDiff ℝ 1 Ψ)
     (suppΨ : Ψ.support ⊆ Icc (1 / 2) 2) (hε : ε ∈ Ioo 0 1)
     (Ψnonneg : ∀ x > 0, 0 ≤ Ψ x) (mass_one : ∫ x in Ioi 0, Ψ x / x = 1)

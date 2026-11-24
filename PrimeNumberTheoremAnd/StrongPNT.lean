@@ -1333,14 +1333,11 @@ lemma ShiftTwoBound :
         ∀ (t : ℝ), |t| ≥ 2 →
           (ZeroWindow (2 * t)).Finite →
     -(ζ' (1 + δ + 2 * I * t) / ζ (1 + δ + 2 * I * t)).re ≤ C * log |t| := by
-  obtain ⟨A, hA, h⟩ := TauCeti.exists_neg_re_logDeriv_riemannZeta_le
-  refine ⟨3 * A, by positivity, fun δ hδ t ht _ ↦ ?_⟩
-  have hs := @h (1 + δ + 2 * I * t) (by simp; linarith [hδ.1]) (by simp [abs_mul]; linarith)
-  have h2 : Real.log (2 * |t| + 3) ≤ 3 * Real.log |t| := by
-    rw [← Real.log_rpow (by linarith)]; exact Real.log_le_log (by linarith) (by norm_cast; nlinarith [mul_nonneg (mul_nonneg (abs_nonneg t) (sub_nonneg.2 ht)) (by linarith : (0:ℝ) ≤ |t| + 2)])
-  simp only [logDeriv_apply, add_im, mul_im, ofReal_im, ofReal_re, I_im, I_re, one_im] at hs
-  norm_num [abs_mul] at hs
-  nlinarith
+  obtain ⟨C, hC⟩ := TauCeti.neg_re_logDeriv_riemannZeta_le 2 one_lt_two
+  refine ⟨max C 1, by positivity, fun δ hδ t ht _ ↦ ?_⟩
+  have h := (hC δ hδ.1.le t ht).1
+  rw [logDeriv_apply, show (1 : ℂ) + δ + 2 * t * I = 1 + δ + 2 * I * t by ring] at h
+  exact h.trans (mul_le_mul_of_nonneg_right (le_max_left _ _) (Real.log_nonneg (by linarith)))
 
 
 
@@ -1412,14 +1409,13 @@ lemma ShiftOneBound :
             ∀ (ρ : ℂ), ζ ρ = 0 →
               t = ρ.im →
     -(ζ' (1 + δ + I * t) / ζ (1 + δ + I * t)).re ≤ C * Real.log |t| - 1 / (1 + δ - ρ.re) := by
-  obtain ⟨A, hA, h⟩ := TauCeti.exists_neg_re_logDeriv_riemannZeta_add_sub_inv_le
-  refine ⟨3 * A, by positivity, fun δ hδ t ht _ ρ hρ htρ ↦ ?_⟩
-  subst htρ
-  have hs := h (σ := 1 + δ) (by linarith [hδ.1]) (by linarith) hρ
-  have h2 : Real.log (|ρ.im| + 3) ≤ 3 * Real.log |ρ.im| := by
-    rw [← Real.log_rpow (by linarith)]; exact Real.log_le_log (by linarith) (by norm_cast; nlinarith [mul_nonneg (mul_nonneg (abs_nonneg ρ.im) (sub_nonneg.2 ht)) (by linarith : (0:ℝ) ≤ |ρ.im| + 2)])
-  rw [logDeriv_apply, show ((1 + δ : ℝ) : ℂ) + ρ.im * I = 1 + δ + I * ρ.im by push_cast; ring] at hs
-  rw [one_div]; nlinarith
+  obtain ⟨C, hC⟩ := TauCeti.neg_re_logDeriv_riemannZeta_le 2 one_lt_two
+  refine ⟨max C 1, by positivity, fun δ hδ t ht _ ρ hρ htρ ↦ ?_⟩
+  have h := (hC δ hδ.1.le t ht).2 ρ.re (by rw [htρ, re_add_im]; exact hρ)
+  rw [logDeriv_apply, show (1 : ℂ) + δ + t * I = 1 + δ + I * t by ring] at h
+  have := mul_le_mul_of_nonneg_right (le_max_left C 1) (Real.log_nonneg (by linarith : 1 ≤ |t|))
+  rw [neg_div] at h
+  linarith
 
 
 
