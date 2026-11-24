@@ -12,7 +12,7 @@ public import PrimeNumberTheoremAnd.SmoothExistence
 public import PrimeNumberTheoremAnd.ZetaBounds
 public import TauCeti.Analysis.Complex.Conformal.Reflection.LogDeriv
 import TauCeti.Analysis.Asymptotics.Lemmas
-import TauCeti.NumberTheory.LSeries.SmoothedSum
+import TauCeti.NumberTheory.LSeries.SmoothedSum.Basic
 
 
 @[expose] public section
