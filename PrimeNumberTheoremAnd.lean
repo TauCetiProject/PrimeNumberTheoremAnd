@@ -6,12 +6,10 @@ import PrimeNumberTheoremAnd.HoffsteinLockhart
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.LaplaceInversion
 import Mathlib.MeasureTheory.Integral.IntegrableOn
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 import PrimeNumberTheoremAnd.MediumPNT
 import PrimeNumberTheoremAnd.MellinCalculus
 import PrimeNumberTheoremAnd.PerronFormula
 import PrimeNumberTheoremAnd.Rectangle
-import PrimeNumberTheoremAnd.RectangleArgumentPrinciple
 import PrimeNumberTheoremAnd.ResidueCalcOnRectangles
 import PrimeNumberTheoremAnd.SmoothExistence
 import PrimeNumberTheoremAnd.StrongPNT

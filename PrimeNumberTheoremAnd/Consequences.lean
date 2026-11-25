@@ -34,7 +34,8 @@ open scoped ArithmeticFunction.Moebius ArithmeticFunction.Omega Chebyshev
   and
   $$ \sum_{n < x} f(n) = \sum_{n < ⌈x⌉_+} f(n).$$
   -/)
-  (proof := /-- Straightforward. -/)
+  (proof := /-- Straightforward: both follow from Mathlib's `finsum_cond_eq_sum_of_cond_iff`, with
+  `Nat.le_floor_iff'` and `Nat.lt_ceil` respectively. The formal statement is the second identity. -/)
   (latexEnv := "lemma")]
 lemma finsum_range_eq_sum_range {R : Type*} [AddCommMonoid R] {f : ArithmeticFunction R} (x : ℝ) :
     ∑ᶠ (n : ℕ) (_: n < x), f n = ∑ n ∈ range ⌈x⌉₊, f n := by
@@ -42,15 +43,6 @@ lemma finsum_range_eq_sum_range {R : Type*} [AddCommMonoid R] {f : ArithmeticFun
   intros
   simp only [mem_range]
   exact Iff.symm Nat.lt_ceil
-
-lemma finsum_range_eq_sum_range' {R : Type*} [AddCommMonoid R] {f : ArithmeticFunction R}
-    (x : ℝ) : ∑ᶠ (n : ℕ) (_ : n ≤ x), f n = ∑ n ∈ Iic ⌊x⌋₊, f n := by
-  apply finsum_cond_eq_sum_of_cond_iff f
-  intro n h
-  simp only [mem_Iic]
-  exact Iff.symm <| Nat.le_floor_iff'
-    fun (hc : n = 0) ↦ (h : f n ≠ 0) <| (congrArg f hc).trans ArithmeticFunction.map_zero
-
 
 blueprint_comment /--
 \label{WeakPNT}
@@ -63,44 +55,6 @@ blueprint_comment /--
 One has $\sum_{p \leq x} \log p = x + o(x)$.
 This is Mathlib's `Chebyshev.isEquivalent_theta_id`.
 -/
-
-theorem chebyshev_asymptotic_finsum :
-    (fun x ↦ ∑ᶠ (p : ℕ) (_ : p ≤ x) (_ : Nat.Prime p), log p) ~[atTop] fun x ↦ x := by
-  have h (n : ℕ) : ∑ᶠ (p : ℕ) (_ : p ≤ n) (_ : p.Prime), log (p : ℝ) = θ n := by
-    rw [Chebyshev.theta_eq_sum_Icc, floor_natCast, sum_filter,
-      finsum_cond_eq_sum_of_cond_iff _ (t := Icc 0 n) (by simp)]
-    simp [finsum_eq_if]
-  simp only [h]
-  exact Chebyshev.isEquivalent_theta_id.comp_tendsto tendsto_natCast_atTop_atTop
-
-theorem chebyshev_asymptotic' :
-    ∃ (f : ℝ → ℝ),
-      (∀ ε > (0 : ℝ), (f =o[atTop] fun t ↦ ε * t)) ∧
-      (∀ (x : ℝ), 2 ≤ x → IntegrableOn f (Set.Icc 2 x)) ∧
-      ∀ (x : ℝ), θ x = x + f x := by
-  refine ⟨fun x ↦ θ x - x, fun ε hε ↦ ?_, fun x _ ↦ ?_, fun x ↦ by ring⟩
-  · exact Chebyshev.isEquivalent_theta_id.isLittleO.const_mul_right hε.ne'
-  · exact (Chebyshev.theta_mono.locallyIntegrable.integrableOn_isCompact isCompact_Icc).sub
-      continuous_id.integrableOn_Icc
-
-theorem chebyshev_asymptotic'' :
-    ∃ (f : ℝ → ℝ),
-      (∀ ε > (0 : ℝ), (f =o[atTop] fun _ ↦ ε)) ∧
-      (∀ (x : ℝ), 2 ≤ x → IntegrableOn f (Set.Icc 2 x)) ∧
-      ∀ x > (0 : ℝ), θ x = x + x * (f x) := by
-  have hsmall : (fun x : ℝ ↦ (θ x - x) / x) =o[atTop] (fun _ ↦ (1 : ℝ)) := by
-    exact (isLittleO_one_iff ℝ).mpr Chebyshev.isEquivalent_theta_id.isLittleO.tendsto_div_nhds_zero
-  refine ⟨fun x ↦ (θ x - x) / x, fun ε hε ↦ ?_, fun x _ ↦ ?_, fun x hx ↦ ?_⟩
-  · simpa only [mul_one] using hsmall.const_mul_right hε.ne'
-  · have hcont : ContinuousOn (fun y : ℝ ↦ y⁻¹) (Set.Icc 2 x) :=
-      (continuousOn_inv₀ : ContinuousOn (fun y : ℝ ↦ y⁻¹) {0}ᶜ).mono fun y hy ↦ by
-        simp only [Set.mem_compl_iff, Set.mem_singleton_iff]
-        exact (lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) hy.1).ne'
-    simpa only [div_eq_mul_inv, Pi.sub_apply, id_eq] using
-      ((Chebyshev.theta_mono.locallyIntegrable.integrableOn_isCompact isCompact_Icc).sub
-        continuous_id.integrableOn_Icc).mul_continuousOn hcont isCompact_Icc
-  · rw [mul_div_cancel₀ _ hx.ne']
-    ring
 
 -- one could also consider adding a version with p < x instead of p \leq x
 
@@ -127,22 +81,6 @@ theorem primorial_bounds :
   rw[Finset.mem_filter] at hx
   norm_cast
   exact Nat.Prime.pos hx.right
-
-theorem primorial_bounds_finprod :
-    ∃ E : ℝ → ℝ, E =o[atTop] (fun x ↦ x) ∧
-      ∀ x : ℝ, ∏ᶠ (p : ℕ) (_ : p ≤ x) (_ : Nat.Prime p), p = exp (x + E x) := by
-  obtain ⟨E, hE, hprod⟩ := primorial_bounds
-  refine ⟨E, hE, fun x ↦ ?_⟩
-  have heq : (∏ᶠ (p : ℕ) (_ : (p : ℝ) ≤ x) (_ : p.Prime), p) =
-      ∏ p ∈ Iic ⌊x⌋₊, (∏ᶠ (_ : p.Prime), p) := by
-    apply finprod_cond_eq_prod_of_cond_iff
-    intro p hp
-    simp only [mem_Iic]
-    apply (Nat.le_floor_iff' ?_).symm
-    rintro rfl
-    simp [Nat.not_prime_zero] at hp
-  rw [heq]
-  simpa only [finprod_eq_if, Finset.prod_filter] using hprod x
 
 lemma integral_log_inv_pos (x : ℝ) (hx : 2 < x) :
     0 < ∫ t in Set.Icc 2 x, (log t)⁻¹ := by

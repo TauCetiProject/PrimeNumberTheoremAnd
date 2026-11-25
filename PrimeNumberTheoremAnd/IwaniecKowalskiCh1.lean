@@ -12,6 +12,7 @@ public import Mathlib.NumberTheory.LSeries.Nonvanishing
 public import Mathlib.NumberTheory.ArithmeticFunction.Liouville
 public import Mathlib.Data.Finset.NatDivisors
 public import TauCeti.NumberTheory.ArithmeticFunction.Additive
+public import TauCeti.NumberTheory.ArithmeticFunction.CompletelyAdditive
 public import TauCeti.NumberTheory.LSeries.EulerProduct
 public import TauCeti.NumberTheory.LSeries.Liouville
 public import TauCeti.NumberTheory.LSeries.Moebius
@@ -23,6 +24,7 @@ import TauCeti.NumberTheory.LSeries.Divisor.Basic
 import TauCeti.NumberTheory.LSeries.Divisor.PowerSum
 import TauCeti.NumberTheory.LSeries.Divisor.Ramanujan
 import TauCeti.NumberTheory.LSeries.Zeta.Pow
+import TauCeti.NumberTheory.ArithmeticFunction.DilateSq
 
 
 @[expose] public section
@@ -84,15 +86,15 @@ blueprint_comment /--
 \label{two_pow_omega_LSeries.term_isMultiplicative}
 We have that $n\mapsto 2^{\omega(n)}/n^{s}$ is a multiplicative function.
 
-Follows as a consequence of Lemma \ref{LSeries.term-isMultiplicative-if-fun-isMultiplicative}
-    and \ref{two-pow-omega-isMultiplicative}.
+Follows as a consequence of Lemma \ref{LSeries.term_isMultiplicative_if_fun_isMultiplicative}
+    and \ref{two_pow_omega_isMultiplicative}.
 -/
 
 blueprint_comment /--
 \label{moebius_sq_LSeries.term_isMultiplicative}
 We have that $n\mapsto \mu^2(n)/n^{s}$ is a multiplicative function.
 
-Follows as a consequence of Lemma \ref{LSeries.term-isMultiplicative-if-fun-isMultiplicative}
+Follows as a consequence of Lemma \ref{LSeries.term_isMultiplicative_if_fun_isMultiplicative}
     and \ref{moebius-sq-isMultiplicative}.
 -/
 
@@ -146,30 +148,24 @@ abbrev tau : ArithmeticFunction ℕ := σ 0
 @[inherit_doc tau]
 scoped notation "τ" => tau
 
-variable {R : Type*}
-
 attribute [blueprint
   "IsAdditive"
   (title := "IsAdditive")
   (statement := /-- Additive arithmetic function: satisfies $f(mn) = f(m) + f(n)$ for coprime $m$, $n$. -/)]
   IsAdditiveOnCoprime
 
-@[blueprint
+attribute [blueprint
   "IsCompletelyAdditive"
   (title := "IsCompletelyAdditive")
-  (statement := /-- Completely additive arithmetic function: satisfies $f(mn) = f(m) + f(n)$ for all $m, n \ne 0$. -/)]
-def IsCompletelyAdditive [AddZeroClass R] (f : ArithmeticFunction R) : Prop :=
-  ∀ {m n}, m ≠ 0 → n ≠ 0 → f (m * n) = f m + f n
+  (statement := /-- Completely additive arithmetic function: satisfies $f(1) = 0$ and
+    $f(mn) = f(m) + f(n)$ for all $m, n \ne 0$. -/)]
+  IsCompletelyAdditive
 
-@[blueprint
+attribute [blueprint
   "IsCompletelyAdditive.isAdditive"
   (title := "IsCompletelyAdditive.isAdditive")
   (statement := /-- A completely additive function is additive. -/)]
-lemma IsCompletelyAdditive.isAdditive [AddZeroClass R] {f : ArithmeticFunction R}
-    (hf : IsCompletelyAdditive f) : IsAdditiveOnCoprime f :=
-  ⟨fun hm hn _ ↦ hf hm hn⟩
-
--- **Think about more API for additive/completely additive functions, e.g. `f (p^k) = k * f p` for prime p, etc.**
+  IsCompletelyAdditive.isAdditive
 
 attribute [blueprint
   "unique_divisor_decomposition"
@@ -311,146 +307,122 @@ blueprint_comment /--
   This gives us a complete formula for $d_k(n)$ in terms of the prime factorization of $n$.
   -/
 
-/-- Divisor power sum with exponents in an arbitrary semiring `R`. -/
-@[blueprint
+attribute [blueprint
   "sigmaR"
   (title := "sigmaR")
-  (statement := /-- Divisor power sum with complex exponent. -/)]
-noncomputable def sigmaR {R : Type*} [Semiring R] [HPow R R R] (s : R) : ArithmeticFunction R where
-  toFun := fun n ↦ ∑ d ∈ n.divisors, (d : R) ^ s
-  map_zero' := by simp
+  (statement := /-- Divisor power sum with complex exponent: $\sigma_\nu(n)=\sum_{d\mid n}d^\nu$,
+    with $\sigma_\nu(0)=0$. -/)]
+  TauCeti.ArithmeticFunction.sigmaC
 
-@[inherit_doc]
-scoped[ArithmeticFunction] notation "σᴿ" => ArithmeticFunction.sigmaR
+open TauCeti.ArithmeticFunction (sigmaC)
 
-/-- For natural exponents, sigmaR agrees with sigma. -/
-@[blueprint
+attribute [blueprint
   "sigmaR_natCast"
   (title := "sigmaR-natCast")
-  (statement := /-- For natural exponents, $\sigma^R$ agrees with $\sigma$. -/)
+  (statement := /-- For a natural exponent $k$, the divisor power sum is Mathlib's $\sigma_k$:
+    $\sigma_k(n)=\sum_{d\mid n}d^k$. -/)
   (proof := /--
-  The function $\sigma^R$ is defined as the sum of the $s$-th powers of the divisors of $n$. When
-  $s$ is a natural number $k$, this definition coincides with the classical divisor power sum
-  function $\sigma_k(n)$, which also sums the $k$-th powers of the divisors of $n$. Therefore, for
-  natural exponents, we have $\sigma^R_k(n) = \sigma_k(n)$ when we view $\sigma_k(n)$ as a complex
-  number. This can be shown by directly comparing the definitions and noting that both functions sum
-  over the same set of divisors with the same exponentiation.
+  This is the definition of $\sigma_k$ as the sum of the $k$-th powers of the divisors of $n$.
   -/)]
-lemma sigmaR_natCast (k n : ℕ) :
-    σᴿ k n = σ k n := by
-  unfold sigmaR sigma
-  simp only [cast_id, coe_mk]
+  ArithmeticFunction.sigma_apply
 
-@[blueprint
+attribute [blueprint
   "sigmaR_apply"
   (title := "sigmaR-apply")
   (statement := /--
-    We have that $\sigma^R_s(n)=\sum_{d\mid n}d^s.$
+    We have that $\sigma_s(n)=\sum_{d\mid n}d^s.$
   -/)
   (proof := /--
     This follows immediately from the definition.
   -/)]
-lemma sigmaR_apply {n : ℕ} {s : ℂ} : σᴿ s n = ∑ d ∈ divisors n, (d : ℂ) ^ s := by
-  rfl
+  TauCeti.ArithmeticFunction.sigmaC_apply
 
-@[blueprint
+attribute [blueprint
   "sigmaR_natCast'"
   (title := "sigmaR-natCast'")
   (statement := /--
-    A casting lemma for $\sigma^R$.
+    A casting lemma: at a natural exponent $k$, the complex-exponent divisor power sum
+    $\sigma_k$ is the cast of Mathlib's $\sigma_k$ (Lemma \ref{sigmaR_natCast}).
   -/)]
-lemma sigmaR_natCast' (k n : ℕ) :
-    σᴿ (k : ℂ) n = σᴿ k n := by
-  simp only [sigmaR_apply, Complex.cpow_natCast, sigmaR_natCast, sigma_apply, cast_sum, cast_pow]
+  TauCeti.ArithmeticFunction.sigmaC_natCast
 
-@[blueprint
+attribute [blueprint
   "sigmaR_apply_prime_pow"
   (title := "sigmaR-apply-prime-pow")
   (statement := /--
-    For a prime power, we have that $\sigma^R_s(p^i)=\sum_{j=0}^ip^{js}$.
+    For a prime power, we have that $\sigma_s(p^i)=\sum_{j=0}^i(p^s)^j$.
   -/)
   (proof := /--
     Note that $d\mid p^i$ implies that $d=p^j$ with $0\leq j\leq i$. Thus,
-    $$\sigma^R_s(p^i)=\sum_{d\mid p^i}d^s=\sum_{j=0}^i(p^j)^s=\sum_{j=0}^ip^{js}.$$
+    $$\sigma_s(p^i)=\sum_{d\mid p^i}d^s=\sum_{j=0}^i(p^j)^s=\sum_{j=0}^i(p^s)^j.$$
   -/)]
-lemma sigmaR_apply_prime_pow {p i : ℕ} {s : ℂ} (hp : p.Prime) :
-    σᴿ s (p ^ i) = ∑ j ∈ .range (i + 1), (p : ℂ) ^ (j * s) := by
-  simp only [sigmaR_apply, divisors_prime_pow hp, sum_map, Function.Embedding.coeFn_mk, cast_pow]
-  congr 1
-  funext x
-  exact Eq.symm (Complex.natCast_cpow_natCast_mul p x s)
+  TauCeti.ArithmeticFunction.sigmaC_apply_prime_pow
 
 @[blueprint
   "sigmaR_one_apply"
   (title := "sigmaR-one-apply")
   (statement := /--
-    Same as the previous lemma, but with a different casting structure.
+    $\sigma_1(n)=\sum_{d\mid n}d$, with the sum cast to $\mathbb{C}$.
   -/)]
-lemma sigmaR_one_apply (n : ℕ) : σᴿ (1 : ℂ) n = ∑ d ∈ divisors n, d := by
-  simp only [sigmaR_apply, Complex.cpow_one, cast_sum]
+lemma sigmaC_one_apply (n : ℕ) : sigmaC 1 n = ∑ d ∈ divisors n, d := by
+  simp [TauCeti.ArithmeticFunction.sigmaC_apply]
 
 @[blueprint
   "sigmaR_one_apply_prime_pow"
   (title := "sigmaR-one-apply-prime-pow")
   (statement := /--
-    Same as the previous lemma, but with a different casting structure.
+    $\sigma_1(p^i)=\sum_{k=0}^ip^k$, with the sum cast to $\mathbb{C}$.
   -/)]
-lemma sigmaR_one_apply_prime_pow {p i : ℕ} (hp : p.Prime) :
-    σᴿ (1 : ℂ) (p ^ i) = ∑ k ∈ .range (i + 1), p ^ k := by
-  simp only [sigmaR_apply_prime_pow hp, mul_one, Complex.cpow_natCast, cast_sum, cast_pow]
+lemma sigmaC_one_apply_prime_pow {p i : ℕ} (hp : p.Prime) :
+    sigmaC 1 (p ^ i) = ∑ k ∈ .range (i + 1), p ^ k := by
+  simp [TauCeti.ArithmeticFunction.sigmaC_apply_prime_pow _ hp]
 
 @[blueprint
   "sigmaR_eq_sum_div"
   (title := "sigmaR-eq-sum-div")
   (statement := /--
-    We have that $\sigma^R_s(n)=\sum_{d\mid n}(n/d)^s$.
+    We have that $\sigma_s(n)=\sum_{d\mid n}(n/d)^s$.
   -/)
   (proof := /--
     Note that $d \mapsto n/d$ forms a one-to-one mapping between the divisors of $n$. Using this in
     combination with the definiton we have that
-    $$\sigma^R_s(n)=\sum_{d\mid n}d^s=\sum_{d\mid n}(n/d)^s.$$
+    $$\sigma_s(n)=\sum_{d\mid n}d^s=\sum_{d\mid n}(n/d)^s.$$
   -/)]
-lemma sigmaR_eq_sum_div {n : ℕ} {s : ℂ} :
-    σᴿ s n = ∑ d ∈ divisors n, ((n / d) : ℂ) ^ s := by
-  rw[sigmaR_apply, ← sum_div_divisors]
-  refine Finset.sum_congr rfl ?_
-  intro d hd
-  rw[Nat.cast_div (dvd_of_mem_divisors hd) (Nat.cast_ne_zero.mpr (Nat.pos_of_mem_divisors hd).ne')]
+lemma sigmaC_eq_sum_div {n : ℕ} {s : ℂ} :
+    sigmaC s n = ∑ d ∈ divisors n, ((n / d) : ℂ) ^ s := by
+  rw [TauCeti.ArithmeticFunction.sigmaC_apply, ← sum_div_divisors]
+  refine Finset.sum_congr rfl fun d hd ↦ ?_
+  rw [Nat.cast_div (dvd_of_mem_divisors hd) (Nat.cast_ne_zero.mpr (Nat.pos_of_mem_divisors hd).ne')]
 
 @[blueprint
   "sigmaR_zero_apply"
   (title := "sigmaR-zero-apply")
   (statement := /--
-    Same as the previous lemma, but with a different casting structure.
+    $\sigma_0(n)$ is the number of divisors of $n$, cast to $\mathbb{C}$.
   -/)]
-lemma sigmaR_zero_apply (n : ℕ) :
-    σᴿ (0 : ℂ) n = #n.divisors := by
-  simp only [sigmaR_apply, Complex.cpow_zero, sum_const, nsmul_eq_mul, mul_one]
+lemma sigmaC_zero_apply (n : ℕ) : sigmaC 0 n = #n.divisors := by
+  simp [TauCeti.ArithmeticFunction.sigmaC_apply]
 
 @[blueprint
   "sigmaR_zero_apply_prime_pow"
   (title := "sigmaR-zero-apply-prime-pow")
   (statement := /--
-    Same as the previous lemma, but with a different casting structure.
+    $\sigma_0(p^i)=i+1$ in $\mathbb{C}$.
   -/)]
-lemma sigmaR_zero_apply_prime_pow {p i : ℕ} (hp : p.Prime) :
-    σᴿ (0 : ℂ) (p ^ i) = i + 1 := by
-  simp only [sigmaR_apply_prime_pow hp, mul_zero, Complex.cpow_zero, sum_const, card_range,
-    nsmul_eq_mul, cast_add, cast_one, mul_one]
+lemma sigmaC_zero_apply_prime_pow {p i : ℕ} (hp : p.Prime) : sigmaC 0 (p ^ i) = i + 1 := by
+  simp [TauCeti.ArithmeticFunction.sigmaC_apply_prime_pow _ hp]
 
-@[blueprint
+attribute [blueprint
   "sigmaR_one"
   (title := "sigmaR-one")
   (statement := /--
-    We have that $\sigma^R_s(1)=1$.
+    We have that $\sigma_s(1)=1$.
   -/)
   (proof := /--
     By definition we have that
-    $$\sigma^R_s(1)=\sum_{d \mid 1}d^s=1^s=1.$$
+    $$\sigma_s(1)=\sum_{d \mid 1}d^s=1^s=1.$$
   -/)]
-lemma sigmaR_one (s : ℂ) :
-    σᴿ s 1 = 1 := by
-  simp only [sigmaR_apply, divisors_one, sum_singleton, cast_one, Complex.one_cpow]
+  TauCeti.ArithmeticFunction.sigmaC_one
 
 attribute [blueprint
   "powR"
@@ -469,92 +441,80 @@ attribute [blueprint
   -/)]
   TauCeti.ArithmeticFunction.isMultiplicative_cpow
 
-@[blueprint
+attribute [blueprint
   "sigmaR_eq_zeta_mul_powR"
   (title := "sigmaR-eq-zeta-mul-powR")
-  (statement := /-- $\sigma^R(\nu) = \zeta * \text{pow}^R(\nu)$, where $\zeta$ is the constant function $1$. -/)
+  (statement := /-- $\sigma_\nu = \zeta * \text{pow}^R(\nu)$, where $\zeta$ is the constant function $1$. -/)
   (proof := /--
-  The function $\sigma^R(\nu)$ is defined as the sum of the $\nu$-th powers of the divisors of $n$. The function $\text{pow}^R(\nu)$ is defined as $n \mapsto n^\nu$ for $n \neq 0$ and $0$ for $n = 0$. The Dirichlet convolution of $\zeta$ (the constant function $1$) and $\text{pow}^R(\nu)$ is exactly $\sigma^R(\nu)$, since for each divisor $d$ of $n$, we have $(\zeta * \text{pow}^R(\nu))(n) = \sum_{d|n} 1 \cdot d^\nu = \sigma^R(\nu)(n)$. Thus, we have $\sigma^R(\nu) = \zeta * \text{pow}^R(\nu)$.
+  The function $\sigma_\nu$ is defined as the sum of the $\nu$-th powers of the divisors of $n$. The function $\text{pow}^R(\nu)$ is defined as $n \mapsto n^\nu$ for $n \neq 0$ and $0$ for $n = 0$. The Dirichlet convolution of $\zeta$ (the constant function $1$) and $\text{pow}^R(\nu)$ is exactly $\sigma_\nu$, since for each divisor $d$ of $n$, we have $(\zeta * \text{pow}^R(\nu))(n) = \sum_{d|n} 1 \cdot d^\nu = \sigma_\nu(n)$. Thus, we have $\sigma_\nu = \zeta * \text{pow}^R(\nu)$.
   -/)]
-lemma sigmaR_eq_zeta_mul_powR (ν : ℂ) :
-    sigmaR ν = (zeta : ArithmeticFunction ℂ) * TauCeti.ArithmeticFunction.cpow ν := by
-  rw [← TauCeti.ArithmeticFunction.sigmaC_eq_zeta_mul_cpow]
-  ext n
-  rw [sigmaR_apply, TauCeti.ArithmeticFunction.sigmaC_apply]
+  TauCeti.ArithmeticFunction.sigmaC_eq_zeta_mul_cpow
 
-@[blueprint
+attribute [blueprint
   "isMultiplicative_sigmaR"
   (title := "isMultiplicative-sigmaR")
   (statement := /--
-    For fixed $s$ function $n\mapsto\sigma^R_s(n)$ is multiplicative.
+    For fixed $s$ function $n\mapsto\sigma_s(n)$ is multiplicative.
   -/)
   (proof := /--
-    Recall from Lemma \ref{sigmaR-eq-zeta-mul-powR} that $\sigma^R$ is $\zeta$ convolved with
+    Recall from Lemma \ref{sigmaR_eq_zeta_mul_powR} that $\sigma_s$ is $\zeta$ convolved with
     Definition \ref{powR}. Since both of these are multiplicative functions, their convolution is
     also multiplicative.
   -/)]
-lemma isMultiplicative_sigmaR {s : ℂ} :
-    IsMultiplicative (σᴿ s) := by
-  rw [sigmaR_eq_zeta_mul_powR]
-  exact isMultiplicative_zeta.natCast.mul (TauCeti.ArithmeticFunction.isMultiplicative_cpow s)
+  TauCeti.ArithmeticFunction.isMultiplicative_sigmaC
 
 @[blueprint
   "sigmaR_eq_prod_primeFactors_sum_range_factorization_pow_mul"
   (title := "sigmaR-eq-prod-primeFactors-sum-range-factorization-pow-mul")
   (statement := /--
     We have that
-    $$\sigma^R_s(n)=\prod_{p\mid n}\sum_{j=0}^{v_p(n)}p^{js}.$$
+    $$\sigma_s(n)=\prod_{p\mid n}\sum_{j=0}^{v_p(n)}p^{js}.$$
   -/)
   (proof := /--
-    Since $\sigma^R_s$ is multiplicative, it suffices to understand it at primes powers.
-    $$\sigma^R_s(n)=\prod_{p\mid n}\sigma^R_s(p^{v_p(n)}).$$
-    Applying Lemma \ref{sigmaR-apply-prime-pow}.
+    Since $\sigma_s$ is multiplicative, it suffices to understand it at primes powers.
+    $$\sigma_s(n)=\prod_{p\mid n}\sigma_s(p^{v_p(n)}).$$
+    Applying Lemma \ref{sigmaR_apply_prime_pow}.
   -/)]
-lemma sigmaR_eq_prod_primeFactors_sum_range_factorization_pow_mul {n : ℕ} {s : ℂ} (hn : n ≠ 0) :
-    σᴿ s n = ∏ p ∈ n.primeFactors, ∑ i ∈ .range (n.factorization p + 1), (p : ℂ) ^ (i * s) := by
-  rw [isMultiplicative_sigmaR.multiplicative_factorization _ hn]
-  exact prod_congr n.support_factorization fun _ h ↦
-    sigmaR_apply_prime_pow <| prime_of_mem_primeFactors h
+lemma sigmaC_eq_prod_primeFactors_sum_range_factorization_pow_mul {n : ℕ} {s : ℂ} (hn : n ≠ 0) :
+    sigmaC s n = ∏ p ∈ n.primeFactors, ∑ i ∈ .range (n.factorization p + 1), (p : ℂ) ^ (i * s) := by
+  rw [(TauCeti.ArithmeticFunction.isMultiplicative_sigmaC s).multiplicative_factorization _ hn]
+  refine prod_congr n.support_factorization fun p h ↦ ?_
+  dsimp only
+  rw [TauCeti.ArithmeticFunction.sigmaC_apply_prime_pow _ (prime_of_mem_primeFactors h)]
+  exact sum_congr rfl fun i _ ↦ by rw [← Complex.cpow_nat_mul, mul_comm]
 
-@[blueprint
+attribute [blueprint
   "LSeries_powR_eq"
   (title := "LSeries powR eq")
-  (statement := /-- $L(\text{pow}^R(\nu), s) = \zeta(s - \nu)$ for $\Re(s - \nu) > 1$.
+  (statement := /-- $L(\text{pow}^R(\nu), s) = \zeta(s - \nu)$ for $\Re(s) > 1 + \Re(\nu)$.
   \begin{verbatim}
   This is IK (1.27).
   \end{verbatim}
   -/)
   (proof := /--
-  The function $\text{pow}^R(\nu)$ is defined as $n \mapsto n^\nu$ for $n \neq 0$ and $0$ for $n = 0$. The L-series of $\text{pow}^R(\nu)$ at $s$ is given by the sum $\sum_{n=1}^{\infty} n^{\nu - s}$. This series converges to the Riemann zeta function $\zeta(s - \nu)$ for $\Re(s - \nu) > 1$, since the zeta function is defined as $\zeta(s) = \sum_{n=1}^{\infty} n^{-s}$ for $\Re(s) > 1$. Therefore, we have $L(\text{pow}^R(\nu), s) = \zeta(s - \nu)$ under the condition that $\Re(s - \nu) > 1$.
+  The function $\text{pow}^R(\nu)$ is defined as $n \mapsto n^\nu$ for $n \neq 0$ and $0$ for $n = 0$. The L-series of $\text{pow}^R(\nu)$ at $s$ is given by the sum $\sum_{n=1}^{\infty} n^{\nu - s}$. This series converges to the Riemann zeta function $\zeta(s - \nu)$ for $\Re(s - \nu) > 1$, since the zeta function is defined as $\zeta(s) = \sum_{n=1}^{\infty} n^{-s}$ for $\Re(s) > 1$. Therefore, we have $L(\text{pow}^R(\nu), s) = \zeta(s - \nu)$ under the condition that $\Re(s) > 1 + \Re(\nu)$.
   -/)]
-lemma LSeries_powR_eq (ν : ℂ) {s : ℂ} (hs : 1 < (s - ν).re) :
-    LSeries (TauCeti.ArithmeticFunction.cpow ν) s = riemannZeta (s - ν) :=
-  TauCeti.LSeries.LSeries_cpow (by rw [Complex.sub_re] at hs; linarith)
+  TauCeti.LSeries.LSeries_cpow
 
-@[blueprint
+attribute [blueprint
   "abscissa_powR_le"
   (title := "abscissa powR le")
-  (statement := /-- The abscissa of absolute convergence of $L(\text{pow}^R(\nu), s)$ is at most $\Re(\nu) + 1$. -/)
+  (statement := /-- The abscissa of absolute convergence of $L(\text{pow}^R(\nu), s)$ is $1 + \Re(\nu)$. -/)
   (proof := /--
-  We apply \ref{LSeries.abscissaOfAbsConv_le_of_le_const_mul_rpow} which states that if there exists a constant $C$ such that $\|f(n)\| \leq C \cdot n^r$ for all $n$ sufficiently large, then the abscissa of absolute convergence of $L(f, s)$ is at most $r + 1$. In our case, we can take $f(n) = n^\nu$ and observe that $\|n^\nu\| = n^{\Re(\nu)}$. Thus, we can choose $C = 1$ and $r = \Re(\nu)$, which gives us the desired result that the abscissa of absolute convergence of $L(\text{pow}^R(\nu), s)$ is at most $\Re(\nu) + 1$.
+  Since $\|n^{\nu}n^{-s}\| = n^{\Re(\nu)-\Re(s)}$, the series $\sum_n n^{\nu-s}$ converges absolutely
+  exactly when $\Re(s) - \Re(\nu) > 1$, by comparison with $\sum_n n^{-\sigma}$. Hence the abscissa
+  of absolute convergence is $1 + \Re(\nu)$.
   -/)]
-lemma abscissa_powR_le (ν : ℂ) :
-    LSeries.abscissaOfAbsConv (TauCeti.ArithmeticFunction.cpow ν) ≤ ν.re + 1 := by
-  rw [TauCeti.LSeries.abscissaOfAbsConv_cpow, add_comm]
-  exact_mod_cast le_rfl
+  TauCeti.LSeries.abscissaOfAbsConv_cpow
 
-/-- `ζ(s)ζ(s - ν) = Σ σ_ν(n) n^(-s)` for `Re(s) > 1` and `Re(s - ν) > 1`. -/
-@[blueprint
+attribute [blueprint
   "LSeries_sigma_eq_riemannZeta_mul"
   (title := "LSeries sigma eq riemannZeta mul")
-  (statement := /-- $\zeta(s)\zeta(s - \nu) = \sum_{n=1}^{\infty} \sigma_\nu(n) n^{-s}$ for $\Re(s) > 1$ and $\Re(s - \nu) > 1$. -/)
+  (statement := /-- $\zeta(s)\zeta(s - \nu) = \sum_{n=1}^{\infty} \sigma_\nu(n) n^{-s}$ for $\Re(s) > \max(1, 1 + \Re(\nu))$. -/)
   (proof := /--
   The divisor power sum function $\sigma_\nu$ is the Dirichlet convolution of the constant function $1$ (i.e., $\zeta$) and the power function $n \mapsto n^\nu$. The L-series of a Dirichlet convolution is the product of the L-series of the individual functions. Since $L(1, s) = \zeta(s)$ and $L(n \mapsto n^\nu, s) = \zeta(s - \nu)$, we have $L(\sigma_\nu, s) = \zeta(s) \cdot \zeta(s - \nu)$ for $\Re(s) > 1$ and $\Re(s - \nu) > 1$.
   -/)]
-theorem LSeries_sigma_eq_riemannZeta_mul (ν : ℂ) {s : ℂ} (hs : 1 < s.re) (hsν : 1 < (s - ν).re) :
-    LSeries (↗(σᴿ ν)) s = riemannZeta s * riemannZeta (s - ν) := by
-  rw [sigmaR_eq_zeta_mul_powR, ← TauCeti.ArithmeticFunction.sigmaC_eq_zeta_mul_cpow]
-  exact TauCeti.LSeries.LSeries_sigmaC (max_lt hs (by rw [Complex.sub_re] at hsν; linarith))
+  TauCeti.LSeries.LSeries_sigmaC
 
 /--
 Ramanujan formula:
@@ -585,14 +545,12 @@ theorem zeta_mul_zeta_mul_zeta_mul_zeta_eq (α β s : ℂ) (h1 : 1 < s.re) (h2 :
     (h3 : 1 < (s - β).re) (h4 : 1 < (s - α - β).re) :
     riemannZeta s * riemannZeta (s - α) * riemannZeta (s - β) * riemannZeta (s - α - β) =
       riemannZeta (2 * s - α - β) *
-      LSeries (fun n ↦ σᴿ α n * σᴿ β n) s := by
+      LSeries (fun n ↦ sigmaC α n * sigmaC β n) s := by
   simp only [Complex.sub_re] at h2 h3 h4
   have h5 : 1 < (2 * s - α - β).re := by
     simp only [Complex.sub_re, Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat]; linarith
-  have h := (TauCeti.LSeries.LSeries_sigmaC_mul_sigmaC (α := α) (β := β) h1 (by linarith)
-    (by linarith) (by rw [Complex.add_re]; linarith)).2
-  simp only [TauCeti.ArithmeticFunction.sigmaC_apply, ← sigmaR_apply] at h
-  rw [h, mul_div_cancel₀ _ (riemannZeta_ne_zero_of_one_lt_re h5)]
+  rw [(TauCeti.LSeries.LSeries_sigmaC_mul_sigmaC h1 (by linarith) (by linarith)
+    (by rw [Complex.add_re]; linarith)).2, mul_div_cancel₀ _ (riemannZeta_ne_zero_of_one_lt_re h5)]
 
 blueprint_comment /--
 \label{zeta_pow_four_eq}
@@ -636,9 +594,6 @@ The zeta-cubed identity can also be deduced by cancelling a zeta factor from the
 and the baby Rankin–Selberg identity. The canonical theorem below uses the direct Euler-product
 proof, which is independent of the general Ramanujan formula.
 -/
-
--- `zeta_pow_three_eq` (IK 1.30) is proved below via Euler products, after the
--- `two_pow_omega` / `sumOnPrimePows` infrastructure (independent of Ramanujan).
 
 @[blueprint
   "two_pow_omega_le_sigma_zero"
@@ -685,34 +640,29 @@ Dirichlet-series terms preserve multiplicativity on coprime inputs, using
 `TauCeti.LSeries.term_mul_of_coprime`.
 -/
 
-@[blueprint
+attribute [blueprint
   "powOfAdditive_isMultiplicative"
   (title := "powOfAdditive-isMultiplicative")
   (statement := /--
-    If $f$ is an additive function, then so to is $n\mapsto k^{f(n)}$ for any fixed $k$.
+    If $f$ is an additive function, then $n\mapsto k^{f(n)}$ (with value $0$ at $0$) is
+    multiplicative for any fixed $k$.
   -/)
   (proof := /--
     Note that $k^{f(mn)}=k^{f(m)+f(n)}=k^{f(m)}k^{f(n)}$.
   -/)]
-lemma powOfAdditive_isMultiplicative
-    {R : Type u_1} [CommMonoidWithZero R] (k : R)
-    {f : ArithmeticFunction ℕ} (hf : f.IsAdditiveOnCoprime) :
-    (toArithmeticFunction (fun n ↦ k ^ (f n))).IsMultiplicative :=
-  hf.isAdditive.isMultiplicative_of_eq_monoidHom (powersHom R k) fun n hn ↦ by
-    simp [toArithmeticFunction, hn]
+  IsAdditive.isMultiplicative_powOfAdditive
 
-@[blueprint
+attribute [blueprint
   "two_pow_omega_isMultiplicative"
   (title := "two-pow-omega-isMultiplicative")
   (statement := /--
-    The function $n\mapsto 2^{\omega(n)}$ is multiplicative.
+    The function $n\mapsto k^{\omega(n)}$ is multiplicative; in particular so is
+    $n\mapsto 2^{\omega(n)}$.
   -/)
   (proof := /--
-    This follows directly from Lemma \ref{powOfAdditive-isMultiplicative} and the fact that $\omega(mn)=\omega(m)+\omega(n)$.
+    This follows directly from Lemma \ref{powOfAdditive_isMultiplicative} and the fact that $\omega(mn)=\omega(m)+\omega(n)$.
   -/)]
-lemma two_pow_omega_isMultiplicative :
-    (toArithmeticFunction (fun n ↦ (2 : ℂ) ^ ω n)).IsMultiplicative := by
-  exact powOfAdditive_isMultiplicative 2 ⟨fun _ _ h ↦ cardDistinctFactors_mul h⟩
+  isMultiplicative_powOfAdditive_cardDistinctFactors
 
 @[blueprint
   "sumOnPrimePows"
@@ -731,22 +681,20 @@ noncomputable def sumOnPrimePows (f : ℕ → ℂ) (p : Primes) : ℂ := ∑' e,
 lemma sumOnPrimePows_apply (f : ℕ → ℂ) (p : Primes) :
   sumOnPrimePows f p = ∑' e, f (p ^ e) := by rfl
 
-@[blueprint
+attribute [blueprint
   "two_pow_omega_tsum_prime_pow"
   (title := "two-pow-omega-tsum-prime-pow")
   (statement := /--
-    For $1<\Re(s)$ and $p$ prime, we have that
+    For $0<\Re(s)$ and $p$ prime, we have that
     $$\sum_{0\leq k}2^{\omega(p^k)}p^{-ks}=\frac{1+p^{-s}}{1-p^{-s}}.$$
   -/)
   (proof := /--
     Note that $\omega(p^0)=0$ and $\omega(p^k)=1$ whenever $0<k$. Thus,
     $$\sum_{0\leq k}2^{\omega(p^k)}p^{-ks}=1+2p^{-s}+2p^{-2s}+\ldots.$$
     Now apply a geometric sum to the non-constant terms and simplify. We have the necessary
-    convergence as $1<\Re(s)$.
+    convergence as $0<\Re(s)$.
   -/)]
-lemma two_pow_omega_tsum_prime_pow {s : ℂ} (hs : 1 < s.re)
-    (p : Primes) : sumOnPrimePows (LSeries.term (fun n ↦ 2 ^ (ω n)) s) p = (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) :=
-  TauCeti.tsum_term_prime_pow_two_pow_cardDistinctFactors (zero_lt_one.trans hs)
+  TauCeti.tsum_term_prime_pow_two_pow_cardDistinctFactors
 
 @[blueprint
   "Complex.one_add_prime_cpow_ne_zero"
@@ -784,7 +732,7 @@ attribute [blueprint
     \end{verbatim}
   -/)
   (proof := /--
-    Immediately follows from Lemmas \ref{two-pow-omega-LSeries.term-IsMultiplicative} and \ref{two-pow-omega-tsum-prime-pow}.
+    Immediately follows from Lemmas \ref{two_pow_omega_LSeries.term_isMultiplicative} and \ref{two_pow_omega_tsum_prime_pow}.
   -/)]
   TauCeti.LSeries_two_pow_cardDistinctFactors_eulerProduct_hasProd
 
@@ -800,7 +748,7 @@ attribute [blueprint
     \end{verbatim}
   -/)
   (proof := /--
-    Immediately follows from Lemmas \ref{two-pow-omega-LSeries.term-IsMultiplicative} and \ref{two-pow-omega-tsum-prime-pow}.
+    Immediately follows from Lemmas \ref{two_pow_omega_LSeries.term_isMultiplicative} and \ref{two_pow_omega_tsum_prime_pow}.
   -/)]
 lemma two_pow_omega_LSeries_eulerProduct_tprod (s : ℂ) (hs : 1 < s.re) :
     LSeries (fun n ↦ 2 ^ (ω n)) s = ∏' (p : Primes), (1 + (p : ℂ) ^ (-s)) / (1 - (p : ℂ) ^ (-s)) := by
@@ -820,7 +768,7 @@ attribute [blueprint
     $$\zeta(s)^2=\prod_p\frac{1}{(1-p^{-s})^2}.$$
     Similarly
     $$\zeta(2s)=\prod_p\frac{1}{(1-p^{-2s})}.$$
-    Applying Theorems \ref{two-pow-omega-LSeries-eulerProduct-tprod} and \ref{two-pow-omega-LSeries-eulerProduct-hasProd} we have
+    Applying Theorems \ref{two_pow_omega_LSeries_eulerProduct_tprod} and \ref{two_pow_omega_LSeries_eulerProduct_hasProd} we have
     $$\sum_{1\leq n}2^{\omega(n)}n^{-s}=\prod_p\frac{1+p^{-s}}{1-p^{-s}}.$$
     Thus
     $$\zeta(2s)\left(\sum_{1\leq n}2^{\omega(n)}n^{-s}\right)=\prod_p\frac{1+p^{-s}}{(1-p^{-s})(1-p^{-2s})}=\prod_p\frac{1}{(1-p^{-s})^2}$$
@@ -828,18 +776,11 @@ attribute [blueprint
   -/)]
   TauCeti.riemannZeta_sq_eq_mul_LSeries_two_pow_cardDistinctFactors
 
-private lemma LSeriesSummable_tau_sq {s : ℂ} (hs : 1 < s.re) :
-    LSeriesSummable (fun n ↦ (τ (n ^ 2) : ℂ)) s := by
-  simpa only [tau, sigma_zero_apply] using
-    (TauCeti.LSeriesHasSum_card_divisors_comp_sq hs).LSeriesSummable
-
-/--
-Zeta cubed:
-`ζ(s)^3 = ζ(2s) ∑ τ(n^2) n^(-s)`. -/
-@[blueprint
+attribute [blueprint
   "zeta_pow_three_eq"
   (title := "zeta pow three eq")
-  (statement := /-- Zeta cubed: $\zeta(s)^3 = \zeta(2s) \sum_{n=1}^{\infty}\tau(n^2) n^{-s}$ for $\Re(s) > 1$.
+  (statement := /-- Zeta cubed: $\zeta(s)^3 = \zeta(2s) \sum_{n=1}^{\infty}\tau(n^2) n^{-s}$ for $\Re(s) > 1$,
+  where $\tau(n^2)$ is the number of divisors of $n^2$.
   \begin{verbatim}
   This is IK (1.30).
   \end{verbatim}
@@ -850,54 +791,7 @@ Zeta cubed:
   Multiplying by the local factor $1/(1-x^2)$ of $\zeta(2s)$ recovers $1/(1-x)^3$, the local
   factor of $\zeta(s)^3$. Absolute convergence follows by comparing $\tau(n^2)\le d_3(n)$.
   -/)]
-lemma zeta_pow_three_eq (s : ℂ) (hs : 1 < s.re) :
-    riemannZeta s ^ 3 = riemannZeta (2 * s) * LSeries (fun n ↦ τ (n ^ 2)) s := by
-  simpa only [tau, sigma_zero_apply] using
-    TauCeti.riemannZeta_pow_three_eq_mul_LSeries_card_divisors_comp_sq hs
-
-/-- The coefficient at n is the native product-series sum over the fiber d²m=n.
-The zero fiber is infinite, but every Dirichlet term in it is zero. -/
-private lemma zeta_cube_divisor_pair_term (s : ℂ) (n : ℕ) :
-    LSeries.term (fun n ↦ ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n,
-      (tau (dm.2 ^ 2) : ℂ)) s n =
-    ∑' (dm : (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2) ⁻¹' {n}),
-      LSeries.term 1 (2 * s) dm.val.1 *
-        LSeries.term (fun m ↦ (tau (m ^ 2) : ℂ)) s dm.val.2 := by
-  rcases eq_or_ne n 0 with rfl | hn
-  · rw [LSeries.term_zero]
-    have hz : ∀ dm : (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2) ⁻¹' {(0 : ℕ)},
-        LSeries.term 1 (2 * s) dm.val.1 *
-          LSeries.term (fun m ↦ (tau (m ^ 2) : ℂ)) s dm.val.2 = 0 := by
-      rintro ⟨⟨d,m⟩, hdm⟩
-      have H : d ^ 2 * m = 0 := hdm
-      rcases Nat.mul_eq_zero.mp H with hd | hm
-      · have hd0 : d = 0 := eq_zero_of_pow_eq_zero hd
-        simp only [hd0, LSeries.term_zero, zero_mul]
-      · simp only [hm, LSeries.term_zero, mul_zero]
-    simp only [hz, tsum_zero]
-  have hset : (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2) ⁻¹' {n} =
-      (↑((n.divisors ×ˢ n.divisors).filter (fun dm ↦ dm.1 ^ 2 * dm.2 = n)) : Set (ℕ × ℕ)) := by
-    ext ⟨d,m⟩
-    simp only [Set.mem_preimage, Set.mem_singleton_iff, Finset.mem_coe, Finset.mem_filter,
-      Finset.mem_product, Nat.mem_divisors]
-    constructor
-    · intro h
-      exact ⟨⟨⟨⟨d*m, by rw [←h]; ring_nf⟩,hn⟩,⟨⟨d^2, by rw [←h]; ring_nf⟩,hn⟩⟩,h⟩
-    · exact And.right
-  rw [hset, Finset.tsum_subtype' _ (fun dm : ℕ × ℕ ↦
-    LSeries.term 1 (2 * s) dm.1 * LSeries.term (fun m ↦ (tau (m ^ 2) : ℂ)) s dm.2),
-    LSeries.term_of_ne_zero hn, Finset.sum_div]
-  apply Finset.sum_congr rfl
-  rintro ⟨d,m⟩ hdm
-  have H : d ^ 2 * m = n := (Finset.mem_filter.mp hdm).2
-  have hd : d ≠ 0 := by rintro rfl; simp at H; exact hn H.symm
-  have hm : m ≠ 0 := by rintro rfl; simp at H; exact hn H.symm
-  rw [LSeries.term_of_ne_zero hd, LSeries.term_of_ne_zero hm]
-  simp only [Pi.one_apply, one_div]
-  rw [← H, Nat.cast_mul, Complex.natCast_mul_cpow, Nat.cast_pow,
-    ← Complex.natCast_cpow_natCast_mul d 2 s]
-  simp only [div_eq_mul_inv, mul_inv_rev]
-  ring_nf
+  TauCeti.riemannZeta_pow_three_eq_mul_LSeries_card_divisors_comp_sq
 
 /--
 Zeta cubed alt:
@@ -912,25 +806,43 @@ Zeta cubed alt:
   \end{verbatim}
   -/)
   (proof := /--
-  This is an alternative expression for $\zeta(s)^3$ that can be derived from the previous results. By expressing $\zeta(s)^3$ in terms of the L-series of $\tau(n^2)$ and using the properties of Dirichlet convolutions, we can rewrite the sum in a way that involves summing over divisors $d$ and corresponding $m$ such that $d^2 m = n$. This rearrangement of the series allows us to express $\zeta(s)^3$ in the desired form.
-  -/)]
+  The coefficient $\sum_{d^2 m = n} \tau(m^2)$ is the Dirichlet convolution of $m \mapsto \tau(m^2)$
+  with the indicator of the squares, whose $L$-series is $\zeta(2s)$. The $L$-series of a
+  convolution is the product of the $L$-series, so by Theorem \ref{zeta_pow_three_eq} the series
+  equals $\zeta(2s) \cdot \zeta(s)^3 / \zeta(2s) = \zeta(s)^3$.
+  -/)
+  (proofUses := ["zeta_pow_three_eq"])]
 lemma zeta_pow_three_eq_alt (s : ℂ) (hs : 1 < s.re) :
     riemannZeta s ^ 3 =
     LSeries (fun n ↦
       ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n, τ (dm.2 ^ 2)) s := by
+  let g : ArithmeticFunction ℂ := ⟨fun n ↦ τ (n ^ 2), by simp⟩
   have h2 : 1 < (2 * s).re := by
     simp only [Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat, zero_mul, sub_zero]
     linarith
-  have hf := LSeriesHasSum_one h2
-  have hg := (LSeriesSummable_tau_sq hs).LSeriesHasSum
-  have hsum := summable_mul_of_summable_norm hf.summable.norm hg.summable.norm
-  have H := (hf.mul hg hsum).tsum_fiberwise (fun p : ℕ × ℕ ↦ p.1 ^ 2 * p.2)
-  have H' : LSeriesHasSum (fun n ↦
-      ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n,
-        (tau (dm.2 ^ 2) : ℂ)) s
-      (riemannZeta (2 * s) * LSeries (fun n ↦ (tau (n ^ 2) : ℂ)) s) := by
-    simpa only [LSeriesHasSum, ← zeta_cube_divisor_pair_term] using H
-  exact (zeta_pow_three_eq s hs).trans H'.LSeries_eq.symm
+  have hsq : LSeriesHasSum ↗(ζ : ArithmeticFunction ℂ).dilateSq s (riemannZeta (2 * s)) := by
+    refine ((Nat.pow_left_injective two_ne_zero).hasSum_iff fun n hn ↦ ?_).mp ?_
+    · rw [LSeries.term_def, dilateSq_apply_of_not_isSquare, zero_div, ite_self]
+      exact fun ⟨m, hm⟩ ↦ hn ⟨m, by simp [hm, sq]⟩
+    · refine (LSeriesHasSum_one h2).congr_fun fun d ↦ ?_
+      rcases eq_or_ne d 0 with rfl | hd
+      · simp
+      simp [hd, ← Complex.natCast_cpow_natCast_mul]
+  have hg : LSeriesHasSum ↗g s (riemannZeta s ^ 3 / riemannZeta (2 * s)) := by
+    simpa [g, sigma_zero_apply] using TauCeti.LSeriesHasSum_card_divisors_comp_sq hs
+  rw [← div_mul_cancel₀ (riemannZeta s ^ 3) (riemannZeta_ne_zero_of_one_lt_re h2),
+    ← (LSeriesHasSum_mul hg hsq).LSeries_eq]
+  congr 1; ext n
+  rw [mul_dilateSq_apply, sum_filter, sum_filter, sum_product]
+  push_cast
+  refine sum_congr rfl fun d hd ↦ ?_
+  split_ifs with h
+  · obtain ⟨m, rfl⟩ := h
+    have hpos : 0 < d ^ 2 := pow_pos (Nat.pos_of_mem_divisors hd) 2
+    rw [sum_eq_single_of_mem m (Nat.mem_divisors.2 ⟨dvd_mul_left _ _, (Nat.mem_divisors.1 hd).2⟩)
+      fun b _ hb ↦ ite_eq_right fun h ↦ hb (Nat.eq_of_mul_eq_mul_left hpos h)]
+    simp [g, Nat.mul_div_cancel_left _ hpos, (Nat.pos_of_mem_divisors hd).ne']
+  · exact (sum_eq_zero fun m _ ↦ ite_eq_right fun hm ↦ h ⟨m, hm.symm⟩).symm
 
 @[blueprint
   "LSeriesSummable_moebius_sq"
@@ -954,7 +866,7 @@ theorem LSeriesSummable_moebius_sq {s : ℂ} (hs : 1 < s.re) :
   (proof := /--
     Note that $f(mn)^k=(f(m)f(n))^k=(f(m)^k)(f(n)^k)$.
   -/)]
-lemma powOfMultiplicative_isMultiplicative {R : Type u_1} [CommMonoidWithZero R]
+lemma powOfMultiplicative_isMultiplicative {R : Type*} [CommMonoidWithZero R]
     {f : ArithmeticFunction R} (hf : f.IsMultiplicative) (k : ℕ) :
     (toArithmeticFunction (fun n ↦ (f n) ^ k)).IsMultiplicative := by
   simp only [IsMultiplicative, toArithmeticFunction, coe_mk, one_ne_zero, ↓reduceIte, _root_.mul_eq_zero, mul_ite, mul_zero, ite_mul, zero_mul, hf.1, one_pow, true_and]
@@ -1013,7 +925,7 @@ attribute [blueprint
     \end{verbatim}
   -/)
   (proof := /--
-    Immediately follows from Lemmas \ref{moebius-sq-LSeries.term-IsMultiplicative} and \ref{moebius-sq-tsum-prime-pow}.
+    Immediately follows from Lemmas \ref{moebius_sq_LSeries.term_isMultiplicative} and \ref{moebius_sq_tsum_prime_pow}.
   -/)]
   TauCeti.LSeries_moebius_sq_eulerProduct_hasProd
 
@@ -1029,7 +941,7 @@ attribute [blueprint
     \end{verbatim}
   -/)
   (proof := /--
-    Immediately follows from Lemmas \ref{moebius-sq-LSeries.term-IsMultiplicative} and \ref{moebius-sq-tsum-prime-pow}.
+    Immediately follows from Lemmas \ref{moebius_sq_LSeries.term_isMultiplicative} and \ref{moebius_sq_tsum_prime_pow}.
   -/)]
 lemma moebius_sq_LSeries_eulerProduct_tprod (s : ℂ) (hs : 1 < s.re) :
     LSeries (fun n ↦ (μ n) ^ 2) s = ∏' (p : Primes), (1 + (p : ℂ) ^ (-s)) := by
@@ -1094,7 +1006,7 @@ attribute [blueprint
     injective on the product of $\{a \mid m : a^k \mid m\}$ and $\{b \mid n : b^k \mid n\}$.
   -/)
   (proof := /--
-    This is the restriction of Lemma \ref{divisors-mul-injective} to a subset of the divisor
+    This is the restriction of Lemma \ref{divisors_mul_injective} to a subset of the divisor
     product, so injectivity is preserved.
   -/)]
   Nat.Coprime.mul_injOn_divisors
@@ -1121,7 +1033,7 @@ lemma sum_moebius_sq_divisors_apply (n : ℕ) :
   (proof := /--
     We will show that for coprime $m$ and $n$, we have
     $\sum_{d^2|mn} \mu(d) = \sum_{d^2|m} \mu(d) \cdot \sum_{d^2|n} \mu(d)$. This follows from
-    Lemma \ref{pow-divisors-mul}: the divisors $d$ of $mn$ with $d^2 \mid mn$ factor uniquely as
+    Lemma \ref{pow_divisors_mul}: the divisors $d$ of $mn$ with $d^2 \mid mn$ factor uniquely as
     $d=ab$ with $a^2 \mid m$ and $b^2 \mid n$. Multiplicativity of $\mu$ then factors the sum.
   -/)]
 lemma sum_moebius_sq_divisors_IsMultiplicative : sum_moebius_sq_divisors.IsMultiplicative := by

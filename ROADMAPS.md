@@ -1,8 +1,8 @@
 # Roadmaps needed to finish the migration
 
-Most of the fork is covered by existing TauCetiRoadmap targets and is being upstreamed. The
-following fork material has no target yet; each item needs a new roadmap section (or a target line
-in the suggested existing section) before it can move to Tau Ceti.
+Apart from the items below, every fork declaration outside `Unused/` is blueprint glue over
+Mathlib and Tau Ceti. The following fork material has no target yet; each item needs a new roadmap
+section (or a target line in the suggested existing section) before it can move to Tau Ceti.
 
 1. **μ² as a divisor sum** (`IwaniecKowalskiCh1.lean`, about 150 lines): `μ²(n) = ∑_{d²∣n} μ(d)`,
    with multiplicativity and prime-power evaluations for the divisor sum. A target line in AnalyticNumberTheoryPartIII
