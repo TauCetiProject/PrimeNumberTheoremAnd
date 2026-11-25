@@ -86,9 +86,4 @@ theorem divisorCanonicalProduct_eq_tprod_of_equiv
     (e.tprod_eq (fun p : divisorZeroIndex₀ f U =>
       weierstrassFactor m (z / divisorZeroIndex₀_val p))).symm
 
-@[simp]
-lemma divisorCanonicalProduct_zero (m : ℕ) (f : ℂ → ℂ) (U : Set ℂ) :
-    divisorCanonicalProduct m f U 0 = 1 := by
-  simp [divisorCanonicalProduct]
-
 end Complex.Hadamard

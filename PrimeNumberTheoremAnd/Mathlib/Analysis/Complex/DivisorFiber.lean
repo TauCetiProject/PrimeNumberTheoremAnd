@@ -9,14 +9,14 @@ public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Meromorphic.Order
 public import Mathlib.Analysis.Analytic.Order
+public import TauCeti.Analysis.Complex.DivisorFactorization
 
 
 /-!
 # Fibers of the divisor index type
 
 This file studies the fiber `{p : divisorZeroIndex₀ f univ | divisorZeroIndex₀_val p = z₀}`.
-It provides a canonical `Finset` for this fiber and identifies its cardinality with the divisor
-multiplicity and (for holomorphic functions) with `analyticOrderNatAt`.
+It provides a canonical `Finset` for this fiber.
 -/
 
 @[expose] public section
@@ -29,16 +29,7 @@ open scoped Topology BigOperators
 namespace Complex.Hadamard
 
 /-!
-## Divisor values vs analytic order (holomorphic functions)
--/
-
-lemma divisor_univ_eq_analyticOrderNatAt_int {f : ℂ → ℂ} (hf : Differentiable ℂ f) (z : ℂ) :
-    MeromorphicOn.divisor f (Set.univ : Set ℂ) z = (analyticOrderNatAt f z : ℤ) := by
-  exact (show MeromorphicOn f Set.univ from fun w _ ↦ (hf.analyticAt w).meromorphicAt)
-    |>.divisor_eq_analyticOrderNatAt (hf.analyticAt z) (Set.mem_univ z)
-
-/-!
-## The multiplicity fiber is finite and has the expected cardinality
+## The multiplicity fiber is finite
 -/
 
 theorem divisorZeroIndex₀_fiber_finite (f : ℂ → ℂ) (z₀ : ℂ) :
@@ -69,38 +60,6 @@ lemma mem_divisorZeroIndex₀_fiberFinset (f : ℂ → ℂ) (z₀ : ℂ)
     (p : divisorZeroIndex₀ f (Set.univ : Set ℂ)) :
     p ∈ divisorZeroIndex₀_fiberFinset (f := f) z₀ ↔ divisorZeroIndex₀_val p = z₀ := by
   simp [divisorZeroIndex₀_fiberFinset]
-
-lemma divisorZeroIndex₀_fiberFinset_card_eq_toNat_divisor (f : ℂ → ℂ) {z₀ : ℂ} (hz₀ : z₀ ≠ 0) :
-    (divisorZeroIndex₀_fiberFinset (f := f) z₀).card =
-      Int.toNat (MeromorphicOn.divisor f (Set.univ : Set ℂ) z₀) := by
-  let S : Set (divisorZeroIndex₀ f (Set.univ : Set ℂ)) := {p | divisorZeroIndex₀_val p = z₀}
-  have hS : S.Finite := divisorZeroIndex₀_fiber_finite (f := f) z₀
-  set n : ℕ := Int.toNat (MeromorphicOn.divisor f (Set.univ : Set ℂ) z₀)
-  have hcard : Nat.card S = n := by
-    let e : S ≃ Fin n :=
-      (Equiv.subtypeSubtypeEquivSubtype (fun {p : divisorZeroIndex f Set.univ} hp ↦
-        hp.symm ▸ hz₀)).trans (Equiv.sigmaSubtype z₀)
-    have h := Nat.card_congr (α := S) (β := Fin n) e
-    simpa using (h.trans (by simp))
-  have hSncard : S.ncard = n := by
-    simpa [Nat.card_coe_set_eq] using hcard
-  have hto : hS.toFinset = divisorZeroIndex₀_fiberFinset (f := f) z₀ := by
-    rfl
-  have htoFinset : S.ncard = (divisorZeroIndex₀_fiberFinset (f := f) z₀).card := by
-    have h' : S.ncard = hS.toFinset.card := Set.ncard_eq_toFinset_card S hS
-    simpa [hto] using h'
-  exact htoFinset.symm.trans hSncard
-
-lemma divisorZeroIndex₀_fiberFinset_card_eq_analyticOrderNatAt
-    {f : ℂ → ℂ} (hf : Differentiable ℂ f) {z₀ : ℂ} (hz₀ : z₀ ≠ 0) :
-    (divisorZeroIndex₀_fiberFinset (f := f) z₀).card = analyticOrderNatAt f z₀ := by
-  have hdiv :
-      MeromorphicOn.divisor f (Set.univ : Set ℂ) z₀ = (analyticOrderNatAt f z₀ : ℤ) :=
-    divisor_univ_eq_analyticOrderNatAt_int (f := f) hf z₀
-  have htoNat : Int.toNat (MeromorphicOn.divisor f (Set.univ : Set ℂ) z₀) =
-    analyticOrderNatAt f z₀ := by
-    simp [hdiv]
-  exact (divisorZeroIndex₀_fiberFinset_card_eq_toNat_divisor (f := f) (z₀ := z₀) hz₀).trans htoNat
 
 lemma mem_divisorZeroIndex₀_fiberFinset_of_val_mem_ball
     {f : ℂ → ℂ} {z₀ : ℂ} {ε : ℝ}

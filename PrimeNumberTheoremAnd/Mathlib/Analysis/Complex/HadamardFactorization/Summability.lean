@@ -5,7 +5,7 @@ Authors: Matteo Cipollina
 -/
 module
 
-public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization
+public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
 public import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
 public import Mathlib.Analysis.Meromorphic.Divisor
 public import Mathlib.Analysis.Meromorphic.TrailingCoefficient

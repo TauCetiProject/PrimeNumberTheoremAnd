@@ -51,17 +51,6 @@ open scoped Topology BigOperators
 
 namespace Complex.Hadamard
 
-/-- The centered Hadamard denominator is the ordinary denominator for the translated function. -/
-theorem centeredHadamardDenom_eq_hadamardDenom_translate
-    (m : ℕ) (c : ℂ) (f : ℂ → ℂ) (z : ℂ) :
-    centeredHadamardDenom m c f z =
-      hadamardDenom m (fun w : ℂ => f (w + c)) (z - c) := by
-  have horder := congrArg ENat.toNat
-    (analyticOrderAt_comp_of_deriv_ne_zero (f := f) (g := fun w : ℂ ↦ w + c)
-      (z₀ := 0) (analyticAt_id.add analyticAt_const) (by simp))
-  simp only [Function.comp_def, zero_add] at horder
-  simp [centeredHadamardDenom, hadamardDenom, analyticOrderNatAt, horder]
-
 /-- An entire function has order at most `ρ` if it satisfies the `ε`-family growth bound used in
 this formalization.
 

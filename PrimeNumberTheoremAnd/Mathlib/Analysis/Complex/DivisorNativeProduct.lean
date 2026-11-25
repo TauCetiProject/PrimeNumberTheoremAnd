@@ -115,7 +115,7 @@ theorem divisorCanonicalProduct_eq_tprod_analyticOrderNatAt {m : ℕ} {f : ℂ �
       ∏' α : {a : ℂ // a ≠ 0}, weierstrassFactor m (z / α) ^ analyticOrderNatAt f α := by
   rw [divisorCanonicalProduct_eq_tprod_divisor hsum, ← tprod_subtype_eq_of_mulSupport_subset
     (s := {a : ℂ | a ≠ 0}) fun w hw hw0 ↦ hw (by simp [show w = 0 from hw0])]
-  exact tprod_congr fun α ↦ by rw [divisor_univ_eq_analyticOrderNatAt_int hf, Int.toNat_natCast]
+  exact tprod_congr fun α ↦ by rw [hf.divisor_univ_eq_analyticOrderNatAt, Int.toNat_natCast]
 
 /-- The general divisor product at genus one agrees with Tau Ceti's native divisor product. -/
 theorem divisorCanonicalProduct_one_eq_native {f : ℂ → ℂ}

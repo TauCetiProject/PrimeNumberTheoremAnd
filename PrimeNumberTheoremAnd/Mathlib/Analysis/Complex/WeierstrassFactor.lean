@@ -13,7 +13,6 @@ public import Mathlib.Analysis.Complex.CauchyIntegral
 public import Mathlib.Analysis.Normed.Group.Bounded
 public import Mathlib.Analysis.Normed.Module.MultipliableUniformlyOn
 public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-public import TauCeti.Analysis.Complex.CanonicalProduct.PrimaryProduct
 
 import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.SpecificLimits.Basic
@@ -25,8 +24,7 @@ import TauCeti.Analysis.SpecialFunctions.Complex.Log.Taylor
 Tau Ceti's Weierstrass elementary factors
 `E_m(z) = (1 - z) * exp (∑_{k=1}^m z^k / k)` (`Complex.weierstrassFactor`) come with their
 normalization, simple zero, the sharp bound `‖E_m(z) - 1‖ ≤ ‖z‖^(m+1)` on the closed unit
-disk and lower bounds for `log ‖E_m(z)‖`. This file adds the logarithmic-tail formula and locally
-uniform convergence of products of scaled factors of arbitrary genus.
+disk and lower bounds for `log ‖E_m(z)‖`. This file adds the logarithmic-tail formula.
 
 ## Main results
 
@@ -63,70 +61,5 @@ lemma weierstrassFactor_eq_exp_neg_tail (m : ℕ) {z : ℂ} (hz : ‖z‖ < 1) (
       _ = log (1 - z) + (-log (1 - z)) - tail := by rw [hdecomp]
       _ = -tail := by ring
   simpa only [tail] using congrArg Complex.exp hsum
-
-/-! ## Locally uniform convergence of products of scaled factors -/
-
-lemma summable_norm_weierstrassFactor_div_sub_one_of_summable_inv_pow {m : ℕ} {a : ℕ → ℂ}
-    (h_sum : Summable (fun n : ℕ => ‖a n‖⁻¹ ^ (m + 1))) (h_nonzero : ∀ n, a n ≠ 0) (z : ℂ) :
-    Summable (fun n : ℕ ↦ ‖weierstrassFactor m (z / a n) - 1‖) := by
-  have hpow : Summable (fun n : ℕ => (‖a n‖ ^ (m + 1))⁻¹) := by
-    simpa only [inv_pow] using h_sum
-  have ht := hpow.tendsto_atTop_of_pos (f := fun n => ‖a n‖ ^ (m + 1))
-    (fun n => pow_pos (norm_pos_iff.mpr (h_nonzero n)) (m + 1))
-  have hs : Summable (fun n : ℕ => 4 * ‖z‖ ^ (m + 1) / ‖a n‖ ^ (m + 1)) := by
-    simpa [div_eq_mul_inv, inv_pow, mul_assoc, mul_left_comm, mul_comm] using
-      h_sum.mul_left (4 * ‖z‖ ^ (m + 1))
-  refine Summable.of_norm_bounded_eventually_nat hs ?_
-  filter_upwards [ht.eventually_ge_atTop ((‖z‖ * 2) ^ (m + 1))] with n hn
-  have hz : ‖z‖ ≤ ‖a n‖ / 2 := (le_div_iff₀ (by norm_num)).2
-    ((pow_le_pow_iff_left₀ (by positivity) (norm_nonneg _) (Nat.succ_ne_zero m)).1 hn)
-  have h : ‖z / a n‖ ≤ 1 := by
-    rw [norm_div]
-    exact div_le_one_of_le₀ (by linarith [norm_nonneg (a n)]) (norm_nonneg (a n))
-  simp only [Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)]
-  refine (norm_weierstrassFactor_sub_one_le m h).trans ?_
-  rw [norm_div, div_pow, mul_div_assoc]
-  exact le_mul_of_one_le_left (by positivity) (by norm_num)
-
-lemma hasProdUniformlyOn_weierstrassFactor_div_of_bound {K : Set ℂ} (hK : IsCompact K)
-    {m : ℕ → ℕ} {a : ℕ → ℂ} {R : ℝ}
-    (hR : ∀ z ∈ K, ‖z‖ ≤ R) (hsmall : ∀ᶠ n in Filter.atTop, R ≤ ‖a n‖ / 2)
-    (hsumm : Summable (fun n : ℕ ↦ 4 * R ^ (m n + 1) / ‖a n‖ ^ (m n + 1))) :
-    HasProdUniformlyOn (fun n z ↦ weierstrassFactor (m n) (z / a n))
-      (fun z ↦ ∏' n, weierstrassFactor (m n) (z / a n)) K := by
-  have hbound :
-      ∀ᶠ n in Filter.atTop,
-        ∀ z ∈ K,
-          ‖weierstrassFactor (m n) (z / a n) - 1‖ ≤ 4 * R ^ (m n + 1) / ‖a n‖ ^ (m n + 1) := by
-    filter_upwards [hsmall] with n hn z hz
-    have hza : ‖z‖ ≤ ‖a n‖ / 2 := (hR z hz).trans hn
-    have h : ‖z / a n‖ ≤ 1 := by
-      rw [norm_div]
-      exact div_le_one_of_le₀ (by linarith [norm_nonneg (a n)]) (norm_nonneg (a n))
-    calc
-      ‖weierstrassFactor (m n) (z / a n) - 1‖ ≤ ‖z / a n‖ ^ (m n + 1) :=
-        norm_weierstrassFactor_sub_one_le (m n) h
-      _ ≤ 4 * ‖z‖ ^ (m n + 1) / ‖a n‖ ^ (m n + 1) := by
-        rw [norm_div, div_pow, mul_div_assoc]
-        exact le_mul_of_one_le_left (by positivity) (by norm_num)
-      _ ≤ 4 * R ^ (m n + 1) / ‖a n‖ ^ (m n + 1) := by
-        have hpow : ‖z‖ ^ (m n + 1) ≤ R ^ (m n + 1) :=
-          pow_le_pow_left₀ (norm_nonneg z) (hR z hz) (m n + 1)
-        refine div_le_div_of_nonneg_right ?_ (pow_nonneg (norm_nonneg (a n)) _)
-        exact mul_le_mul_of_nonneg_left hpow (by positivity)
-  have hcts :
-      ∀ n, ContinuousOn (fun z ↦ weierstrassFactor (m n) (z / a n) - 1) K := by
-    intro n
-    exact ((differentiable_weierstrassFactor (m n)).continuous.comp
-      (continuous_id.div_const (a n))).continuousOn.fun_sub continuousOn_const
-  simpa using hsumm.hasProdUniformlyOn_nat_one_add (K := K)
-    (f := fun n z ↦ weierstrassFactor (m n) (z / a n) - 1) hK hbound hcts
-
-lemma hasProdLocallyUniformlyOn_weierstrassFactor_div_of_summable_inv_pow {m : ℕ} {a : ℕ → ℂ}
-    (h_sum : Summable (fun n : ℕ => ‖a n‖⁻¹ ^ (m + 1))) (_h_nonzero : ∀ n, a n ≠ 0) :
-    HasProdLocallyUniformlyOn (fun n z ↦ weierstrassFactor m (z / a n))
-      (fun z ↦ ∏' n, weierstrassFactor m (z / a n)) Set.univ :=
-  hasProdLocallyUniformlyOn_weierstrassFactor_div (p := fun _ ↦ m) fun R _ ↦
-    (h_sum.mul_left (R ^ (m + 1))).congr fun n ↦ by rw [div_pow, div_eq_mul_inv, inv_pow]
 
 end Complex
