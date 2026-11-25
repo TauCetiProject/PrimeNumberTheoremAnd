@@ -13,40 +13,28 @@ import TauCeti.Analysis.SpecialFunctions.Complex.Exp.LogDeriv
 import TauCeti.Analysis.Complex.Hadamard.OrderOne
 public import TauCeti.NumberTheory.LFunctions.Zeros.Completion.RiemannXi
 public import TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaValues
 
 
 /-!
 # Hadamard factorization for the completed Riemann zeta function
 
-This file specializes Tao's finite-order Hadamard factorization theorem
-([tao246bComplexAnalysis], Thm. 22)
-to the entire completed zeta function `completedRiemannZeta₀` (Λ₀) and to Riemann's entire
-`riemannXi`. The analytic input is the native global completed Hurwitz zeta bound at parameter zero
-from `TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth`; the product is the divisor-indexed canonical
-Weierstrass product at genus
-`⌊ρ⌋ = 1`. Native-support products use `TauCeti.divisorProductOne`, with multiplicities
-from `MeromorphicOn.divisor`.
+This file proves that the entire completed zeta function `completedRiemannZeta₀` (Λ₀) has order
+at most one and specializes Tao's finite-order Hadamard factorization theorem
+([tao246bComplexAnalysis], Thm. 22) to Riemann's entire `riemannXi`. The analytic input is the
+native global completed Hurwitz zeta bound at parameter zero from
+`TauCeti.NumberTheory.LSeries.HurwitzZetaGrowth`; the product is the divisor-indexed canonical
+Weierstrass product at genus `⌊ρ⌋ = 1`. Native-support products use `TauCeti.divisorProductOne`,
+with multiplicities from `MeromorphicOn.divisor`.
 
 Note: `completedRiemannZeta` (Λ with simple poles at `0` and `1`) is a different object; Hadamard
-applies to Λ₀.  The negative even integers are the trivial zeros of `riemannZeta`, not zeros of
-Λ₀.  Accordingly, the divisor indices in this file remain generic zeros of Λ₀ rather than a
-separate enumeration of the trivial zeros of ζ.
-
-`RiemannZetaValues` proves `completedRiemannZeta₀_zero_ne_zero`, using the Euler-Mascheroni
-formula for `Λ₀(1)` together with explicit numerical bounds.  Therefore the origin monomial in the
-Λ₀ Hadamard product is also removable.
+applies to the entire functions Λ₀ and `ξ(s) = (s(s-1)Λ₀(s) + 1) / 2`. The canonical products are
+stated for `ξ`, whose value `ξ(0) = 1 / 2` makes the origin monomial removable.
 
 ## Main results
 
 * `completedRiemannZeta₀_entireOfOrderAtMost_one` : Λ₀ has order at most one
 * `riemannXi_entireOfOrderAtMost_one` : Riemann's entire `ξ` has order at most one
 * `analyticOrderNatAt_riemannXi_zero` : the origin monomial in `ξ`'s Hadamard product is absent
-* `analyticOrderNatAt_completedRiemannZeta₀_zero` : the origin monomial in Λ₀'s Hadamard product
-  is absent
-* `completedRiemannZeta₀_hadamard_factorization` : canonical product form over divisor indices
-* `completedRiemannZeta₀_hadamard_factorization_no_monomial` : Λ₀ product with the origin monomial
-  removed
 * `riemannXi_hadamard_factorization` : canonical product form for Riemann's entire `ξ`
 * `riemannXi_hadamard_factorization_no_monomial`, `_reindex_no_monomial`,
   `_sequence_no_monomial` : xi products with the origin monomial removed
@@ -59,7 +47,6 @@ formula for `Λ₀(1)` together with explicit numerical bounds.  Therefore the o
   of the xi Hadamard derivative constant
 * `exists_riemannXi_logDeriv_eq_polynomial_derivative_add_tsum` : logarithmic derivative formula
   obtained from the xi no-monomial factorization
-* `completedRiemannZeta₀_hadamard_factorization_reindex`, `_sequence` : reindexed enumerations
 
 The order-one estimate `completedRiemannZeta₀_entireOfOrderAtMost_one` is the finite-order input
 to `hadamard_factorization_of_order`. Riemann's entire `ξ` is Tau Ceti's
@@ -135,15 +122,6 @@ theorem analyticOrderNatAt_riemannXi_zero : analyticOrderNatAt riemannXi 0 = 0 :
     apply_eq_zero_of_analyticOrderNatAt_ne_zero (f := riemannXi) (z₀ := 0) h
   rw [riemannXi_zero] at hzero
   norm_num at hzero
-
-/-- Since `Λ₀(0) ≠ 0`, the monomial exponent in the origin-centered Hadamard product for Λ₀ is
-zero. -/
-theorem analyticOrderNatAt_completedRiemannZeta₀_zero :
-    analyticOrderNatAt completedRiemannZeta₀ 0 = 0 := by
-  by_contra h
-  have hzero : completedRiemannZeta₀ 0 = 0 :=
-    apply_eq_zero_of_analyticOrderNatAt_ne_zero (f := completedRiemannZeta₀) (z₀ := 0) h
-  exact completedRiemannZeta₀_zero_ne_zero hzero
 
 /-- The logarithmic-derivative zero terms for Riemann's `ξ` are summable away from the zero set.
 
@@ -352,93 +330,3 @@ theorem riemannXi_hadamard_factorization_sequence_no_monomial
   refine ⟨P, hdeg, ?_⟩
   intro z
   simpa [analyticOrderNatAt_riemannXi_zero, mul_assoc] using hfac z
-
-private theorem completedRiemannZeta₀_product_eq :
-    Complex.Hadamard.divisorCanonicalProduct 1 completedRiemannZeta₀ Set.univ =
-      TauCeti.divisorProductOne completedRiemannZeta₀ := by
-  have hs : Summable (fun p : Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ Set.univ ↦
-      ‖Complex.Hadamard.divisorZeroIndex₀_val p‖⁻¹ ^ 2) := by
-    simpa using
-      (Complex.Hadamard.EntireOfOrderAtMost.summable_norm_inv_pow_divisorZeroIndex₀
-        (ρ := (1 : ℝ)) (f := completedRiemannZeta₀) completedRiemannZeta₀_entireOfOrderAtMost_one
-        (by norm_num))
-  ext z
-  exact Complex.Hadamard.divisorCanonicalProduct_one_eq_native hs z
-
-/-- **Hadamard factorization for `completedRiemannZeta₀` (Λ₀) at genus one**. -/
-theorem completedRiemannZeta₀_hadamard_factorization :
-    ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
-        Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt completedRiemannZeta₀ 0) *
-      TauCeti.divisorProductOne completedRiemannZeta₀ z := by
-  obtain ⟨a, _, hfac⟩ :=
-    (completedRiemannZeta₀_entireOfOrderAtMost_one.orderLE (by norm_num)).exists_eq_cexp_mul_divisorProductOne
-      differentiable_completedZeta₀ completedRiemannZeta₀_zero_ne_zero
-  refine ⟨Polynomial.C a + Polynomial.C (logDeriv completedRiemannZeta₀ 0) * Polynomial.X, ?_, ?_⟩
-  · exact Polynomial.degree_add_le_of_degree_le
-      (Polynomial.degree_C_le.trans zero_le_one) (Polynomial.degree_C_mul_X_le _)
-  · intro z
-    simpa only [Polynomial.eval_add, Polynomial.eval_C, Polynomial.eval_mul, Polynomial.eval_X,
-      analyticOrderNatAt_completedRiemannZeta₀_zero, pow_zero, mul_one] using hfac z
-
-/-- Hadamard factorization for `completedRiemannZeta₀` (Λ₀), with the origin monomial removed
-using `Λ₀(0) ≠ 0`. -/
-theorem completedRiemannZeta₀_hadamard_factorization_no_monomial :
-    ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
-        Complex.exp (Polynomial.eval z P) *
-      TauCeti.divisorProductOne completedRiemannZeta₀ z := by
-  rcases completedRiemannZeta₀_hadamard_factorization with ⟨P, hdeg, hfac⟩
-  refine ⟨P, hdeg, ?_⟩
-  intro z
-  simpa [analyticOrderNatAt_completedRiemannZeta₀_zero, mul_assoc] using hfac z
-
-/-- Reindexed divisor Hadamard factorization for Λ₀. -/
-theorem completedRiemannZeta₀_hadamard_factorization_reindex
-    {ι : Type*}
-    (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
-    ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
-        Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt completedRiemannZeta₀ 0) *
-      (∏' i : ι, Complex.weierstrassFactor 1
-        (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
-  simpa using
-    (Complex.Hadamard.hadamard_factorization_of_order_reindex
-      (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
-      (by norm_num) ⟨0, completedRiemannZeta₀_zero_ne_zero⟩
-      completedRiemannZeta₀_entireOfOrderAtMost_one e)
-
-/-- Reindexed divisor Hadamard factorization for Λ₀, with the origin monomial removed. -/
-theorem completedRiemannZeta₀_hadamard_factorization_reindex_no_monomial
-    {ι : Type*}
-    (e : ι ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
-    ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
-        Complex.exp (Polynomial.eval z P) *
-      (∏' i : ι, Complex.weierstrassFactor 1
-        (z / Complex.Hadamard.divisorZeroIndex₀_val (e i))) := by
-  rcases completedRiemannZeta₀_hadamard_factorization_reindex e with ⟨P, hdeg, hfac⟩
-  refine ⟨P, hdeg, ?_⟩
-  intro z
-  simpa [analyticOrderNatAt_completedRiemannZeta₀_zero, mul_assoc] using hfac z
-
-/-- Sequence-indexed Hadamard factorization for Λ₀. -/
-theorem completedRiemannZeta₀_hadamard_factorization_sequence
-    (e : ℕ ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
-    ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
-        Complex.exp (Polynomial.eval z P) * z ^ (analyticOrderNatAt completedRiemannZeta₀ 0) *
-      Complex.canonicalProduct 1
-        (fun n : ℕ => Complex.Hadamard.divisorZeroIndex₀_val (e n)) z := by
-  simpa using
-    (Complex.Hadamard.hadamard_factorization_of_order_sequence
-      (f := completedRiemannZeta₀) (ρ := (1 : ℝ))
-      (by norm_num) ⟨0, completedRiemannZeta₀_zero_ne_zero⟩
-      completedRiemannZeta₀_entireOfOrderAtMost_one e)
-
-/-- Sequence-indexed Hadamard factorization for Λ₀, with the origin monomial removed. -/
-theorem completedRiemannZeta₀_hadamard_factorization_sequence_no_monomial
-    (e : ℕ ≃ Complex.Hadamard.divisorZeroIndex₀ completedRiemannZeta₀ (Set.univ : Set ℂ)) :
-    ∃ (P : Polynomial ℂ), P.degree ≤ 1 ∧ ∀ z : ℂ, completedRiemannZeta₀ z =
-        Complex.exp (Polynomial.eval z P) *
-      Complex.canonicalProduct 1
-        (fun n : ℕ => Complex.Hadamard.divisorZeroIndex₀_val (e n)) z := by
-  rcases completedRiemannZeta₀_hadamard_factorization_sequence e with ⟨P, hdeg, hfac⟩
-  refine ⟨P, hdeg, ?_⟩
-  intro z
-  simpa [analyticOrderNatAt_completedRiemannZeta₀_zero, mul_assoc] using hfac z

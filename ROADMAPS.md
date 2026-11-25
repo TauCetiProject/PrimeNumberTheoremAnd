@@ -16,10 +16,7 @@ in the suggested existing section) before it can move to Tau Ceti.
    `a → 0⁺` limit, the sinc-kernel error bounds, and vertical-line inversion at a point under Dini or
    continuity hypotheses. An extension of AnalyticNumberTheoryPartIII §§7.2–7.3, which state only the
    bounded-variation mean-limit form.
-4. **Numerical constants for completed zeta** (`RiemannZetaValues.lean`): nonvanishing of
-   `completedRiemannZeta₀` at `0` and `1`, with the bounds `γ > 27/50` and `log(4π) < 127/50`.
-   A target under ZerosOfLFunctions §5.6 or a numerical-constants section of ExplicitZetaBounds.
-5. **`ζ(2σ)/ζ(σ) ≤ |ζ(σ + it)|`** (used by `StrongPNT.lean`): one clause in ExplicitZetaBounds §3.4,
+4. **`ζ(2σ)/ζ(σ) ≤ |ζ(σ + it)|`** (used by `StrongPNT.lean`): one clause in ExplicitZetaBounds §3.4,
    where it is only a Check (§7.10).
-6. **The Fourier-side space `W21`** (`Sobolev.lean`, about 200 lines): `‖f‖₁ + (4π²)⁻¹‖f''‖₁`
+5. **The Fourier-side space `W21`** (`Sobolev.lean`, about 200 lines): `‖f‖₁ + (4π²)⁻¹‖f''‖₁`
    test functions. An AnalyticNumberTheoryPartIII §7 test-function class.
