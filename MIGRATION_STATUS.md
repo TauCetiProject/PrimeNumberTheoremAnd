@@ -1,6 +1,6 @@
 # Migration status
 
-Locally verified 20 November 2026; the preceding published baseline is `afc97c4`. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the three groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
+Locally verified 20 November 2026; the preceding published baseline is `afc97c4`. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the two groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
 
 The locally validated fork has completed **45 native-reuse cleanup passes**, removing **140 unique declarations** and **eight obsolete modules**. Deleted mathematics is preserved by checked short recoveries of the complete original types. The latest cleanup removes the unrestricted rectangle-neighborhood and border-exclusion lemmas and uses native arguments in their six surviving callers. Their complete original types have checked two-line and seven-line recoveries: Mathlib interior algebra for the first, and the unconditional pinned Tau Ceti frontier theorem plus kept RectangleBorder for the second. Arbitrary reversed and degenerate complex corners remain covered without new ordering assumptions. Generic vector classes, existing completeness requirements, arbitrary residue coefficients including zero, and the truncated shift's original right-side integrability and tail assumptions are preserved. No new helper API is introduced. No compatibility aliases or forwarding modules were added.
 
@@ -8,11 +8,10 @@ Pins remain stock Lean **4.36.0-rc2**, Mathlib **048fffa1dbcd080d3058fab41d8c188
 
 ## Remaining roadmap gaps
 
-The three groups in ROADMAPS.md are:
+The two groups in ROADMAPS.md are:
 
-1. Elementary PNT consequences for Möbius and Liouville sums.
-2. The Möbius-square divisor-sum identity, including its multiplicativity and prime-power evaluations.
-3. Laplace-weighted sinc integrals and pointwise Laplace inversion under the original weak hypotheses.
+1. The Möbius-square divisor-sum identity, including its multiplicativity and prime-power evaluations.
+2. Laplace-weighted sinc integrals and pointwise Laplace inversion under the original weak hypotheses.
 
 Gamma growth, global pole-cleared zeta growth, quantitative zero counting, and the relevant contour/factorization work have existing roadmap coverage. They are migration or adoption work, not additional gaps. The fork's own copies of Brun–Titchmarsh, finite-order Hadamard factorization, the ζ/ξ Hadamard product, zero counting from growth, the finite-N Abel formula for ζ and the Γ strip bound have been deleted, together with their divisor-index scaffolding, because Tau Ceti main has each of them in the same or a stronger form. Every adoption still requires the provider to be merged, approved compatible pins and verification of the fork's original hypotheses, constants and defaults.
 
