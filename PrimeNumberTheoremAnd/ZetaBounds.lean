@@ -2,6 +2,7 @@ module
 
 public import Architect
 public import TauCeti.Analysis.Contour.Residue.SimplePole
+public import TauCeti.Analysis.Contour.Residue.LogDeriv
 public import TauCeti.Analysis.Contour.Argument.Principle
 public import TauCeti.Topology.Homotopy.PuncturedStarConvex
 public import Batteries.Tactic.Lemma
@@ -35,63 +36,22 @@ blueprint_comment /--
 We record here some prelimiaries about the zeta function and general
 holomorphic functions.
 -/
-/-- Native meromorphic factorization supplies an analytic numerator even when the residue is zero. -/
-private theorem analytic_factor_of_simple_pole_limit {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (hU : U ∈ 𝓝 p) (hf : DifferentiableOn ℂ f (U \ {p})) {A : ℂ}
-    (hlim : Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A)) :
-    ∃ g : ℂ → ℂ, AnalyticAt ℂ g p ∧ g p = A ∧
-      f =ᶠ[𝓝[≠] p] fun z ↦ (z - p)⁻¹ * g z := by
-  have hd : ∀ᶠ z in 𝓝[≠] p, DifferentiableAt ℂ f z := by
-    obtain ⟨V, hVU, hVo, hpV⟩ := mem_nhds_iff.mp hU
-    filter_upwards [sdiff_mem_nhdsWithin_compl (hVo.mem_nhds hpV) {p}] with z hz
-    exact hf.differentiableAt (Filter.mem_of_superset
-      ((hVo.sdiff isClosed_singleton).mem_nhds hz) (sdiff_subset_sdiff_left hVU))
-  have hm := TauCeti.Contour.meromorphicAt_of_tendsto_sub_mul hd hlim
-  obtain ⟨g, hg, heq⟩ := TauCeti.Contour.exists_analyticAt_eventuallyEq_zpow_smul hm
-    (TauCeti.Contour.neg_one_le_meromorphicOrderAt_of_tendsto_sub_mul hlim)
-  have heq' : f =ᶠ[𝓝[≠] p] fun z ↦ (z - p)⁻¹ * g z := by
-    simpa only [zpow_neg_one, smul_eq_mul] using heq
-  have hglim : Tendsto g (𝓝[≠] p) (𝓝 A) := hlim.congr' (by
-    filter_upwards [heq', self_mem_nhdsWithin] with z hz hzp
-    rw [hz, ← mul_assoc, mul_inv_cancel₀ (sub_ne_zero.mpr hzp), one_mul])
-  exact ⟨g, hg, tendsto_nhds_unique (hg.continuousAt.tendsto.mono_left nhdsWithin_le_nhds)
-    hglim, heq'⟩
-
-@[blueprint
+attribute [blueprint "ResidueOfTendsTo"
   (title := "ResidueOfTendsTo")
   (statement := /--
-  If a function $f$ is holomorphic in a punctured neighborhood of $p$ and
-  $\lim_{s\to p} (s-p)f(s) = A$, then
-  $f(s) = \frac{A}{s-p} + O(1)$ near $p$.
+  If a function $f$ is meromorphic at $p$ with a pole of order at most one there, and $A$ is its
+  residue at $p$, then
+  $f(s) = \frac{A}{s-p} + O(1)$ near $p$. In particular, this holds if $f$ is holomorphic in a
+  punctured neighborhood of $p$ and $\lim_{s\to p} (s-p)f(s) = A$.
   -/)
   (proof := /--
-  The function $(s - p)\cdot f(s)$ bounded, so by Theorem
-  \ref{existsDifferentiableOn_of_bddAbove}, there is a holomorphic function, $g$, say, so that
-  $(s-p)f(s) = g(s)$ in a neighborhood of $s=p$, and $g(p)=A$. Now because $g$ is holomorphic,
-  near $s=p$, we have $g(s)=A+O(s-p)$. Then when you divide by $(s-p)$, you get
+  Write $f(s) = g(s)/(s-p)$ near $p$ with $g$ holomorphic at $p$; then $A = g(p)$. Because $g$
+  is holomorphic, near $s=p$ we have $g(s)=A+O(s-p)$. Then when you divide by $(s-p)$, you get
   $f(s) = A/(s-p) + O(1)$.
   -/)]
-theorem ResidueOfTendsTo {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (hU : U ∈ 𝓝 p)
-    (hf : DifferentiableOn ℂ f (U \ {p}))
-    {A : ℂ}
-    (h_limit : Tendsto (fun s ↦ (s - p) * f s) (𝓝[≠] p) (𝓝 A)) :
-    ∃ V ∈ 𝓝 p,
-    BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (V \ {p})) := by
-  obtain ⟨g, hg, hgp, heq⟩ := analytic_factor_of_simple_pole_limit hU hf h_limit
-  have he : (f - fun z ↦ A * (z - p)⁻¹) =ᶠ[𝓝[≠] p]
-      (fun z ↦ (g z - A) / (z - p)) := by
-    filter_upwards [heq] with z hz
-    change f z - A * (z - p)⁻¹ = (g z - A) / (z - p)
-    rw [hz, sub_div, div_eq_mul_inv, div_eq_mul_inv, mul_comm ((z - p)⁻¹)]
-  have H := hg.differentiableAt.hasDerivAt
-  rw [hasDerivAt_iff_tendsto_slope] at H
-  unfold slope at H
-  simp only [vsub_eq_sub, smul_eq_mul, inv_mul_eq_div, hgp] at H
-  exact IsBigO_to_BddAbove (he.trans_isBigO (H.isBigO_one ℂ))
+  MeromorphicAt.isBigO_sub_inv_smul_residue
 
 attribute [blueprint "riemannZetaResidue"
-  (uses := ["DifferentiableOn.vanishesOnRectangle"])
   (proofUses := ["ResidueOfTendsTo"])
   (title := "riemannZetaResidue")
   (statement := /--
@@ -106,87 +66,25 @@ attribute [blueprint "riemannZetaResidue"
   -/)]
   isBigO_riemannZeta_sub_one_div
 
-@[blueprint
-  (title := "nonZeroOfBddAbove")
-  (statement := /--
-  If a function $f$ has a simple pole at a point $p$ with residue $A \neq 0$, then
-  $f$ is nonzero in a punctured neighborhood of $p$.
-  -/)
-  (proof := /--
-  We know that $f(s) = \frac{A}{s-p} + O(1)$ near $p$, so we can write
-  $$f(s) = \left(f(s) - \frac{A}{s-p}\right) + \frac{A}{s-p}.$$
-  The first term is bounded, say by $M$, and the second term goes to $\infty$ as $s \to p$.
-  Therefore, there exists a neighborhood $V$ of $p$ such that for all $s \in V \setminus \{p\}$,
-  we have $f(s) \neq 0$.
-  -/)]
-theorem nonZeroOfBddAbove {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
-    (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    ∃ V ∈ 𝓝 p, IsOpen V ∧ ∀ s ∈ V \ {p}, f s ≠ 0 := by
-  have hlim : Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
-    have h := (f_near_p.isBoundedUnder
-      (sdiff_mem_nhdsWithin_compl U_in_nhds {p})).isLittleO_sub_self_inv
-    change (fun z ↦ f z - A * (z - p)⁻¹) =o[𝓝[≠] p] (fun z ↦ (z - p)⁻¹) at h
-    have hn : ∀ᶠ z in 𝓝[≠] p, (z - p)⁻¹ ≠ 0 :=
-      Filter.Eventually.mono self_mem_nhdsWithin fun _ hz ↦ inv_ne_zero (sub_ne_zero.mpr hz)
-    have hl := (isLittleO_sub_mul_iff_tendsto_div hn).mp h
-    simpa only [div_inv_eq_mul, mul_comm] using hl
-  have hf : ∀ᶠ z in 𝓝[≠] p, f z ≠ 0 :=
-    (hlim.eventually_ne A_ne_zero).mono fun _ hz ↦ right_ne_zero_of_mul hz
-  obtain ⟨V, hV, hVo, hpV⟩ := mem_nhds_iff.mp (eventually_nhdsWithin_iff.mp hf)
-  exact ⟨V, hVo.mem_nhds hpV, hVo, fun z hz ↦ hV hz.1 hz.2⟩
-
-
-@[blueprint
+attribute [blueprint "logDerivResidue"
   (title := "logDerivResidue")
   (statement := /--
-  If $f$ is holomorphic in a punctured neighborhood of $p$ with nonzero residue $A$ there, then $f'/
-  f$ has a simple pole at $p$ with residue $-1$:
-  $$ \frac{f'(s)}{f(s)} = \frac{-1}{s - p} + O(1).$$
+  If $f$ is meromorphic at $p$ of order $n\in\mathbb{Z}$, then $f'/f$ has a simple pole at $p$
+  with residue $n$:
+  $$ \frac{f'(s)}{f(s)} = \frac{n}{s - p} + O(1).$$
+  In particular, if $f$ has a simple pole at $p$ with nonzero residue, then
+  $\frac{f'(s)}{f(s)} = \frac{-1}{s - p} + O(1)$.
   -/)
   (proof := /--
-  Using Theorem \ref{existsDifferentiableOn_of_bddAbove}, there is a function $g$ holomorphic
-  near $p$, for which $f(s) = A/(s-p) + g(s) = h(s)/ (s-p)$. Here $h(s):= A + g(s)(s-p)$ which
-  is nonzero in a neighborhood of $p$ (since $h$ goes to $A$ which is nonzero).
-  Then $f'(s) = (h'(s)(s-p) - h(s))/(s-p)^2$, and we can compute the quotient:
+  Write $f(s) = (s-p)^n h(s)$ near $p$, with $h$ holomorphic and nonvanishing at $p$. Then
   $$
-  \frac{f'(s)}{f(s)}+1/(s-p) = \frac{h'(s)(s-p) - h(s)}{h(s)} \cdot \frac{1}{(s-p)}+1/(s-p)
-  =
-  \frac{h'(s)}{h(s)}.
+  \frac{f'(s)}{f(s)} = \frac{n}{s-p} + \frac{h'(s)}{h(s)},
   $$
-  Since $h$ is nonvanishing near $p$, this remains bounded in a neighborhood of $p$.
-  -/)]
-theorem logDerivResidue {f : ℂ → ℂ} {p : ℂ} {U : Set ℂ}
-    (holc : DifferentiableOn ℂ f (U \ {p}))
-    (U_in_nhds : U ∈ 𝓝 p) {A : ℂ} (A_ne_zero : A ≠ 0)
-    (f_near_p : BddAbove (norm ∘ (f - fun s ↦ A * (s - p)⁻¹) '' (U \ {p}))) :
-    (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =O[𝓝[≠] p] (1 : ℂ → ℂ) := by
-  have hlim : Tendsto (fun z ↦ (z - p) * f z) (𝓝[≠] p) (𝓝 A) := by
-    have h := (f_near_p.isBoundedUnder
-      (sdiff_mem_nhdsWithin_compl U_in_nhds {p})).isLittleO_sub_self_inv
-    change (fun z ↦ f z - A * (z - p)⁻¹) =o[𝓝[≠] p] (fun z ↦ (z - p)⁻¹) at h
-    have hn : ∀ᶠ z in 𝓝[≠] p, (z - p)⁻¹ ≠ 0 :=
-      Filter.Eventually.mono self_mem_nhdsWithin fun _ hz ↦ inv_ne_zero (sub_ne_zero.mpr hz)
-    have hl := (isLittleO_sub_mul_iff_tendsto_div hn).mp h
-    simpa only [div_inv_eq_mul, mul_comm] using hl
-  obtain ⟨g, hg, hgp, heq⟩ := analytic_factor_of_simple_pole_limit U_in_nhds holc hlim
-  have hm : MeromorphicAt f p :=
-    ((TauCeti.Contour.meromorphicAt_sub_inv p).mul hg.meromorphicAt).congr heq.symm
-  have hord : meromorphicOrderAt f p = ((-1 : ℤ) : WithTop ℤ) := by
-    apply (meromorphicOrderAt_eq_int_iff hm).2
-    refine ⟨g, hg, hgp ▸ A_ne_zero, ?_⟩
-    filter_upwards [heq] with z hz
-    simpa only [zpow_neg_one, smul_eq_mul] using hz
-  obtain ⟨v, hv, hv0, hlog⟩ := TauCeti.Contour.logDeriv_eventuallyEq_principalPart hm hord
-  have hb : logDeriv v =O[𝓝[≠] p] (1 : ℂ → ℂ) :=
-    ((hv.logDeriv hv0).continuousAt.tendsto.isBigO_one ℂ).mono
-      nhdsWithin_le_nhds
-  have he : (deriv f * f⁻¹ + (fun s ↦ (s - p)⁻¹)) =ᶠ[𝓝[≠] p] logDeriv v := by
-    filter_upwards [hlog] with z hz
-    change deriv f z * (f z)⁻¹ + (z - p)⁻¹ = logDeriv v z
-    rw [← div_eq_mul_inv, ← logDeriv_apply, hz]
-    simp
-  exact he.trans_isBigO hb
+  so the residue of $f'/f$ at $p$ is $n$ and the pole has order at most one. Now apply
+  Theorem \ref{ResidueOfTendsTo}.
+  -/)
+  (proofUses := ["ResidueOfTendsTo"])]
+  MeromorphicAt.isBigO_logDeriv_sub_order_div
 
 blueprint_comment /--
 \label{BddAbove-to-IsBigO}
@@ -592,46 +490,6 @@ lemma ZetaBnd_aux1 (N : ℕ) (Npos : 1 ≤ N) {σ t : ℝ} (hσ : σ ∈ Ioc 0 2
     mul_one]
   linarith [hσ.2]
 
-blueprint_comment /--
-Big-Oh version of Lemma \ref{ZetaBnd_aux1}.
--/
-@[blueprint
-  (title := "ZetaBnd-aux1p")
-  (statement := /--
-  For any $N\ge1$ and $s = \sigma + tI \in \C$, $\sigma=\in(0,2], 2 < |t|$,
-  $$
-  \left| s\int_N^\infty \frac{\lfloor x\rfloor + 1/2 - x}{x^{s+1}} \, dx \right|
-  \ll |t| \frac{N^{-\sigma}}{\sigma}.
-  $$
-  -/)
-  (proof := /-- Apply Lemma \ref{ZetaBnd_aux1b} and estimate $|s|\ll |t|$. -/)
-  (latexEnv := "lemma")]
-lemma ZetaBnd_aux1p (N : ℕ) (Npos : 1 ≤ N) {σ : ℝ} (hσ : σ ∈ Ioc 0 2) :
-    (fun (t : ℝ) ↦
-      ‖(σ + t * I) * ∫ x in Ioi (N : ℝ), (⌊x⌋ + 1 / 2 - x) / (x : ℂ) ^ ((σ + t * I) + 1)‖)
-    =O[Filter.principal {t | 2 ≤ |t|}] fun t ↦ |t| * N ^ (-σ) / σ := by
-  rw [Asymptotics.isBigO_iff_isBigOWith]
-  use 2
-  rw [Asymptotics.isBigOWith_principal]
-  intro t ht
-  simp only [mem_ofPred_eq] at ht
-  rw [norm_norm, norm_mul, mul_div_assoc, norm_mul]
-  have : 2 * (‖|t|‖ * ‖↑N ^ (-σ) / σ‖) = (2 * |t|) * ((N : ℝ) ^ (-σ) / σ) := by
-    simp only [Real.norm_eq_abs, _root_.abs_abs, norm_div]
-    have : σ ≠ 0 := by linarith [hσ.1]
-    field_simp
-    rw [abs_of_pos hσ.1]
-    have : 0 < (N : ℝ) ^ (-σ) := by
-      refine Real.rpow_pos_of_pos ?_ _
-      positivity
-    rw [abs_of_pos this]
-    ring
-  rw [this]
-  apply mul_le_mul ?_ (ZetaBnd_aux1b N Npos hσ.1) (norm_nonneg _) (by positivity)
-  refine le_trans (by apply norm_add_le) ?_
-  simp only [norm_real, norm_mul, norm_I, mul_one, Complex.norm_of_nonneg hσ.1.le, Real.norm_eq_abs]
-  linarith [hσ.2]
-
 lemma isOpen_aux : IsOpen {z : ℂ | z ≠ 1 ∧ 0 < z.re} := by
   rw [Set.ofPred_and]
   refine (isOpen_ne (x := (1 : ℂ))).inter ?_
@@ -943,7 +801,6 @@ lemma UpperBnd_aux6 {σ t : ℝ} (t_ge : 3 < |t|) (hσ : σ ∈ Ioc (1 / 2) 2)
 
 @[blueprint
   (title := "ZetaUpperBnd")
-  (proofUses := ["ZetaBnd_aux2", "riemannZeta0", "ZetaBnd_aux1", "Zeta0EqZeta"])
   (statement := /--
   For any $s = \sigma + tI \in \C$, $1/2 \le \sigma\le 2, 3 < |t|$
   and any $0 < A < 1$ sufficiently small, and $1-A/\log |t| \le \sigma$, we have
@@ -952,29 +809,12 @@ lemma UpperBnd_aux6 {σ t : ℝ} (t_ge : 3 < |t|) (hσ : σ ∈ Ioc (1 / 2) 2)
   $$
   -/)
   (proof := /--
-  First replace $\zeta(s)$ by $\zeta_0(N,s)$ for $N = \lfloor |t| \rfloor$.
-  We estimate:
-  $$
-  |\zeta_0(N,s)| \ll
-  \sum_{1\le n \le |t|} |n^{-s}|
-  +
-  \frac{- |t|^{1-\sigma}}{|1-s|} + \frac{-|t|^{-\sigma}}{2} +
-  |t| \cdot |t| ^ {-σ} / σ
-  $$
-  $$
-  \ll
-  e^A \sum_{1\le n < |t|} n^{-1}
-  +|t|^{1-\sigma}
-  $$
-  ,
-  where we used Lemma \ref{ZetaBnd_aux2} and Lemma \ref{ZetaBnd_aux1}.
-  The first term is $\ll \log |t|$.
-  For the second term, estimate
-  $$
-  |t|^{1-\sigma}
-  \le |t|^{1-(1-A/\log |t|)}
-  = |t|^{A/\log |t|} \ll 1.
-  $$
+  Tau Ceti's bound \texttt{TauCeti.exists\_norm\_riemannZeta\_le\_mul\_log} gives, for every
+  real $A$, a constant $C$ with $|\zeta(s)| \le C\log(|t|+2)$ whenever $|t|\ge 1$ and
+  $1-A/\log(|t|+2)\le\sigma$. It is proved from the Euler--Maclaurin formula for $\zeta$
+  cut at $N=\lceil |t| \rceil$. Apply it with $A = 1$, and take $A = 1/2$ here. For $|t|>3$
+  we have $\log(|t|+2)\le 2\log|t|$, so $1-(1/2)/\log|t| \le \sigma$ implies
+  $1-1/\log(|t|+2) \le \sigma$, and then $|\zeta(s)| \le 2C\log|t|$.
   -/)
   (latexEnv := "lemma")]
 lemma ZetaUpperBnd :
