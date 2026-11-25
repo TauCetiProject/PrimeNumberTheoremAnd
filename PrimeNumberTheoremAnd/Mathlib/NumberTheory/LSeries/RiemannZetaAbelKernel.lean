@@ -19,7 +19,7 @@ public import Mathlib.MeasureTheory.Function.Floor
 # Fractional-part kernel for the Abel zeta formula
 
 `K_s(u) = {u} · u^{-s-1}` and its integrability lemmas, used in
-`RiemannZetaPartialSum` and `RiemannZetaAbelContinuation`.
+`RiemannZetaAbelContinuation`.
 
 ## Main results
 

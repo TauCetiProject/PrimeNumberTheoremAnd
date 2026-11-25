@@ -177,49 +177,6 @@ lemma support_MellinConvolution_subsets {f g : ℝ → 𝕂} {A B : Set ℝ} (hf
   have hfg := mul_ne_zero_iff.mp (div_ne_zero_iff.mp hne).1
   exact Set.mem_mul.mpr ⟨y, hf hfg.1, x / y, hg hfg.2, by field_simp [hy.ne']⟩
 
-open Pointwise in
-lemma support_MellinConvolution (f g : ℝ → 𝕂) :
-    (MellinConvolution f g).support ⊆ f.support * g.support :=
-  support_MellinConvolution_subsets subset_rfl subset_rfl
-
-lemma MellinOfPsi_aux {ν : ℝ → ℝ} (diffν : ContDiff ℝ 1 ν)
-    (suppν : ν.support ⊆ Set.Icc (1 / 2) 2)
-    {s : ℂ} (hs : s ≠ 0) :
-    ∫ (x : ℝ) in Ioi 0, (ν x) * (x : ℂ) ^ (s - 1) =
-    - (1 / s) * ∫ (x : ℝ) in Ioi 0, (deriv ν x) * (x : ℂ) ^ s := by
-  let g (s : ℂ) := fun (x : ℝ)  ↦ x ^ s / s
-  have gHasDeriv {s : ℂ} (hs : s ≠ 0) {x : ℝ} (hx : x ∈ Ioi 0) :
-      HasDerivAt (g s) ((x : ℂ) ^ (s - 1)) x := by
-    simpa only [g, sub_add_cancel] using
-      (hasDerivAt_ofReal_cpow_const' (r := s - 1) (ne_of_gt hx)
-        (by simpa only [ne_eq, sub_eq_neg_self] using hs))
-  calc
-    _ =  ∫ (x : ℝ) in Ioi 0, ↑(ν x) * deriv (@g s) x := ?_
-    _ = -∫ (x : ℝ) in Ioi 0, deriv (fun x ↦ ↑(ν x)) x * @g s x := ?_
-    _ = -∫ (x : ℝ) in Ioi 0, deriv ν x * @g s x := ?_
-    _ = -∫ (x : ℝ) in Ioi 0, deriv ν x * x ^ s / s := by simp only [mul_div, g]
-    _ = _ := ?_
-  · rw [setIntegral_congr_fun (by simp)]
-    intro _ hx
-    simp only [(gHasDeriv hs hx).deriv]
-  · apply PartialIntegration_of_support_in_Icc (ν ·) (g s)
-      (a := 1 / 2) (b := 2) (by norm_num) (by norm_num)
-    · simpa only [Function.support_subset_iff, ne_eq, ofReal_eq_zero]
-    · exact fun x _ ↦ ((diffν.differentiable (by norm_num) x).ofReal_comp).differentiableWithinAt
-    · exact fun a ha ↦ (gHasDeriv hs ha).differentiableAt.differentiableWithinAt
-    · refine (continuous_ofReal.comp (diffν.continuous_deriv (by norm_num))).continuousOn.congr ?_
-      intro x _hx
-      exact TauCeti.fderiv_ofReal_comp_apply ν x 1
-    · apply ContinuousOn.congr (f := fun (x : ℝ) ↦ (x : ℂ) ^ (s - 1)) ?_
-        fun x hx ↦ (gHasDeriv hs hx).deriv
-      exact Continuous.continuousOn (by continuity) |>.cpow continuousOn_const (by simp)
-  · congr; funext; congr
-    apply (hasDerivAt_deriv_iff.mpr ?_).ofReal_comp.deriv
-    exact diffν.contDiffAt.differentiableAt (by norm_num)
-  · simp only [neg_mul, neg_inj]
-    conv => lhs; rhs; intro; rw [← mul_one_div, mul_comm]
-    rw [integral_const_mul]
-
 blueprint_comment /--
 The $\nu$ function has Mellin transform $\mathcal{M}(\nu)(s)$ which is entire and decays (at
 least) like $1/|s|$.
@@ -473,22 +430,6 @@ lemma Smooth1_eq_smoothCutoff {ν : ℝ → ℝ} {ε x : ℝ} (hx : 0 < x) :
   rw [h, Smooth1, MellinConvolution, ← integral_complex_ofReal]
   refine setIntegral_congr_fun measurableSet_Ioi fun y (hy : 0 < y) ↦ ?_
   simp [DeltaSpike_eq_deltaSpike (div_pos hx hy), Set.indicator, Set.mem_Ioc, apply_ite]
-
--- This lemma might not be necessary, but the RHS is supported on [0, infinity), which makes
--- results like `support_MellinConvolution_subsets` easier to apply.
-lemma Smooth1_def_ite {ν : ℝ → ℝ} {ε x : ℝ} (xpos : 0 < x) :
-    Smooth1 ν ε x = MellinConvolution (fun x ↦ if 0 < x ∧ x ≤ 1 then 1 else 0)
-      (fun x ↦ if x < 0 then 0 else DeltaSpike ν ε x) x := by
-  unfold Smooth1
-  rw [MellinConvolutionSymmetric _ _ xpos]
-  conv => lhs; rw [MellinConvolutionSymmetric _ _ xpos]
-  unfold MellinConvolution
-  apply MeasureTheory.integral_congr_ae
-  filter_upwards [MeasureTheory.ae_restrict_mem measurableSet_Ioi]
-  simp +contextual only [mem_Ioi, true_and, ite_mul, one_mul, zero_mul, RCLike.ofReal_real_eq_id,
-    id_eq, mul_ite, mul_zero]
-  intro y ypos
-  rw [eq_comm, ite_eq_right (by push Not; positivity)]
 
 /-% ** Wrong delimiters on purpose, no need to include this in blueprint
 \begin{lemma}[Smooth1Properties_estimate]\label{Smooth1Properties_estimate}

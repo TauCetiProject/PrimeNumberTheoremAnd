@@ -1,5 +1,4 @@
 
-import PrimeNumberTheoremAnd.BrunTitchmarsh
 import PrimeNumberTheoremAnd.Consequences
 import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.GeneralMeromorphic
@@ -7,25 +6,12 @@ import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.LaplaceInversion
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.CanonicalProduct
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.Divisor
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorConvergence
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorFiber
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.DivisorIndex
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Growth
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Order
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.HadamardFactorization.Summability
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.ValueDistribution.LogCounting.Growth
-import PrimeNumberTheoremAnd.Mathlib.Analysis.Complex.WeierstrassFactor
-import PrimeNumberTheoremAnd.Mathlib.Analysis.SpecialFunctions.Gamma.StripBounds
 import Mathlib.MeasureTheory.Integral.IntegrableOn
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelContinuation
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaAbelKernel
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaPartialSum
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.SelbergBounds
 import PrimeNumberTheoremAnd.MediumPNT
 import PrimeNumberTheoremAnd.MellinCalculus
 import PrimeNumberTheoremAnd.PerronFormula

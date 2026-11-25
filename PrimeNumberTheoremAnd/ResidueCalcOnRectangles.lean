@@ -28,9 +28,6 @@ noncomputable def HIntegral (f : ℂ → E) (x₁ x₂ y : ℝ) : E :=
 noncomputable def VIntegral (f : ℂ → E) (x y₁ y₂ : ℝ) : E :=
     I • ∫ y in y₁..y₂, f (x + y * I)
 
-noncomputable def HIntegral' (f : ℂ → E) (x₁ x₂ y : ℝ) : E :=
-    (1 / (2 * π * I)) • HIntegral f x₁ x₂ y
-
 noncomputable def VIntegral' (f : ℂ → E) (x y₁ y₂ : ℝ) : E :=
     (1 / (2 * π * I)) • VIntegral f x y₁ y₂
 
@@ -316,14 +313,6 @@ lemma RectanglePullToNhdOfPole [CompleteSpace E] {z w p : ℂ}
   exact RectanglePullToNhdOfPole' (by simp_all [cpos.le])
     (square_mem_nhds p (ne_of_gt cpos)) hc fHolo
 
-lemma RectanglePullToNhdOfPole'' [CompleteSpace E] {z w p : ℂ}
-    (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
-    (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : DifferentiableOn ℂ f (Rectangle z w \ {p})) :
-    ∀ᶠ (c : ℝ) in 𝓝[>]0,
-      RectangleIntegral' f z w = RectangleIntegral' f (-c - I * c + p) (c + I * c + p) := by
-  filter_upwards [RectanglePullToNhdOfPole zRe_le_wRe zIm_le_wIm pInRectInterior fHolo] with c h
-  simp_rw [RectangleIntegral', h]
-
 -- The local totalized four-edge integral agrees with the native closed-rectangle residue
 -- calculation under the stated differentiability hypotheses. No extension outside the rectangle
 -- or normalization of the original representative at its singularities is needed.
@@ -510,38 +499,6 @@ lemma IsBigO_to_BddAbove {f : ℂ → ℂ} {p : ℂ}
   rintro _ ⟨s, ⟨hsU, hsp⟩, rfl⟩
   simpa using hsub ⟨hsU, hsp⟩
 
-theorem BddAbove_on_rectangle_of_bdd_near {z w p : ℂ} {f : ℂ → ℂ}
-    (f_cont : ContinuousOn f (Rectangle z w \ {p}))
-    (f_near_p : f =O[𝓝[≠] p] (1 : ℂ → ℂ)) :
-    BddAbove (norm ∘ f '' (Rectangle z w \ {p})) := by
-  obtain ⟨V, V_in_nhds, V_prop⟩ := IsBigO_to_BddAbove f_near_p
-  rw [mem_nhds_iff] at V_in_nhds
-  obtain ⟨W, W_subset, W_open, p_in_W⟩ := V_in_nhds
-  set U := Rectangle z w
-  have : U \ {p} = (U \ W) ∪ ((U ∩ W) \ {p}) := by
-    ext x
-    simp only [Set.mem_sdiff, mem_singleton_iff, mem_union, mem_inter_iff]
-    constructor
-    · intro ⟨xu, x_not_p⟩
-      tauto
-    · intro h
-      rcases h with ⟨h1, h2⟩ | ⟨⟨h1, h2⟩, h3⟩
-      · refine ⟨h1, ?_⟩
-        intro h
-        rw [← h] at p_in_W
-        exact h2 p_in_W
-      · tauto
-  rw [this, image_union]
-  apply BddAbove.union
-  · apply IsCompact.bddAbove_image
-    · apply IsCompact.diff _ W_open
-      exact IsCompact.reProdIm isCompact_uIcc isCompact_uIcc
-    · apply f_cont.norm.mono
-      apply Set.sdiff_subset_sdiff_right
-      simpa
-  · exact V_prop.mono
-      (image_mono <| Set.sdiff_subset_sdiff_left <| subset_trans inter_subset_right W_subset)
-
 theorem ResidueTheoremOnRectangleWithSimplePole' {f : ℂ → ℂ} {z w p A : ℂ}
     (zRe_le_wRe : z.re ≤ w.re) (zIm_le_wIm : z.im ≤ w.im)
     (pInRectInterior : Rectangle z w ∈ 𝓝 p) (fHolo : DifferentiableOn ℂ f (Rectangle z w \ {p}))
@@ -620,21 +577,6 @@ poles lie in `S` the `tsum` equals the finite sum of their residues, regardless 
 infinitely many poles, summability must be assumed for the value to be meaningful.) -/
 noncomputable def sumResiduesIn (f : ℂ → ℂ) (S : Set ℂ) : ℂ :=
   ∑' z : S, residue f z
-
-lemma residue_eq_of_tendsto {f : ℂ → ℂ} {p c : ℂ}
-    (h : Filter.Tendsto (fun z ↦ (z - p) * f z) (nhdsWithin p {p}ᶜ) (nhds c)) :
-    residue f p = c := by
-  unfold residue
-  exact h.limUnder_eq
-
-lemma residue_analyticAt_eq_zero {f : ℂ → ℂ} {p : ℂ} (hf : AnalyticAt ℂ f p) :
-    residue f p = 0 := by
-  apply residue_eq_of_tendsto
-  have hsub : Filter.Tendsto (fun z : ℂ ↦ z - p) (nhdsWithin p {p}ᶜ) (nhds 0) :=
-    tendsto_sub_nhds_zero_iff.mpr (tendsto_id.mono_left nhdsWithin_le_nhds)
-  have hf' : Filter.Tendsto f (nhdsWithin p {p}ᶜ) (nhds (f p)) :=
-    hf.continuousAt.continuousWithinAt.tendsto
-  simpa using hsub.mul hf'
 
 -- If two functions `f g : ℂ → ℂ` agree on a `codiscreteWithin R` full set, and `φ : ℝ → ℂ` is
 -- an analytic non-constant path mapping `[a,b]` into `R`, then `∫ f(φ x) dx = ∫ g(φ x) dx`.
@@ -782,15 +724,6 @@ lemma RectangleIntegral'_eq_sumResiduesIn {f : ℂ → ℂ} {z w : ℂ}
   change S.sum (residue f) = ∑' p : poles, residue f p
   rw [hset, tsum_fintype, ← Finset.sum_coe_sort S]
   rfl
-
-lemma residue_eq_zero_of_not_pole_of_meromorphicAt {F : ℂ → ℂ} {s : ℂ}
-    (hs_mero : MeromorphicAt F s) (hs_not_pole : 0 ≤ meromorphicOrderAt F s) :
-    residue F s = 0 := by
-  apply residue_eq_of_tendsto
-  obtain ⟨c, hc⟩ := tendsto_nhds_of_meromorphicOrderAt_nonneg hs_mero hs_not_pole
-  have hsub : Filter.Tendsto (fun z : ℂ ↦ z - s) (nhdsWithin s {s}ᶜ) (nhds 0) :=
-    tendsto_sub_nhds_zero_iff.mpr (tendsto_id.mono_left nhdsWithin_le_nhds)
-  simpa using hsub.mul hc
 
 lemma sumResiduesIn_inter_eq_of_set_eq {F : ℂ → ℂ} {Rn S2 P : Set ℂ}
     (h_set_eq : Rn ∩ P = S2 ∩ P)

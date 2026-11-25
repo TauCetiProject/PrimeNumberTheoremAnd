@@ -16,7 +16,7 @@ The five groups in ROADMAPS.md are:
 4. The lower bound `ζ(2σ) / ζ(σ) ≤ |ζ(σ + it)|` used in StrongPNT.
 5. The Fourier-side `W21` test-function space and its approximation theory.
 
-Gamma growth, global pole-cleared zeta growth, quantitative zero counting, and the relevant contour/factorization work have existing roadmap coverage. They are migration or adoption work, not additional gaps. Every adoption still requires the provider to be merged, approved compatible pins and verification of the fork's original hypotheses, constants and defaults.
+Gamma growth, global pole-cleared zeta growth, quantitative zero counting, and the relevant contour/factorization work have existing roadmap coverage. They are migration or adoption work, not additional gaps. The fork's own copies of Brun–Titchmarsh, finite-order Hadamard factorization, the ζ/ξ Hadamard product, zero counting from growth, the finite-N Abel formula for ζ and the Γ strip bound have been deleted, together with their divisor-index scaffolding, because Tau Ceti main has each of them in the same or a stronger form. Every adoption still requires the provider to be merged, approved compatible pins and verification of the fork's original hypotheses, constants and defaults.
 
 ## Validation
 
