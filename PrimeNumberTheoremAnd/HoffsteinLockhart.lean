@@ -74,7 +74,8 @@ there.
 Use Theorem \ref{FsigmaThm} and Hadamard factorization.
 \end{proof}
 
-This allows us to quantify precisely the relationship between $T$ and $\delta$ in
-Theorem \ref{ZetaNoZerosInBox}....
+The classical 3-4-1 argument gives the same zero-free region (Theorem \ref{ZeroInequality}), and
+the bound for $\zeta'/\zeta$ there in the stronger form
+$-\frac{\zeta'}{\zeta}(\sigma+it)\ll\log t$ (Theorem \ref{LogDerivZetaBnd}).
 
 -/

@@ -51,26 +51,6 @@ noncomputable def RectangleIntegral (f : ℂ → E) (z w : ℂ) : E :=
 noncomputable abbrev RectangleIntegral' (f : ℂ → E) (z w : ℂ) : E :=
     (1 / (2 * π * I)) • RectangleIntegral f z w
 
-blueprint_comment /--
-It is very convenient to define integrals along vertical lines
-in the complex plane, as follows.
--/
-@[blueprint
-  (title := "VerticalIntegral")
-  (statement := /--
-  Let $f$ be a function from $\mathbb{C}$ to $\mathbb{C}$,
-  and let $\sigma$ be a real number. Then we define
-  $$\int_{(\sigma)}f(s)ds =
-    \int_{\sigma-i\infty}^{\sigma+i\infty}f(s)ds.$$
-  -/)]
-noncomputable def VerticalIntegral (f : ℂ → E) (σ : ℝ) : E :=
-    I • ∫ t : ℝ, f (σ + t * I)
-
-blueprint_comment /--
-We also have a version with a factor of $1/(2\pi i)$. -/
-noncomputable abbrev VerticalIntegral' (f : ℂ → E) (σ : ℝ) : E :=
-    (1 / (2 * π * I)) • VerticalIntegral f σ
-
 attribute [blueprint
   "existsDifferentiableOn_of_bddAbove"
   (title := "existsDifferentiableOn-of-bddAbove")
