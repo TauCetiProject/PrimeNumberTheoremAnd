@@ -1,14 +1,11 @@
 
 import PrimeNumberTheoremAnd.Consequences
-import PrimeNumberTheoremAnd.Defs
 import PrimeNumberTheoremAnd.GeneralMeromorphic
 import PrimeNumberTheoremAnd.HadamardFactorization
 import PrimeNumberTheoremAnd.HoffsteinLockhart
 import PrimeNumberTheoremAnd.IwaniecKowalskiCh1
 import PrimeNumberTheoremAnd.LaplaceInversion
 import Mathlib.MeasureTheory.Integral.IntegrableOn
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZeta
-import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
 import PrimeNumberTheoremAnd.Mathlib.NumberTheory.Sieve.Selberg
 import PrimeNumberTheoremAnd.MediumPNT
 import PrimeNumberTheoremAnd.MellinCalculus

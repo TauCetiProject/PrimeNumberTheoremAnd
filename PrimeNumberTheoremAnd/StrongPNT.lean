@@ -26,7 +26,7 @@ public import TauCeti.NumberTheory.LSeries.RiemannZeta.LogDeriv.NearOne
 public import TauCeti.NumberTheory.LSeries.ThreeFourOne
 public import Mathlib.NumberTheory.LSeries.ZetaZeros
 public import PrimeNumberTheoremAnd.MediumPNT
-public import PrimeNumberTheoremAnd.Mathlib.NumberTheory.LSeries.RiemannZetaConvexity
+import TauCeti.NumberTheory.LSeries.Moebius
 
 
 @[expose] public section
@@ -150,20 +150,22 @@ attribute [blueprint "FinalBound"
   AnalyticOnNhd.norm_logDeriv_sub_finsum_divisor_le
 
 
-blueprint_comment /--
-\label{ZetaFixedLowerBound}
-For all $t\in\mathbb{R}$ one has
-    $$|\zeta(3/2+it)|\geq\frac{\zeta(3)}{\zeta(3/2)}.$$
-
-From the Euler product expansion of $\zeta$, we have that for $\Re s>1$
-    $$\zeta(s)=\prod_p\frac{1}{1-p^{-s}}.$$
-    Thus, we have that
-    $$\frac{\zeta(2s)}{\zeta(s)}=\prod_p\frac{1-p^{-s}}{1-p^{-2s}}=\prod_p\frac{1}{1+p^{-s}}.$$
-    Now note that $|1-p^{-(3/2+it)}|\leq 1+|p^{-(3/2+it)}|=1+p^{-3/2}$. Thus,
-    $$|\zeta(3/2+it)|=\prod_p\frac{1}{|1-p^{-(3/2+it)}|}
-      \geq\prod_p\frac{1}{1+p^{-3/2}}=\frac{\zeta(3)}{\zeta(3/2)}$$
-    for all $t\in\mathbb{R}$ as desired.
--/
+attribute [blueprint "ZetaFixedLowerBound"
+  (title := "ZetaFixedLowerBound")
+  (statement := /--
+    For every Dirichlet character $\chi$ of positive level and every $s$ with $\Re s>1$,
+    $$|L(\chi,s)|\geq\left|\frac{\zeta(2\Re s)}{\zeta(\Re s)}\right|.$$
+    In particular, for the trivial character of level $1$ and $s=3/2+it$,
+    $|\zeta(3/2+it)|\geq\zeta(3)/\zeta(3/2)$ for all $t\in\mathbb{R}$.
+  -/)
+  (proof := /--
+    Write $\sigma=\Re s$. The Euler products give
+    $\zeta(\sigma)=\zeta(2\sigma)\sum_n\mu(n)^2n^{-\sigma}$ and
+    $1/L(\chi,s)=\sum_n\mu(n)\chi(n)n^{-s}$. Comparing the second series termwise with the
+    first,
+    $$\frac{1}{|L(\chi,s)|}\leq\sum_n\mu(n)^2n^{-\sigma}=\frac{\zeta(\sigma)}{\zeta(2\sigma)}.$$
+  -/)]
+  DirichletCharacter.norm_riemannZeta_two_mul_re_div_le_norm_LFunction
 
 @[blueprint "GlobalBound"
   (title := "GlobalBound")
@@ -682,9 +684,11 @@ lemma LogDerivZetaUniformLogSquaredBoundStrip : ∃ (F : ℝ) (_ : F = E / 3)
     refine mul_le_mul (le_trans (GlobalBound (s := z) (t := t) (by linarith) (by linarith)) (by linarith)) ?_ (inv_nonneg.mpr (Complex.norm_nonneg _)) (by linarith)
     rw [← inv_le_inv₀ (_root_.div_pos (norm_pos_iff.mpr (riemannZeta_ne_zero_of_one_lt_re (by norm_num)))
       (norm_pos_iff.mpr (riemannZeta_ne_zero_of_one_lt_re (by norm_num)))) (inv_pos.mpr (norm_pos_iff.mpr zetaThreeHalfNonzero)), inv_div, inv_inv]
-    have zetaLowerBound := norm_riemannZeta_ratio_le_on_vertical_line t
-    simp only [verticalLine, norm_div, mul_comm, Complex.ofReal_div, Complex.ofReal_ofNat] at zetaLowerBound
-    exact_mod_cast zetaLowerBound
+    have zetaLowerBound := (1 : DirichletCharacter ℂ 1).norm_riemannZeta_two_mul_re_div_le_norm_LFunction
+      (s := 3 / 2 + I * t) (by norm_num)
+    rw [DirichletCharacter.LFunction_modOne_eq] at zetaLowerBound
+    norm_num [norm_div] at zetaLowerBound ⊢
+    exact zetaLowerBound
   have ZerosBound := ZerosBound r_pos r_lt_one r_lt_R R_lt_one fAnalytic f0_1 finiteSetOf0s fz_bound
   rw [hB, one_div_mul_eq_div, cast_sum, R_over_r,
     Real.log_mul (by linarith) (by linarith), add_div] at ZerosBound
