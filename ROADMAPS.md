@@ -18,5 +18,3 @@ in the suggested existing section) before it can move to Tau Ceti.
    bounded-variation mean-limit form.
 4. **`ζ(2σ)/ζ(σ) ≤ |ζ(σ + it)|`** (used by `StrongPNT.lean`): one clause in ExplicitZetaBounds §3.4,
    where it is only a Check (§7.10).
-5. **The Fourier-side space `W21`** (`Sobolev.lean`, about 200 lines): `‖f‖₁ + (4π²)⁻¹‖f''‖₁`
-   test functions. An AnalyticNumberTheoryPartIII §7 test-function class.
