@@ -4,7 +4,7 @@ Updated 27 November 2026. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) l
 
 Pins: Lean **v4.37.0-rc1**, Mathlib **31ce06eaadf4a200c0e1407c5f10953cf606b8f8**, Tau Ceti **4514f7bd92d1ebd8c5a441ed07299cbf09842610**.
 
-The 19 Lean files (including the root import file) contain **6,748 lines**; the four `Unused/` files account for **2,758**, leaving **3,990 active lines**. `Unused/` and IEANTN remain outside migration scope.
+The 19 Lean files (including the root import file) contain **6,740 lines**; the four `Unused/` files account for **2,758**, leaving **3,982 active lines**. `Unused/` and IEANTN remain outside migration scope.
 
 ## Prime number theorem
 
@@ -20,8 +20,9 @@ chapter's nodes for them are `attribute [blueprint]` blocks or short restatement
 Untagged scaffolding with no consumer and an upstream counterpart (the residue and argument-principle
 lemmas on rectangles, the Selberg bound, the `finsum`/`finprod` forms of the Chebyshev and primorial
 asymptotics) has been removed. Apart from the three groups below, every remaining declaration outside
-`Unused/` is blueprint glue over Mathlib and Tau Ceti. The series of `φ` node now sits on Tau Ceti's
-`LSeries_totient` (AnalyticNumberTheoryPartIII §11.4, whose targets are all on Tau Ceti main).
+`Unused/` is blueprint glue over Mathlib and Tau Ceti. The nodes for the series of `φ` and for
+`2^{ω(n)} ≤ σ₀(n)` sit on Tau Ceti's `LSeries_totient` (AnalyticNumberTheoryPartIII §11.4, whose
+targets are all on Tau Ceti main) and `two_pow_cardDistinctFactors_le_sigma_zero`.
 
 ## Remaining roadmap gaps
 
