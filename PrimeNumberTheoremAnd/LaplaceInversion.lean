@@ -3,6 +3,7 @@ module
 public import Mathlib.Analysis.Fourier.FourierTransformDeriv
 public import Mathlib.Analysis.Fourier.Inversion
 public import Mathlib.Analysis.Fourier.RiemannLebesgueLemma
+public import Mathlib.Analysis.MellinTransform
 public import Mathlib.Analysis.SpecialFunctions.Complex.Log
 public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
@@ -11,6 +12,7 @@ public import Mathlib.Topology.MetricSpace.Cauchy
 import Mathlib.MeasureTheory.Group.Integral
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.MeanValue
 import TauCeti.Analysis.Fourier.Inversion
+import TauCeti.Analysis.MellinTransform.TruncatedInversion
 
 /-!
 # Bilateral Laplace inversion
@@ -46,32 +48,28 @@ def laplaceInvLineTrunc (sigma : ℝ) (F : ℂ → E) (x T : ℝ) : E :=
     ∫ t in (-T)..T, Complex.exp (((sigma : ℂ) + (t : ℂ) * I) * (x : ℂ)) •
       F ((sigma : ℂ) + (t : ℂ) * I)
 
+/-- The bilateral Laplace transform of `f` is the Mellin transform of `t ↦ f (-log t)`. -/
+theorem laplaceTransformBilateral_eq_mellin (f : ℝ → E) (s : ℂ) :
+    laplaceTransformBilateral f s = mellin (fun t ↦ f (-Real.log t)) s := by
+  rw [laplaceTransformBilateral, mellin,
+    ← integral_neg_eq_self (fun x : ℝ ↦ Complex.exp (-s * x) • f x),
+    ← integral_comp_log_Ioi_zero]
+  refine setIntegral_congr_fun measurableSet_Ioi fun t (ht : 0 < t) ↦ ?_
+  rw [← smul_assoc, Complex.real_smul, cpow_sub _ _ (ofReal_ne_zero.2 ht.ne'), cpow_one,
+    cpow_def_of_ne_zero (ofReal_ne_zero.2 ht.ne'), ← ofReal_log ht.le]
+  congr 1
+  push_cast
+  ring_nf
+
 /-- On a vertical line, the bilateral Laplace transform is the Fourier transform
-of the exponentially weighted function. -/
+of the exponentially weighted function (Mathlib's `mellin_eq_fourier`). -/
 theorem laplaceTransformBilateral_eq_fourier (f : ℝ → E) (s : ℂ) :
     laplaceTransformBilateral f s =
       𝓕 (fun x : ℝ => Complex.exp (-(s.re : ℂ) * (x : ℂ)) • f x) (s.im / (2 * π)) := by
-  calc
-    laplaceTransformBilateral f s
-      = ∫ x : ℝ, Complex.exp (-(s.im : ℂ) * (x : ℂ) * I) •
-          (Complex.exp (-(s.re : ℂ) * (x : ℂ)) • f x) := by
-        unfold laplaceTransformBilateral
-        congr
-        ext x
-        conv => lhs; rw [← re_add_im s]
-        rw [neg_add, add_mul, Complex.exp_add, mul_comm, ← smul_eq_mul, smul_assoc]
-        norm_cast
-        push_cast
-        ring_nf
-    _ = 𝓕 (fun x : ℝ => Complex.exp (-(s.re : ℂ) * (x : ℂ)) • f x) (s.im / (2 * π)) := by
-      rw [Real.fourier_eq']
-      congr
-      ext x
-      congr 1
-      have h2pi : (2 * (π : ℝ) : ℂ) ≠ 0 := by norm_num [Real.pi_ne_zero]
-      rw [Real.inner_apply]
-      push_cast
-      field_simp [h2pi]
+  rw [laplaceTransformBilateral_eq_mellin, mellin_eq_fourier]
+  simp_rw [Real.log_exp, neg_neg, ← Complex.coe_smul, Complex.ofReal_exp]
+  push_cast
+  rfl
 
 /-- Continuity of the bilateral Laplace integral along a vertical line, under
 integrability of the exponentially weighted source on that line. -/
@@ -338,42 +336,25 @@ theorem tendsto_integral_Ioi_exp_neg_mul_sinc_nhdsGT_zero :
   filter_upwards [self_mem_nhdsWithin] with a ha
   exact (integral_Ioi_exp_neg_mul_sinc_eq_arctan_inv a ha).symm
 
+/-- The truncated inverse Laplace line integral of a Laplace transform is a truncated inverse
+Fourier integral (Tau Ceti's `intervalIntegral_cpow_smul_mellin_eq` at `e^{-x}`). -/
 theorem laplaceInvLineTrunc_laplaceTransformBilateral_eq_fourierInvTrunc
     (sigma : ℝ) (f : ℝ → E) (x T : ℝ) :
     laplaceInvLineTrunc sigma (laplaceTransformBilateral f) x T =
       Complex.exp ((sigma : ℂ) * (x : ℂ)) •
         fourierInvTrunc
           (𝓕 (fun y : ℝ => Complex.exp (-((sigma : ℂ) * (y : ℂ))) • f y)) x T := by
-  let g : ℝ → E := fun y => Complex.exp (-((sigma : ℂ) * (y : ℂ))) • f y
-  unfold laplaceInvLineTrunc fourierInvTrunc
-  simp_rw [laplaceTransformBilateral_eq_fourier]
-  simp only [one_div, mul_inv_rev, add_re, ofReal_re, mul_re, I_re, mul_zero, ofReal_im,
-    I_im, mul_one, sub_self, add_zero, neg_mul, add_im, mul_im, zero_add]
-  rw [show (π⁻¹ * 2⁻¹ : ℝ) = (1 / (2 * π) : ℝ) by ring]
-  change (1 / (2 * π) : ℝ) •
-      ∫ t in (-T)..T, Complex.exp (((sigma : ℂ) + (t : ℂ) * I) * (x : ℂ)) •
-        𝓕 g (t / (2 * π)) =
-      Complex.exp ((sigma : ℂ) * (x : ℂ)) •
-        ((1 / (2 * π) : ℝ) •
-          ∫ t in (-T)..T, Complex.exp (((t * x : ℝ) : ℂ) * I) •
-            𝓕 g (t / (2 * π)))
-  have hsplit :
-      (∫ t in (-T)..T, Complex.exp (((sigma : ℂ) + (t : ℂ) * I) * (x : ℂ)) •
-          𝓕 g (t / (2 * π))) =
-        Complex.exp ((sigma : ℂ) * (x : ℂ)) •
-          ∫ t in (-T)..T, Complex.exp (((t * x : ℝ) : ℂ) * I) • 𝓕 g (t / (2 * π)) := by
-    rw [← intervalIntegral.integral_smul]
-    congr with t
-    rw [← smul_assoc]
-    congr 1
-    change Complex.exp (((sigma : ℂ) + (t : ℂ) * I) * (x : ℂ)) =
-      Complex.exp ((sigma : ℂ) * (x : ℂ)) * Complex.exp (((t * x : ℝ) : ℂ) * I)
-    rw [← Complex.exp_add]
-    congr 1
-    push_cast
-    ring_nf
-  rw [hsplit]
-  rw [SMulCommClass.smul_comm (M := ℝ) (N := ℂ) (α := E)]
+  have hx : (0 : ℝ) < Real.exp (-x) := Real.exp_pos _
+  have hcpow (z : ℂ) : (Real.exp (-x) : ℂ) ^ (-z) = Complex.exp (z * x) := by
+    rw [cpow_def_of_ne_zero (ofReal_ne_zero.2 hx.ne'), ← ofReal_log hx.le, Real.log_exp]
+    push_cast; ring_nf
+  have h := TauCeti.intervalIntegral_cpow_smul_mellin_eq (fun t ↦ f (-Real.log t)) sigma hx T
+  simp_rw [hcpow, ← laplaceTransformBilateral_eq_mellin, Real.log_exp, neg_neg,
+    ← Complex.coe_smul, Complex.ofReal_exp] at h
+  rw [Complex.coe_smul] at h
+  rw [laplaceInvLineTrunc, fourierInvTrunc_eq_intervalIntegral_fourierChar, h]
+  push_cast
+  simp_rw [neg_mul]
 
 /-- Principal-value Laplace inversion reduced to the corresponding truncated
 Fourier convergence theorem for the exponentially weighted source. -/

@@ -95,7 +95,7 @@ blueprint_comment /--
 We have that $n\mapsto \mu^2(n)/n^{s}$ is a multiplicative function.
 
 Follows as a consequence of Lemma \ref{LSeries.term_isMultiplicative_if_fun_isMultiplicative}
-    and \ref{moebius-sq-isMultiplicative}.
+    and \ref{powOfMultiplicative_isMultiplicative} (with $f=\mu$, $k=2$).
 -/
 
 blueprint_comment /--
@@ -1157,7 +1157,7 @@ L(\varphi, s) = \prod_{p} \left(1 + \varphi(p)p^{-s} + \varphi(p^2)p^{-2s} + \ld
 \]
   The L-series converges absolutely for Re(s) > 2, using φ(n) ≤ n to bound the terms.
   -/)]
-  TauCeti.LSeriesHasSum_totient
+  TauCeti.LSeries_totient
 
 
 end ArithmeticFunction

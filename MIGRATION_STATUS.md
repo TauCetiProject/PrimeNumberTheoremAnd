@@ -1,10 +1,10 @@
 # Migration status
 
-Updated 26 November 2026. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the three groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
+Updated 27 November 2026. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the three groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
 
-Pins: Lean **v4.37.0-rc1**, Mathlib **31ce06eaadf4a200c0e1407c5f10953cf606b8f8**, Tau Ceti **7433fc3695f4fbf5a07041090628c5c94067c0b9**.
+Pins: Lean **v4.37.0-rc1**, Mathlib **31ce06eaadf4a200c0e1407c5f10953cf606b8f8**, Tau Ceti **4514f7bd92d1ebd8c5a441ed07299cbf09842610**.
 
-The 19 Lean files (including the root import file) contain **6,767 lines**; the four `Unused/` files account for **2,758**, leaving **4,009 active lines**. `Unused/` and IEANTN remain outside migration scope.
+The 19 Lean files (including the root import file) contain **6,748 lines**; the four `Unused/` files account for **2,758**, leaving **3,990 active lines**. `Unused/` and IEANTN remain outside migration scope.
 
 ## Prime number theorem
 
@@ -20,16 +20,17 @@ chapter's nodes for them are `attribute [blueprint]` blocks or short restatement
 Untagged scaffolding with no consumer and an upstream counterpart (the residue and argument-principle
 lemmas on rectangles, the Selberg bound, the `finsum`/`finprod` forms of the Chebyshev and primorial
 asymptotics) has been removed. Apart from the three groups below, every remaining declaration outside
-`Unused/` is blueprint glue over Mathlib and Tau Ceti.
+`Unused/` is blueprint glue over Mathlib and Tau Ceti. The series of `φ` node now sits on Tau Ceti's
+`LSeries_totient` (AnalyticNumberTheoryPartIII §11.4, whose targets are all on Tau Ceti main).
 
 ## Remaining roadmap gaps
 
 The three groups in ROADMAPS.md are:
 
 1. The Möbius-square divisor-sum identity, including its multiplicativity and prime-power evaluations.
-2. Laplace-weighted sinc integrals and pointwise Laplace inversion under the original weak hypotheses.
+2. Laplace-weighted sinc integrals (offered to Mathlib) and pointwise Laplace inversion under Dini hypotheses, whose Fourier reductions now go through Tau Ceti's truncated Mellin inversion step.
 3. The 3-4-1 lower bound for ζ to the right of `Re s = 1`.
 
 ## Validation
 
-Each pass runs `lake build` (warnings only in `Unused/`), `lake build :blueprint`, a check that every blueprint `\ref`/`\uses` target has a `\label` (4 pre-existing dangling references, in the Consequences and IwaniecKowalskiCh1 chapters), and an axiom check of the two endpoints. Hosted CI runs `lake build` and `lake build :blueprint`.
+Each pass runs `lake build` (warnings only in `Unused/`), `lake build :blueprint`, a check that every blueprint `\ref`/`\uses` target has a `\label` (3 pre-existing dangling references, in the Consequences chapter), and an axiom check of the two endpoints. Hosted CI runs `lake build` and `lake build :blueprint`.
