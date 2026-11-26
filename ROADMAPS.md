@@ -12,7 +12,9 @@ section (or a target line in the suggested existing section) before it can move 
    bilateral Laplace line-inversion wrappers (truncated inversion on a vertical line and in the
    `x^s` form, under Dini hypotheses), now derived from Tau Ceti's Dini Fourier inversion. An
    extension of AnalyticNumberTheoryPartIII §§7.2–7.3, which state only the bounded-variation
-   mean-limit form.
+   mean-limit form. The `arctan` identity and its limit are offered to Mathlib as
+   https://github.com/leanprover-community/mathlib4/pull/46525; the Mellin-to-Fourier reduction is
+   offered to Tau Ceti as https://git.taucetiproject.org/TauCetiProject/TauCeti/pulls/4481.
 3. **The 3-4-1 lower bound for ζ right of `Re s = 1`** (`ZetaBounds.lean`, about 170 lines):
    `|ζ(σ+it)| ≥ c (σ−1)^{3/4} / log^{1/4} |t|` and `1/|ζ(σ+it)| ≤ |ζ(σ)|^{3/4} |ζ(σ+2it)|^{1/4}` for
    `1 < σ ≤ 2`, `|t| > 3` (`ZetaLowerBound3`, `ZetaInvBound1`, `ZetaInvBound2`). A target line in
