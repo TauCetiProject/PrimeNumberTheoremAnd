@@ -25,6 +25,7 @@ import TauCeti.NumberTheory.LSeries.Divisor.PowerSum
 import TauCeti.NumberTheory.LSeries.Divisor.Ramanujan
 import TauCeti.NumberTheory.LSeries.Zeta.Pow
 import TauCeti.NumberTheory.ArithmeticFunction.DilateSq
+import TauCeti.NumberTheory.LSeries.Convergence
 
 
 @[expose] public section
@@ -595,7 +596,7 @@ and the baby Rankin–Selberg identity. The canonical theorem below uses the dir
 proof, which is independent of the general Ramanujan formula.
 -/
 
-@[blueprint
+attribute [blueprint
   "two_pow_omega_le_sigma_zero"
   (title := "two-pow-omega-le-sigma-zero")
   (statement := /--
@@ -609,14 +610,7 @@ proof, which is independent of the general Ramanujan formula.
     where $v_p(n)$ denotes the $p$-adic valuation of $n$. For $p|n$ we have that $2\leq 1+v_p(n)$.
     Thus the result immediately follows.
   -/)]
-lemma two_pow_omega_le_sigma_zero {n : ℕ} (hn : n ≠ 0) :
-    2 ^ (ω n) ≤ σ 0 n := by
-  rw [show ω n = (Nat.primeFactors n).card from rfl, ArithmeticFunction.sigma_zero_apply, Nat.card_divisors hn, ← Finset.prod_const]
-  apply Finset.prod_le_prod
-  intro p hp
-  simpa [two_mul] using
-  (Nat.Prime.dvd_iff_one_le_factorization (prime_of_mem_primeFactors hp) hn).mp
-    (dvd_of_mem_primeFactors hp)
+  two_pow_cardDistinctFactors_le_sigma_zero
 
 blueprint_comment /--
 Termwise norm domination gives absolute convergence by Mathlib's `Summable.of_norm_bounded`.
@@ -817,9 +811,7 @@ lemma zeta_pow_three_eq_alt (s : ℂ) (hs : 1 < s.re) :
     LSeries (fun n ↦
       ∑ dm ∈ n.divisors ×ˢ n.divisors with dm.1 ^ 2 * dm.2 = n, τ (dm.2 ^ 2)) s := by
   let g : ArithmeticFunction ℂ := ⟨fun n ↦ τ (n ^ 2), by simp⟩
-  have h2 : 1 < (2 * s).re := by
-    simp only [Complex.mul_re, Complex.re_ofNat, Complex.im_ofNat, zero_mul, sub_zero]
-    linarith
+  have h2 : 1 < (2 * s).re := TauCeti.one_lt_re_two_mul hs
   have hsq : LSeriesHasSum ↗(ζ : ArithmeticFunction ℂ).dilateSq s (riemannZeta (2 * s)) := by
     refine ((Nat.pow_left_injective two_ne_zero).hasSum_iff fun n hn ↦ ?_).mp ?_
     · rw [LSeries.term_def, dilateSq_apply_of_not_isSquare, zero_div, ite_self]
