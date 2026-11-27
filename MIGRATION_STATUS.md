@@ -1,16 +1,16 @@
 # Migration status
 
-Updated 27 November 2026. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the three groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
+Updated 27 November 2026. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the two groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
 
 Pins: Lean **v4.37.0-rc1**, Mathlib **31ce06eaadf4a200c0e1407c5f10953cf606b8f8**, Tau Ceti **4514f7bd92d1ebd8c5a441ed07299cbf09842610**.
 
-The 19 Lean files (including the root import file) contain **6,740 lines**; the four `Unused/` files account for **2,758**, leaving **3,982 active lines**. `Unused/` and IEANTN remain outside migration scope.
+The 19 Lean files (including the root import file) contain **6,626 lines**; the four `Unused/` files account for **2,758**, leaving **3,868 active lines**. `Unused/` and IEANTN remain outside migration scope.
 
 ## Prime number theorem
 
 `MediumPNT` and `StrongPNT` are derived from Tau Ceti. `StrongPNT` is the `O`-form of the prime number theorem with de la Vallée Poussin's error term, `Chebyshev.exists_isBigO_psi_sub_id_mul_exp_neg_mul_sqrt_log`, and `MediumPNT` follows from `StrongPNT`. Both use only `propext`, `Classical.choice` and `Quot.sound`.
 
-The blueprint chapters on Mellin calculus, zeta bounds, the medium PNT and the strong PNT now follow Tau Ceti's route (Ingham's transfer theorem, the zero-free region, the window form of `ζ′/ζ`, and the bounds for `ζ′/ζ` and `1/ζ` right of the zero-free curve). Their nodes are `attribute [blueprint]` blocks on the Tau Ceti and Mathlib declarations; the fork's own proofs of these steps have been removed. Each removed declaration is either recovered from Tau Ceti in a short checked derivation or replaced by the more general upstream result its blueprint node now points at. The 3-4-1 lower bound `ZetaLowerBound3` (`|ζ(σ+it)| ≫ (σ-1)^{3/4} log^{-1/4} |t|`) has no Tau Ceti counterpart and stays in `ZetaBounds.lean`.
+The blueprint chapters on Mellin calculus, zeta bounds, the medium PNT and the strong PNT now follow Tau Ceti's route (Ingham's transfer theorem, the zero-free region, the window form of `ζ′/ζ`, and the bounds for `ζ′/ζ` and `1/ζ` right of the zero-free curve). Their nodes are `attribute [blueprint]` blocks on the Tau Ceti and Mathlib declarations; the fork's own proofs of these steps have been removed. Each removed declaration is either recovered from Tau Ceti in a short checked derivation or replaced by the more general upstream result its blueprint node now points at. The 3-4-1 nodes in `ZetaBounds.lean` are short glue: `ZetaInvBound1` is Mathlib's `DirichletCharacter.norm_LFunction_product_ge_one` at the trivial character of modulus 1, and `ZetaInvBound2` and `ZetaLowerBound3` (`|ζ(σ+it)| ≫ (σ-1)^{3/4} log^{-1/4} |t|`) interpolate Tau Ceti's bounds `1/|ζ| ≪ log |t|` (`riemannZeta_zeroFreeStrip_bounds`) and `1/|ζ| < 1 + 1/(σ-1)` (`inv_norm_riemannZeta_lt_one_add_one_div_sub_one`).
 
 ## Iwaniec–Kowalski chapter 1 and the remaining files
 
@@ -19,18 +19,17 @@ The divisor power sum `σ_ν`, the power function `n ↦ n^ν`, `k^{ω(n)}`, com
 chapter's nodes for them are `attribute [blueprint]` blocks or short restatements on that API.
 Untagged scaffolding with no consumer and an upstream counterpart (the residue and argument-principle
 lemmas on rectangles, the Selberg bound, the `finsum`/`finprod` forms of the Chebyshev and primorial
-asymptotics) has been removed. Apart from the three groups below, every remaining declaration outside
+asymptotics) has been removed. Apart from the two groups below, every remaining declaration outside
 `Unused/` is blueprint glue over Mathlib and Tau Ceti. The nodes for the series of `φ` and for
 `2^{ω(n)} ≤ σ₀(n)` sit on Tau Ceti's `LSeries_totient` (AnalyticNumberTheoryPartIII §11.4, whose
 targets are all on Tau Ceti main) and `two_pow_cardDistinctFactors_le_sigma_zero`.
 
 ## Remaining roadmap gaps
 
-The three groups in ROADMAPS.md are:
+The two groups in ROADMAPS.md are:
 
 1. The Möbius-square divisor-sum identity, including its multiplicativity and prime-power evaluations.
 2. Laplace-weighted sinc integrals (offered to Mathlib) and pointwise Laplace inversion under Dini hypotheses, whose Fourier reductions now go through Tau Ceti's truncated Mellin inversion step.
-3. The 3-4-1 lower bound for ζ to the right of `Re s = 1`.
 
 ## Validation
 
