@@ -1,10 +1,10 @@
 # Migration status
 
-Updated 27 November 2026. Migration is in progress. [ROADMAPS.md](ROADMAPS.md) lists the two groups that need additional roadmap authorization; existing roadmap work and adoption of merged APIs continue separately.
+Updated 28 November 2026. [ROADMAPS.md](ROADMAPS.md) lists the one group that still needs additional roadmap authorization; everything else outside `Unused/` is blueprint glue over Mathlib and Tau Ceti.
 
-Pins: Lean **v4.37.0-rc1**, Mathlib **31ce06eaadf4a200c0e1407c5f10953cf606b8f8**, Tau Ceti **4514f7bd92d1ebd8c5a441ed07299cbf09842610**.
+Pins: Lean **v4.37.0-rc1**, Mathlib **31ce06eaadf4a200c0e1407c5f10953cf606b8f8**, Tau Ceti **9f9b83d89310ef42af5e39909d921db244f24e9b**.
 
-The 19 Lean files (including the root import file) contain **6,626 lines**; the four `Unused/` files account for **2,758**, leaving **3,868 active lines**. `Unused/` and IEANTN remain outside migration scope.
+The 19 Lean files (including the root import file) contain **6,590 lines**; the four `Unused/` files account for **2,758**, leaving **3,832 active lines**. `Unused/` and IEANTN remain outside migration scope.
 
 ## Prime number theorem
 
@@ -19,17 +19,19 @@ The divisor power sum `σ_ν`, the power function `n ↦ n^ν`, `k^{ω(n)}`, com
 chapter's nodes for them are `attribute [blueprint]` blocks or short restatements on that API.
 Untagged scaffolding with no consumer and an upstream counterpart (the residue and argument-principle
 lemmas on rectangles, the Selberg bound, the `finsum`/`finprod` forms of the Chebyshev and primorial
-asymptotics) has been removed. Apart from the two groups below, every remaining declaration outside
+asymptotics) has been removed. The Möbius-square identity `μ²(n) = ∑_{d²∣n} μ(d)` (I-K (1.33)), its multiplicativity and
+prime-power steps are Tau Ceti's (`sum_divisors_filter_sq_dvd_moebius`, with `μ² = ζ * μ_□` as
+`coe_zeta_mul_dilateSq_moebius_apply`, from ExplicitMultiplicativeFunctions §7.1a); their nodes are
+`attribute [blueprint]` blocks. Apart from the group below, every remaining declaration outside
 `Unused/` is blueprint glue over Mathlib and Tau Ceti. The nodes for the series of `φ` and for
 `2^{ω(n)} ≤ σ₀(n)` sit on Tau Ceti's `LSeries_totient` (AnalyticNumberTheoryPartIII §11.4, whose
 targets are all on Tau Ceti main) and `two_pow_cardDistinctFactors_le_sigma_zero`.
 
-## Remaining roadmap gaps
+## Remaining roadmap gap
 
-The two groups in ROADMAPS.md are:
-
-1. The Möbius-square divisor-sum identity, including its multiplicativity and prime-power evaluations.
-2. Laplace-weighted sinc integrals (offered to Mathlib) and pointwise Laplace inversion under Dini hypotheses, whose Fourier reductions now go through Tau Ceti's truncated Mellin inversion step.
+The one group in ROADMAPS.md is the Laplace-weighted sinc integrals (offered to Mathlib) and
+pointwise Laplace inversion under Dini hypotheses, whose Fourier reductions go through Tau Ceti's
+truncated Mellin inversion step.
 
 ## Validation
 

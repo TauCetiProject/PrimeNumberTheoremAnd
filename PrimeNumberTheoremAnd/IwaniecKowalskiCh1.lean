@@ -25,6 +25,9 @@ import TauCeti.NumberTheory.LSeries.Divisor.PowerSum
 import TauCeti.NumberTheory.LSeries.Divisor.Ramanujan
 import TauCeti.NumberTheory.LSeries.Zeta.Pow
 import TauCeti.NumberTheory.ArithmeticFunction.DilateSq
+import TauCeti.NumberTheory.ArithmeticFunction.Moebius
+import TauCeti.NumberTheory.ArithmeticFunction.Misc
+import TauCeti.NumberTheory.Divisors
 import TauCeti.NumberTheory.LSeries.Convergence
 
 
@@ -956,7 +959,7 @@ attribute [blueprint
   -/)]
   TauCeti.riemannZeta_eq_mul_LSeries_moebius_sq
 
-@[blueprint
+attribute [blueprint
   "pow_divisors_mul"
   (title := "pow-divisors-mul")
   (statement := /--
@@ -969,21 +972,7 @@ attribute [blueprint
     and $b \mid n$. For such a factorization, $x^k \mid mn$ is equivalent to $a^k \mid m$ and
     $b^k \mid n$, again by coprimality.
   -/)]
-lemma pow_divisors_mul {m n k : ℕ} (hmn : Nat.Coprime m n) :
-    (m * n).divisors.filter (fun x => x ^ k ∣ m * n) =
-    (m.divisors.filter (fun x => x ^ k ∣ m) ×ˢ n.divisors.filter (fun x => x ^ k ∣ n)).image
-      (fun p => p.1 * p.2) := by
-  ext x
-  simp only [mem_image, mem_product, mem_filter, mem_divisors, ne_eq, Prod.exists]
-  constructor
-  · intro hx
-    obtain ⟨a, b, ha, hb, hab⟩ : ∃ a b : ℕ, a ∣ m ∧ b ∣ n ∧ a * b = x := Nat.dvd_mul.mp hx.1.1
-    simp only [mul_eq_zero, not_or, ← hab, mul_pow] at hx
-    exact ⟨a, b, ⟨⟨⟨⟨ha, hx.1.2.1⟩, (hmn.coprime_dvd_left ha).pow_left k |>.dvd_of_dvd_mul_right (dvd_trans (dvd_mul_right _ _) hx.2)⟩,
-      ⟨⟨hb, hx.1.2.2⟩, (hmn.symm.coprime_dvd_left hb).pow_left k |>.dvd_of_dvd_mul_left (dvd_trans (dvd_mul_left _ _) hx.2)⟩⟩, hab⟩⟩
-  · intro ⟨a, b, hab⟩
-    rw[← hab.2, mul_pow]
-    exact ⟨⟨Nat.mul_dvd_mul hab.1.1.1.1 hab.1.2.1.1, Nat.mul_ne_zero_iff.mpr ⟨hab.1.1.1.2, hab.1.2.1.2⟩⟩, mul_dvd_mul hab.1.1.2 hab.1.2.2⟩
+  Nat.Coprime.divisors_filter_pow_dvd_mul
 
 blueprint_comment /--
 For coprime natural numbers the product map is injective on the product of their divisor sets.
@@ -1003,61 +992,45 @@ attribute [blueprint
   -/)]
   Nat.Coprime.mul_injOn_divisors
 
-@[blueprint
-  "sum_moebius_sq_divisors"
-  (title := "sum-moebius-sq-divisors")
-  (statement := /-- The function $n \mapsto \sum_{d^2|n} \mu(d)$. -/)]
-noncomputable def sum_moebius_sq_divisors : ArithmeticFunction ℤ where
-  toFun := fun n ↦ ∑ d ∈ n.divisors.filter (fun x => x ^ 2 ∣ n), μ d
-  map_zero' := by simp
+blueprint_comment /--
+The function $n \mapsto \sum_{d^2 \mid n} \mu(d)$ is the Dirichlet convolution $\zeta * \mu_\square$
+of $\zeta$ with the dilation $\mu_\square$ of $\mu$ by squares ($\mu_\square(d^2) = \mu(d)$, and
+$\mu_\square(m) = 0$ when $m$ is not a square). The nodes below are Tau Ceti's lemmas about it.
+-/
 
-@[blueprint
+attribute [blueprint
   "sum_moebius_sq_divisors_apply"
   (title := "sum-moebius-sq-divisors-apply")
-  (statement := /-- A simple helper lemma for the above definition. -/)]
-lemma sum_moebius_sq_divisors_apply (n : ℕ) :
-  sum_moebius_sq_divisors n = ∑ d ∈ n.divisors.filter (fun x => x ^ 2 ∣ n), μ d := by rfl
+  (statement := /--
+    For arithmetic functions $f$ and $g$,
+    $(f * g_\square)(n) = \sum_{d \mid n,\ d^2 \mid n} f(n/d^2)\, g(d)$. With $f = \zeta$ and
+    $g = \mu$ this is $\sum_{d^2 \mid n} \mu(d)$.
+  -/)]
+  ArithmeticFunction.mul_dilateSq_apply
 
-@[blueprint
+attribute [blueprint
   "sum_moebius_sq_divisors_IsMultiplicative"
   (title := "sum-moebius-sq-divisors-is-multiplicative")
-  (statement := /-- The function $n \mapsto \sum_{d^2|n} \mu(d)$ is multiplicative. -/)
+  (statement := /--
+    For a multiplicative function $f$ and fixed $k$, the function
+    $n \mapsto \sum_{d \mid n,\ d^k \mid n} f(d)$ is multiplicative; in particular so is
+    $n \mapsto \sum_{d^2|n} \mu(d)$.
+  -/)
   (proof := /--
     We will show that for coprime $m$ and $n$, we have
-    $\sum_{d^2|mn} \mu(d) = \sum_{d^2|m} \mu(d) \cdot \sum_{d^2|n} \mu(d)$. This follows from
-    Lemma \ref{pow_divisors_mul}: the divisors $d$ of $mn$ with $d^2 \mid mn$ factor uniquely as
-    $d=ab$ with $a^2 \mid m$ and $b^2 \mid n$. Multiplicativity of $\mu$ then factors the sum.
+    $\sum_{d^k|mn} f(d) = \sum_{d^k|m} f(d) \cdot \sum_{d^k|n} f(d)$. This follows from
+    Lemma \ref{pow_divisors_mul}: the divisors $d$ of $mn$ with $d^k \mid mn$ factor uniquely as
+    $d=ab$ with $a^k \mid m$ and $b^k \mid n$. Multiplicativity of $f$ then factors the sum.
   -/)]
-lemma sum_moebius_sq_divisors_IsMultiplicative : sum_moebius_sq_divisors.IsMultiplicative := by
-  unfold sum_moebius_sq_divisors
-  refine ⟨by simp only [sum_filter, coe_mk, divisors_one, dvd_one, pow_eq_one_iff,
-    OfNat.ofNat_ne_zero, or_false, sum_ite_eq', mem_singleton, ↓reduceIte, isUnit_iff_eq_one,
-    IsUnit.squarefree, moebius_apply_of_squarefree, Int.reduceNeg, cardFactors_one, pow_zero], ?_⟩
-  intro m n mCn
-  have hinj : Set.InjOn (fun p : ℕ × ℕ => p.1 * p.2)
-      (m.divisors.filter (fun x => x ^ 2 ∣ m) ×ˢ n.divisors.filter (fun x => x ^ 2 ∣ n)) := by
-    apply Set.InjOn.mono _ (by simpa only [Finset.coe_product] using mCn.mul_injOn_divisors)
-    intro ⟨_, _⟩ hab
-    simp only [Finset.coe_filter, Set.mem_prod, Set.mem_ofPred_eq, Finset.mem_coe] at hab ⊢
-    exact ⟨hab.1.1, hab.2.1⟩
-  simp only [coe_mk, pow_divisors_mul mCn, Finset.sum_product,
-    Finset.sum_image (fun x hx y hy => hinj
-      (Finset.coe_product _ _ ▸ Finset.mem_coe.mpr hx)
-      (Finset.coe_product _ _ ▸ Finset.mem_coe.mpr hy))]
-  trans (∑ i ∈ m.divisors.filter (fun x => x ^ 2 ∣ m), ∑ j ∈ n.divisors.filter (fun x => x ^ 2 ∣ n), μ i * μ j)
-  · apply Finset.sum_congr rfl
-    intro _ hi
-    apply Finset.sum_congr rfl
-    intro _ hj
-    exact isMultiplicative_moebius.map_mul_of_coprime
-      (mCn.coprime_dvd_left (Nat.dvd_of_mem_divisors (Finset.filter_subset _ _ hi))
-        |>.coprime_dvd_right (Nat.dvd_of_mem_divisors (Finset.filter_subset _ _ hj)))
-  · rw [← Finset.sum_mul_sum]
+  ArithmeticFunction.IsMultiplicative.sum_divisors_filter_pow_dvd_mul
 
-@[blueprint
+attribute [blueprint
   "sum_moebius_sq_divisors_apply_prime_pow"
   (title := "sum-moebius-sq-divisors-apply-prime-pow")
-  (statement := /-- Applied at prime powers, sum-moebius-sq-divisors coincides with $\mu^2$. -/)
+  (statement := /--
+    At a prime power, $\sum_{d^2 \mid p^k} \mu(d)$ is $1$ for $k \le 1$ and $0$ for $k \ge 2$;
+    this is $\mu(p^k)^2$.
+  -/)
   (proof := /--
     For a prime power $p^k$, note that if $k\leq 1$ then the only square divisor is $1$, so the sum
     evaluates as $\mu(1)=1$. If $k\geq 2$, then $1$ and $p^2$ are square divisors of $p^k$. Thus,
@@ -1066,35 +1039,26 @@ lemma sum_moebius_sq_divisors_IsMultiplicative : sum_moebius_sq_divisors.IsMulti
     $0$. This agrees with $\mu(p^k)^2$, which is simply an indicator function for $k\leq 1$ (i.e.
     $p^k$ is squarefree).
   -/)]
-lemma sum_moebius_sq_divisors_apply_prime_pow {p k : ℕ} (hp : Nat.Prime p) :
-  sum_moebius_sq_divisors (p ^ k) = (μ (p ^ k)) ^ 2 := by
-  rw [sum_moebius_sq_divisors_apply, Finset.sum_filter, Nat.sum_divisors_prime_pow hp]
-  rcases k with _ | _ | k
-  · simp
-  · have hsq : ¬ p ^ 2 ∣ p := by
-      simpa only [pow_one] using
-        (not_congr (Nat.pow_dvd_pow_iff_le_right hp.one_lt (k := 2) (l := 1))).mpr (by omega)
-    simp [Finset.sum_range_succ, moebius_apply_prime hp, hsq]
-  · rw [Finset.sum_range_succ', Finset.sum_range_succ']
-    simp [moebius_apply_prime_pow, moebius_apply_prime hp, hp, ← pow_mul,
-      Nat.pow_dvd_pow_iff_le_right hp.one_lt]
+  ArithmeticFunction.sum_divisors_filter_sq_dvd_moebius_prime_pow
 
-/-- I-K (1.33): `μ^2(n) = ∑ d^2|n μ(d)`. -/
-@[blueprint
+attribute [blueprint
   "moebius_sq_eq"
   (title := "moebius-sq-eq")
   (statement := /-- I-K (1.33): $\mu^2(n) = \sum_{d^2|n} \mu(d)$. -/)
   (proof := /-- Apply the previous two lemmas. -/)]
-lemma moebius_sq_eq (n : ℕ) : (μ n) ^ 2 = ∑ d ∈ n.divisors.filter (fun x => x ^ 2 ∣ n), μ d := by
-  have heq := (IsMultiplicative.eq_iff_eq_on_prime_powers
-    sum_moebius_sq_divisors sum_moebius_sq_divisors_IsMultiplicative
-    ((μ : ArithmeticFunction ℤ).ppow 2) isMultiplicative_moebius.ppow).mpr
-    (fun p k hp => by
-      simpa only [ppow_apply (by decide : 0 < 2)] using
-        sum_moebius_sq_divisors_apply_prime_pow (k := k) hp)
-  simpa only [sum_moebius_sq_divisors_apply, ppow_apply (by decide : 0 < 2)] using
-    congrArg (fun f : ArithmeticFunction ℤ => f n) heq.symm
+  ArithmeticFunction.sum_divisors_filter_sq_dvd_moebius
 
+attribute [blueprint
+  "sum_moebius_sq_divisors"
+  (title := "sum-moebius-sq-divisors")
+  (statement := /--
+    $\mu^2 = \zeta * \mu_\square$: the function $n \mapsto \sum_{d^2|n} \mu(d)$ is $\mu^2$.
+  -/)
+  (proof := /--
+    Lemma \ref{sum_moebius_sq_divisors_apply} with $f = \zeta$ and $g = \mu$, then
+    Lemma \ref{moebius_sq_eq}.
+  -/)]
+  ArithmeticFunction.coe_zeta_mul_dilateSq_moebius_apply
 
 blueprint_comment /--
 The Liouville function is Mathlib's canonical `ArithmeticFunction.liouville`, equal to
